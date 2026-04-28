@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "KickClip",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "KickClip: save URLs and images with Cmd+Shift+S",
   "icons": {
     "16": "assets/icons/icon_16.png",
@@ -10,7 +10,6 @@
     "128": "assets/icons/icon_128.png"
   },
   "permissions": [
-    "activeTab",
     "storage",
     "downloads",
     "scripting",
@@ -23,18 +22,6 @@
     "cookies"
   ],
   "host_permissions": [
-    "https://api-hn4mxotviq-du.a.run.app/*",
-    "https://www.instagram.com/*",
-    "https://*.cdninstagram.com/*",
-    "https://*.fbcdn.net/*",
-    "https://www.googleapis.com/*",
-    "https://mail.naver.com/*",
-    "https://*.naver.com/*",
-    "https://www.youtube.com/*",
-    "https://youtube.com/*",
-    "https://m.youtube.com/*",
-    "https://youtu.be/*",
-    "https://img.youtube.com/*",
     "<all_urls>"
   ],
   "content_scripts": [
