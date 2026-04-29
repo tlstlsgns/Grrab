@@ -2061,14 +2061,11 @@ async function saveActiveCoreItem(request = {}) {
         (async () => {
           try {
             const clipboardResult = await pageClipboardPromise;
-            const saveSuccess = isSignedIn() && saveShutterStatus === 'success';
             const message = buildToastMessage(
               pageCategory || '',
-              pageConfirmedType || '',
-              !!clipboardResult?.success,
-              saveSuccess
+              !!clipboardResult?.success
             );
-            showCopyToast(message);
+            showFullpageToast(message, 'result');
           } catch (_) { /* silent */ }
         })();
       }
@@ -2572,16 +2569,6 @@ async function dataUrlToPngBlob(dataUrl) {
 }
 
 /**
- * Display the per-clip result message. Routes through the unified
- * fullpage toast system so it shares the DOM element with the entry
- * toast — preventing the previous stacked-toast overlap. Marked
- * 'result' so the highlight-hide callback won't kill it early.
- */
-function showCopyToast(message) {
-  showFullpageToast(message, 'result');
-}
-
-/**
  * Perform clipboard copy based on category. Returns success/fail info without
  * showing any Toast. Toast display is handled separately by the caller after
  * combining with save result.
@@ -2617,39 +2604,24 @@ async function performClipboardCopy(category, url, rootElementForDominant) {
 }
 
 /**
- * Build the per-clip result message in the unified "clip/clipped"
- * terminology. "Clip" covers clipboard copy alone (signed-out) and
- * clipboard copy + save (signed-in) — the user-facing wording stays
- * identical regardless of signed-in state.
+ * Build the FullPage clip result message in the unified
+ * "clip/clipped" terminology. Called only from the FullPage clip
+ * path — CoreItem clips render their result on the per-item
+ * status_badge directly via setCoreStatusBadgeText (Phase 10b).
  *
  * Matrix:
- *   copy ✓  → "{subject} clipped"
- *   copy ✗  → "Clip failed"
+ *   copy ✓, category 'Mail'             → "Mail URL clipped"
+ *   copy ✓, category 'Page' / 'SNS' / *  → "Page URL clipped"
+ *   copy ✗ (any category)               → "Clip failed"
  *
- * `saveSuccess` is currently unused for wording (signed-in/-out are
- * indistinguishable in the message) but kept in the signature for
- * call-site compatibility — Phase 10c may remove it.
- *
- * Subject per category:
- *   Image      → "Image"
- *   SNS        → confirmedType value (e.g., "contents", "post"), default "post"
- *   Mail       → "Mail URL"
- *   Page/other → "Page URL"
+ * Note: category 'Image' is unreachable here — Image is only set for
+ * CoreItem Image targets, which take the status_badge path, not this
+ * function. Default branch covers it defensively.
  */
-function buildToastMessage(category, confirmedType, copySuccess, saveSuccess) {
+function buildToastMessage(category, copySuccess) {
   if (!copySuccess) return 'Clip failed';
-
-  let subject;
-  if (category === 'Image') {
-    subject = 'Image';
-  } else if (category === 'SNS') {
-    subject = String(confirmedType || '').trim() || 'post';
-  } else if (category === 'Mail') {
-    subject = 'Mail URL';
-  } else {
-    subject = 'Page URL';
-  }
-  return `${subject} clipped`;
+  if (category === 'Mail') return 'Mail URL clipped';
+  return 'Page URL clipped';
 }
 
 function mountSaveMessageListener() {
@@ -2684,7 +2656,7 @@ function mountSaveMessageListener() {
             initPageLevelMetadata();
           }
           // UI re-trigger removed: saved-urls-updated should sync data only.
-          // Save feedback is already handled by showCopyToast in save paths.
+          // Save feedback is handled directly in save paths.
         } catch (e) {}
       });
       return false;
