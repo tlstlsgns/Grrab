@@ -1829,6 +1829,44 @@ async function saveActiveCoreItem(request = {}) {
       const youtubeShortcode = extractYouTubeShortcodeFromUrl(url);
       const youtubeThumbnailUrl = youtubeShortcode ? getYouTubeThumbnailUrl(youtubeShortcode) : '';
       const isYouTubeSave = !!youtubeThumbnailUrl;
+      // Generate tempId for end-to-end matching: Optimistic Card ↔ Firestore doc
+      // Only generated in top-level frame (iframes skip Optimistic Card dispatch).
+      const tempId = window.self === window.top
+        ? `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+        : '';
+
+      // EARLY OPTIMISTIC CARD (Phase 12b)
+      //
+      // Fire the optimistic-card now, before screenshot capture or any
+      // other async work. This decouples card-appearance latency from
+      // capture latency and prevents the heavy base64 dataUrl from racing
+      // in IPC against subsequent rapid clips.
+      //
+      // imgUrl is empty for non-YouTube saves; the actual screenshot
+      // arrives via a follow-up `optimistic-card-image-ready` message
+      // once capturePageScreenshotRaw resolves below.
+      //
+      // YouTube saves get the thumbnail URL inline since it's just a
+      // short string already known at this point — no follow-up needed.
+      if (window.self === window.top && isSignedIn()) {
+        try {
+          const earlyImgUrl = isYouTubeSave ? youtubeThumbnailUrl : '';
+          chrome.runtime.sendMessage({
+            action:             'optimistic-card',
+            tempId,
+            url,
+            title:              title || url,
+            imgUrl:             earlyImgUrl,
+            isScreenshot:       !isYouTubeSave,
+            category:           String(state.lastExtractedMetadata?.category      || '').trim(),
+            platform:           String(state.lastExtractedMetadata?.platform      || '').trim(),
+            confirmedType:      String(state.lastExtractedMetadata?.confirmedType || '').trim(),
+            sender:             String(state.lastExtractedMetadata?.category === 'Mail' ? extractPageMailSender() : '').trim(),
+            img_url_method:     isYouTubeSave ? 'youtube-thumbnail' : 'screenshot',
+            createdAt:          Date.now(),
+          });
+        } catch { /* Side Panel may not be open — silently ignore */ }
+      }
 
       // Stage 1: raw screenshot capture (non-YouTube only) — blocking just for
       // the chrome.tabs.captureVisibleTab call, not for post-processing.
@@ -1838,6 +1876,25 @@ async function saveActiveCoreItem(request = {}) {
         if (rawResult?.rawDataUrl) {
           rawScreenshotDataUrl = rawResult.rawDataUrl;
         }
+      }
+
+      // Now that the raw screenshot is captured (non-YouTube case), send
+      // the image-ready follow-up so the optimistic card stops looking
+      // blank. YouTube saves already painted the thumbnail in the early
+      // dispatch — nothing more to do.
+      if (
+        window.self === window.top &&
+        isSignedIn() &&
+        !isYouTubeSave &&
+        rawScreenshotDataUrl
+      ) {
+        try {
+          chrome.runtime.sendMessage({
+            action: 'optimistic-card-image-ready',
+            tempId,
+            imgUrl: rawScreenshotDataUrl,
+          });
+        } catch { /* Side Panel may not be open — silently ignore */ }
       }
 
       // Capture is done. Restore the fullpage overlay + status badge right now,
@@ -1927,36 +1984,6 @@ async function saveActiveCoreItem(request = {}) {
       const pageClipboardPromise = (window.self === window.top)
         ? performClipboardCopy(pageCategory || '', url, document.body)
         : Promise.resolve({ success: false });
-
-      // Generate tempId for end-to-end matching: Optimistic Card ↔ Firestore doc
-      // Only generated in top-level frame (iframes skip Optimistic Card dispatch).
-      const tempId = window.self === window.top
-        ? `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-        : '';
-
-      // Optimistic UI: notify Side Panel to show a temporary card immediately
-      // Skip if running inside an iframe — only the top-level frame should create optimistic cards
-      // Uses raw screenshot dataUrl (Stage 1) — Stage 2 post-processing runs in parallel
-      // and is used for the final payload to server.
-      if (window.self === window.top && isSignedIn()) {
-        try {
-          chrome.runtime.sendMessage({
-            action:             'optimistic-card',
-            tempId,
-            url,
-            title:              title || url,
-            imgUrl:             isYouTubeSave ? youtubeThumbnailUrl : (rawScreenshotDataUrl || ''),
-            isScreenshot:       !isYouTubeSave && !!rawScreenshotDataUrl,
-            category:           pageCategory || '',
-            platform:           pagePlatform || '',
-            confirmedType:      pageConfirmedType || '',
-            sender:             pageSender || '',
-            page_description:   pageDescription || '',
-            img_url_method:     isYouTubeSave ? 'youtube-thumbnail' : 'screenshot',
-            createdAt:           Date.now(),
-          });
-        } catch { /* Side Panel may not be open — silently ignore */ }
-      }
 
       // Immediately update _savedUrlSet before shutter so checkIsSavedSync() returns true
       // even if saved-urls-updated arrives before fetch completes.
