@@ -8,6 +8,12 @@ let _shortcutPollBaseline = null;
 let _savedUrlsCache = [];
 let _cachedUserId = null; // cached login state for synchronous access in onCommand
 
+// Enable side panel toggle on toolbar icon click.
+// Chrome 116+ automatically opens/closes the side panel on action click.
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error('Failed to set side panel behavior:', error));
+
 // Restore persisted saved-URLs cache so the first get-saved-urls call
 // after a Service Worker restart returns real data instead of [].
 // Migrate old blinkSavedUrls → kickclipSavedUrls if needed
