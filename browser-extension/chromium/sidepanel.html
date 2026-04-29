@@ -586,8 +586,7 @@
 
     /* ── Card styles ── */
     .card-container { width: 100%; flex-shrink: 0; box-sizing: border-box; min-width: 0; }
-    .card-container.image_card,
-    .card-container.video_card { width: calc(33.333% - 2px); }
+    .card-container.image_card { width: calc(33.333% - 2px); }
     .card-container.mail_card { width: 100%; }
     .card-wrapper {
       position: relative;
@@ -676,13 +675,6 @@
       justify-content: flex-start;
       flex: 1;
     }
-    .data-card-imgcontainer.is-favicon {
-      border-radius: 50%;
-      background-color: #f0f0f0;
-      width: 20px;
-      height: 20px;
-      min-height: 20px;
-    }
     /* Placeholder shown when image proxy is unavailable or image fails to load */
     .data-card-imgcontainer.img-placeholder {
       background: var(--bg-primary);
@@ -702,58 +694,27 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: top left;
+      object-position: center;
       display: block;
     }
 
-    /* Image / Video cards: 120px height, centered */
-    .card-container.image_card .data-card-imgcontainer,
-    .card-container.video_card .data-card-imgcontainer {
+    /* Image cards: centered */
+    .card-container.image_card .data-card-imgcontainer {
       align-items: center;
       justify-content: center;
     }
 
-    .card-container.image_card .data-card-image,
-    .card-container.video_card .data-card-image {
+    .card-container.image_card .data-card-image {
       object-position: center;
     }
 
-    /* Pages card: bottom fade-out gradient on image */
-    .card-container.pages_card .data-card-imgcontainer {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .card-container.pages_card .data-card-imgcontainer::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 50%;
-      background: linear-gradient(to bottom, transparent, white);
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    /* Pages card: image fills container width, natural height (top-aligned, overflow hidden) */
-    .card-container.pages_card .data-card-imgcontainer .data-card-image {
-      width: 100%;
-      height: auto;
-      object-fit: unset;
-      object-position: unset;
-      display: block;
-    }
-
-    /* ── Portrait-extracted card: horizontal flow ── */
-
-    /* .data-card overrides to row direction */
-    .card-container.portrait_extracted_card .data-card {
+    /* ── pages_card: default (portrait) layout — horizontal flow ── */
+    .card-container.pages_card .data-card {
       flex-direction: row;
     }
 
-    /* imgcontainer--row: fills parent height, width = height × 1.33 */
-    .card-container.portrait_extracted_card .data-card-imgcontainer--row {
+    /* imgcontainer: fixed 4:3 aspect, fills card height */
+    .card-container.pages_card .data-card-imgcontainer {
       height: 100%;
       width: auto;
       aspect-ratio: 4 / 3;
@@ -764,53 +725,21 @@
       flex: none;
     }
 
-    /* img fills the container */
-    .card-container.portrait_extracted_card .data-card-image--square {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      border-radius: 0;
-    }
-
-    /* screenshot: top-left aligned, fills container (default behaviour) */
-    .card-container.portrait_extracted_card .data-card-image--screenshot {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      object-position: top left;
-    }
-
-    /* extracted: centered, fills width */
-    .card-container.portrait_extracted_card .data-card-image--extracted {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      object-position: center;
-    }
-
-    /* youtube-thumbnail: centered, fills width (same as extracted) */
-    .card-container.portrait_extracted_card .data-card-image--youtube-thumbnail {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-      object-position: center;
-    }
-
-    /* favicon: centered, fills height, natural width */
-    .card-container.portrait_extracted_card .data-card-image--favicon {
+    /* favicon variant: image is contain-fit, natural width, centered */
+    .card-container.pages_card .data-card-imgcontainer.is-favicon .data-card-image {
       width: auto;
       height: 100%;
-      display: block;
       object-fit: contain;
       margin: 0 auto;
     }
 
+    /* screenshot variant: image is anchored top-left so headers stay visible */
+    .card-container.pages_card .data-card-image.is-screenshot {
+      object-position: top left;
+    }
+
     /* data-card-main fills remaining horizontal space */
-    .card-container.portrait_extracted_card .data-card-main {
+    .card-container.pages_card .data-card-main {
       display: flex;
       flex-direction: column;
       flex: 1;
@@ -821,7 +750,7 @@
     }
 
     /* data-card-info: title + description stacked */
-    .card-container.portrait_extracted_card .data-card-info {
+    .card-container.pages_card .data-card-info {
       display: flex;
       flex-direction: column;
       gap: 2px;
@@ -832,7 +761,7 @@
     }
 
     /* title — single line with ellipsis */
-    .card-container.portrait_extracted_card .data-card-extracted-title {
+    .card-container.pages_card .data-card-extracted-title {
       font-family: 'Roboto', sans-serif;
       font-size: 11px;
       font-weight: 600;
@@ -846,7 +775,7 @@
     }
 
     /* description */
-    .card-container.portrait_extracted_card .data-card-extracted-description {
+    .card-container.pages_card .data-card-extracted-description {
       font-family: 'Roboto', sans-serif;
       font-size: 10px;
       font-weight: 400;
@@ -858,11 +787,6 @@
       -webkit-box-orient: vertical;
       width: 100%;
       min-width: 0;
-    }
-
-    /* Suppress the pages_card gradient overlay on portrait-extracted cards */
-    .card-container.portrait_extracted_card .data-card-imgcontainer--row::after {
-      display: none;
     }
 
     /* Text content */

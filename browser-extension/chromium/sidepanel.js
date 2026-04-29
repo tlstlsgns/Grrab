@@ -890,6 +890,18 @@ function getTypeIconSVG(type) {
 }
 
 // ── Card creation (main.html CSS-compatible structure) ────────────────────────
+/**
+ * Resolve which canonical layout a card should use.
+ * Returns one of: 'image' | 'mail' | 'default'.
+ */
+function getCardLayoutKind(item) {
+  const { category, confirmedType } = normalizeItemCategoryAndType(item);
+  if (category === 'Mail') return 'mail';
+  if (category === 'Image') return 'image';
+  if (category === 'SNS' && confirmedType === 'contents') return 'image';
+  return 'default';
+}
+
 function createDataCard(item) {
   const itemId       = item.id || getItemId(item);
   const cardId       = `item-${itemId.replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -899,15 +911,8 @@ function createDataCard(item) {
   const escapedTitle = displayTitle.replace(/"/g, '&quot;');
   const imgUrl       = (item.img_url || '').trim();
   const escapedImgUrl = imgUrl.replace(/"/g, '&quot;');
-  const confirmedType = (item.confirmed_type || item.confirmedType || '').trim();
   const pageDescription = String(item.page_description || '');
-  const imgUrlMethod = String(item.img_url_method || '');
   const directoryId  = item.directoryId && item.directoryId !== 'undefined' ? item.directoryId : '';
-
-  // Horizontal layout is used for Page-category items (new schema: 'Page';
-  // also legacy 'Contents'+'Video' which normalizes to 'Page').
-  const { category: normalizedCategoryForLayout } = normalizeItemCategoryAndType(item);
-  const usePortraitExtractedLayout = normalizedCategoryForLayout === 'Page';
 
   // ── Mail card: full-width layout with favicon + sender + title ───────────
   const isMail = (item.category || '').trim() === 'Mail';
@@ -1004,6 +1009,66 @@ function createDataCard(item) {
       </div>
     </div>`;
 
+  const layoutKind = getCardLayoutKind(item);
+  const imgUrlMethod = String(item.img_url_method || '');
+  const imgClassExtra = imgUrlMethod === 'screenshot' ? ' is-screenshot' : '';
+  const containerClassExtra = imgUrlMethod === 'favicon' ? ' is-favicon' : '';
+  const escContext = (s) =>
+    String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  const contextHtml = (() => {
+    if (layoutKind === 'image') {
+      const plat = (item.platform || '').trim();
+      return plat
+        ? `<span class="data-card-content-type">${escContext(plat)}</span>`
+        : '';
+    }
+    const urlText = (item.url || '').trim().replace(/^https?:\/\//, '');
+    return urlText
+      ? `<span class="data-card-url">${escContext(urlText)}</span>`
+      : '';
+  })();
+  const headerHtml = `
+    <div class="data-card-header">
+      <div class="data-card-context">${contextHtml}</div>
+      ${uploadBtn}
+      ${deleteBtn}
+    </div>`;
+
+  if (layoutKind === 'image') {
+    const imgcontainerHtml = imgUrl ? `
+      <div class="data-card-imgcontainer${containerClassExtra}">
+        <img src="${getProxiedImageUrl(imgUrl)}" alt="${escapedTitle}" class="data-card-image${imgClassExtra}">
+      </div>` : '';
+
+    return `
+      <div id="${cardId}"
+           class="data-card"
+           data-url="${escapedUrl}"
+           data-title="${escapedTitle}"
+           data-type="${type}"
+           data-img-url="${escapedImgUrl}"
+           data-item-id="${itemId}"
+           data-doc-id="${item.id || ''}"
+           data-directory-id="${directoryId}">
+        ${headerHtml}
+        <div class="data-card-main">${imgcontainerHtml}</div>
+      </div>`;
+  }
+
+  const escInfo = (s) =>
+    String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  const imgcontainerHtml = imgUrl ? `
+    <div class="data-card-imgcontainer${containerClassExtra}">
+      <img src="${getProxiedImageUrl(imgUrl)}" alt="${escapedTitle}" class="data-card-image${imgClassExtra}">
+    </div>` : '';
+
   return `
     <div id="${cardId}"
          class="data-card"
@@ -1014,59 +1079,14 @@ function createDataCard(item) {
          data-item-id="${itemId}"
          data-doc-id="${item.id || ''}"
          data-directory-id="${directoryId}">
-      <!-- Main: portrait-extracted = image above main, header+info inside main -->
-      ${usePortraitExtractedLayout && imgUrl ? `
-      <div class="data-card-imgcontainer data-card-imgcontainer--row">
-        <img src="${getProxiedImageUrl(imgUrl)}" alt="${escapedTitle}" class="data-card-image--${imgUrlMethod || 'screenshot'}">
-      </div>
+      ${imgcontainerHtml}
       <div class="data-card-main">
-        <div class="data-card-header">
-          <div class="data-card-context">
-            ${(() => {
-              const esc = (s) => String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-              const url = (item.url || '').trim().replace(/^https?:\/\//, '');
-              return url ? `<span class="data-card-url">${esc(url)}</span>` : '';
-            })()}
-          </div>
-          ${uploadBtn}
-          ${deleteBtn}
-        </div>
+        ${headerHtml}
         <div class="data-card-info">
-          <div class="data-card-extracted-title">${displayTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-          <div class="data-card-extracted-description">${pageDescription.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+          <div class="data-card-extracted-title">${escInfo(displayTitle)}</div>
+          <div class="data-card-extracted-description">${escInfo(pageDescription)}</div>
         </div>
-      </div>` : `
-      <div class="data-card-header">
-        <div class="data-card-context">
-          ${(() => {
-            const esc = (s) => String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-            const normalizedForContent = normalizeItemCategoryAndType(item);
-            // A "content card" shows platform name instead of URL in the header.
-            // This applies to: new-schema Image category, SNS+contents (media-rich SNS posts),
-            // and legacy Contents+Image/Video items (which map to Image/Page respectively).
-            const isContentCard =
-              normalizedForContent.category === 'Image' ||
-              (normalizedForContent.category === 'SNS' && normalizedForContent.confirmedType === 'contents');
-            if (isContentCard) {
-              const plat = (item.platform || '').trim();
-              if (!plat) return '';
-              return `<span class="data-card-content-type">${esc(plat)}</span>`;
-            } else {
-              const url = (item.url || '').trim().replace(/^https?:\/\//, '');
-              if (!url) return '';
-              return `<span class="data-card-url">${esc(url)}</span>`;
-            }
-          })()}
-        </div>
-        ${uploadBtn}
-        ${deleteBtn}
       </div>
-      <div class="data-card-main">
-        ${imgUrl ? `
-        <div class="data-card-imgcontainer">
-          <img src="${getProxiedImageUrl(imgUrl)}" alt="${escapedTitle}" class="data-card-image">
-        </div>` : ''}
-      </div>`}
     </div>`;
 }
 
@@ -1095,37 +1115,12 @@ function createCardElement(item, isNew = false) {
 
   const container = document.createElement('div');
   container.className = 'card-container';
-  // Use normalized category AND confirmedType so that SNS items split between
-  // grid-style (contents, has dominant media) and full-width (post, text-only).
-  const {
-    category: normalizedContainerCategory,
-    confirmedType: normalizedContainerConfirmedType,
-  } = normalizeItemCategoryAndType(item);
-
-  // Image category → grid (image_card).
-  // SNS + contents → grid (image_card), same as Image.
-  // SNS + post → full-width (pages_card), same as Page.
-  // Mail → full-width mail_card.
-  // Page / anything else → pages_card (default).
-  if (normalizedContainerCategory === 'Image') {
-    container.classList.add('image_card');
-  } else if (normalizedContainerCategory === 'SNS') {
-    if (normalizedContainerConfirmedType === 'contents') {
-      container.classList.add('image_card');
-    } else {
-      container.classList.add('pages_card');
-    }
-  } else if (normalizedContainerCategory === 'Mail') {
-    container.classList.add('mail_card');
-  } else {
-    container.classList.add('pages_card');
-  }
-
-  // Page-category items use the horizontal portrait layout.
-  // SNS items (both contents and post) do NOT use portrait layout.
-  if (normalizedContainerCategory === 'Page') {
-    container.classList.add('portrait_extracted_card');
-  }
+  const layoutKind = getCardLayoutKind(item);
+  const containerClass =
+    layoutKind === 'image' ? 'image_card' :
+    layoutKind === 'mail'  ? 'mail_card'  :
+                             'pages_card';
+  container.classList.add(containerClass);
 
   if (isNew) {
     container.style.height   = '0px';
@@ -1295,6 +1290,7 @@ function addOptimisticCard({ tempId, url, title, imgUrl, isScreenshot: isScreens
     url,
     title,
     imgUrl,
+    imgUrlMethod: imgUrlMethod || '',
     cardContainer: container,
   });
 
@@ -1331,7 +1327,7 @@ function removeOptimisticCard(tempId) {
  * Handles three sub-cases idempotently:
  *   1. Card present, has <img> → swap `src`.
  *   2. Card present, no imgcontainer (created with imgUrl='') →
- *      create the imgcontainer + img, append into .data-card-main.
+ *      create the imgcontainer + img at layout-correct position.
  *   3. Card absent from optimisticCards map (promoted to real card,
  *      or never created) → silently no-op. Server-side reconcile
  *      via saved-urls-updated will end up using the Firestore
@@ -1360,18 +1356,30 @@ function applyOptimisticCardImage(tempId, imgUrl) {
     return;
   }
 
-  // case 2: build the imgcontainer
+  // case 2: build the imgcontainer at the layout-correct position
   const main = card.querySelector('.data-card-main');
   if (!main) return;
 
+  // Determine layout from the container class.
+  const cardContainer = card.closest('.card-container');
+  const isImageLayout = cardContainer?.classList.contains('image_card');
+
   const wrapper = document.createElement('div');
   wrapper.className = 'data-card-imgcontainer';
+  if (entry.imgUrlMethod === 'favicon') wrapper.classList.add('is-favicon');
   const newImg = document.createElement('img');
   newImg.className = 'data-card-image';
+  if (entry.imgUrlMethod === 'screenshot') newImg.classList.add('is-screenshot');
   newImg.alt = String(entry.title || '');
   newImg.src = getProxiedImageUrl(imgUrl);
   wrapper.appendChild(newImg);
-  main.appendChild(wrapper);
+  if (isImageLayout) {
+    // Image layout: imgcontainer goes INSIDE data-card-main
+    main.appendChild(wrapper);
+  } else {
+    // Default layout: imgcontainer goes as a sibling, BEFORE data-card-main
+    main.parentNode?.insertBefore(wrapper, main);
+  }
 
   // Reflect on the card's dataset so loadData() comparisons work.
   card.dataset.imgUrl = imgUrl;
@@ -2690,14 +2698,23 @@ function loadData() {
             // server URL directly.
             const main = existingCard.querySelector('.data-card-main');
             if (main) {
+              const cardContainer = existingCard.closest('.card-container');
+              const isImageLayout = cardContainer?.classList.contains('image_card');
+              const method = String(item.img_url_method || '');
               const wrapper = document.createElement('div');
               wrapper.className = 'data-card-imgcontainer';
+              if (method === 'favicon') wrapper.classList.add('is-favicon');
               const newImg = document.createElement('img');
               newImg.className = 'data-card-image';
+              if (method === 'screenshot') newImg.classList.add('is-screenshot');
               newImg.alt = String(item.title || 'Untitled');
               newImg.src = getProxiedImageUrl(item.img_url);
               wrapper.appendChild(newImg);
-              main.appendChild(wrapper);
+              if (isImageLayout) {
+                main.appendChild(wrapper);
+              } else {
+                main.parentNode?.insertBefore(wrapper, main);
+              }
             }
           }
           // else: visible img already present (current pre-12b flow OR
