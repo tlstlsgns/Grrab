@@ -8,7 +8,6 @@ import { BRAND } from './brandConfig.js';
 
 const PURPLE_OVERLAY_ID = 'kickclip-highlight-overlay';
 const FULLPAGE_OVERLAY_ID = 'kickclip-fullpage-highlight-overlay';
-const PAGE_BADGE_ID = 'kickclip-status-badge-page';
 const CORE_BADGE_ID = 'kickclip-status-badge-core';
 
 // ── Debug flag ────────────────────────────────────────────────────────────
@@ -22,8 +21,12 @@ let _activeCoreHighlightItem = null; // tracks which coreItem is currently highl
 let _coreAnimFrame = null;
 let _pageAnimFrame = null;
 let _fullPageHideTimer = null; // auto-hide timer for FullPageHighlight
-let _pageBadgeShowTimer = null; // delayed show timer for page StatusBadge
+let _fullPageHideCallback = null; // optional external hook (e.g. entry-toast dismiss)
 const BORDER_SPEED_PX_PER_MS = 0.4; // px per ms — keeps rotation speed consistent across overlay sizes
+
+export function setFullPageHideCallback(callback) {
+  _fullPageHideCallback = typeof callback === 'function' ? callback : null;
+}
 
 function createBorderSvg(suffix) {
   const ns = 'http://www.w3.org/2000/svg';
@@ -399,23 +402,6 @@ export function updateFullPageHighlightClass(isSaved, shutterState = 'none', for
     if (shutterState === 'success') overlay.classList.add('shutter-success');
     else if (shutterState === 'error') overlay.classList.add('shutter-error');
 
-    // Sync page status badge
-    const pageBadge = getKCShadowElement(PAGE_BADGE_ID);
-    // Ensure transition is active for shutter color change
-    if (pageBadge) pageBadge.style.transition = '';
-    if (pageBadge) {
-      pageBadge.classList.remove('shutter-success', 'shutter-error');
-      pageBadge.style.background = '';
-      if (shutterState === 'success') {
-        pageBadge.classList.add('shutter-success');
-        pageBadge.textContent = 'Saved!';
-      } else if (shutterState === 'error') {
-        pageBadge.classList.add('shutter-error');
-        pageBadge.textContent = 'Failed';
-      } else {
-        pageBadge.textContent = 'Save It!';
-      }
-    }
   } catch (e) {}
 }
 
@@ -499,31 +485,6 @@ function ensureFullPageOverlay() {
   return el;
 }
 
-function ensurePageBadge() {
-  let el = getKCShadowElement(PAGE_BADGE_ID);
-  if (el) return el;
-  el = document.createElement('div');
-  el.id = PAGE_BADGE_ID;
-  el.style.cssText = `
-    position: fixed;
-    pointer-events: none;
-    z-index: 2147483647;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    padding: 3px 8px;
-    border-radius: 4px;
-    letter-spacing: 0.02em;
-    opacity: 0;
-    transition: background 0.15s ease;
-    color: #fff;
-    top: 12px;
-    left: 12px;
-  `;
-  getKCShadowRoot().appendChild(el);
-  return el;
-}
-
 function ensureCoreBadge() {
   let el = getKCShadowElement(CORE_BADGE_ID);
   if (el) return el;
@@ -549,43 +510,9 @@ function ensureCoreBadge() {
   return el;
 }
 
-export function showPageStatusBadge(badgeState = 'default') {
-  try {
-    const el = ensurePageBadge();
-    el.classList.remove('shutter-success', 'shutter-error');
-    if (badgeState === 'success') {
-      el.textContent = 'Saved!';
-      el.classList.add('shutter-success');
-    } else if (badgeState === 'error') {
-      el.textContent = 'Failed';
-      el.classList.add('shutter-error');
-    } else {
-      el.textContent = 'Save It!';
-    }
-    el.style.background = '';
-    // Show instantly with no fade — transition suppressed to match
-    // overlay behaviour and prevent flicker on rapid CoreItem switching.
-    el.style.transition = 'none';
-    el.style.opacity = '1';
-  } catch (e) {}
-}
-
-/**
- * Shows the page status badge with an arbitrary text string.
- * Used for non-standard states (e.g. non-login prompt).
- */
-export function showPageStatusBadgeText(text) {
-  try {
-    const el = ensurePageBadge();
-    el.classList.remove('shutter-success', 'shutter-error');
-    el.textContent = String(text || '');
-    el.style.background = '';
-    // Show instantly with no fade — transition suppressed to match
-    // overlay behaviour and prevent flicker on rapid CoreItem switching.
-    el.style.transition = 'none';
-    el.style.opacity = '1';
-  } catch (e) {}
-}
+// Backward-compatible no-op exports kept because coreEngine re-exports them.
+export function showPageStatusBadge(_badgeState = 'default') {}
+export function showPageStatusBadgeText(_text) {}
 
 export function showCoreStatusBadge(badgeState = 'default') {
   try {
@@ -605,17 +532,7 @@ export function showCoreStatusBadge(badgeState = 'default') {
   } catch (e) {}
 }
 
-export function hidePageStatusBadge() {
-  try {
-    const el = getKCShadowElement(PAGE_BADGE_ID);
-    if (el) {
-      el.style.transition = 'none';
-      el.style.opacity = '0';
-      el.classList.remove('shutter-success', 'shutter-error');
-      el.style.background = '';
-    }
-  } catch (e) {}
-}
+export function hidePageStatusBadge() {}
 
 export function hideCoreStatusBadge() {
   try {
@@ -900,34 +817,10 @@ export function hideCoreHighlight() {
 /**
  * Show FullPageHighlight overlay.
  */
-export function showFullPageHighlight(isSaved = false, onBadgeShow = null) {
+export function showFullPageHighlight(isSaved = false) {
   try {
     const el = ensureFullPageOverlay();
     el.style.opacity = '1';
-    // Cancel any pending badge show from a previous rapid call.
-    if (_pageBadgeShowTimer !== null) {
-      clearTimeout(_pageBadgeShowTimer);
-      _pageBadgeShowTimer = null;
-    }
-    // Delay badge show so rapid CoreItem-to-CoreItem transitions
-    // (which briefly pass through the full-page state) do not cause
-    // the badge to flash for a single render frame.
-    _pageBadgeShowTimer = setTimeout(() => {
-      _pageBadgeShowTimer = null;
-      // Guard: overlay opacity is set to '0' synchronously by
-      // hideFullPageHighlight(), so if it is not '1' the overlay
-      // has been hidden since this timer was scheduled — skip badge show.
-      const overlay = getKCShadowElement(FULLPAGE_OVERLAY_ID);
-      if (!overlay || overlay.style.opacity !== '1') return;
-      // Delegate badge text + show to the caller-supplied callback so
-      // login state is evaluated at display time, not at schedule time.
-      // Fall back to the default 'Save It!' badge when no callback given.
-      if (onBadgeShow) {
-        onBadgeShow();
-      } else {
-        showPageStatusBadge('default');
-      }
-    }, 80);
     updateFullPageHighlightClass(false);
     const w = document.documentElement.clientWidth;
     const h = document.documentElement.clientHeight;
@@ -965,12 +858,6 @@ export function resetFullPageHideTimer() {
 }
 
 export function hideFullPageHighlight() {
-  // Cancel any pending badge show so the badge never flickers
-  // when hide is called before the 80 ms delay elapses.
-  if (_pageBadgeShowTimer !== null) {
-    clearTimeout(_pageBadgeShowTimer);
-    _pageBadgeShowTimer = null;
-  }
   if (_fullPageHideTimer !== null) {
     clearTimeout(_fullPageHideTimer);
     _fullPageHideTimer = null;
@@ -980,11 +867,13 @@ export function hideFullPageHighlight() {
     el.style.opacity = '0';
     // Reset shutter classes immediately — no transition on reset
     el.classList.remove('shutter-success', 'shutter-error');
-    hidePageStatusBadge();
     if (_pageAnimFrame) {
       cancelAnimationFrame(_pageAnimFrame);
       _pageAnimFrame = null;
     }
+  }
+  if (_fullPageHideCallback) {
+    try { _fullPageHideCallback(); } catch (_) {}
   }
 }
 

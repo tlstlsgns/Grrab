@@ -23,9 +23,6 @@ import {
   setAiTooltipContent,
   clearAiTooltipContent,
   positionMetadataTooltip,
-  showPageStatusBadge,
-  showPageStatusBadgeText,
-  hidePageStatusBadge,
   showCoreStatusBadge,
   hideCoreStatusBadge,
   positionCoreStatusBadge,
@@ -41,10 +38,19 @@ import {
   extractYouTubeShortcodeFromUrl,
   getYouTubeThumbnailUrl,
 } from './dataExtractor.js';
-import { getKCShadowRoot, getKCShadowElement, findKCElement } from './uiManager.js';
+import {
+  getKCShadowRoot,
+  getKCShadowElement,
+  findKCElement,
+  setFullPageHideCallback,
+} from './uiManager.js';
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
 let _pageMetaInitialized = false;
+let _fullpageToastEl = null;
+let _fullpageToastTimer = null;
+const FULLPAGE_TOAST_DURATION_MS = 1300;
+const FULLPAGE_TOAST_FADE_MS = 200;
 
 let scanTimer = 0;
 let lastFingerprint = '';
@@ -133,28 +139,21 @@ function initPageLevelMetadata() {
       ...(confirmedType ? { confirmedType }  : {}),
     };
     if (!IS_IFRAME) {
-      // Pass refreshPageStatusBadge as callback so badge text is resolved
-      // at display time (after the 80 ms delay) using the current
-      // _kcUserReady state, preventing any pre-display flash.
-      showFullPageHighlight(false, refreshPageStatusBadge);
+      showFullPageHighlight(false);
+      showFullpageEntryToast();
     }
   } catch (e) {}
 }
 
 /**
- * Refreshes the page status badge text based on current login state.
- * When logged in: shows default 'Save It!' text.
- * When not logged in: re-shows the non-login shortcut prompt.
- * Use this instead of calling showPageStatusBadge('default') directly.
+ * Shows a page-entry toast based on current login state.
+ * - Signed in: "{shortcut} to save this page"
+ * - Signed out: "Press {shortcut} to start KickClip"
  */
-function refreshPageStatusBadge() {
-  if (_kcUserReady) {
-    try { showPageStatusBadge('default'); } catch (e) {}
-    return;
-  }
+function showFullpageEntryToast() {
   // Read the cached shortcut from storage (written by background.js
   // runShortcutPoll) to avoid an async sendMessage round-trip that
-  // would cause the text to arrive late and flash visibly.
+  // would cause the text to arrive late.
   try {
     chrome.storage.local.get('kickclipShortcut', (result) => {
       try {
@@ -170,13 +169,77 @@ function refreshPageStatusBadge() {
               .replace(/Alt/gi, '⌥')
               .replace(/\+/g, '')
           : raw;
-        showPageStatusBadgeText(`click ${display} to start KickClip`);
+        const message = _kcUserReady
+          ? `${display} to save this page`
+          : `Press ${display} to start KickClip`;
+        renderFullpageEntryToast(message);
       } catch (e) {}
     });
   } catch (e) {
-    try { showPageStatusBadgeText('click shortcut to start KickClip'); } catch (_) {}
+    const fallback = _kcUserReady
+      ? 'Press shortcut to save this page'
+      : 'Press shortcut to start KickClip';
+    try { renderFullpageEntryToast(fallback); } catch (_) {}
   }
 }
+
+function renderFullpageEntryToast(message) {
+  try {
+    hideFullpageEntryToast();
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = [
+      'position: fixed',
+      'top: 24px',
+      'left: 50%',
+      'transform: translateX(-50%)',
+      'background: rgba(188, 19, 254, 0.92)',
+      'color: white',
+      'padding: 10px 16px',
+      'border-radius: 6px',
+      'font-size: 13px',
+      'font-weight: 500',
+      'z-index: 2147483647',
+      'pointer-events: none',
+      'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15)',
+      'transition: opacity 0.2s',
+      'white-space: pre-line',
+      'text-align: center',
+    ].join(';');
+    getKCShadowRoot().appendChild(toast);
+    _fullpageToastEl = toast;
+    _fullpageToastTimer = setTimeout(() => {
+      if (!_fullpageToastEl) {
+        _fullpageToastTimer = null;
+        return;
+      }
+      const current = _fullpageToastEl;
+      current.style.opacity = '0';
+      _fullpageToastTimer = setTimeout(() => {
+        if (_fullpageToastEl === current) {
+          _fullpageToastEl.remove();
+          _fullpageToastEl = null;
+        } else {
+          current.remove();
+        }
+        _fullpageToastTimer = null;
+      }, FULLPAGE_TOAST_FADE_MS);
+    }, FULLPAGE_TOAST_DURATION_MS);
+  } catch (_) {}
+}
+
+function hideFullpageEntryToast() {
+  if (_fullpageToastTimer !== null) {
+    clearTimeout(_fullpageToastTimer);
+    _fullpageToastTimer = null;
+  }
+  if (_fullpageToastEl) {
+    _fullpageToastEl.remove();
+    _fullpageToastEl = null;
+  }
+}
+
+setFullPageHideCallback(hideFullpageEntryToast);
 
 // Waits for the browser to complete two paint frames.
 // Used to ensure DOM visibility changes are reflected on screen
@@ -953,8 +1016,7 @@ function coreClear() {
   } else {
     clearCoreSelection();
     initPageLevelMetadata();
-    // refreshPageStatusBadge() removed — badge is shown with correct
-    // text inside the showFullPageHighlight() 80 ms timer callback.
+    // showFullpageEntryToast() handles page-level guidance toast directly.
   }
   _lastMouseoverTarget = null;
 }
@@ -2525,21 +2587,10 @@ function mountSaveMessageListener() {
         try {
           if (!_pageMetaInitialized) {
             _pageMetaInitialized = true;
-            // initPageLevelMetadata() calls showFullPageHighlight() which
-            // handles badge show via its 80 ms timer callback.
             initPageLevelMetadata();
-          } else if (!state.activeCoreItem && _kcUserReady) {
-            // Only re-trigger the overlay + badge when the user is logged in.
-            // In the non-logged-in state, saved-urls-updated is fired by the
-            // Side Panel opening (stopListeners → syncSavedUrlsToSession([])),
-            // not by a real data change — refreshing the badge here would race
-            // against _kcUserReady and briefly show "Save It!" instead of the
-            // shortcut prompt.
-            const pageOverlay = getKCShadowElement('kickclip-fullpage-highlight-overlay');
-            if (pageOverlay && pageOverlay.style.opacity === '1') {
-              showFullPageHighlight(false, refreshPageStatusBadge);
-            }
           }
+          // UI re-trigger removed: saved-urls-updated should sync data only.
+          // Save feedback is already handled by showCopyToast in save paths.
         } catch (e) {}
       });
       return false;
@@ -2812,7 +2863,7 @@ function mountWindowListeners() {
     // top-frame context: pointer left the browser viewport entirely.
     if (!e.relatedTarget && !e.toElement) {
       _mouseInsideDocument = false;
-      try { hidePageStatusBadge(); hideCoreStatusBadge(); } catch (_) {}
+      try { hideCoreStatusBadge(); } catch (_) {}
       try { hideFullPageHighlight(); hideCoreHighlight(); } catch (_) {}
     }
   }, { passive: true });
@@ -2904,7 +2955,7 @@ function mountWindowListeners() {
       try { hideFullPageHighlight(); } catch (e) {}
       try { hideCoreHighlight(); }   catch (e) {}
       try { hideMetadataTooltip(); }   catch (e) {}
-      try { if (!IS_IFRAME) { hidePageStatusBadge(); hideCoreStatusBadge(); } }       catch (e) {}
+      try { if (!IS_IFRAME) { hideCoreStatusBadge(); } }       catch (e) {}
       state.activeCoreItem       = null;
       state.activeHoverUrl       = null;
       state.lastExtractedMetadata = null;
@@ -2916,7 +2967,7 @@ function mountWindowListeners() {
       try { initPageLevelMetadata(); } catch (e) {}
       if (_mouseHasMovedOnPage) {
         try {
-          refreshPageStatusBadge();
+          showFullpageEntryToast();
         } catch (e) {}
       }
     };
