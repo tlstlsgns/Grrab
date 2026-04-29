@@ -1322,6 +1322,61 @@ function removeOptimisticCard(tempId) {
   displayedItemIds.delete(tempId);
 }
 
+/**
+ * Apply an image URL to a tracked optimistic card. Designed to be
+ * called when Phase 12b's deferred `optimistic-card-image-ready`
+ * message arrives — the screenshot-capture stage has finished and
+ * the dataUrl is finally available to render.
+ *
+ * Handles three sub-cases idempotently:
+ *   1. Card present, has <img> → swap `src`.
+ *   2. Card present, no imgcontainer (created with imgUrl='') →
+ *      create the imgcontainer + img, append into .data-card-main.
+ *   3. Card absent from optimisticCards map (promoted to real card,
+ *      or never created) → silently no-op. Server-side reconcile
+ *      via saved-urls-updated will end up using the Firestore
+ *      img_url instead, which is fine.
+ */
+function applyOptimisticCardImage(tempId, imgUrl) {
+  if (!tempId || !imgUrl) return;
+
+  const entry = optimisticCards.get(tempId);
+  if (!entry) return; // case 3
+  const container = entry.cardContainer;
+  if (!container || !container.isConnected) return; // detached → no-op
+
+  const card = container.querySelector('.data-card');
+  if (!card) return;
+
+  // Update tracked entry so future logic that reads it sees the imgUrl.
+  entry.imgUrl = imgUrl;
+
+  let img = card.querySelector('.data-card-image');
+  if (img) {
+    // case 1: simple src swap
+    img.src = getProxiedImageUrl(imgUrl);
+    img.alt = String(entry.title || '');
+    card.dataset.imgUrl = imgUrl;
+    return;
+  }
+
+  // case 2: build the imgcontainer
+  const main = card.querySelector('.data-card-main');
+  if (!main) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'data-card-imgcontainer';
+  const newImg = document.createElement('img');
+  newImg.className = 'data-card-image';
+  newImg.alt = String(entry.title || '');
+  newImg.src = getProxiedImageUrl(imgUrl);
+  wrapper.appendChild(newImg);
+  main.appendChild(wrapper);
+
+  // Reflect on the card's dataset so loadData() comparisons work.
+  card.dataset.imgUrl = imgUrl;
+}
+
 // ── Button event listeners ────────────────────────────────────────────────────
 btnSignin.addEventListener('click', signInWithGoogle);
 btnSignout.addEventListener('click', signOut);
@@ -2617,11 +2672,37 @@ function loadData() {
         existingCard.dataset.url         = item.url || '';
         existingCard.dataset.title       = item.title || 'Untitled';
 
-        // If Firestore already has a Storage URL, update dataset.imgUrl so future
-        // loadData() calls see it as unchanged (prevents re-triggering updateCardImage).
-        // Do NOT swap the visible <img> src — the base64 already looks correct.
+        // Update dataset.imgUrl so future loadData() comparisons treat the card
+        // as unchanged. For the visible <img>: if the optimistic card hasn't
+        // yet been painted (Phase 12b deferred-image case where
+        // optimistic-card-image-ready has not arrived in time), adopt the
+        // Firestore Storage URL as the visible src so the card stops looking
+        // blank. If the visible <img> already exists, the deferred-image
+        // handler already painted the correct base64 — leave it alone to
+        // avoid a swap-then-server-fetch flicker.
         if (item.img_url) {
           existingCard.dataset.imgUrl = item.img_url;
+          const existingImg = existingCard.querySelector('.data-card-image');
+          if (!existingImg) {
+            // No imgcontainer yet — Phase 12b case where addOptimisticCard
+            // created the card without an image and the deferred-image
+            // message hasn't arrived. Build the imgcontainer using the
+            // server URL directly.
+            const main = existingCard.querySelector('.data-card-main');
+            if (main) {
+              const wrapper = document.createElement('div');
+              wrapper.className = 'data-card-imgcontainer';
+              const newImg = document.createElement('img');
+              newImg.className = 'data-card-image';
+              newImg.alt = String(item.title || 'Untitled');
+              newImg.src = getProxiedImageUrl(item.img_url);
+              wrapper.appendChild(newImg);
+              main.appendChild(wrapper);
+            }
+          }
+          // else: visible img already present (current pre-12b flow OR
+          // Phase 12b post-image-ready). Leave src alone — base64 already
+          // looks correct, swap would cause a re-fetch flicker.
         }
 
         kcCardItemByEl.set(existingCard, item);
@@ -2803,6 +2884,12 @@ if (chrome?.runtime?.onMessage) {
         imgUrlMethod:      message.img_url_method   || '',
         createdAt:         typeof message.createdAt === 'number' ? message.createdAt : Date.now(),
       });
+      return false;
+    }
+
+    if (message.action === 'optimistic-card-image-ready') {
+      applyOptimisticCardImage(message.tempId, message.imgUrl || '');
+      return false;
     }
     return false;
   });
