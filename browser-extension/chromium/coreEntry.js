@@ -46,6 +46,10 @@ import {
 } from './uiManager.js';
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
+/** Readable gate for signed-in save / optimistic UI (signed-out = clipboard-only exploration). */
+function isSignedIn() {
+  return _kcUserReady === true;
+}
 let _pageMetaInitialized = false;
 let _fullpageToastEl = null;
 let _fullpageToastTimer = null;
@@ -1921,7 +1925,7 @@ async function saveActiveCoreItem(request = {}) {
       // Skip if running inside an iframe — only the top-level frame should create optimistic cards
       // Uses raw screenshot dataUrl (Stage 1) — Stage 2 post-processing runs in parallel
       // and is used for the final payload to server.
-      if (window.self === window.top) {
+      if (window.self === window.top && isSignedIn()) {
         try {
           chrome.runtime.sendMessage({
             action:             'optimistic-card',
@@ -1945,12 +1949,15 @@ async function saveActiveCoreItem(request = {}) {
 
       // Immediately update _savedUrlSet before shutter so checkIsSavedSync() returns true
       // even if saved-urls-updated arrives before fetch completes.
-      try {
-        const savedUrl = normalizeUrlForSavedCheck(url);
-        if (savedUrl) _savedUrlSet.add(savedUrl);
-      } catch (e) {}
+      if (isSignedIn()) {
+        try {
+          const savedUrl = normalizeUrlForSavedCheck(url);
+          if (savedUrl) _savedUrlSet.add(savedUrl);
+        } catch (e) {}
+      }
 
-      triggerShutterEffect('page', saveShutterStatus);
+      const effectiveSaveShutterStatus = isSignedIn() ? saveShutterStatus : 'success';
+      triggerShutterEffect('page', effectiveSaveShutterStatus);
 
       // Combined Toast: show after shutter effect fires, using shutter status
       // as the save-success indicator (per intended design).
@@ -1958,7 +1965,7 @@ async function saveActiveCoreItem(request = {}) {
         (async () => {
           try {
             const clipboardResult = await pageClipboardPromise;
-            const saveSuccess = saveShutterStatus === 'success';
+            const saveSuccess = isSignedIn() && saveShutterStatus === 'success';
             const message = buildToastMessage(
               pageCategory || '',
               pageConfirmedType || '',
@@ -2002,17 +2009,21 @@ async function saveActiveCoreItem(request = {}) {
         ...(naverCookies ? { naver_cookies: naverCookies } : {}),
       };
 
-      const response = await fetch(`${KC_SERVER_URL}/api/v1/save-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      if (isSignedIn()) {
+        const response = await fetch(`${KC_SERVER_URL}/api/v1/save-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok) {
-        throw new Error(`save failed: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`save failed: ${response.status}`);
+        }
+
+        return { success: true, payload };
       }
 
-      return { success: true, payload };
+      return { success: true };
     }
 
     // CoreItem active → existing logic
@@ -2177,12 +2188,15 @@ async function saveActiveCoreItem(request = {}) {
 
     // Immediately update _savedUrlSet before shutter so checkIsSavedSync() returns true
     // even if saved-urls-updated arrives before fetch completes.
-    try {
-      const savedUrl = normalizeUrlForSavedCheck(url);
-      if (savedUrl) _savedUrlSet.add(savedUrl);
-    } catch (e) {}
+    if (isSignedIn()) {
+      try {
+        const savedUrl = normalizeUrlForSavedCheck(url);
+        if (savedUrl) _savedUrlSet.add(savedUrl);
+      } catch (e) {}
+    }
 
-    triggerShutterEffect('core', saveShutterStatus);
+    const effectiveCoreSaveShutterStatus = isSignedIn() ? saveShutterStatus : 'success';
+    triggerShutterEffect('core', effectiveCoreSaveShutterStatus);
 
     // Combined Toast: show after shutter effect fires, using shutter status
     // as the save-success indicator (per intended design).
@@ -2190,7 +2204,7 @@ async function saveActiveCoreItem(request = {}) {
       (async () => {
         try {
           const clipboardResult = await coreClipboardPromise;
-          const saveSuccess = saveShutterStatus === 'success';
+          const saveSuccess = isSignedIn() && saveShutterStatus === 'success';
           const message = buildToastMessage(
             coreClipboardCategory,
             String(meta?.confirmedType || '').trim(),
@@ -2294,7 +2308,7 @@ async function saveActiveCoreItem(request = {}) {
 
     // Optimistic UI: notify Side Panel to show a temporary card immediately
     // Skip if running inside an iframe — only the top-level frame should create optimistic cards
-    if (window.self === window.top) {
+    if (window.self === window.top && isSignedIn()) {
       try {
         chrome.runtime.sendMessage({
           action:             'optimistic-card',
@@ -2318,17 +2332,21 @@ async function saveActiveCoreItem(request = {}) {
       } catch { /* Side Panel may not be open — silently ignore */ }
     }
 
-    const response = await fetch(`${KC_SERVER_URL}/api/v1/save-url`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    if (isSignedIn()) {
+      const response = await fetch(`${KC_SERVER_URL}/api/v1/save-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      throw new Error(`save failed: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`save failed: ${response.status}`);
+      }
+
+      return { success: true, payload };
     }
 
-    return { success: true, payload };
+    return { success: true };
 }
 
 /**
