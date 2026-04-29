@@ -2778,7 +2778,16 @@ function loadData() {
           const existingContainer = existingCard.closest('.card-container');
           if (existingContainer) {
             const targetList = getCategoryList(resolveItemListKey(itemToRender ?? item));
-            targetList?.appendChild(existingContainer);
+            // Skip the appendChild when the container is already a child of
+            // targetList. Reattaching to the same parent forces the browser to
+            // drop and reload child <img> resources; with multi-MB base64
+            // dataURLs this is observable as a blank flash on the existing card
+            // when an unrelated card triggers a Firestore snapshot. The
+            // appendChild still fires when the target list differs (genuine
+            // category change), preserving the cross-list move behavior.
+            if (targetList && existingContainer.parentNode !== targetList) {
+              targetList.appendChild(existingContainer);
+            }
           }
           return;
         }
