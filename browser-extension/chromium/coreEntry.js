@@ -2793,6 +2793,19 @@ function mountSaveMessageListener() {
               ? await resolveSaveShutterStatus()
               : 'success';
             triggerShutterEffect('core', saveShutterStatus);
+
+            // Mirror the top-frame Phase 10b behavior: set the per-item
+            // status_badge text in this iframe so the user sees "Image clipped"
+            // / "URL clipped" instead of the stale default. Each frame owns its
+            // own badge element, so the top-frame's setCoreStatusBadgeText call
+            // does NOT reach this iframe's UI. We only set success text on the
+            // success path — failure ('error') would already have written
+            // "Clip failed" via _coreBadgeFailedText through triggerShutterEffect.
+            if (saveShutterStatus === 'success') {
+              const iframeCategory = String(state.lastExtractedMetadata?.category || '').trim();
+              const successText = iframeCategory === 'Image' ? 'Image clipped' : 'URL clipped';
+              setCoreStatusBadgeText(successText);
+            }
             await waitForRepaint();
 
             const meta = state.lastExtractedMetadata || {};
