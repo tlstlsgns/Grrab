@@ -53,8 +53,15 @@ function isSignedIn() {
 let _pageMetaInitialized = false;
 let _fullpageToastEl = null;
 let _fullpageToastTimer = null;
+let _fullpageToastFadeTimer = null;
+let _fullpageToastKind = null; // 'entry' | 'result' | null
 const FULLPAGE_TOAST_DURATION_MS = 1300;
 const FULLPAGE_TOAST_FADE_MS = 200;
+// Cached keyboard shortcut display string, derived from
+// chrome.storage.local.kickclipShortcut (written by background.js
+// runShortcutPoll). Updated on init and via storage.onChanged so toast
+// and status-badge text can be built synchronously.
+let _shortcutDisplay = '';
 
 let scanTimer = 0;
 let lastFingerprint = '';
@@ -169,91 +176,168 @@ function initPageLevelMetadata() {
  * the page to clipboard for everyone; signed-in users additionally save.
  */
 function showFullpageEntryToast() {
-  // Read the cached shortcut from storage (written by background.js
-  // runShortcutPoll) to avoid an async sendMessage round-trip that
-  // would cause the text to arrive late.
-  try {
-    chrome.storage.local.get('kickclipShortcut', (result) => {
-      try {
-        const raw = result?.kickclipShortcut || 'Ctrl+Shift+S';
-        const isMac = navigator.platform.toUpperCase().includes('MAC') ||
-          navigator.userAgent.includes('Mac');
-        const display = isMac
-          ? raw
-              .replace(/MacCtrl/gi, '⌃')
-              .replace(/Ctrl/gi, '⌘')
-              .replace(/Command/gi, '⌘')
-              .replace(/Shift/gi, '⇧')
-              .replace(/Alt/gi, '⌥')
-              .replace(/\+/g, '')
-          : raw;
-        const message = `Press ${display} to clip this page`;
-        renderFullpageEntryToast(message);
-      } catch (e) {}
-    });
-  } catch (e) {
-    try { renderFullpageEntryToast('Press shortcut to clip this page'); } catch (_) {}
-  }
+  const shortcut = _shortcutDisplay || 'shortcut';
+  const message = `Press ${shortcut} to clip this page`;
+  showFullpageToast(message, 'entry');
 }
 
-function renderFullpageEntryToast(message) {
+/**
+ * Convert a raw shortcut string ("Ctrl+Shift+S" / "MacCtrl+Shift+S")
+ * to the platform-appropriate display: glyphs on Mac, plain text elsewhere.
+ */
+function formatShortcutForDisplay(raw) {
+  const r = String(raw || 'Ctrl+Shift+S');
+  const isMac =
+    navigator.platform.toUpperCase().includes('MAC') ||
+    navigator.userAgent.includes('Mac');
+  return isMac
+    ? r
+        .replace(/MacCtrl/gi, '⌃')
+        .replace(/Ctrl/gi, '⌘')
+        .replace(/Command/gi, '⌘')
+        .replace(/Shift/gi, '⇧')
+        .replace(/Alt/gi, '⌥')
+        .replace(/\+/g, '')
+    : r;
+}
+
+/**
+ * Populate _shortcutDisplay from chrome.storage and keep it in sync
+ * with future updates. Idempotent — safe to call once at module init.
+ */
+function initShortcutCache() {
   try {
-    hideFullpageEntryToast();
-    const toast = document.createElement('div');
-    toast.id = 'kickclip-fullpage-entry-toast';
-    toast.textContent = message;
-    toast.style.cssText = [
-      'position: fixed',
-      'top: 24px',
-      'left: 50%',
-      'transform: translateX(-50%)',
-      'background: rgba(188, 19, 254, 0.92)',
-      'color: white',
-      'padding: 10px 16px',
-      'border-radius: 6px',
-      'font-size: 13px',
-      'font-weight: 500',
-      'z-index: 2147483647',
-      'pointer-events: none',
-      'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15)',
-      'transition: opacity 0.2s',
-      'white-space: pre-line',
-      'text-align: center',
-    ].join(';');
-    getKCShadowRoot().appendChild(toast);
-    _fullpageToastEl = toast;
-    _fullpageToastTimer = setTimeout(() => {
-      if (!_fullpageToastEl) {
-        _fullpageToastTimer = null;
-        return;
+    _shortcutDisplay = formatShortcutForDisplay('Ctrl+Shift+S');
+    chrome.storage.local.get('kickclipShortcut', (result) => {
+      try {
+        _shortcutDisplay = formatShortcutForDisplay(result?.kickclipShortcut);
+      } catch (_) {}
+    });
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local') return;
+      if ('kickclipShortcut' in changes) {
+        try {
+          _shortcutDisplay = formatShortcutForDisplay(
+            changes.kickclipShortcut?.newValue
+          );
+        } catch (_) {}
       }
+    });
+  } catch (_) {}
+}
+
+// ─── Unified fullpage toast (single DOM element, kind-aware lifecycle) ───
+//
+// One toast at a time at top-center of the viewport. Two callers exist:
+//   - 'entry'  — page-load guidance ("Press {shortcut} to clip this page")
+//   - 'result' — clip outcome ("Page URL clipped" etc.)
+// Both share the same DOM node: subsequent calls swap textContent and
+// reset timers, avoiding the previous overlap of two stacked toasts.
+//
+// The entry-hide callback is wired to FullPage highlight hide via
+// setFullPageHideCallback. It dismisses the toast ONLY if the current
+// kind is 'entry' — result toasts must outlive the highlight so the
+// user can read the outcome message.
+
+function ensureFullpageToastEl() {
+  if (_fullpageToastEl && _fullpageToastEl.isConnected) return _fullpageToastEl;
+  const toast = document.createElement('div');
+  toast.id = 'kickclip-fullpage-entry-toast'; // KEPT for KC_CAPTURE_HIDE_IDS
+  toast.style.cssText = [
+    'position: fixed',
+    'top: 24px',
+    'left: 50%',
+    'transform: translateX(-50%)',
+    'background: rgba(188, 19, 254, 0.92)',
+    'color: white',
+    'padding: 10px 16px',
+    'border-radius: 6px',
+    'font-size: 13px',
+    'font-weight: 500',
+    'z-index: 2147483647',
+    'pointer-events: none',
+    'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15)',
+    'transition: opacity 0.2s',
+    'white-space: pre-line',
+    'text-align: center',
+  ].join(';');
+  getKCShadowRoot().appendChild(toast);
+  _fullpageToastEl = toast;
+  return toast;
+}
+
+/**
+ * Show or update the single fullpage toast.
+ * @param {string} message
+ * @param {'entry' | 'result'} kind
+ */
+function showFullpageToast(message, kind = 'entry') {
+  try {
+    // Cancel any in-flight auto-dismiss / fade so the new content stays.
+    if (_fullpageToastTimer !== null) {
+      clearTimeout(_fullpageToastTimer);
+      _fullpageToastTimer = null;
+    }
+    if (_fullpageToastFadeTimer !== null) {
+      clearTimeout(_fullpageToastFadeTimer);
+      _fullpageToastFadeTimer = null;
+    }
+
+    const toast = ensureFullpageToastEl();
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    _fullpageToastKind = kind;
+
+    // Schedule auto-dismiss (same policy for both kinds).
+    _fullpageToastTimer = setTimeout(() => {
+      _fullpageToastTimer = null;
+      if (!_fullpageToastEl) return;
       const current = _fullpageToastEl;
       current.style.opacity = '0';
-      _fullpageToastTimer = setTimeout(() => {
+      _fullpageToastFadeTimer = setTimeout(() => {
+        _fullpageToastFadeTimer = null;
         if (_fullpageToastEl === current) {
-          _fullpageToastEl.remove();
+          current.remove();
           _fullpageToastEl = null;
+          _fullpageToastKind = null;
         } else {
           current.remove();
         }
-        _fullpageToastTimer = null;
       }, FULLPAGE_TOAST_FADE_MS);
     }, FULLPAGE_TOAST_DURATION_MS);
   } catch (_) {}
 }
 
-function hideFullpageEntryToast() {
+/** Tear down the toast unconditionally (regardless of kind). */
+function hideFullpageToast() {
   if (_fullpageToastTimer !== null) {
     clearTimeout(_fullpageToastTimer);
     _fullpageToastTimer = null;
+  }
+  if (_fullpageToastFadeTimer !== null) {
+    clearTimeout(_fullpageToastFadeTimer);
+    _fullpageToastFadeTimer = null;
   }
   if (_fullpageToastEl) {
     _fullpageToastEl.remove();
     _fullpageToastEl = null;
   }
+  _fullpageToastKind = null;
+}
+
+/**
+ * Backward-compatible wrapper. Wired into FullPage highlight lifecycle
+ * via setFullPageHideCallback. Only dismisses entry-kind toasts so
+ * result toasts can finish their auto-dismiss timer naturally.
+ */
+function hideFullpageEntryToast() {
+  if (_fullpageToastKind === 'entry') {
+    hideFullpageToast();
+  }
 }
 
 setFullPageHideCallback(hideFullpageEntryToast);
+initShortcutCache();
 
 // Waits for the browser to complete two paint frames.
 // Used to ensure DOM visibility changes are reflected on screen
@@ -2460,37 +2544,13 @@ async function dataUrlToPngBlob(dataUrl) {
 }
 
 /**
- * Display a brief toast in the bottom-right of the page for 1.3 seconds
- * indicating what was copied to the clipboard.
+ * Display the per-clip result message. Routes through the unified
+ * fullpage toast system so it shares the DOM element with the entry
+ * toast — preventing the previous stacked-toast overlap. Marked
+ * 'result' so the highlight-hide callback won't kill it early.
  */
 function showCopyToast(message) {
-  try {
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    toast.style.cssText = [
-      'position: fixed',
-      'top: 24px',
-      'left: 50%',
-      'transform: translateX(-50%)',
-      'background: rgba(188, 19, 254, 0.92)',
-      'color: white',
-      'padding: 10px 16px',
-      'border-radius: 6px',
-      'font-size: 13px',
-      'font-weight: 500',
-      'z-index: 2147483647',
-      'pointer-events: none',
-      'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15)',
-      'transition: opacity 0.2s',
-      'white-space: pre-line',
-      'text-align: center',
-    ].join(';');
-    getKCShadowRoot().appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 200);
-    }, 1300);
-  } catch (_) { /* DOM unavailable — silent */ }
+  showFullpageToast(message, 'result');
 }
 
 /**
@@ -2529,29 +2589,27 @@ async function performClipboardCopy(category, url, rootElementForDominant) {
 }
 
 /**
- * Build a Toast message based on category, confirmedType, and combined
- * copy/save success state.
- *
- * `saveSuccess` contract:
- *   - `true`  → server save succeeded (signed-in path).
- *   - `false` → either no save was attempted (e.g. signed-out clipboard-only)
- *               or save did not succeed; in both cases, when `copySuccess`
- *               is true we show copy-only text (no "& saved", no "(save failed)").
+ * Build the per-clip result message in the unified "clip/clipped"
+ * terminology. "Clip" covers clipboard copy alone (signed-out) and
+ * clipboard copy + save (signed-in) — the user-facing wording stays
+ * identical regardless of signed-in state.
  *
  * Matrix:
- *   copy ✓ save ✓  → "{subject} copied & saved"
- *   copy ✓ save ✗  → "{subject} copied"
- *   copy ✗ save ✓  → "{subject} saved\n(copy failed)"
- *   copy ✗ save ✗  → "Failed"  (category-independent)
+ *   copy ✓  → "{subject} clipped"
+ *   copy ✗  → "Clip failed"
+ *
+ * `saveSuccess` is currently unused for wording (signed-in/-out are
+ * indistinguishable in the message) but kept in the signature for
+ * call-site compatibility — Phase 10c may remove it.
  *
  * Subject per category:
- *   Image → "Image"
- *   SNS   → confirmedType value (e.g., "contents", "post")
- *   Mail  → "Mail URL"
+ *   Image      → "Image"
+ *   SNS        → confirmedType value (e.g., "contents", "post"), default "post"
+ *   Mail       → "Mail URL"
  *   Page/other → "Page URL"
  */
 function buildToastMessage(category, confirmedType, copySuccess, saveSuccess) {
-  if (!copySuccess && !saveSuccess) return 'Failed';
+  if (!copySuccess) return 'Clip failed';
 
   let subject;
   if (category === 'Image') {
@@ -2563,10 +2621,7 @@ function buildToastMessage(category, confirmedType, copySuccess, saveSuccess) {
   } else {
     subject = 'Page URL';
   }
-
-  if (copySuccess && saveSuccess) return `${subject} copied & saved`;
-  if (copySuccess && !saveSuccess) return `${subject} copied`;
-  return `${subject} saved\n(copy failed)`;
+  return `${subject} clipped`;
 }
 
 function mountSaveMessageListener() {
