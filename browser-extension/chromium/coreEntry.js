@@ -150,11 +150,11 @@ function initPageLevelMetadata() {
 }
 
 /**
- * Shows a page-entry toast when signed in: "{shortcut} to save this page".
- * No-op when signed out (explore + clipboard-only mode; no entry toast).
+ * Shows a page-entry toast: "Press {shortcut} to clip this page".
+ * Fires in both signed-in and signed-out states — the shortcut clips
+ * the page to clipboard for everyone; signed-in users additionally save.
  */
 function showFullpageEntryToast() {
-  if (!_kcUserReady) return;
   // Read the cached shortcut from storage (written by background.js
   // runShortcutPoll) to avoid an async sendMessage round-trip that
   // would cause the text to arrive late.
@@ -173,12 +173,12 @@ function showFullpageEntryToast() {
               .replace(/Alt/gi, '⌥')
               .replace(/\+/g, '')
           : raw;
-        const message = `${display} to save this page`;
+        const message = `Press ${display} to clip this page`;
         renderFullpageEntryToast(message);
       } catch (e) {}
     });
   } catch (e) {
-    try { renderFullpageEntryToast('Press shortcut to save this page'); } catch (_) {}
+    try { renderFullpageEntryToast('Press shortcut to clip this page'); } catch (_) {}
   }
 }
 
