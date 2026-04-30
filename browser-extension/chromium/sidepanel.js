@@ -1341,6 +1341,9 @@ function addOptimisticCard({ tempId, url, title, imgUrl, isScreenshot: isScreens
     targetList.prepend(container);
   }
 
+  // Sync "No clips yet" now that this list has a card in the DOM.
+  ensureEmptyState(targetList);
+
   // Track in optimisticCards map
   optimisticCards.set(tempId, {
     url,
@@ -1367,7 +1370,9 @@ function removeOptimisticCard(tempId) {
 
   // Remove from DOM
   if (entry.cardContainer && entry.cardContainer.parentNode) {
+    const parentList = entry.cardContainer.parentNode;
     entry.cardContainer.remove();
+    ensureEmptyState(parentList);
   }
 
   // Clean up tracking
@@ -1468,6 +1473,31 @@ function updateClearButtonState() {
   btn.disabled = !hasCards || hasOptimistic || isPending || isTransitioning;
 }
 
+/**
+ * Ensure the per-category "No clips yet" placeholder is in sync
+ * with the list's actual contents. Called wherever a category's
+ * cards are mutated outside loadData()'s full re-render path —
+ * notably addOptimisticCard, the per-card delete handler, and
+ * executeClear.
+ *
+ * - If the list has at least one .card-container: remove .sp-empty
+ *   if present.
+ * - Otherwise: append a fresh .sp-empty if not already present.
+ */
+function ensureEmptyState(list) {
+  if (!list) return;
+  const hasCards = list.querySelector('.card-container') !== null;
+  const existingEmpty = list.querySelector('.sp-empty');
+  if (hasCards) {
+    if (existingEmpty) existingEmpty.remove();
+  } else if (!existingEmpty) {
+    const empty = document.createElement('div');
+    empty.className = 'sp-empty';
+    empty.textContent = 'No clips yet';
+    list.appendChild(empty);
+  }
+}
+
 async function executeClear(categoryKey, list, btn, exitConfirmPending) {
   if (!currentUser) {
     exitConfirmPending();
@@ -1521,14 +1551,7 @@ async function executeClear(categoryKey, list, btn, exitConfirmPending) {
     }
   }
 
-  // Recompute empty state for this category.
-  const existingEmpty = list.querySelector('.sp-empty');
-  if (!list.querySelector('.card-container') && !existingEmpty) {
-    const empty = document.createElement('div');
-    empty.className = 'sp-empty';
-    empty.textContent = 'No clips yet';
-    list.appendChild(empty);
-  }
+  ensureEmptyState(list);
 
   // Reset confirm-pending and pending flag.
   delete btn.dataset.clearPending;
@@ -2225,11 +2248,13 @@ function attachDeleteHandlers(container) {
             cardContainer.style.padding = '0';
           });
           setTimeout(() => {
+            const parentList = cardContainer.parentNode;
             fetch(
               `${KC_SERVER_URL}/api/v1/items/${encodeURIComponent(docId)}?userId=${encodeURIComponent(currentUser.uid)}`,
               { method: 'DELETE' }
             ).catch((err) => console.error('[Delete]', err));
             cardContainer.remove();
+            ensureEmptyState(parentList);
             updateClearButtonState();
           }, 250);
         }
@@ -3023,17 +3048,7 @@ function loadData() {
   // Per-category empty state
   CATEGORY_ORDER.forEach((cat) => {
     const list = document.querySelector(`.sp-category-list[data-category-list="${cat}"]`);
-    if (!list) return;
-    const hasCards = list.querySelector('.card-container') !== null;
-    const existingEmpty = list.querySelector('.sp-empty');
-    if (hasCards) {
-      if (existingEmpty) existingEmpty.remove();
-    } else if (!existingEmpty) {
-      const empty = document.createElement('div');
-      empty.className = 'sp-empty';
-      empty.textContent = 'No clips yet';
-      list.appendChild(empty);
-    }
+    ensureEmptyState(list);
   });
 
   updateClearButtonState();
