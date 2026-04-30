@@ -115,13 +115,13 @@ function buildOverlayStyleElement() {
               width 0.05s ease, height 0.05s ease;
 }
 #kickclip-highlight-overlay.kickclip-default {
-  box-shadow: 0 2px 8px rgba(188, 19, 254, 0.25);
+  box-shadow: 0 2px 12px 2px rgba(188, 19, 254, 0.40);
 }
 #kickclip-highlight-overlay.kickclip-default.kickclip-size-medium {
-  box-shadow: 0 4px 16px rgba(188, 19, 254, 0.30);
+  box-shadow: 0 4px 24px 3px rgba(188, 19, 254, 0.50);
 }
 #kickclip-highlight-overlay.kickclip-default.kickclip-size-large {
-  box-shadow: 0 6px 24px rgba(188, 19, 254, 0.35);
+  box-shadow: 0 6px 36px 5px rgba(188, 19, 254, 0.60);
 }
 #kickclip-highlight-overlay.kickclip-default.shutter-success {
   box-shadow: 0 0 0 2px rgba(188, 19, 254, 1);
