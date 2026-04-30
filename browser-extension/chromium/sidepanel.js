@@ -1343,6 +1343,7 @@ function addOptimisticCard({ tempId, url, title, imgUrl, isScreenshot: isScreens
 
   // Sync "No clips yet" now that this list has a card in the DOM.
   ensureEmptyState(targetList);
+  syncTimelineDividers(targetList);
 
   // Track in optimisticCards map
   optimisticCards.set(tempId, {
@@ -1373,6 +1374,7 @@ function removeOptimisticCard(tempId) {
     const parentList = entry.cardContainer.parentNode;
     entry.cardContainer.remove();
     ensureEmptyState(parentList);
+    syncTimelineDividers(parentList);
   }
 
   // Clean up tracking
@@ -1498,6 +1500,42 @@ function ensureEmptyState(list) {
   }
 }
 
+/**
+ * Sync timeline dividers in a category list with its current
+ * card contents:
+ * - If the list has zero `.card-container`, remove every
+ *   `.sp-timeline-divider`. Stranded labels otherwise persist
+ *   after a clear or last-card delete.
+ * - Otherwise, ensure a "Today" divider sits immediately above
+ *   the first card. If the element already directly above the
+ *   first card is a Today divider, do nothing. This is a
+ *   mid-session helper for paths that don't go through loadData().
+ *
+ * loadData() continues to use `insertTimelineDividers` for the
+ * full grouping pass (Yesterday, older dates, etc.). This helper
+ * intentionally only manages the Today label and total cleanup,
+ * matching the (alpha) trade-off documented in Phase 13.6.
+ */
+function syncTimelineDividers(list) {
+  if (!list) return;
+  const cards = list.querySelectorAll('.card-container');
+
+  if (cards.length === 0) {
+    list.querySelectorAll('.sp-timeline-divider').forEach((d) => d.remove());
+    return;
+  }
+
+  const firstCard = cards[0];
+  const prev = firstCard.previousElementSibling;
+  const isPrevTodayDivider = prev?.classList?.contains('sp-timeline-divider')
+    && prev?.dataset?.timelineLabel === 'Today';
+
+  if (!isPrevTodayDivider) {
+    const divider = createTimelineDivider('Today');
+    list.insertBefore(divider, firstCard);
+  }
+}
+
 async function executeClear(categoryKey, list, btn, exitConfirmPending) {
   if (!currentUser) {
     exitConfirmPending();
@@ -1552,6 +1590,7 @@ async function executeClear(categoryKey, list, btn, exitConfirmPending) {
   }
 
   ensureEmptyState(list);
+  syncTimelineDividers(list);
 
   // Reset confirm-pending and pending flag.
   delete btn.dataset.clearPending;
@@ -2255,6 +2294,7 @@ function attachDeleteHandlers(container) {
             ).catch((err) => console.error('[Delete]', err));
             cardContainer.remove();
             ensureEmptyState(parentList);
+            syncTimelineDividers(parentList);
             updateClearButtonState();
           }, 250);
         }
