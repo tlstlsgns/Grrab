@@ -7,7 +7,6 @@ import { state } from './stateLite.js';
 import { BRAND } from './brandConfig.js';
 
 const PURPLE_OVERLAY_ID = 'kickclip-highlight-overlay';
-const FULLPAGE_OVERLAY_ID = 'kickclip-fullpage-highlight-overlay';
 const CORE_BADGE_ID = 'kickclip-status-badge-core';
 // Externally-registered status_badge texts. Set once at content-script
 // init (and refreshed if the keyboard shortcut changes). Keeps text
@@ -22,178 +21,6 @@ let _coreBadgeFailedText = '';
 const ITEMMAP_DEBUG_OUTLINES = false;
 
 let _activeCoreHighlightItem = null; // tracks which coreItem is currently highlighted
-
-// SVG border animation state
-let _coreAnimFrame = null;
-let _pageAnimFrame = null;
-let _fullPageHideTimer = null; // auto-hide timer for FullPageHighlight
-let _fullPageHideCallback = null; // optional external hook (e.g. entry-toast dismiss)
-const BORDER_SPEED_PX_PER_MS = 0.4; // px per ms — keeps rotation speed consistent across overlay sizes
-
-export function setFullPageHideCallback(callback) {
-  _fullPageHideCallback = typeof callback === 'function' ? callback : null;
-}
-
-function createBorderSvg(suffix) {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('id', `kickclip-border-svg-${suffix}`);
-  svg.style.cssText = `
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    overflow: visible;
-    pointer-events: none;
-  `;
-
-  const defs = document.createElementNS(ns, 'defs');
-
-  // radialGradient — white center → transparent edge
-  const grad = document.createElementNS(ns, 'radialGradient');
-  grad.setAttribute('id', `kickclip-rg-${suffix}`);
-  const stop1 = document.createElementNS(ns, 'stop');
-  stop1.setAttribute('offset', '0%');
-  stop1.setAttribute('stop-color', 'white');
-  const stop2 = document.createElementNS(ns, 'stop');
-  stop2.setAttribute('offset', '100%');
-  stop2.setAttribute('stop-color', 'transparent');
-  grad.appendChild(stop1);
-  grad.appendChild(stop2);
-
-  // mask with ellipse
-  const mask = document.createElementNS(ns, 'mask');
-  mask.setAttribute('id', `kickclip-mask-${suffix}`);
-  const ellipse = document.createElementNS(ns, 'ellipse');
-  ellipse.setAttribute('id', `kickclip-ellipse-${suffix}`);
-  ellipse.setAttribute('rx', '120');
-  ellipse.setAttribute('ry', '120');
-  ellipse.setAttribute('fill', `url(#kickclip-rg-${suffix})`);
-  mask.appendChild(ellipse);
-
-  // glow filter
-  const filter = document.createElementNS(ns, 'filter');
-  filter.setAttribute('id', `kickclip-glow-${suffix}`);
-  filter.setAttribute('x', '-50%');
-  filter.setAttribute('y', '-50%');
-  filter.setAttribute('width', '200%');
-  filter.setAttribute('height', '200%');
-  const blur = document.createElementNS(ns, 'feGaussianBlur');
-  blur.setAttribute('in', 'SourceGraphic');
-  blur.setAttribute('stdDeviation', '3');
-  filter.appendChild(blur);
-
-  defs.appendChild(grad);
-  defs.appendChild(mask);
-  defs.appendChild(filter);
-  svg.appendChild(defs);
-
-  // back stroke — always-visible thin border
-  const backRect = document.createElementNS(ns, 'rect');
-  backRect.setAttribute('id', `kickclip-back-${suffix}`);
-  backRect.setAttribute('fill', 'transparent');
-  backRect.setAttribute('stroke-width', '1.5');
-  svg.appendChild(backRect);
-
-  // path — used only for getPointAtLength() calculations (invisible)
-  const path = document.createElementNS(ns, 'path');
-  path.setAttribute('id', `kickclip-path-${suffix}`);
-  path.setAttribute('fill', 'none');
-  path.setAttribute('stroke', 'none');
-  svg.appendChild(path);
-
-  // front rect — glow stroke with mask
-  const frontRect = document.createElementNS(ns, 'rect');
-  frontRect.setAttribute('id', `kickclip-front-${suffix}`);
-  frontRect.setAttribute('fill', 'transparent');
-  frontRect.setAttribute('stroke-width', '6');
-  frontRect.setAttribute('filter', `url(#kickclip-glow-${suffix})`);
-  frontRect.setAttribute('mask', `url(#kickclip-mask-${suffix})`);
-  svg.appendChild(frontRect);
-
-  return svg;
-}
-
-function updateBorderSvg(suffix, width, height, radius) {
-  const backRect = findKCElement(`kickclip-back-${suffix}`);
-  const frontRect = findKCElement(`kickclip-front-${suffix}`);
-  const path = findKCElement(`kickclip-path-${suffix}`);
-  if (!backRect || !frontRect || !path) return 0;
-
-  const r = Math.min(radius, width / 2, height / 2);
-
-  // Update rect dimensions
-  [backRect, frontRect].forEach((rect) => {
-    rect.setAttribute('x', '0');
-    rect.setAttribute('y', '0');
-    rect.setAttribute('width', String(width));
-    rect.setAttribute('height', String(height));
-    rect.setAttribute('rx', String(r));
-    rect.setAttribute('ry', String(r));
-  });
-
-  // Update invisible path for getPointAtLength()
-  // Clockwise rect path starting from top-left corner after radius
-  path.setAttribute(
-    'd',
-    `M ${r},0 L ${width - r},0 Q ${width},0 ${width},${r} ` +
-      `L ${width},${height - r} Q ${width},${height} ${width - r},${height} ` +
-      `L ${r},${height} Q 0,${height} 0,${height - r} ` +
-      `L 0,${r} Q 0,0 ${r},0 Z`
-  );
-
-  // Update ellipse size proportional to perimeter for consistent visual bar size
-  // Return the computed totalLength so callers can pass it to startBorderAnimation()
-  // without an additional getTotalLength() call.
-  let computedLength = 0;
-  const ellipse = findKCElement(`kickclip-ellipse-${suffix}`);
-  if (ellipse) {
-    try {
-      computedLength = path.getTotalLength();
-      const ellipseRadius = Math.min(Math.max(computedLength * 0.08, 20), 150);
-      ellipse.setAttribute('rx', String(ellipseRadius));
-      ellipse.setAttribute('ry', String(ellipseRadius));
-    } catch (e) {}
-  }
-  return computedLength;
-}
-
-function startBorderAnimation(suffix, overlayEl, onFrame, cachedLength = 0) {
-  const ellipse = findKCElement(`kickclip-ellipse-${suffix}`);
-  const path = findKCElement(`kickclip-path-${suffix}`);
-  if (!ellipse || !path) return null;
-
-  // Use the pre-computed length from updateBorderSvg() to avoid a redundant
-  // getTotalLength() call. Fall back to a fresh query only if not provided.
-  let totalLength = cachedLength > 0 ? cachedLength : 0;
-  if (totalLength <= 0) {
-    try {
-      totalLength = path.getTotalLength();
-    } catch (e) {
-      return null;
-    }
-  }
-  if (totalLength <= 0) return null;
-
-  // Pre-compute duration from cached length — no per-frame DOM query needed.
-  const duration = totalLength / BORDER_SPEED_PX_PER_MS;
-  let startTime = null;
-
-  function frame(timestamp) {
-    if (!startTime) startTime = timestamp;
-    try {
-      const elapsed = (timestamp - startTime) % duration;
-      const progress = elapsed / duration;
-      const point = path.getPointAtLength(progress * totalLength);
-      ellipse.setAttribute('cx', String(point.x));
-      ellipse.setAttribute('cy', String(point.y));
-    } catch (e) {}
-    onFrame(requestAnimationFrame(frame));
-  }
-
-  const id = requestAnimationFrame(frame);
-  onFrame(id);
-  return id;
-}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Shadow DOM host — single isolation boundary for all injected UI
@@ -282,37 +109,13 @@ function buildOverlayStyleElement() {
   const style = document.createElement('style');
   style.id = 'kickclip-overlay-styles';
   style.textContent = `
-/* ── CoreHighlight SVG stroke colors ── */
-#kickclip-highlight-overlay #kickclip-back-core,
-#kickclip-highlight-overlay #kickclip-front-core {
-  stroke: ${BRAND.KEY_COLOR_HEX}; /* default: unsaved */
+#kickclip-highlight-overlay.kickclip-default {
+  box-shadow: 0 2px 8px rgba(188, 19, 254, 0.25);
 }
-#kickclip-highlight-overlay.saved #kickclip-back-core,
-#kickclip-highlight-overlay.saved #kickclip-front-core,
-#kickclip-highlight-overlay.shutter-success #kickclip-back-core,
-#kickclip-highlight-overlay.shutter-success #kickclip-front-core {
-  stroke: rgb(34, 197, 94); /* green */
+#kickclip-highlight-overlay.kickclip-default.shutter-success {
+  box-shadow: 0 0 0 2px rgba(188, 19, 254, 1);
 }
-#kickclip-highlight-overlay.shutter-error #kickclip-back-core,
-#kickclip-highlight-overlay.shutter-error #kickclip-front-core {
-  stroke: rgb(239, 68, 68); /* red */
-}
-
-/* ── FullPageHighlight SVG stroke colors ── */
-#kickclip-fullpage-highlight-overlay #kickclip-back-page,
-#kickclip-fullpage-highlight-overlay #kickclip-front-page {
-  stroke: ${BRAND.KEY_COLOR_HEX}; /* default: unsaved */
-}
-#kickclip-fullpage-highlight-overlay.saved #kickclip-back-page,
-#kickclip-fullpage-highlight-overlay.saved #kickclip-front-page,
-#kickclip-fullpage-highlight-overlay.shutter-success #kickclip-back-page,
-#kickclip-fullpage-highlight-overlay.shutter-success #kickclip-front-page {
-  stroke: rgb(34, 197, 94); /* green */
-}
-#kickclip-fullpage-highlight-overlay.shutter-error #kickclip-back-page,
-#kickclip-fullpage-highlight-overlay.shutter-error #kickclip-front-page {
-  stroke: rgb(239, 68, 68); /* red */
-}
+/* shutter-error: no override — falls through to .kickclip-default */
 
 /* ── StatusBadge colors ── */
 #kickclip-status-badge-page,
@@ -348,17 +151,6 @@ function injectKickClipOverlayStyles() {
 
 injectKickClipOverlayStyles();
 
-// Update FullPageHighlight SVG border on window resize
-window.addEventListener('resize', () => {
-  try {
-    const el = getKCShadowElement(FULLPAGE_OVERLAY_ID);
-    if (!el || el.style.opacity === '0') return;
-    const w = document.documentElement.clientWidth;
-    const h = document.documentElement.clientHeight;
-    updateBorderSvg('page', w, h, 4);
-  } catch (e) {}
-}, { passive: true });
-
 /**
  * Update CoreHighlight class only — no position or opacity change.
  * Sync the status_badge to match the shutter state:
@@ -375,7 +167,7 @@ export function updateCoreHighlightClass(isSaved, shutterState = 'none', forceRe
     if (!forceReplace && shutterState === 'none' &&
         (overlay.classList.contains('shutter-success') ||
          overlay.classList.contains('shutter-error'))) return;
-    overlay.classList.remove('saved', 'shutter-success', 'shutter-error');
+    overlay.classList.remove('shutter-success', 'shutter-error');
     if (shutterState === 'success') overlay.classList.add('shutter-success');
     else if (shutterState === 'error') overlay.classList.add('shutter-error');
 
@@ -395,23 +187,6 @@ export function updateCoreHighlightClass(isSaved, shutterState = 'none', forceRe
     } else {
       coreBadge.textContent = _coreBadgeDefaultText;
     }
-  } catch (e) {}
-}
-
-/**
- * Update FullPageHighlight class only — no opacity change.
- */
-export function updateFullPageHighlightClass(isSaved, shutterState = 'none', forceReplace = false) {
-  try {
-    const overlay = getKCShadowElement(FULLPAGE_OVERLAY_ID);
-    if (!overlay) return;
-    if (!forceReplace && shutterState === 'none' &&
-        (overlay.classList.contains('shutter-success') ||
-         overlay.classList.contains('shutter-error'))) return;
-    overlay.classList.remove('saved', 'shutter-success', 'shutter-error');
-    if (shutterState === 'success') overlay.classList.add('shutter-success');
-    else if (shutterState === 'error') overlay.classList.add('shutter-error');
-
   } catch (e) {}
 }
 
@@ -457,41 +232,12 @@ function ensurePurpleOverlay() {
     border-radius: 8px;
     box-sizing: border-box;
     overflow: visible;
-    transition: top 0.12s ease-out, left 0.12s ease-out, width 0.12s ease-out, height 0.12s ease-out, border-radius 0.12s ease-out, opacity 0.2s ease-in-out;
+    transition: top 0.05s ease, left 0.05s ease, width 0.05s ease, height 0.05s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     display: block;
     opacity: 0;
   `;
   el.classList.add('kickclip-default');
-  const borderSvg = createBorderSvg('core');
-  el.appendChild(borderSvg);
   getKCShadowRoot().appendChild(el);
-  return el;
-}
-
-function ensureFullPageOverlay() {
-  let el = getKCShadowElement(FULLPAGE_OVERLAY_ID);
-  if (!el) {
-    el = document.createElement('div');
-    el.id = FULLPAGE_OVERLAY_ID;
-    el.style.cssText = `
-    position: fixed;
-    pointer-events: none;
-    z-index: 2147483645;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    border-radius: 4px;
-    box-sizing: border-box;
-    overflow: visible;
-    transition: opacity 0.2s ease-in-out;
-    display: block;
-    opacity: 0;
-  `;
-    const borderSvg = createBorderSvg('page');
-    el.appendChild(borderSvg);
-    getKCShadowRoot().appendChild(el);
-  }
   return el;
 }
 
@@ -820,20 +566,6 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
       }
       updateCoreHighlightClass(false);
     }
-    const shouldRestartAnim =
-      forceRestart || (!isScrollUpdate && (isHidden || coreItem !== _activeCoreHighlightItem));
-
-    if (!isScrollUpdate) {
-      const corePathLength = updateBorderSvg('core', r.width, r.height, 8);
-      if (shouldRestartAnim || !_coreAnimFrame) {
-        if (_coreAnimFrame) {
-          cancelAnimationFrame(_coreAnimFrame);
-          _coreAnimFrame = null;
-        }
-        startBorderAnimation('core', overlay, (id) => { _coreAnimFrame = id; }, corePathLength);
-      }
-    }
-
     _activeCoreHighlightItem = coreItem;
     return true;
   } catch (e) {
@@ -846,77 +578,10 @@ export function hideCoreHighlight() {
   if (overlay) {
     overlay.style.opacity = '0';
     // Reset shutter classes immediately — no transition on reset
-    overlay.classList.remove('saved', 'shutter-success', 'shutter-error');
+    overlay.classList.remove('shutter-success', 'shutter-error');
     _activeCoreHighlightItem = null;
-    if (_coreAnimFrame) {
-      cancelAnimationFrame(_coreAnimFrame);
-      _coreAnimFrame = null;
-    }
   }
   hideCoreStatusBadge();
-}
-
-/**
- * Show FullPageHighlight overlay.
- */
-export function showFullPageHighlight(isSaved = false) {
-  try {
-    const el = ensureFullPageOverlay();
-    el.style.opacity = '1';
-    updateFullPageHighlightClass(false);
-    const w = document.documentElement.clientWidth;
-    const h = document.documentElement.clientHeight;
-    const pagePathLength = updateBorderSvg('page', w, h, 4);
-    if (!_pageAnimFrame) {
-      startBorderAnimation('page', el, (id) => { _pageAnimFrame = id; }, pagePathLength);
-    }
-    // Auto-hide after 3 s — reset timer on every show call
-    if (_fullPageHideTimer !== null) {
-      clearTimeout(_fullPageHideTimer);
-    }
-    _fullPageHideTimer = setTimeout(() => {
-      _fullPageHideTimer = null;
-      hideFullPageHighlight();
-    }, 10000);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-/**
- * Resets the FullPageHighlight auto-hide timer without changing overlay visibility.
- * Call this when a save action occurs on the full-page context so the overlay
- * stays visible long enough for the user to see the shutter feedback.
- */
-export function resetFullPageHideTimer() {
-  if (_fullPageHideTimer !== null) {
-    clearTimeout(_fullPageHideTimer);
-  }
-  _fullPageHideTimer = setTimeout(() => {
-    _fullPageHideTimer = null;
-    hideFullPageHighlight();
-  }, 10000);
-}
-
-export function hideFullPageHighlight() {
-  if (_fullPageHideTimer !== null) {
-    clearTimeout(_fullPageHideTimer);
-    _fullPageHideTimer = null;
-  }
-  const el = getKCShadowElement(FULLPAGE_OVERLAY_ID);
-  if (el) {
-    el.style.opacity = '0';
-    // Reset shutter classes immediately — no transition on reset
-    el.classList.remove('shutter-success', 'shutter-error');
-    if (_pageAnimFrame) {
-      cancelAnimationFrame(_pageAnimFrame);
-      _pageAnimFrame = null;
-    }
-  }
-  if (_fullPageHideCallback) {
-    try { _fullPageHideCallback(); } catch (_) {}
-  }
 }
 
 /**
@@ -929,10 +594,6 @@ export function triggerShutterEffect(type, status = 'error') {
     const shutterState = status === 'success' ? 'success' : 'error';
     if (type === 'core') {
       updateCoreHighlightClass(false, shutterState);
-      return;
-    }
-    if (type === 'page') {
-      updateFullPageHighlightClass(false, shutterState);
       return;
     }
   } catch (e) {}

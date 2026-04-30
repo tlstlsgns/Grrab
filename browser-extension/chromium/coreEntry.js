@@ -16,7 +16,6 @@ import {
   showCoreHighlight,
   updateCoreHighlightClass,
   hideCoreHighlight,
-  updateFullPageHighlightClass,
   clearCoreSelection,
   ensureClusterCacheFromState,
   showMetadataTooltip,
@@ -29,9 +28,6 @@ import {
   hideCoreStatusBadge,
   positionCoreStatusBadge,
   renderItemMapCandidates,
-  showFullPageHighlight,
-  hideFullPageHighlight,
-  resetFullPageHideTimer,
   hideMetadataTooltip,
   detectItemCategory,
   triggerShutterEffect,
@@ -44,7 +40,6 @@ import {
   getKCShadowRoot,
   getKCShadowElement,
   findKCElement,
-  setFullPageHideCallback,
 } from './uiManager.js';
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
@@ -98,7 +93,6 @@ const KC_CAPTURE_HIDE_IDS = [
   'kickclip-highlight-overlay',
   'kickclip-metadata-tooltip',
   'kickclip-green-candidate-layer',
-  'kickclip-fullpage-highlight-overlay',
   'kickclip-fullpage-entry-toast',
 ];
 
@@ -166,7 +160,6 @@ function initPageLevelMetadata() {
       ...(confirmedType ? { confirmedType }  : {}),
     };
     if (!IS_IFRAME) {
-      showFullPageHighlight(false);
       showFullpageEntryToast();
     }
   } catch (e) {}
@@ -252,11 +245,6 @@ function syncCoreBadgeTexts() {
 // Both share the same DOM node: subsequent calls swap textContent and
 // reset timers, avoiding the previous overlap of two stacked toasts.
 //
-// The entry-hide callback is wired to FullPage highlight hide via
-// setFullPageHideCallback. It dismisses the toast ONLY if the current
-// kind is 'entry' — result toasts must outlive the highlight so the
-// user can read the outcome message.
-
 function ensureFullpageToastEl() {
   if (_fullpageToastEl && _fullpageToastEl.isConnected) return _fullpageToastEl;
   const toast = document.createElement('div');
@@ -343,18 +331,6 @@ function hideFullpageToast() {
   _fullpageToastKind = null;
 }
 
-/**
- * Backward-compatible wrapper. Wired into FullPage highlight lifecycle
- * via setFullPageHideCallback. Only dismisses entry-kind toasts so
- * result toasts can finish their auto-dismiss timer naturally.
- */
-function hideFullpageEntryToast() {
-  if (_fullpageToastKind === 'entry') {
-    hideFullpageToast();
-  }
-}
-
-setFullPageHideCallback(hideFullpageEntryToast);
 initShortcutCache();
 
 // Waits for the browser to complete two paint frames.
@@ -1186,7 +1162,6 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
       }
       return true;
     }
-    hideFullPageHighlight();
     showCoreHighlight(coreItemContainer, false);
     if (!_isCapturing) {
       // showMetadataTooltip disabled — CoreItem hover uses status badge only
@@ -1314,7 +1289,6 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   if (!meta?.activeHoverUrl) {
     // Keep current state briefly to avoid flicker around tiny DOM gaps.
     if (active && active.contains?.(target)) {
-      hideFullPageHighlight();
       showCoreHighlight(
         active,
         false
@@ -1384,7 +1358,6 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   state.activeCoreItem = coreItem;
   state.activeHoverUrl = syncedMeta.activeHoverUrl;
   state.lastExtractedMetadata = syncedMeta;
-  hideFullPageHighlight();
   showCoreHighlight(coreItem, false);
   if (!_isCapturing) {
     // showMetadataTooltip disabled — CoreItem hover uses status badge only
@@ -1813,15 +1786,12 @@ async function saveActiveCoreItem(request = {}) {
 
     // No CoreItem active → save current page via OpenGraph metadata
     if (!activeItem || !activeUrl) {
-      // Step 1: hide FullPageHighlight + StatusBadge for screenshot
-      const pageOverlayEl = getKCShadowElement('kickclip-fullpage-highlight-overlay');
+      // Step 1: hide StatusBadge for screenshot
       const pageBadgeEl = getKCShadowElement('kickclip-status-badge-page');
-      if (pageOverlayEl) { pageOverlayEl.style.transition = ''; pageOverlayEl.style.opacity = '0'; }
       if (pageBadgeEl)   { pageBadgeEl.style.transition = '';   pageBadgeEl.style.opacity = '0'; }
 
       const { url, title } = extractPageOpenGraphMeta();
       if (!url) {
-        if (pageOverlayEl) { pageOverlayEl.style.transition = ''; pageOverlayEl.style.opacity = '1'; }
         if (pageBadgeEl)   { pageBadgeEl.style.transition = '';   pageBadgeEl.style.opacity = ''; }
         return { success: false, reason: 'missing-url' };
       }
@@ -1845,13 +1815,12 @@ async function saveActiveCoreItem(request = {}) {
         }
       }
 
-      // Capture is done. Restore the fullpage overlay + status badge right now,
+      // Capture is done. Restore the status badge right now,
       // BEFORE any other async work (userId, fetch-metadata, optimistic card,
       // shutter effect, toast). This keeps the perceived "screen blank" window
       // to just the capture itself, and ensures triggerShutterEffect below is
-      // visible against the restored overlay. Stage 2 post-processing
+      // visible as soon as capture returns. Stage 2 post-processing
       // (screenshotProcessPromise) continues independently.
-      if (pageOverlayEl) { pageOverlayEl.style.transition = ''; pageOverlayEl.style.opacity = '1'; }
       if (pageBadgeEl)   { pageBadgeEl.style.transition = '';   pageBadgeEl.style.opacity = ''; }
 
       // Stage 2: post-process the raw screenshot (bg color + crop) in parallel
@@ -1993,8 +1962,6 @@ async function saveActiveCoreItem(request = {}) {
           } catch (_) { /* silent */ }
         })();
       }
-
-      resetFullPageHideTimer();
 
       // Await Stage 2 post-processing result — started in parallel earlier.
       // By now, it has likely completed while userId/fetch-metadata/etc. ran.
@@ -2806,8 +2773,7 @@ function mountWindowListeners() {
 
     if (!active) return;
     // Compute current rect for the active CoreItem and pass it as rectOverride
-    // so showCoreHighlight() treats this as a scroll update (isScrollUpdate = true),
-    // skipping updateBorderSvg() and animation restart.
+    // so showCoreHighlight() treats this as a scroll update (isScrollUpdate = true).
     const scrollRect = active.getBoundingClientRect?.();
     const rectOverride = scrollRect && scrollRect.width > 0 && scrollRect.height > 0
       ? { top: scrollRect.top, left: scrollRect.left, width: scrollRect.width, height: scrollRect.height, right: scrollRect.right }
@@ -2877,7 +2843,7 @@ function mountWindowListeners() {
     if (!e.relatedTarget && !e.toElement) {
       _mouseInsideDocument = false;
       try { hideCoreStatusBadge(); } catch (_) {}
-      try { hideFullPageHighlight(); hideCoreHighlight(); } catch (_) {}
+      try { hideCoreHighlight(); } catch (_) {}
     }
   }, { passive: true });
 
@@ -2965,7 +2931,6 @@ function mountWindowListeners() {
     // Shared hide logic for when the browser loses focus or tab becomes hidden.
     const onBrowserHidden = () => {
       _windowFocused = false;
-      try { hideFullPageHighlight(); } catch (e) {}
       try { hideCoreHighlight(); }   catch (e) {}
       try { hideMetadataTooltip(); }   catch (e) {}
       try { if (!IS_IFRAME) { hideCoreStatusBadge(); } }       catch (e) {}
@@ -3040,7 +3005,7 @@ function mountIframeFullPageListener() {
       const data = e.data;
       if (!data || !data[KC_MSG_PREFIX]) return;
       if (data.type === 'hide-fullpage') {
-        hideFullPageHighlight();
+        hideFullpageToast();
       } else if (data.type === 'show-fullpage') {
         initPageLevelMetadata();
       }
@@ -3084,7 +3049,6 @@ function mountKcAuthWatcher() {
       try {
         const ids = [
           'kickclip-highlight-overlay',
-          'kickclip-fullpage-highlight-overlay',
           'kickclip-status-badge-page',
           'kickclip-status-badge-core',
         ];
