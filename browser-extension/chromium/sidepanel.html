@@ -1188,6 +1188,7 @@
     }
 
     .sp-clear-confirm-text {
+      flex-grow: 1;
       font-family: 'Roboto', sans-serif;
       font-size: 12px;
       font-weight: 500;
@@ -1304,6 +1305,7 @@
       <!-- Main item list: category sections -->
       <div id="sp-itemlist-clip">
         <div class="sp-clear-bar">
+          <span class="sp-clear-confirm-text" style="display:none;"></span>
           <button type="button" class="sp-clear-btn" disabled
                   aria-label="Clear all clips in active category">
             <svg class="sp-clear-icon-trash" viewBox="0 0 24 24"
@@ -1323,7 +1325,6 @@
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
           </button>
-          <span class="sp-clear-confirm-text" style="display:none;"></span>
         </div>
         <div id="sp-itemlist-wrap">
           <div class="sp-category-section" data-category="Img">

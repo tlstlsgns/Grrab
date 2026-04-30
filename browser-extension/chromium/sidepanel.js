@@ -1588,7 +1588,7 @@ function attachClearButtonHandlers() {
       if (trashIcon) trashIcon.style.display = 'none';
       if (checkIcon) checkIcon.style.display = '';
       if (confirmText) {
-        confirmText.textContent = `Really delete ${cardCount} clips?`;
+        confirmText.textContent = `Really delete ${cardCount} ${cardCount === 1 ? 'clip' : 'clips'}?`;
         confirmText.style.display = '';
       }
 
