@@ -1637,6 +1637,44 @@ export function extractImageFromCoreItem(coreItem) {
       // fall through to the generic logic below.
     }
 
+    // Google image search: extract original-resolution URL from
+    // /imgres anchor's imgurl query parameter. Without this, the
+    // base64 thumbnail in <img src="data:image/...;base64,..."> is
+    // saved as img_url, which is extremely low resolution.
+    //
+    // Detection: host is google.<tld> AND coreItem contains
+    // <a href="/imgres?..."> with imgurl query.
+    const googleHostname = String(window?.location?.hostname || '').toLowerCase().trim();
+    const isGoogleHost = /^([\w-]+\.)*google\.[\w.]+$/i.test(googleHostname);
+    if (isGoogleHost) {
+      const imgresAnchor = coreItem.querySelector?.('a[href*="/imgres"]');
+      if (imgresAnchor) {
+        try {
+          const href = String(
+            imgresAnchor.getAttribute?.('href') || ''
+          ).trim();
+          if (href) {
+            const u = new URL(href, window.location.origin);
+            const imgurl = u.searchParams.get('imgurl');
+            const w = u.searchParams.get('w');
+            const h = u.searchParams.get('h');
+            if (imgurl && /^https?:\/\//i.test(imgurl)) {
+              return {
+                image: {
+                  url: imgurl,
+                  width: parseInt(w, 10) || 0,
+                  height: parseInt(h, 10) || 0,
+                },
+                usedCustomLogic: true,
+              };
+            }
+          }
+        } catch (e) {
+          // URL parsing failed — fall through to generic logic
+        }
+      }
+    }
+
     const rootFontSize = getRootFontSizePx();
     const viewportBasedSize = Math.max(0, Number(window?.innerWidth || 0) * 0.03);
     const minContentSize = Math.max(rootFontSize * 2, 32, viewportBasedSize);

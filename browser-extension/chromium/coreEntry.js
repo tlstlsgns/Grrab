@@ -2557,9 +2557,10 @@ async function dataUrlToPngBlob(dataUrl) {
  * showing any Toast. Toast display is handled separately by the caller after
  * combining with save result.
  *
- * For 'Image' category: attempts binary image copy via imgElementToBlob.
- *   Does NOT fall back to URL copy — instead returns { success: false } so the
- *   caller can decide how to communicate the failure.
+ * For 'Image' category: prefers binary copy via imageUrlToPngBlob on the saved
+ *   img_url (e.g. Google image search /imgres original URL), then falls back
+ *   to imgElementToBlob. Does NOT fall back to URL copy — returns { success: false }
+ *   if both fail so the caller can decide how to communicate the failure.
  * For 'SNS' with confirmedType 'contents': tries binary copy from options.imageUrl
  *   (same URL as saved img_url); on failure falls back to URL plain text.
  * For other categories: copies the URL as plain text.
@@ -2568,6 +2569,25 @@ async function performClipboardCopy(category, url, rootElementForDominant, optio
   const { confirmedType, imageUrl } = options;
   try {
     if (category === 'Image') {
+      // Phase 19e: prefer URL-based fetch first. For Google image
+      // search results, the saved img_url is the original-resolution
+      // URL extracted from the /imgres anchor — fetching it directly
+      // produces a much higher quality blob than the inline base64
+      // thumbnail in the DOM <img>. For other Image clips, URL-based
+      // fetch and DOM-based fetch produce the same result, so this
+      // is a no-op.
+      if (imageUrl) {
+        try {
+          const blob = await imageUrlToPngBlob(imageUrl);
+          if (blob) {
+            await navigator.clipboard.write([
+              new ClipboardItem({ [blob.type]: blob })
+            ]);
+            return { success: true };
+          }
+        } catch (_) { /* fall through to DOM-based copy */ }
+      }
+      // DOM-based copy (existing behavior; fallback if URL fetch fails)
       const imgEl = getDominantImageElement(rootElementForDominant);
       if (imgEl) {
         const blob = await imgElementToBlob(imgEl);
