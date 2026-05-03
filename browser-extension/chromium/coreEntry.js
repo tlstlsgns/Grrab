@@ -1934,7 +1934,12 @@ async function saveActiveCoreItem(request = {}) {
       // with save result (from saveShutterStatus) after triggerShutterEffect
       // to produce a single unified Toast.
       const pageClipboardPromise = (window.self === window.top)
-        ? performClipboardCopy(pageCategory || '', url, document.body)
+        ? performClipboardCopy(pageCategory || '', url, document.body, {
+            confirmedType: pageConfirmedType || '',
+            imageUrl: String(
+              isYouTubeSave ? youtubeThumbnailUrl : (state.lastExtractedMetadata?.image?.url || '')
+            ).trim(),
+          })
         : Promise.resolve({ success: false });
 
       // Immediately update _savedUrlSet before shutter so checkIsSavedSync() returns true
@@ -2172,7 +2177,11 @@ async function saveActiveCoreItem(request = {}) {
       ? performClipboardCopy(
           coreClipboardCategory,
           url,
-          activeItem instanceof Element ? activeItem : document.body
+          activeItem instanceof Element ? activeItem : document.body,
+          {
+            confirmedType: String(meta?.confirmedType || '').trim(),
+            imageUrl: String(faviconImgUrl || meta?.image?.url || imgUrl || '').trim(),
+          }
         )
       : Promise.resolve({ success: false });
 
@@ -2387,6 +2396,75 @@ function getDominantImageElement(rootElement) {
 }
 
 /**
+ * Fetch an image URL and convert it to a clipboard-compatible PNG Blob.
+ * Used by SNS contents clipboard copy (Phase 19d). Tries direct fetch,
+ * then background fetch (bypasses CORS via extension permissions),
+ * then re-encodes to PNG via canvas (required by ClipboardItem).
+ * Returns null if all paths fail.
+ */
+async function imageUrlToPngBlob(imageUrl) {
+  if (!imageUrl) return null;
+
+  // Attempt 1: direct content-script fetch
+  try {
+    const res = await fetch(imageUrl, { mode: 'cors' });
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.type === 'image/png') {
+        return blob;
+      }
+      // Non-PNG — re-encode via canvas
+      try {
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = () => reject(new Error('Image decode failed'));
+          img.src = objectUrl;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width || 0;
+        canvas.height = img.naturalHeight || img.height || 0;
+        URL.revokeObjectURL(objectUrl);
+        if (canvas.width === 0 || canvas.height === 0) {
+          // Fall through to background fetch
+        } else {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const pngBlob = await new Promise((resolve) => {
+              canvas.toBlob((b) => resolve(b || null), 'image/png');
+            });
+            if (pngBlob) return pngBlob;
+          }
+        }
+      } catch (_) { /* fall through */ }
+    }
+  } catch (_) { /* CORS-blocked — fall through */ }
+
+  // Attempt 2: background-script fetch via 'fetch-image' action
+  // (bypasses CORS via extension <all_urls> permission)
+  try {
+    const response = await new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage(
+          { action: 'fetch-image', url: imageUrl },
+          (r) => resolve(chrome.runtime.lastError ? null : r)
+        );
+      } catch (_) {
+        resolve(null);
+      }
+    });
+    if (response && response.success && response.dataUrl) {
+      const pngBlob = await dataUrlToPngBlob(response.dataUrl);
+      if (pngBlob) return pngBlob;
+    }
+  } catch (_) { /* fall through */ }
+
+  return null;
+}
+
+/**
  * Convert an <img> element to a clipboard-compatible Blob.
  * Tries fetch() first (works when image is CORS-allowed), falls back to
  * canvas drawing (works for same-origin or crossOrigin-anonymous images).
@@ -2482,9 +2560,12 @@ async function dataUrlToPngBlob(dataUrl) {
  * For 'Image' category: attempts binary image copy via imgElementToBlob.
  *   Does NOT fall back to URL copy — instead returns { success: false } so the
  *   caller can decide how to communicate the failure.
+ * For 'SNS' with confirmedType 'contents': tries binary copy from options.imageUrl
+ *   (same URL as saved img_url); on failure falls back to URL plain text.
  * For other categories: copies the URL as plain text.
  */
-async function performClipboardCopy(category, url, rootElementForDominant) {
+async function performClipboardCopy(category, url, rootElementForDominant, options = {}) {
+  const { confirmedType, imageUrl } = options;
   try {
     if (category === 'Image') {
       const imgEl = getDominantImageElement(rootElementForDominant);
@@ -2499,10 +2580,25 @@ async function performClipboardCopy(category, url, rootElementForDominant) {
       }
       // Image binary copy failed — do not fall back to URL; caller will handle.
       return { success: false };
-    } else {
-      await navigator.clipboard.writeText(url);
-      return { success: true };
     }
+
+    // SNS contents: try image binary copy via the saved img_url.
+    // On failure, fall back to URL text (the post URL is still useful).
+    if (category === 'SNS' && confirmedType === 'contents' && imageUrl) {
+      try {
+        const blob = await imageUrlToPngBlob(imageUrl);
+        if (blob) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ [blob.type]: blob })
+          ]);
+          return { success: true };
+        }
+      } catch (_) { /* fall through to URL text */ }
+      // Fall through: copy URL as text fallback
+    }
+
+    await navigator.clipboard.writeText(url);
+    return { success: true };
   } catch (err) {
     console.warn('[KickClip] Clipboard copy failed:', err);
     return { success: false };
