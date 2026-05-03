@@ -1558,6 +1558,85 @@ export function extractImageFromCoreItem(coreItem) {
       return { image: linkedInResult, usedCustomLogic: true };
     }
 
+    if (platform === SUPPORTED_PLATFORMS.INSTAGRAM) {
+      // Carousel-aware extraction. Multi-slide carousels show all
+      // slides in the DOM (one <li> each) but only one is visible
+      // in the viewport. The user is viewing the slide whose center
+      // is closest to the coreItem's center. Extract the image from
+      // that slide. If that slide has no img (video-only slide),
+      // return null so the background fetch in coreEntry.js
+      // (requestInstagramPostDataForTypeB) can supply the poster
+      // image as fallback.
+      //
+      // Single-image posts (no <ul> or <= 1 slide with media) fall
+      // through to the generic logic below — no Instagram-specific
+      // behavior needed for those.
+
+      const carouselUl = coreItem.querySelector?.('ul');
+      const allLis = carouselUl
+        ? Array.from(carouselUl.querySelectorAll(':scope > li'))
+        : [];
+      // Only consider <li> that actually contain media (img or video).
+      // This excludes invisible spacer <li> (e.g., width:1px) and
+      // any unrelated <ul> lists that don't host the carousel.
+      const slidesWithMedia = allLis.filter((li) =>
+        li.querySelector?.('img[src], video')
+      );
+
+      if (slidesWithMedia.length >= 2) {
+        const coreRect = coreItem.getBoundingClientRect
+          ? coreItem.getBoundingClientRect()
+          : null;
+        if (coreRect && coreRect.width > 0) {
+          const coreCenterX = coreRect.left + coreRect.width / 2;
+
+          let visibleSlide = null;
+          let minDist = Infinity;
+          for (const slide of slidesWithMedia) {
+            const r = slide.getBoundingClientRect
+              ? slide.getBoundingClientRect()
+              : null;
+            if (!r || r.width <= 0 || r.height <= 0) continue;
+            const slideCenterX = r.left + r.width / 2;
+            const dist = Math.abs(slideCenterX - coreCenterX);
+            if (dist < minDist) {
+              minDist = dist;
+              visibleSlide = slide;
+            }
+          }
+
+          if (visibleSlide) {
+            const img = visibleSlide.querySelector?.('img[src]');
+            if (img) {
+              const r = img.getBoundingClientRect
+                ? img.getBoundingClientRect()
+                : null;
+              const src = String(
+                img.getAttribute?.('src') || img.src || ''
+              ).trim();
+              if (src && r && r.width > 0 && r.height > 0) {
+                return {
+                  image: {
+                    url: src,
+                    width: Math.round(r.width),
+                    height: Math.round(r.height),
+                  },
+                  usedCustomLogic: true,
+                };
+              }
+            }
+            // Visible slide has no <img> (likely a video slide).
+            // Return null so the background fetch falls back to
+            // the /media/?size=l video poster via Phase 19b gate.
+            return { image: null, usedCustomLogic: true };
+          }
+        }
+      }
+
+      // Single-image post (no <ul>, or <= 1 slide with media):
+      // fall through to the generic logic below.
+    }
+
     const rootFontSize = getRootFontSizePx();
     const viewportBasedSize = Math.max(0, Number(window?.innerWidth || 0) * 0.03);
     const minContentSize = Math.max(rootFontSize * 2, 32, viewportBasedSize);
@@ -2132,6 +2211,7 @@ const PLATFORMS_WITH_CUSTOM_IMAGE_LOGIC = new Set([
   SUPPORTED_PLATFORMS.THREADS,
   SUPPORTED_PLATFORMS.LINKEDIN,
   SUPPORTED_PLATFORMS.REDDIT,
+  SUPPORTED_PLATFORMS.INSTAGRAM,
 ]);
 
 const PLATFORMS_WITH_CUSTOM_TITLE_LOGIC = new Set([
