@@ -1729,6 +1729,68 @@ export function extractImageFromCoreItem(coreItem) {
       }
     }
 
+    // Pinterest pin: extract original-resolution URL by either
+    // parsing srcset's 4x descriptor or by replacing the size
+    // segment in src.
+    //
+    // Pinterest serves images via i.pinimg.com with size variants
+    // in the URL path: /236x/, /474x/, /736x/, /originals/, etc.
+    // The /originals/ variant is the full resolution.
+    //
+    // Detection: host matches pinterest.<tld> AND coreItem contains
+    // an <img> with i.pinimg.com URL (in src or srcset).
+    //
+    // URL extraction strategy:
+    //   1. Parse srcset for the 4x descriptor (typically /originals/)
+    //   2. Fallback: replace the size segment in src with "originals"
+    const pinterestHostname = String(window?.location?.hostname || '').toLowerCase().trim();
+    const isPinterestHost = /^([\w-]+\.)*pinterest\.[\w.]+$/i.test(pinterestHostname);
+    if (isPinterestHost) {
+      const pinterestImg = coreItem.querySelector?.(
+        'img[src*="pinimg.com"], img[srcset*="pinimg.com"]'
+      );
+      if (pinterestImg) {
+        let originalUrl = '';
+        try {
+          // Strategy 1: srcset's 4x descriptor (typically the
+          // originals URL).
+          const srcset = String(
+            pinterestImg.getAttribute?.('srcset') || ''
+          ).trim();
+          if (srcset) {
+            const match = srcset.match(/(\S+)\s+4x(?:\s*,|\s*$)/);
+            if (match && match[1]) {
+              originalUrl = match[1];
+            }
+          }
+          // Strategy 2: fall back to src path conversion.
+          if (!originalUrl) {
+            const src = String(
+              pinterestImg.getAttribute?.('src') || pinterestImg.src || ''
+            ).trim();
+            if (src && /pinimg\.com\/\d+x\//i.test(src)) {
+              originalUrl = src.replace(
+                /^(https?:\/\/[^/]*pinimg\.com\/)\d+x\//i,
+                '$1originals/'
+              );
+            }
+          }
+          if (originalUrl && /^https?:\/\//i.test(originalUrl)) {
+            return {
+              image: {
+                url: originalUrl,
+                width: 0,
+                height: 0,
+              },
+              usedCustomLogic: true,
+            };
+          }
+        } catch (e) {
+          // URL extraction failed — fall through to generic logic
+        }
+      }
+    }
+
     const rootFontSize = getRootFontSizePx();
     const viewportBasedSize = Math.max(0, Number(window?.innerWidth || 0) * 0.03);
     const minContentSize = Math.max(rootFontSize * 2, 32, viewportBasedSize);
