@@ -913,10 +913,18 @@ function requestInstagramPostDataForTypeB(coreItem, meta, clientX = null, client
         return;
       }
 
+      // DOM extraction priority: only set background-fetched image
+      // when DOM extraction produced no image URL. This keeps the
+      // user-visible Instagram slide image (when present) instead
+      // of overwriting it with the /media/?size=l cover redirect.
+      const hasExistingImage = !!(
+        activeMeta?.image?.url &&
+        String(activeMeta.image.url).trim()
+      );
       const mergedMeta = {
         ...activeMeta,
         ...(caption ? { title: caption } : {}),
-        ...(thumbnailUrl
+        ...(thumbnailUrl && !hasExistingImage
           ? {
               thumbnail: thumbnailUrl,
               image: { ...(activeMeta?.image || {}), url: thumbnailUrl },
