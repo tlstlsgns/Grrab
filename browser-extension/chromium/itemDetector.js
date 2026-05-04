@@ -620,12 +620,50 @@ function isVisuallySignificantImageRectForImageGate(r) {
 }
 
 /**
+ * Returns true if the image's bounding rect is "dominant" within
+ * the coreItem's bounding rect, applying the same ratio rule used
+ * by dataExtractor.js's getDominantMediaType for category: Image
+ * decisions:
+ *   (widthRatio  >= 0.75 && heightRatio >= 0.4) ||
+ *   (heightRatio >= 0.75 && widthRatio  >= 0.4)
+ *
+ * Intuition: the image must occupy at least 75% of one axis AND
+ * at least 40% of the other axis. Cards with small thumbnail
+ * icons fail this check and remain Type A.
+ *
+ * Used by hasVisuallySignificantImageInScope (Type D gate).
+ */
+function isImageDominantInCoreItem(imageRect, coreRect) {
+  try {
+    const coreWidth = Number(coreRect?.width) || 0;
+    const coreHeight = Number(coreRect?.height) || 0;
+    if (coreWidth <= 0 || coreHeight <= 0) return false;
+    const mw = Number(imageRect?.width) || 0;
+    const mh = Number(imageRect?.height) || 0;
+    if (mw <= 0 || mh <= 0) return false;
+    const widthRatio = mw / coreWidth;
+    const heightRatio = mh / coreHeight;
+    return (
+      (widthRatio >= 0.75 && heightRatio >= 0.4) ||
+      (heightRatio >= 0.75 && widthRatio >= 0.4)
+    );
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * True if el contains at least one img[src] whose rect passes the same
- * visual significance rules as dataExtractor's isVisuallySignificantImage.
+ * visual significance rules as dataExtractor's isVisuallySignificantImage,
+ * and is dominant within the coreItem (Phase 19j).
  */
 function hasVisuallySignificantImageInScope(el) {
   try {
     if (!el || el.nodeType !== 1 || !el.querySelectorAll) return false;
+    // Phase 19j: coreItem rect for dominance comparison
+    const coreRect = el.getBoundingClientRect?.();
+    if (!coreRect || coreRect.width <= 0 || coreRect.height <= 0) return false;
+
     const imgs = el.matches?.('img[src]')
       ? [el, ...Array.from(el.querySelectorAll('img[src]'))]
       : Array.from(el.querySelectorAll('img[src]'));
@@ -635,7 +673,10 @@ function hasVisuallySignificantImageInScope(el) {
       if (seen.has(img)) continue;
       seen.add(img);
       const r = getEffectiveImageRectForImageGate(img);
-      if (isVisuallySignificantImageRectForImageGate(r)) return true;
+      if (!isVisuallySignificantImageRectForImageGate(r)) continue;
+      // Phase 19j: image must also be dominant within coreItem
+      if (!isImageDominantInCoreItem(r, coreRect)) continue;
+      return true;
     }
     return false;
   } catch (e) {
