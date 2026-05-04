@@ -587,6 +587,43 @@ function getEffectiveImageRectForImageGate(img) {
       : null;
     if (pr && pr.width >= 10 && pr.height >= 10) return pr;
   }
+  if (r && r.width >= 10 && r.height >= 10) return r;
+
+  // Phase 19j.3: lazy-load rect fallback — when layout and parent rects are
+  // too small to measure (0×0 placeholder), synthesize width/height from
+  // naturalWidth/naturalHeight so downstream size + viewport-center gates see
+  // a real footprint. Anchor at the img layout top-left, else parent top-left,
+  // else (0,0), so viewport-center semantics stay tied to where the placeholder
+  // sits on screen (on-screen placeholder → on-screen synthetic center).
+  // Reference: dataExtractor.js isImgVisuallySignificantForAnchor (~2141–2144)
+  // uses Math.max(layout, natural) for the same lazy-load class of problem;
+  // here we emit a plain rect object because isVisuallySignificantImageRectForImageGate
+  // consumes a rect, not raw dimensions.
+  const nw = Number(img.naturalWidth || 0);
+  const nh = Number(img.naturalHeight || 0);
+  if (nw >= 10 && nh >= 10) {
+    const pr = img.parentElement?.getBoundingClientRect?.() || null;
+    const layoutLeft = Number(r?.left);
+    const layoutTop = Number(r?.top);
+    const parentLeft = Number(pr?.left);
+    const parentTop = Number(pr?.top);
+    const left = Number.isFinite(layoutLeft)
+      ? layoutLeft
+      : (Number.isFinite(parentLeft) ? parentLeft : 0);
+    const top = Number.isFinite(layoutTop)
+      ? layoutTop
+      : (Number.isFinite(parentTop) ? parentTop : 0);
+    const width = nw;
+    const height = nh;
+    return {
+      left,
+      top,
+      width,
+      height,
+      right: left + width,
+      bottom: top + height,
+    };
+  }
   return r;
 }
 
@@ -597,6 +634,7 @@ function getEffectiveImageRectForImageGate(img) {
 function isVisuallySignificantImageRectForImageGate(r) {
   try {
     if (!r) return false;
+    // r may be a Phase 19j.3 synthetic plain-object rect (naturalWidth-based) when layout was 0×0 — not always a live DOMRect.
     const rootFontSize = getRootFontSizePxForImageGate();
     const viewportBasedSize = Math.max(0, Number(window?.innerWidth || 0) * 0.03);
     const minContentSize = Math.max(rootFontSize * 2, 32, viewportBasedSize);
