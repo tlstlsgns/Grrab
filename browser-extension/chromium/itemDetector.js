@@ -20,10 +20,11 @@ import {
 const MIN_CANDIDATE_SIZE = 40;
 const INTERRUPTION_TAGS = new Set(['SPAN', 'HR', 'BR', 'SCRIPT']);
 const STRUCTURE_IGNORED_TAGS = new Set(['svg', 'path', 'rect', 'circle', 'button', 'script', 'style']);
-const EVIDENCE_TYPE_ANCHOR = 'A';
 const EVIDENCE_TYPE_INTERACTION = 'B';
-const EVIDENCE_TYPE_C = 'C';
 const EVIDENCE_TYPE_IMAGE_ANCHOR = 'D';
+// === TYPED_REDESIGN_PHASE20_TYPEE ===
+const EVIDENCE_TYPE_E = 'E';
+// === END TYPED_REDESIGN_PHASE20_TYPEE ===
 const TYPE_B_FULLSCREEN_COVERAGE_THRESHOLD = 0.9;
 const SHARE_KEYWORDS = ['share', '공유하기', '공유', 'send-as-message', 'send-privately', '보내기'];
 const TYPE_B_CROSS_TAG_EXCEPTIONS = new Set(['shreddit-ad-post']);
@@ -344,41 +345,6 @@ function isSimilarIdentity(sig1, sig2, threshold = 0.8) {
   return { matched: ratio >= threshold, ratio };
 }
 
-async function hasValidAbsoluteAnchor(el) {
-  try {
-    if (!el || el.nodeType !== 1) return false;
-    if (el.matches?.('a[href]') && (await isValidTypeAAnchor(el))) return true;
-    if (!el.querySelector) return false;
-    const anchors = el.querySelectorAll('a[href]');
-    for (const a of anchors) {
-      if (await isValidTypeAAnchor(a)) return true;
-    }
-
-    // role="link" + URL-bearing data attributes (e.g. Trip.com, some React/Vue SPAs)
-    const roleLinkCandidates = [
-      el,
-      ...Array.from(el.querySelectorAll?.('[role="link"]') || []),
-    ];
-    for (const candidate of roleLinkCandidates) {
-      if (candidate.getAttribute?.('role') !== 'link') continue;
-      const raw =
-        String(candidate.getAttribute?.('data-href')     || '').trim() ||
-        String(candidate.getAttribute?.('data-url')      || '').trim() ||
-        String(candidate.getAttribute?.('data-link')     || '').trim() ||
-        String(candidate.getAttribute?.('data-href-url') || '').trim();
-      if (!raw) continue;
-      try {
-        const u = new URL(raw, window.location.href);
-        if (/^https?:$/i.test(u.protocol)) return true;
-      } catch { /* skip invalid URLs */ }
-    }
-
-    return false;
-  } catch (e) {
-    return false;
-  }
-}
-
 const KNOWN_2PART_PUBLIC_SUFFIXES = new Set([
   'co.kr', 'or.kr', 'go.kr', 'ne.kr', 'ac.kr', 'com.br', 'org.br', 'net.br',
   'co.uk', 'org.uk', 'me.uk', 'com.au', 'com.mx', 'co.jp', 'or.jp', 'ac.jp',
@@ -566,18 +532,6 @@ function getShareButtonRelativeDepth(el) {
   }
 }
 
-/** Mirrors dataExtractor getRootFontSizePx (not exported from that module). */
-function getRootFontSizePxForImageGate() {
-  try {
-    const root = document.documentElement;
-    const cs = root && window.getComputedStyle ? window.getComputedStyle(root) : null;
-    const px = parseFloat(String(cs?.fontSize || '16'));
-    return isFinite(px) && px > 0 ? px : 16;
-  } catch (e) {
-    return 16;
-  }
-}
-
 /** Mirrors extractMetadataForCoreItem getEffectiveImageRect for img nodes. */
 function getEffectiveImageRectForImageGate(img) {
   const r = img.getBoundingClientRect ? img.getBoundingClientRect() : null;
@@ -597,8 +551,8 @@ function getEffectiveImageRectForImageGate(img) {
   // sits on screen (on-screen placeholder → on-screen synthetic center).
   // Reference: dataExtractor.js isImgVisuallySignificantForAnchor (~2141–2144)
   // uses Math.max(layout, natural) for the same lazy-load class of problem;
-  // here we emit a plain rect object because isVisuallySignificantImageRectForImageGate
-  // consumes a rect, not raw dimensions.
+  // here we emit a plain rect object so callers receive a uniform rect shape
+  // regardless of whether the layout was 0×0 (lazy-load) or already painted.
   const nw = Number(img.naturalWidth || 0);
   const nh = Number(img.naturalHeight || 0);
   if (nw >= 10 && nh >= 10) {
@@ -628,36 +582,6 @@ function getEffectiveImageRectForImageGate(img) {
 }
 
 /**
- * Mirrors extractMetadataForCoreItem isVisuallySignificantImage(rect) (not exported).
- * Used for Type D: any significant img within the card scope, not only inside the anchor.
- */
-function isVisuallySignificantImageRectForImageGate(r) {
-  try {
-    if (!r) return false;
-    // r may be a Phase 19j.3 synthetic plain-object rect (naturalWidth-based) when layout was 0×0 — not always a live DOMRect.
-    const rootFontSize = getRootFontSizePxForImageGate();
-    const viewportBasedSize = Math.max(0, Number(window?.innerWidth || 0) * 0.03);
-    const minContentSize = Math.max(rootFontSize * 2, 32, viewportBasedSize);
-    const width = Math.max(0, Number(r.width || 0));
-    const height = Math.max(0, Number(r.height || 0));
-    const ratio = height > 0 ? width / height : Number.POSITIVE_INFINITY;
-    const passSize = width >= minContentSize && height >= minContentSize;
-    const passRatio = ratio >= 0.2 && ratio <= 5.0;
-    if (!(passSize && passRatio)) return false;
-    const vw = Math.max(0, Number(window?.innerWidth || 0));
-    const vh = Math.max(0, Number(window?.innerHeight || 0));
-    if (vw <= 0 || vh <= 0) return true;
-    const centerX = r.left + width / 2;
-    const centerY = r.top + height / 2;
-    const passViewport =
-      centerX >= 0 && centerX < vw && centerY >= 0 && centerY < vh;
-    return passViewport;
-  } catch (e) {
-    return false;
-  }
-}
-
-/**
  * Returns true if the image's bounding rect is "dominant" within
  * the coreItem's bounding rect, applying the same ratio rule used
  * by dataExtractor.js's getDominantMediaType for category: Image
@@ -667,9 +591,10 @@ function isVisuallySignificantImageRectForImageGate(r) {
  *
  * Intuition: the image must occupy at least 75% of one axis AND
  * at least 40% of the other axis. Cards with small thumbnail
- * icons fail this check and remain Type A.
+ * icons fail this check.
  *
- * Used by hasVisuallySignificantImageInScope (Type D gate).
+ * Used by Phase 20 Type D detection (detectTypeDItemMaps) for the
+ * dominance check on candidate cards.
  */
 function isImageDominantInCoreItem(imageRect, coreRect) {
   try {
@@ -690,38 +615,6 @@ function isImageDominantInCoreItem(imageRect, coreRect) {
   }
 }
 
-/**
- * True if el contains at least one img[src] whose rect passes the same
- * visual significance rules as dataExtractor's isVisuallySignificantImage,
- * and is dominant within the coreItem (Phase 19j).
- */
-function hasVisuallySignificantImageInScope(el) {
-  try {
-    if (!el || el.nodeType !== 1 || !el.querySelectorAll) return false;
-    // Phase 19j: coreItem rect for dominance comparison
-    const coreRect = el.getBoundingClientRect?.();
-    if (!coreRect || coreRect.width <= 0 || coreRect.height <= 0) return false;
-
-    const imgs = el.matches?.('img[src]')
-      ? [el, ...Array.from(el.querySelectorAll('img[src]'))]
-      : Array.from(el.querySelectorAll('img[src]'));
-    const seen = new Set();
-    for (const img of imgs) {
-      if (!img || img.nodeType !== 1) continue;
-      if (seen.has(img)) continue;
-      seen.add(img);
-      const r = getEffectiveImageRectForImageGate(img);
-      if (!isVisuallySignificantImageRectForImageGate(r)) continue;
-      // Phase 19j: image must also be dominant within coreItem
-      if (!isImageDominantInCoreItem(r, coreRect)) continue;
-      return true;
-    }
-    return false;
-  } catch (e) {
-    return false;
-  }
-}
-
 async function getEvidenceType(el) {
   try {
     if (!el || el.nodeType !== 1) return '';
@@ -729,12 +622,6 @@ async function getEvidenceType(el) {
     // post detection is intentionally supported.
     if (TYPE_B_PLATFORMS.has(getCurrentPlatform()) && hasShareButtonEvidence(el)) {
       return EVIDENCE_TYPE_INTERACTION;
-    }
-    // Type A vs D: same anchor gate; D adds image-rich card signal (B > D > A).
-    if (await hasValidAbsoluteAnchor(el)) {
-      return hasVisuallySignificantImageInScope(el)
-        ? EVIDENCE_TYPE_IMAGE_ANCHOR
-        : EVIDENCE_TYPE_ANCHOR;
     }
     return '';
   } catch (e) {
@@ -805,28 +692,6 @@ function hasAriaActiveState(el) {
     if (selfSelected) return true;
     if (selfCurrent && ['page', 'step', 'location', 'date', 'time', 'true'].includes(selfCurrent)) return true;
     return false;
-  } catch (e) {
-    return false;
-  }
-}
-
-function hasLinearAlignment(elements) {
-  try {
-    if (!Array.isArray(elements) || elements.length < 2) return false;
-    const centersX = [];
-    const centersY = [];
-    for (const el of elements) {
-      if (!el?.getBoundingClientRect) continue;
-      const r = el.getBoundingClientRect();
-      if (!r || r.width <= 0 || r.height <= 0) continue;
-      centersX.push(r.left + r.width / 2);
-      centersY.push(r.top + r.height / 2);
-    }
-    if (centersX.length < 2 || centersY.length < 2) return false;
-    const spreadX = getRelativeSpread(centersX);
-    const spreadY = getRelativeSpread(centersY);
-    // Horizontal tab row => low Y spread, Vertical menu => low X spread.
-    return spreadY <= 0.25 || spreadX <= 0.25;
   } catch (e) {
     return false;
   }
@@ -1073,7 +938,7 @@ async function collectDeepContentStats(el) {
   }
 }
 
-async function isMeaningfulItemMap(elements, evidenceType = EVIDENCE_TYPE_ANCHOR) {
+async function isMeaningfulItemMap(elements, evidenceType) {
   if (!Array.isArray(elements) || elements.length === 0) return false;
   if (evidenceType === EVIDENCE_TYPE_INTERACTION && elements.length >= 2) {
     const shareCountEarly = elements.filter((el) => hasShareButtonEvidence(el)).length;
@@ -1094,7 +959,6 @@ async function isMeaningfulItemMap(elements, evidenceType = EVIDENCE_TYPE_ANCHOR
   const navCount = elements.filter((el) => hasNavSemantics(el) || hasNavKeywords(el) || hasNavTestIdSignals(el)).length;
   const activeStateCount = elements.filter((el) => hasAriaActiveState(el)).length;
   const hasSingleActiveItem = activeStateCount === 1;
-  const hasLinearLayout = hasLinearAlignment(elements);
   const navConfidenceBoost = hasSingleActiveItem ? Math.ceil(elements.length * 0.5) : 0;
   const navConfidenceScore = navCount + navConfidenceBoost;
   const hardNavTinyCount = elements.filter((el) => hasHardNavTestIdBlacklist(el) && isTinyElement(el, 10000)).length;
@@ -1117,24 +981,6 @@ async function isMeaningfulItemMap(elements, evidenceType = EVIDENCE_TYPE_ANCHOR
   }).length;
   if (innerMenuCount >= Math.ceil(elements.length * 0.6)) return false;
 
-  const highConfidenceMenuTab =
-    activeStateCount > 0 &&
-    hasLinearLayout &&
-    (
-      navCount >= Math.ceil(elements.length * 0.4) ||
-      actionBiasCount >= Math.ceil(elements.length * 0.5) ||
-      hasSingleActiveItem
-    );
-  if (
-    (evidenceType === EVIDENCE_TYPE_ANCHOR || evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) &&
-    highConfidenceMenuTab &&
-    !hasStrongContentMajority &&
-    avgVisual < 1 &&
-    avgText < 40
-  ) {
-    return false;
-  }
-
   if (
     isTinyFootprint(elements) &&
     avgVisual < 0.5 &&
@@ -1144,17 +990,7 @@ async function isMeaningfulItemMap(elements, evidenceType = EVIDENCE_TYPE_ANCHOR
   const richCount = elements.filter((el) => hasImageAndText(el) || hasMultipleTextBlocks(el) || getTextLen(el) > 20).length;
   if (richCount >= Math.ceil(elements.length * 0.4)) return true;
 
-  if (evidenceType === EVIDENCE_TYPE_ANCHOR || evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
-    let hasValidTypeASignal = false;
-    for (const el of elements) {
-      if (await hasValidAbsoluteAnchor(el)) {
-        hasValidTypeASignal = true;
-        break;
-      }
-    }
-    if (!hasValidTypeASignal || avgAnchors < 1) return false;
-    if (avgVisual >= 1) return true;
-  } else if (evidenceType === EVIDENCE_TYPE_INTERACTION) {
+  if (evidenceType === EVIDENCE_TYPE_INTERACTION) {
     const shareCount = elements.filter((el) => hasShareButtonEvidence(el)).length;
     if (shareCount < Math.ceil(elements.length * 0.5)) return false;
     if (elements.length >= 2 && shareCount >= 2) return true;
@@ -1263,80 +1099,466 @@ function detectFacebookFallback(root, existingElements = new Set()) {
   }
 }
 
-/**
- * Type C ItemMap detection: Gmail and Naver Mail.
- * Gmail: each <tr> under table.F.cf.zt > tbody.
- * Naver Mail: each <li class="mail_item"> when URL matches /v2/folders/\d+/.
- */
-export function detectTypeCItemMaps(root = document) {
-  try {
-    const href = String(window?.location?.href || '').trim();
-    const out = [];
+// === TYPED_REDESIGN_PHASE20 START ===
+// Phase 20 — Type D ItemMap redesign: image-first detection.
+//
+// Algorithm:
+//   1. Filter <img src> elements by size/ratio (no viewport check, no dominance yet)
+//   2. From each filtered image, walk up the DOM (max 10 steps) tracking the
+//      tag+key-attrs path signature. At each step, check if grandparent's
+//      siblings have matching path-down-to-image. First match = card wrapper.
+//   3. For each candidate card, verify dominance (existing rule) and anchor presence.
+//   4. Group ≥ 2 valid cards become a Type D ItemMap entry batch.
+//
+// Returns: Array of candidate objects, same shape as candidates pushed in detectItemMaps.
 
-    if (href.startsWith('https://mail.google.com/mail/u/0/')) {
-      const tables = Array.from(
-        root.querySelectorAll?.('table.F.cf.zt') || []
-      );
-      for (const table of tables) {
-        const tbodies = Array.from(table.querySelectorAll?.('tbody') || []);
-        for (const tbody of tbodies) {
-          const rows = Array.from(tbody.children || []).filter(
-            (el) => el && el.nodeType === 1 &&
-              String(el.tagName || '').toUpperCase() === 'TR'
-          );
-          for (const tr of rows) {
-            if (!tr || tr.nodeType !== 1) continue;
-            const sig = `GMAIL_INBOX_TR::${tr.id || tr.className || ''}`;
-            out.push({
-              key:              sig,
-              signature:        sig,
-              itemMapSignature: sig,
-              identitySignature: sig,
-              structureSignature: 'gmail-inbox-tr',
-              evidenceType:     EVIDENCE_TYPE_C,
-              element:          tr,
-              similarityType:   'gmail-inbox-type-c',
-              classPattern:     '',
-              attrKey:          '',
-              attrValue:        '',
-            });
-          }
+const TYPED_PATH_MAX_DEPTH = 25;
+const TYPED_MIN_GROUP_SIZE = 2;
+const TYPED_NAV_TAGS = new Set(['HEADER', 'FOOTER', 'NAV']);
+const TYPED_NAV_ROLES = new Set(['banner', 'contentinfo', 'navigation']);
+
+/**
+ * Build a path-node signature: tag + a small set of stable structural attributes.
+ * Excludes className entirely (avoids dynamic class drift).
+ */
+function signatureOfNode(el) {
+  if (!el || el.nodeType !== 1) return '';
+  const parts = [String(el.tagName || '').toLowerCase()];
+  const gridItem = el.getAttribute?.('data-grid-item');
+  if (gridItem != null) parts.push(`data-grid-item=${gridItem}`);
+  // === PHASE20_HOTFIX_REMOVE_TEST_ID ===
+  // data-test-id removed from path signature: it is a React testing identifier
+  // (implementation detail) that splits visually identical cards (e.g.,
+  // Pinterest's pincard-image-with-link vs pincard-storyPin-without-link).
+  // === END PHASE20_HOTFIX_REMOVE_TEST_ID ===
+  const role = el.getAttribute?.('role');
+  if (role != null) parts.push(`role=${role}`);
+  const tag = String(el.tagName || '').toUpperCase();
+  if (tag === 'A' && el.hasAttribute?.('href')) parts.push('href');
+  if (tag === 'IMG' && el.hasAttribute?.('src')) parts.push('src');
+  return parts.join('|');
+}
+
+/**
+ * Check if `sibParent` contains a path of nodes whose signatures match `pathSig`
+ * exactly, where pathSig[0] is the expected signature of sibParent itself and
+ * pathSig[N-1] is the expected signature at the leaf (img).
+ *
+ * Recursive depth-first traversal: matches signature at current depth, then
+ * recurses into children for the next depth. Returns true on first matching path.
+ */
+function hasMatchingPathDownToImage(sibParent, pathSig) {
+  if (!sibParent || !Array.isArray(pathSig) || pathSig.length === 0) return false;
+  const traverse = (el, idx) => {
+    if (!el || el.nodeType !== 1) return false;
+    if (signatureOfNode(el) !== pathSig[idx]) return false;
+    if (idx === pathSig.length - 1) return true;
+    const kids = el.children ? Array.from(el.children) : [];
+    for (const child of kids) {
+      if (traverse(child, idx + 1)) return true;
+    }
+    return false;
+  };
+  return traverse(sibParent, 0);
+}
+
+/**
+ * Phase 20 — Type D detection. Image-first, bottom-up card discovery.
+ * Returns candidate objects compatible with detectItemMaps's candidates schema.
+ */
+async function detectTypeDItemMaps(root = document) {
+  const candidates = [];
+  const processedImages = new WeakSet();
+
+  if (!root || !root.querySelectorAll) return candidates;
+
+  // ─── Step 1: Filter <img src> by size, ratio, naturalWidth, aria-hidden ───
+  const allImgs = Array.from(root.querySelectorAll('img[src]') || []);
+  const validImages = [];
+
+  // Inline size+ratio (no viewport check, no dominance yet — uses minContentSize equivalent to existing image gate)
+  const rootFontSize = (() => {
+    try {
+      const rootEl = document.documentElement;
+      const cs = rootEl && window.getComputedStyle ? window.getComputedStyle(rootEl) : null;
+      const px = parseFloat(String(cs?.fontSize || '16'));
+      return isFinite(px) && px > 0 ? px : 16;
+    } catch (e) {
+      return 16;
+    }
+  })();
+  const viewportBasedSize = Math.max(0, Number(window?.innerWidth || 0) * 0.03);
+  // === PHASE20_HOTFIX_ROOTFONT_CAP ===
+  // Cap rootFontSize at 16 (web standard) when computing the min content size.
+  // Some pages (e.g., Temu mobile) set <html style="font-size: 100px"> as a
+  // viewport-scaling trick, which inflates `rootFontSize * 2` to 200 and
+  // wrongly rejects legitimate 184×184 product images. The cap preserves the
+  // original intent (text-sized element filter) for standard sites while
+  // preventing inflation on viewport-scaled pages.
+  const cappedRootFontSize = Math.min(rootFontSize, 16);
+  const minContentSize = Math.max(cappedRootFontSize * 2, 32, viewportBasedSize);
+  // === END PHASE20_HOTFIX_ROOTFONT_CAP ===
+
+  for (const img of allImgs) {
+    // === PHASE20_HOTFIX_ARIA_HIDDEN_LARGE ===
+    // aria-hidden gate with size bypass: aria-hidden="true" images are
+    // typically decoration (icons, badges) and rejected. However, some sites
+    // (e.g., Temu's multi-image slider) mark large product images as
+    // aria-hidden="true" to avoid duplicate alt-text in the accessibility tree.
+    // Bypass the gate when the image is visually large (≥ 100×100), keeping
+    // the decoration-rejection intent for small images.
+    if (img.getAttribute?.('aria-hidden') === 'true') {
+      const probeRect = img.getBoundingClientRect?.();
+      const visuallyLarge = probeRect && probeRect.width >= 100 && probeRect.height >= 100;
+      if (!visuallyLarge) continue;
+    }
+    // === END PHASE20_HOTFIX_ARIA_HIDDEN_LARGE ===
+    const naturalW = Number(img.naturalWidth || 0);
+    if (naturalW > 0 && naturalW < 20) continue; // tracker filter (allow 0 for not-yet-loaded; 19j.3 fallback handles via natural)
+
+    const rect = getEffectiveImageRectForImageGate(img);
+    if (!rect) continue;
+    const w = Math.max(0, Number(rect.width || 0));
+    const h = Math.max(0, Number(rect.height || 0));
+    if (w < minContentSize || h < minContentSize) continue;
+    const ratio = h > 0 ? w / h : Number.POSITIVE_INFINITY;
+    if (ratio < 0.2 || ratio > 5.0) continue;
+
+    validImages.push({ img, rect });
+  }
+
+  // ─── Step 2: Bottom-up walk per image ───
+  for (const { img } of validImages) {
+    if (processedImages.has(img)) continue;
+
+    // Build pathSig starting at img, prepending parent each step
+    let pathSig = [signatureOfNode(img)];
+    let cur = img;
+    let cardWrapper = null;
+    let matchingSiblings = null;
+
+    // === PHASE20_HOTFIX_GRID_ITEM_ATTR — explicit grid-item attribute helper ===
+    // Returns the (name, value) pair of an explicit grid-item attribute on `el`,
+    // or null if none. Recognized attributes (in priority order):
+    //   - data-grid-item (Pinterest, custom grids)
+    //   - role="listitem" (semantic list items)
+    //   - role="article" (semantic article cards)
+    const getExplicitGridItemAttr = (el) => {
+      if (!el || el.nodeType !== 1 || !el.getAttribute) return null;
+      const gridItem = el.getAttribute('data-grid-item');
+      if (gridItem != null) return { name: 'data-grid-item', value: gridItem };
+      const role = el.getAttribute('role');
+      if (role === 'listitem' || role === 'article') return { name: 'role', value: role };
+      return null;
+    };
+    // === END PHASE20_HOTFIX_GRID_ITEM_ATTR ===
+
+    for (let step = 0; step < TYPED_PATH_MAX_DEPTH; step++) {
+      const parent = cur.parentElement;
+      if (!parent || parent === document.body || parent === document.documentElement) break;
+
+      // Nav guard
+      const parentTagU = String(parent.tagName || '').toUpperCase();
+      if (TYPED_NAV_TAGS.has(parentTagU)) break;
+      const parentRole = String(parent.getAttribute?.('role') || '').toLowerCase().trim();
+      if (TYPED_NAV_ROLES.has(parentRole)) break;
+
+      pathSig = [signatureOfNode(parent), ...pathSig];
+
+      const grandparent = parent.parentElement;
+      if (!grandparent) {
+        cur = parent;
+        continue;
+      }
+
+      const sibParents = Array.from(grandparent.children).filter((s) => s !== parent && s.nodeType === 1);
+      if (sibParents.length === 0) {
+        cur = parent;
+        continue;
+      }
+
+      // === PHASE20_HOTFIX_GRID_ITEM_ATTR — fast path for explicit grid-item attribute ===
+      // If parent has an explicit grid-item attribute (data-grid-item, role=listitem,
+      // role=article), siblings are matched by attribute name+value alone — bypassing
+      // path matching. This handles inner-structure variants (e.g., Pinterest's
+      // sponsored cards adding extra wrappers between anchor and pinWrapper) that
+      // would otherwise fail strict path-length comparison.
+      const explicitAttr = getExplicitGridItemAttr(parent);
+      if (explicitAttr) {
+        const attrMatching = sibParents.filter((sib) => {
+          const sibAttr = getExplicitGridItemAttr(sib);
+          return sibAttr && sibAttr.name === explicitAttr.name && sibAttr.value === explicitAttr.value;
+        });
+        if (attrMatching.length >= TYPED_MIN_GROUP_SIZE - 1) {
+          cardWrapper = parent;
+          matchingSiblings = attrMatching;
+          break;
         }
       }
+      // === END PHASE20_HOTFIX_GRID_ITEM_ATTR ===
+
+      // Path matching fallback (sites without explicit grid-item attributes)
+      const matching = sibParents.filter((sib) => hasMatchingPathDownToImage(sib, pathSig));
+      if (matching.length >= TYPED_MIN_GROUP_SIZE - 1) {
+        cardWrapper = parent;
+        matchingSiblings = matching;
+        break;
+      }
+
+      cur = parent;
     }
 
-    // ── Naver Mail ───────────────────────────────────────────────────────────
-    // Activates when URL starts with https://mail.naver.com/v2/folders/
-    // followed by a numeric folder ID (e.g. /v2/folders/0, /v2/folders/1)
-    const isNaverMail = /^https:\/\/mail\.naver\.com\/v2\/folders\/-?\d+/.test(href);
-    if (isNaverMail) {
-      const mailItems = Array.from(
-        root.querySelectorAll?.('li.mail_item') || []
-      );
-      for (const li of mailItems) {
-        if (!li || li.nodeType !== 1) continue;
-        const sig = `NAVER_MAIL_LI::${li.className || ''}`;
-        out.push({
-          key:               sig,
-          signature:         sig,
-          itemMapSignature:  sig,
-          identitySignature: sig,
-          structureSignature: 'naver-mail-li',
-          evidenceType:      EVIDENCE_TYPE_C,
-          element:           li,
-          similarityType:    'naver-mail-type-c',
-          classPattern:      '',
-          attrKey:           '',
-          attrValue:         '',
-        });
+    if (!cardWrapper) continue;
+
+    const candidateCards = [cardWrapper, ...(matchingSiblings || [])];
+
+    // Mark all images inside discovered cards to avoid reprocessing
+    for (const card of candidateCards) {
+      try {
+        const innerImgs = card.querySelectorAll?.('img[src]') || [];
+        for (const innerImg of innerImgs) processedImages.add(innerImg);
+      } catch (e) {
+        // ignore
       }
     }
 
-    return out;
-  } catch (e) {
-    return [];
+    // ─── Step 3: Per-card dominance + anchor verification ───
+    const validCards = [];
+    for (const card of candidateCards) {
+      const cardRect = card.getBoundingClientRect?.();
+      if (!cardRect || cardRect.width <= 0 || cardRect.height <= 0) continue;
+
+      // === PHASE20_HOTFIX_SIZE_GUARD ===
+      // Reject cards that are too large to plausibly be grid cards.
+      // Behance's full-width gallery modules (~991px on a 1280px viewport,
+      // widthRatio ≈ 0.77) are caught by widthRatio > 0.6.
+      // areaRatio guards against tall single-column layouts that pass widthRatio
+      // but cover most of the viewport area.
+      const viewportWidth = Math.max(1, Number(window?.innerWidth || 0));
+      const viewportHeight = Math.max(1, Number(window?.innerHeight || 0));
+      const widthRatio = cardRect.width / viewportWidth;
+      const areaRatio = (cardRect.width * cardRect.height) / (viewportWidth * viewportHeight);
+      if (widthRatio > 0.6 || areaRatio > 0.4) continue;
+      // === END PHASE20_HOTFIX_SIZE_GUARD ===
+
+      // dominance: at least one inner img must pass isImageDominantInCoreItem
+      let hasDominantImage = false;
+      try {
+        const innerImgs = card.querySelectorAll?.('img[src]') || [];
+        for (const innerImg of innerImgs) {
+          const innerRect = getEffectiveImageRectForImageGate(innerImg);
+          if (!innerRect) continue;
+          if (isImageDominantInCoreItem(innerRect, cardRect)) {
+            hasDominantImage = true;
+            break;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      if (!hasDominantImage) continue;
+
+      // === PHASE20_HOTFIX_ANCHOR_SELF ===
+      // anchor: accept either (a) card element itself is <a href>, or
+      // (b) card contains a descendant <a href>. The original `querySelector`
+      // call excludes the element itself, so card-as-anchor sites (e.g., Temu's
+      // <a class="goodsContainer-...">) failed even when the card is clearly
+      // a navigable link. This broader check matches the user-facing intent:
+      // "the card has a way to navigate."
+      const cardIsAnchor = card.tagName === 'A' && card.hasAttribute?.('href');
+      const hasDescendantAnchor = !!card.querySelector?.('a[href]');
+      if (!cardIsAnchor && !hasDescendantAnchor) continue;
+      // === END PHASE20_HOTFIX_ANCHOR_SELF ===
+
+      validCards.push(card);
+    }
+
+    if (validCards.length < TYPED_MIN_GROUP_SIZE) continue;
+
+    // === PHASE20_HOTFIX_OUTLIER ===
+    // Median-based outlier removal:
+    // Compute median width and median height across validCards. Remove cards
+    // whose width OR height falls outside [median/1.5, median*1.5]. This prunes
+    // outliers like Pinterest's pin-closeup main image (501×763 alongside
+    // right-rail cards' 242×~370) from the group before layout consistency.
+    //
+    // The remaining cards must still meet MIN_GROUP_SIZE; otherwise the group
+    // is discarded. Uniform grids (Naver/Google image search, Pinterest organic
+    // grid) have no outliers and pass through unchanged.
+    const computeMedian = (values) => {
+      const sorted = values.slice().sort((a, b) => a - b);
+      const n = sorted.length;
+      if (n === 0) return 0;
+      if (n % 2 === 1) return sorted[(n - 1) / 2];
+      return (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    };
+    const cardRects = validCards.map((c) => c.getBoundingClientRect());
+    const widths = cardRects.map((r) => r.width);
+    const heights = cardRects.map((r) => r.height);
+    const widthMedian = computeMedian(widths);
+    const heightMedian = computeMedian(heights);
+    const OUTLIER_MULTIPLIER = 1.5;
+    const widthLow = widthMedian / OUTLIER_MULTIPLIER;
+    const widthHigh = widthMedian * OUTLIER_MULTIPLIER;
+    const heightLow = heightMedian / OUTLIER_MULTIPLIER;
+    const heightHigh = heightMedian * OUTLIER_MULTIPLIER;
+    const filteredCards = [];
+    for (let i = 0; i < validCards.length; i++) {
+      const r = cardRects[i];
+      const widthInRange = r.width >= widthLow && r.width <= widthHigh;
+      const heightInRange = r.height >= heightLow && r.height <= heightHigh;
+      // === PHASE20_HOTFIX_OUTLIER_RELAX ===
+      // Keep card if AT LEAST ONE axis is within the median band. Reject only
+      // when BOTH axes are outside the band (a true two-axis outlier like
+      // Pinterest's closeup main image). This relaxation matches the user's
+      // earlier decision that "width OR height consistent counts as consistent"
+      // — applied to per-card outlier removal, not just group-level layout.
+      if (widthInRange || heightInRange) filteredCards.push(validCards[i]);
+      // === END PHASE20_HOTFIX_OUTLIER_RELAX ===
+    }
+    if (filteredCards.length < TYPED_MIN_GROUP_SIZE) continue;
+    // === END PHASE20_HOTFIX_OUTLIER ===
+
+    // === PHASE20_HOTFIX_LAYOUT_CONSISTENCY ===
+    // Require that the surviving cards form a visually consistent group:
+    // either widths are similar (widthSpread ≤ 0.30) or heights are similar
+    // (heightSpread ≤ 0.30). Pinterest's pin-closeup main image (large) plus
+    // related-pins grid (small) violates both axes — group is rejected.
+    // Pinterest's organic right-rail (uniform width across cards, varying
+    // heights for masonry) passes via widthSpread; Naver's image search
+    // (uniform width and height) passes both axes.
+    if (!validateVisualLayout(filteredCards)) continue;
+    // === END PHASE20_HOTFIX_LAYOUT_CONSISTENCY ===
+
+    // ─── Build candidate entries (compatible with detectItemMaps schema) ───
+    const grandparent = cardWrapper.parentElement;
+    const identitySignature = grandparent ? signatureOfNode(grandparent) : '';
+    const structureSignature = pathSig.join('::');
+    const itemMapSignature = `${identitySignature}::F:${structureSignature}::E:D`;
+
+    for (const card of filteredCards) {
+      candidates.push({
+        key: itemMapSignature,
+        signature: itemMapSignature,
+        itemMapSignature,
+        identitySignature,
+        structureSignature,
+        evidenceType: EVIDENCE_TYPE_IMAGE_ANCHOR,
+        element: card,
+        similarityType: 'typeD-image-first',
+        classPattern: '',
+        attrKey: '',
+        attrValue: '',
+      });
+    }
   }
+
+  return candidates;
 }
+// === TYPED_REDESIGN_PHASE20 END ===
+
+// === TYPED_REDESIGN_PHASE20_TYPEE ===
+/**
+ * Type E (fallback image) ItemMap detection.
+ *
+ * Goal: catch individual images that Type D's grid-card algorithm misses
+ * (solo product images on detail pages, hero/banner images, single article
+ * images, etc.) so users can clip them.
+ *
+ * Constraints:
+ *   - Each image is its own entry (MIN_GROUP_SIZE = 1).
+ *   - No anchor required: <img> alone or <a><img></a> both accepted.
+ *   - No dominance check (image is the card).
+ *   - No max-size guard (large banners allowed).
+ *   - Floor at 100x100 (rejects decoration / icons).
+ *   - Standard ratio bounds (0.2 <= w/h <= 5.0).
+ *   - aria-hidden gate with the same 100x100 large-bypass as Type D.
+ *   - Nav guard: reject if any ancestor is HEADER/FOOTER/NAV or has role
+ *     banner/contentinfo/navigation.
+ *   - Deduplication: skip images already in processedImages (Type D).
+ *
+ * cardElement: <a> if `img.closest('a[href]')` exists within 5 ancestor
+ * steps; otherwise <img> itself.
+ *
+ * Caller is responsible for additional dedup against B/C/A elements
+ * (handled in detectItemMaps via seenAncestors / contains check).
+ */
+async function detectTypeEItemMaps(root = document, processedImages = new WeakSet()) {
+  const candidates = [];
+  if (!root || !root.querySelectorAll) return candidates;
+
+  const TYPE_E_MIN_SIZE = 100;
+  const TYPE_E_MAX_ANCHOR_WALK = 5;
+
+  const allImgs = Array.from(root.querySelectorAll('img[src]') || []);
+
+  for (const img of allImgs) {
+    if (processedImages.has(img)) continue;
+
+    // aria-hidden gate (same large-bypass rule as Type D Step 1)
+    if (img.getAttribute?.('aria-hidden') === 'true') {
+      const probeRect = img.getBoundingClientRect?.();
+      const visuallyLarge = probeRect && probeRect.width >= 100 && probeRect.height >= 100;
+      if (!visuallyLarge) continue;
+    }
+
+    const naturalW = Number(img.naturalWidth || 0);
+    if (naturalW > 0 && naturalW < 20) continue;
+
+    const rect = getEffectiveImageRectForImageGate(img);
+    if (!rect) continue;
+    const w = Math.max(0, Number(rect.width || 0));
+    const h = Math.max(0, Number(rect.height || 0));
+    if (w < TYPE_E_MIN_SIZE || h < TYPE_E_MIN_SIZE) continue;
+
+    const ratio = h > 0 ? w / h : Number.POSITIVE_INFINITY;
+    if (ratio < 0.2 || ratio > 5.0) continue;
+
+    // Nav guard: walk up checking every ancestor for nav-like context
+    let navAncestor = false;
+    let cur = img.parentElement;
+    while (cur && cur !== document.body) {
+      const tag = String(cur.tagName || '').toUpperCase();
+      if (TYPED_NAV_TAGS.has(tag)) { navAncestor = true; break; }
+      const role = String(cur.getAttribute?.('role') || '').toLowerCase().trim();
+      if (TYPED_NAV_ROLES.has(role)) { navAncestor = true; break; }
+      cur = cur.parentElement;
+    }
+    if (navAncestor) continue;
+
+    // Anchor lookup: walk up to TYPE_E_MAX_ANCHOR_WALK steps
+    let anchor = null;
+    let walker = img.parentElement;
+    for (let step = 0; step < TYPE_E_MAX_ANCHOR_WALK && walker; step++) {
+      if (walker.tagName === 'A' && walker.hasAttribute?.('href')) {
+        anchor = walker;
+        break;
+      }
+      walker = walker.parentElement;
+    }
+
+    const cardElement = anchor || img;
+
+    candidates.push({
+      key: `typeE::${candidates.length}`,
+      signature: `typeE::${candidates.length}`,
+      itemMapSignature: `typeE::${candidates.length}`,
+      identitySignature: signatureOfNode(img),
+      structureSignature: 'typeE',
+      evidenceType: EVIDENCE_TYPE_E,
+      element: cardElement,
+      similarityType: 'typeE-fallback-image',
+      classPattern: '',
+      attrKey: '',
+      attrValue: '',
+    });
+
+    processedImages.add(img);
+  }
+
+  return candidates;
+}
+// === END TYPED_REDESIGN_PHASE20_TYPEE ===
 
 function getDepthFromBody(el) {
   let depth = 0;
@@ -1376,6 +1598,19 @@ function isLayoutHeaderFooterElement(el) {
 export async function detectItemMaps(root = document) {
   try {
     const candidates = [];
+
+    // === TYPED_REDESIGN_PHASE20 INTEGRATION START ===
+    // Run new image-first Type D detection before the existing loop.
+    // Existing main loop will skip elements already classified by the new system,
+    // so old D path doesn't compete or duplicate.
+    const typeDCandidates = await detectTypeDItemMaps(root);
+    candidates.push(...typeDCandidates);
+    const typeDElementSet = new Set();
+    for (const c of typeDCandidates) {
+      if (c?.element) typeDElementSet.add(c.element);
+    }
+    // === TYPED_REDESIGN_PHASE20 INTEGRATION END ===
+
     const parents = Array.from(
       root && root.querySelectorAll
         ? root === document
@@ -1428,6 +1663,13 @@ export async function detectItemMaps(root = document) {
           i += 1;
           continue;
         }
+        // === TYPED_REDESIGN_PHASE20 SKIP START ===
+        // Skip elements already classified as Type D by the new image-first system.
+        if (typeDElementSet.has(start) || typeDElementSet.has(startRaw)) {
+          i += 1;
+          continue;
+        }
+        // === TYPED_REDESIGN_PHASE20 SKIP END ===
         if (hasCommentKeyword(start)) {
           i += 1;
           continue;
@@ -1463,20 +1705,7 @@ export async function detectItemMaps(root = document) {
           const cur = promoteGhostWrapper(curRaw);
           const nextIdentity = getElementSignature(cur);
           if (!nextIdentity) break;
-          let identityMatch = isSimilarIdentity(identitySig, nextIdentity, 0.8);
-          if (
-            !identityMatch.matched &&
-            (evidenceType === EVIDENCE_TYPE_ANCHOR || evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR)
-          ) {
-            const startHasNavState =
-              hasAriaActiveState(start) || hasNavSemantics(start) || hasNavKeywords(start) || hasNavTestIdSignals(start);
-            const curHasNavState =
-              hasAriaActiveState(cur) || hasNavSemantics(cur) || hasNavKeywords(cur) || hasNavTestIdSignals(cur);
-            if (startHasNavState || curHasNavState) {
-              // Allow active-tab class drift to remain in the same functional list.
-              identityMatch = isSimilarIdentity(identitySig, nextIdentity, 0.6);
-            }
-          }
+          const identityMatch = isSimilarIdentity(identitySig, nextIdentity, 0.8);
           if (!identityMatch.matched) break;
           const nextEvidence = await getEvidenceType(cur);
           if (!nextEvidence || nextEvidence !== evidenceType) break;
@@ -1552,190 +1781,6 @@ export async function detectItemMaps(root = document) {
     }
 
     const recovered = [...deduped];
-    const recoveredSet = new Set(recovered.map((x) => x.element).filter(Boolean));
-    const visitedParentTag = new Set();
-    const getMeaningfulClassSet = (el) => {
-      try {
-        if (!el || el.nodeType !== 1) return new Set();
-        const noise = new Set(['style-scope']);
-        const tokens = normalizeText(el.className || '')
-          .split(/\s+/)
-          .map((t) => t.trim())
-          .filter(Boolean)
-          .filter((t) => !noise.has(t));
-        return new Set(tokens);
-      } catch (e) {
-        return new Set();
-      }
-    };
-    const hasPartialClassOverlap = (seedEl, candidateEl) => {
-      try {
-        if (!seedEl || !candidateEl || seedEl.nodeType !== 1 || candidateEl.nodeType !== 1) return false;
-        const seedTag = String(seedEl.tagName || '').toUpperCase();
-        const candTag = String(candidateEl.tagName || '').toUpperCase();
-        if (!seedTag || !candTag || seedTag !== candTag) return false;
-        const seedSet = getMeaningfulClassSet(seedEl);
-        const candSet = getMeaningfulClassSet(candidateEl);
-        if (seedSet.size === 0 || candSet.size === 0) return false;
-        for (const t of seedSet) {
-          if (candSet.has(t)) return true;
-        }
-        return false;
-      } catch (e) {
-        return false;
-      }
-    };
-    const isSimpleWrapperNode = (node) => {
-      try {
-        if (!node || node.nodeType !== 1) return false;
-        const tag = String(node.tagName || '').toUpperCase();
-        if (tag !== 'DIV' && tag !== 'SPAN') return false;
-        if (String(node.id || '').trim()) return false;
-
-        const clsTokens = normalizeText(node.className || '')
-          .split(/\s+/)
-          .map((t) => t.trim())
-          .filter(Boolean);
-        const frameworkNoise = new Set(['style-scope']);
-        if (clsTokens.length > 0 && !clsTokens.every((t) => frameworkNoise.has(t))) return false;
-
-        const attrs = Array.from(node.attributes || []);
-        for (const attr of attrs) {
-          const name = String(attr?.name || '').toLowerCase().trim();
-          if (!name) continue;
-          if (name === 'class' || name === 'style') continue;
-          if (name.startsWith('data-') || name.startsWith('aria-')) continue;
-          return false;
-        }
-        return true;
-      } catch (e) {
-        return false;
-      }
-    };
-    const iframeHasValidTypeASignal = async (iframeEl) => {
-      try {
-        if (!iframeEl || iframeEl.nodeType !== 1 || String(iframeEl.tagName || '').toUpperCase() !== 'IFRAME') return false;
-
-        // 1) Same-origin iframe DOM anchors (strict Type A signal validation).
-        try {
-          const doc = iframeEl.contentDocument || iframeEl.contentWindow?.document || null;
-          if (doc && typeof doc.querySelectorAll === 'function') {
-            const anchors = Array.from(doc.querySelectorAll('a[href]') || []);
-            for (const a of anchors) {
-              if (await isValidTypeAAnchor(a)) return true;
-            }
-          }
-        } catch (e) {
-          // Cross-origin/inaccessible iframe; fallback to src check below.
-        }
-
-        // 2) Fallback to iframe src as a verifiable DISCOVERY target (probe is synthetic; use resolveAnchorUrl).
-        const rawSrc = String(iframeEl.getAttribute?.('src') || iframeEl.src || '').trim();
-        if (!rawSrc) return false;
-        const probe = document.createElement('a');
-        probe.setAttribute('href', rawSrc);
-        return !!resolveAnchorUrl(probe);
-      } catch (e) {
-        return false;
-      }
-    };
-    // Relaxed anchor check for 2nd-pass sibling recovery:
-    // only requires at least one href with an absolute URL (http/https).
-    const hasRelaxedAbsoluteAnchor = (el) => {
-      try {
-        if (!el || !el.querySelectorAll) return false;
-        const anchors = Array.from(el.querySelectorAll('a[href]') || []);
-        for (const a of anchors) {
-          const href = String(a.getAttribute?.('href') || '').trim();
-          if (/^https?:\/\//i.test(href)) return true;
-        }
-        return false;
-      } catch (e) {
-        return false;
-      }
-    };
-    const anchorLikeSeeds = deduped.filter(
-      (x) =>
-        (x?.evidenceType === EVIDENCE_TYPE_ANCHOR || x?.evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) &&
-        x?.element
-    );
-    for (const seed of anchorLikeSeeds) {
-      const seedEl = seed.element;
-      const parent = seedEl?.parentElement;
-      if (!parent || !parent.children) continue;
-      const seedTag = String(seedEl.tagName || '').toUpperCase();
-      if (!seedTag) continue;
-      const expansionRoots = [{ node: parent, viaSimpleWrapperBypass: false, wrapper: null }];
-      if (isSimpleWrapperNode(parent) && parent.parentElement) {
-        expansionRoots.push({ node: parent.parentElement, viaSimpleWrapperBypass: true, wrapper: parent });
-      }
-
-      for (const rootInfo of expansionRoots) {
-        const root = rootInfo.node;
-        if (!root || !root.children) continue;
-        const marker = `${seedTag}::${Array.from(root.children || []).length}::${rootInfo.viaSimpleWrapperBypass ? 'wrapper-bypass' : 'direct'}`;
-        const visitKey = `${marker}::${root.dataset?.viewName || root.id || root.className || ''}`;
-        if (visitedParentTag.has(visitKey)) continue;
-        visitedParentTag.add(visitKey);
-
-        const siblings = Array.from(root.children).filter(Boolean);
-        for (const siblingRaw of siblings) {
-          if (rootInfo.viaSimpleWrapperBypass && siblingRaw === rootInfo.wrapper) continue;
-          const sibling = promoteGhostWrapper(siblingRaw);
-          if (!sibling || sibling.nodeType !== 1) continue;
-          if (recoveredSet.has(sibling)) continue;
-          if (!isVisibleAndSized(sibling)) continue;
-
-          if (!hasPartialClassOverlap(seedEl, sibling)) continue;
-          const siblingIdentity = getElementSignature(sibling);
-
-          const siblingTag = String(sibling.tagName || '').toUpperCase();
-          const isIframeSibling = siblingTag === 'IFRAME';
-          const nestedIframes = !isIframeSibling ? Array.from(sibling.querySelectorAll?.('iframe') || []) : [];
-          if (nestedIframes.length > 0) {
-            let hasValidNestedIframeSignal = false;
-            for (const frame of nestedIframes) {
-              if (await iframeHasValidTypeASignal(frame)) {
-                hasValidNestedIframeSignal = true;
-                break;
-              }
-            }
-            if (!hasValidNestedIframeSignal) {
-              continue;
-            }
-          } else if (isIframeSibling) {
-            const validIframeSignal = await iframeHasValidTypeASignal(sibling);
-            if (!validIframeSignal) continue;
-          } else {
-            if (!hasRelaxedAbsoluteAnchor(sibling)) continue;
-          }
-
-          // Apply nav guard rails — same signals used in isMeaningfulItemMap()
-          // to exclude nav/banner/account UI regions that slipped through.
-          if (hasNavSemantics(sibling) || hasNavKeywords(sibling)) continue;
-
-          if (rootInfo.viaSimpleWrapperBypass) {
-            const cls = String(sibling.className || '').trim();
-          }
-          recovered.push({
-            key: `${seed.key || seed.signature || ''}::R`,
-            signature: `${seed.signature || seed.key || ''}::R`,
-            itemMapSignature: `${seed.itemMapSignature || seed.signature || seed.key || ''}::R`,
-            identitySignature: siblingIdentity || seed.identitySignature || '',
-            structureSignature: getInternalStructure(sibling, 3) || seed.structureSignature || '',
-            evidenceType: hasVisuallySignificantImageInScope(sibling)
-              ? EVIDENCE_TYPE_IMAGE_ANCHOR
-              : EVIDENCE_TYPE_ANCHOR,
-            element: sibling,
-            similarityType: rootInfo.viaSimpleWrapperBypass ? 'comprehensive-sibling-recovery-wrapper-bypass' : 'comprehensive-sibling-recovery',
-            classPattern: seed.classPattern || '',
-            attrKey: seed.attrKey || '',
-            attrValue: seed.attrValue || '',
-          });
-          recoveredSet.add(sibling);
-        }
-      }
-    }
 
     const depthOf = (el) => {
       let d = 0;
@@ -1773,13 +1818,6 @@ export async function detectItemMaps(root = document) {
       if (isLayoutHeaderFooterElement(el)) return false;
       if (item.evidenceType === EVIDENCE_TYPE_INTERACTION) {
         return primaryBItems.some((p) => p.element === el);
-      }
-      if (
-        item.evidenceType === EVIDENCE_TYPE_ANCHOR ||
-        item.evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR
-      ) {
-        const insideAnyPrimaryB = primaryBItems.some((p) => p.element && p.element.contains(el));
-        if (insideAnyPrimaryB) return false;
       }
       return true;
     });
@@ -1893,20 +1931,10 @@ export async function detectItemMaps(root = document) {
     }
     merged = Array.from(dedupMergedByEl.values());
 
-    // Re-apply A-inside-B suppression after fallback merge.
-    const allBContainers = merged
-      .filter((x) => x?.evidenceType === EVIDENCE_TYPE_INTERACTION && x?.element)
-      .map((x) => x.element);
     const finalFiltered = merged.filter((item) => {
       if (!item?.element) return false;
       if (isLayoutHeaderFooterElement(item.element)) return false;
-      if (
-        item.evidenceType !== EVIDENCE_TYPE_ANCHOR &&
-        item.evidenceType !== EVIDENCE_TYPE_IMAGE_ANCHOR
-      ) {
-        return true;
-      }
-      return !allBContainers.some((bEl) => bEl && bEl.contains?.(item.element));
+      return true;
     });
 
     // Keep nested parent ItemMaps alongside child ItemMaps.
@@ -1922,14 +1950,36 @@ export async function detectItemMaps(root = document) {
       }
     }
 
-    // ── Merge Type C (Gmail inbox) ───────────────────────────────────────────
-    const typeCItems = detectTypeCItemMaps(root);
     const allItems = [...finalFiltered];
-    const seenEls = new Set(allItems.map((x) => x.element));
-    for (const item of typeCItems) {
-      if (!item?.element || seenEls.has(item.element)) continue;
+
+    // === TYPED_REDESIGN_PHASE20_TYPEE — Type E fallback image merge ===
+    // Type E catches individual images not part of any Type D/B/C entry.
+    // Run last so all higher-priority detectors had their chance.
+    //
+    // Dedup: pass processedImages from Type D detection so the same images
+    // aren't re-examined (note: detectTypeDItemMaps internally manages its
+    // own WeakSet; we run Type E with a fresh one but check via element
+    // ancestors for B/C/D coverage below).
+    const typeEItems = await detectTypeEItemMaps(root, new WeakSet());
+    const seenAncestors = new Set(allItems.map((x) => x.element));
+    for (const item of typeEItems) {
+      const el = item?.element;
+      if (!el || seenAncestors.has(el)) continue;
+      // Element-level dedup: if any already-classified element contains or
+      // is contained by this Type E element, skip. This prevents Type E from
+      // re-claiming images inside Type D cards or images that are themselves
+      // wrappers for Type B posts.
+      let conflicts = false;
+      for (const seenEl of seenAncestors) {
+        if (seenEl === el) { conflicts = true; break; }
+        if (typeof seenEl.contains === 'function' && seenEl.contains(el)) { conflicts = true; break; }
+        if (typeof el.contains === 'function' && el.contains(seenEl)) { conflicts = true; break; }
+      }
+      if (conflicts) continue;
       allItems.push(item);
+      seenAncestors.add(el);
     }
+    // === END TYPED_REDESIGN_PHASE20_TYPEE ===
 
     if (root === document) {
       clusterLookup = new Set(allItems.map((x) => x.element));
@@ -2025,7 +2075,7 @@ export function ensureClusterCacheFromState() {
 export const findItemsOnPage = detectItemMaps;
 export const buildItemMap = detectItemMaps;
 export const findOptimalCluster = findClusterContainerFromTarget;
-export { EVIDENCE_TYPE_C, EVIDENCE_TYPE_ANCHOR, EVIDENCE_TYPE_IMAGE_ANCHOR };
+export { EVIDENCE_TYPE_IMAGE_ANCHOR };
 
 export function calculateSimilarity(sigA, sigB) {
   if (!sigA || !sigB) return 0;

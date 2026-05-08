@@ -7,7 +7,6 @@
 // Item cluster/item map logic
 export {
   detectItemMaps,
-  detectTypeCItemMaps,
   getItemMapFingerprint,
   findClusterContainerFromTarget,
   getItemMapEvidenceType,
@@ -18,8 +17,6 @@ export {
   findOptimalCluster,
   calculateSimilarity,
   getItemMapEntryByElement,
-  EVIDENCE_TYPE_C,
-  EVIDENCE_TYPE_ANCHOR,
   EVIDENCE_TYPE_IMAGE_ANCHOR,
 } from './itemDetector.js';
 

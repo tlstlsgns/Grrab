@@ -190,7 +190,6 @@ function formatItemAsMarkdown(item) {
   const createdIso = created.toISOString();
   const category = String(item.category || '').trim();
   const confirmed = String(item.confirmed_type || item.confirmedType || '').trim();
-  const sender = String(item.sender || '').trim();
   const platform = String(item.platform || '').trim();
   const imgUrl = String(item.img_url || '').trim();
   const pageDescription = String(item.page_description || '').trim();
@@ -202,9 +201,6 @@ function formatItemAsMarkdown(item) {
   fm.push(`category: "${escapeYamlDoubleQuoted(category)}"`);
   if (category === 'SNS' && confirmed) {
     fm.push(`confirmed_type: "${escapeYamlDoubleQuoted(confirmed)}"`);
-  }
-  if (category === 'Mail' && sender) {
-    fm.push(`sender: "${escapeYamlDoubleQuoted(sender)}"`);
   }
   if (platform) {
     fm.push(`platform: "${escapeYamlDoubleQuoted(platform)}"`);
@@ -233,9 +229,6 @@ function formatItemAsMarkdown(item) {
     catLine += ` (${confirmed})`;
   }
   lines.push(catLine);
-  if (category === 'Mail' && sender) {
-    lines.push(`- **보낸이**: ${sender}`);
-  }
   if (platform) {
     lines.push(`- **플랫폼**: ${platform}`);
   }

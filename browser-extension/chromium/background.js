@@ -870,21 +870,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return false;
   }
 
-  if (request.action === 'capture-visible-tab') {
-    chrome.tabs.captureVisibleTab(
-      null,
-      { format: 'jpeg', quality: 80 },
-      (dataUrl) => {
-        if (chrome.runtime.lastError) {
-          sendResponse({ success: false, error: chrome.runtime.lastError.message });
-        } else {
-          sendResponse({ success: true, dataUrl });
-        }
-      }
-    );
-    return true;
-  }
-
   // Handle userId request from content script
   if (request.action === 'get-cached-user-id') {
     getCachedUserId().then((userId) => {
@@ -1182,27 +1167,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     })();
     return true; // async response
-  }
-
-  if (request.action === 'get-naver-cookies') {
-    chrome.cookies.getAll({ domain: '.naver.com' }, (cookies) => {
-      if (chrome.runtime.lastError || !cookies?.length) {
-        sendResponse({ cookies: null });
-      } else {
-        sendResponse({
-          cookies: cookies.map((c) => ({
-            name:     c.name,
-            value:    c.value,
-            domain:   c.domain,
-            path:     c.path,
-            secure:   c.secure,
-            httpOnly: c.httpOnly,
-            sameSite: c.sameSite,
-          })),
-        });
-      }
-    });
-    return true; // keep channel open for async sendResponse
   }
 
   // Handle redirect resolution request

@@ -19,8 +19,7 @@
     "windows",
     "sidePanel",
     "identity",
-    "clipboardWrite",
-    "cookies"
+    "clipboardWrite"
   ],
   "host_permissions": [
     "https://api-gstf2hxbiq-du.a.run.app/*",
@@ -40,7 +39,6 @@
       ],
       "js": [
         "config.js",
-        "html2canvas.bundle.js",
         "content-loader.js"
       ],
       "all_frames": true,

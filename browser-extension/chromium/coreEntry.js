@@ -1,8 +1,6 @@
 import { state } from './stateLite.js';
 import {
   detectItemMaps,
-  EVIDENCE_TYPE_C,
-  EVIDENCE_TYPE_ANCHOR,
   EVIDENCE_TYPE_IMAGE_ANCHOR,
   getItemMapFingerprint,
   findClusterContainerFromTarget,
@@ -11,6 +9,7 @@ import {
   resolveTypeACoreItem,
   isValidTypeAAnchor,
   extractMetadataForCoreItem,
+  extractImageFromCoreItem,
   extractShortcode,
   mountInstagramShortcodeObserver,
   getCurrentPlatform,
@@ -50,12 +49,6 @@ function isSignedIn() {
   return _kcUserReady === true;
 }
 let _pageMetaInitialized = false;
-let _fullpageToastEl = null;
-let _fullpageToastTimer = null;
-let _fullpageToastFadeTimer = null;
-let _fullpageToastKind = null; // 'entry' | 'result' | null
-const FULLPAGE_TOAST_DURATION_MS = 1300;
-const FULLPAGE_TOAST_FADE_MS = 200;
 // Cached keyboard shortcut display string, derived from
 // chrome.storage.local.kickclipShortcut (written by background.js
 // runShortcutPoll). Updated on init and via storage.onChanged so toast
@@ -72,8 +65,6 @@ let lastPointerY = null;
 let _lastMouseoverTarget = null;
 const instagramFetchInFlightByElement = new WeakMap();
 
-let _isCapturing = false; // true while captureVisibleTab is in progress
-
 const IS_IFRAME = window.self !== window.top;
 let _windowFocused = true; // false while the browser window is not focused
 let _sidePanelFocused = false; // true while the KickClip Side Panel has focus
@@ -85,28 +76,9 @@ const KC_SAVE_QUERY = '__kc_save_query__';
 const KC_SAVE_HANDLED = '__kc_save_handled__';
 const KC_SAVE_RELAY = '__kc_save_relay__';
 
-/**
- * KickClip UI element IDs that must be hidden during screenshot capture
- * so they don't appear in the captured image. Includes overlays, the
- * metadata tooltip, the candidate-outline layer, and the entry toast.
- * Single source of truth — every capture path reads from here.
- */
-const KC_CAPTURE_HIDE_IDS = [
-  'kickclip-highlight-overlay',
-  'kickclip-metadata-tooltip',
-  'kickclip-green-candidate-layer',
-  'kickclip-fullpage-entry-toast',
-];
-
 /** Metadata tooltip id — hidden briefly during save (shutter uses overlay fills in uiManager). */
 const METADATA_TOOLTIP_ID = 'kickclip-metadata-tooltip';
 const SAVE_FEEDBACK_KC_MIN_MS = 80;
-
-function postHighlightToTop(type, payload = {}) {
-  try {
-    window.top.postMessage({ [KC_MSG_PREFIX]: true, type, ...payload }, '*');
-  } catch (e) {}
-}
 
 let _savedUrlSet = new Set(); // saved URLs
 
@@ -161,21 +133,7 @@ function initPageLevelMetadata() {
       ...(platform      ? { platform }      : {}),
       ...(confirmedType ? { confirmedType }  : {}),
     };
-    if (!IS_IFRAME) {
-      showFullpageEntryToast();
-    }
   } catch (e) {}
-}
-
-/**
- * Shows a page-entry toast: "Press {shortcut} to clip this page".
- * Fires in both signed-in and signed-out states — the shortcut clips
- * the page to clipboard for everyone; signed-in users additionally save.
- */
-function showFullpageEntryToast() {
-  const shortcut = _shortcutDisplay || 'shortcut';
-  const message = `Press ${shortcut} to clip this page`;
-  showFullpageToast(message, 'entry');
 }
 
 /**
@@ -239,104 +197,10 @@ function syncCoreBadgeTexts() {
   });
 }
 
-// ─── Unified fullpage toast (single DOM element, kind-aware lifecycle) ───
-//
-// One toast at a time at top-center of the viewport. Two callers exist:
-//   - 'entry'  — page-load guidance ("Press {shortcut} to clip this page")
-//   - 'result' — clip outcome ("Page URL clipped" etc.)
-// Both share the same DOM node: subsequent calls swap textContent and
-// reset timers, avoiding the previous overlap of two stacked toasts.
-//
-function ensureFullpageToastEl() {
-  if (_fullpageToastEl && _fullpageToastEl.isConnected) return _fullpageToastEl;
-  const toast = document.createElement('div');
-  toast.id = 'kickclip-fullpage-entry-toast'; // KEPT for KC_CAPTURE_HIDE_IDS
-  toast.style.cssText = [
-    'position: fixed',
-    'top: 12px',
-    'right: 12px',
-    'background: rgba(188, 19, 254, 0.92)',
-    'color: white',
-    'padding: 10px 16px',
-    'border-radius: 6px',
-    'font-size: 13px',
-    'font-weight: 500',
-    'z-index: 2147483647',
-    'pointer-events: none',
-    'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15)',
-    'transition: opacity 0.2s',
-    'white-space: pre-line',
-    'text-align: center',
-  ].join(';');
-  getKCShadowRoot().appendChild(toast);
-  _fullpageToastEl = toast;
-  return toast;
-}
-
-/**
- * Show or update the single fullpage toast.
- * @param {string} message
- * @param {'entry' | 'result'} kind
- */
-function showFullpageToast(message, kind = 'entry') {
-  try {
-    // Cancel any in-flight auto-dismiss / fade so the new content stays.
-    if (_fullpageToastTimer !== null) {
-      clearTimeout(_fullpageToastTimer);
-      _fullpageToastTimer = null;
-    }
-    if (_fullpageToastFadeTimer !== null) {
-      clearTimeout(_fullpageToastFadeTimer);
-      _fullpageToastFadeTimer = null;
-    }
-
-    const toast = ensureFullpageToastEl();
-    toast.textContent = message;
-    toast.style.opacity = '1';
-    _fullpageToastKind = kind;
-
-    // Schedule auto-dismiss (same policy for both kinds).
-    _fullpageToastTimer = setTimeout(() => {
-      _fullpageToastTimer = null;
-      if (!_fullpageToastEl) return;
-      const current = _fullpageToastEl;
-      current.style.opacity = '0';
-      _fullpageToastFadeTimer = setTimeout(() => {
-        _fullpageToastFadeTimer = null;
-        if (_fullpageToastEl === current) {
-          current.remove();
-          _fullpageToastEl = null;
-          _fullpageToastKind = null;
-        } else {
-          current.remove();
-        }
-      }, FULLPAGE_TOAST_FADE_MS);
-    }, FULLPAGE_TOAST_DURATION_MS);
-  } catch (_) {}
-}
-
-/** Tear down the toast unconditionally (regardless of kind). */
-function hideFullpageToast() {
-  if (_fullpageToastTimer !== null) {
-    clearTimeout(_fullpageToastTimer);
-    _fullpageToastTimer = null;
-  }
-  if (_fullpageToastFadeTimer !== null) {
-    clearTimeout(_fullpageToastFadeTimer);
-    _fullpageToastFadeTimer = null;
-  }
-  if (_fullpageToastEl) {
-    _fullpageToastEl.remove();
-    _fullpageToastEl = null;
-  }
-  _fullpageToastKind = null;
-}
-
 initShortcutCache();
 
 // Waits for the browser to complete two paint frames.
-// Used to ensure DOM visibility changes are reflected on screen
-// before captureVisibleTab fires.
+// Used to ensure DOM visibility changes are reflected on screen.
 function waitForRepaint() {
   return new Promise((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
@@ -391,26 +255,6 @@ async function finalizeKCSaveFeedback(hiddenEls, startedAt) {
       }
     }
   } catch (e) {}
-}
-
-/**
- * Collects Naver login cookies from the browser for server-side Puppeteer injection.
- * Returns an array of cookie objects or null if unavailable.
- */
-async function getNaverCookies() {
-  try {
-    return await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: 'get-naver-cookies' }, (response) => {
-        if (chrome.runtime.lastError) {
-          resolve(null);
-        } else {
-          resolve(response?.cookies || null);
-        }
-      });
-    });
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -489,294 +333,6 @@ function findMinContentContainer(root) {
   } catch (e) {
     return fallback;
   }
-}
-
-async function captureScreenshotBase64(element) {
-  try {
-    if (!element || element.nodeType !== 1) return null;
-
-    const rect = element.getBoundingClientRect();
-    if (!rect || rect.width <= 0 || rect.height <= 0) return null;
-
-    const hiddenEls = [];
-    for (const id of KC_CAPTURE_HIDE_IDS) {
-      try {
-        const el = findKCElement(id);
-        if (el && el.style.display !== 'none') {
-          // Use opacity:0 instead of display:none so the element stays in
-          // the layout (no visual jump) but is excluded from the screenshot.
-          hiddenEls.push({ el, prevOpacity: el.style.opacity, prevTransition: el.style.transition });
-          el.style.opacity = '0';
-        }
-      } catch (e) {}
-    }
-
-    _isCapturing = true;
-    try {
-      // One rAF is enough since opacity change (no layout reflow needed).
-      await waitForRepaint();
-      await new Promise((resolve) => setTimeout(resolve, 32));
-
-      let dataUrl = null;
-      try {
-        const result = await new Promise((resolve) => {
-          try {
-            chrome.runtime.sendMessage({ action: 'capture-visible-tab' }, (response) => {
-              if (chrome.runtime.lastError) {
-                resolve(null);
-                return;
-              }
-              resolve(response);
-            });
-          } catch (e) {
-            resolve(null);
-          }
-        });
-
-        if (!result?.success || !result?.dataUrl) return null;
-
-        const dpr = window.devicePixelRatio || 1;
-        const img = await new Promise((resolve, reject) => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = () => reject(new Error('img load failed'));
-          image.src = result.dataUrl;
-        });
-
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(rect.width * dpr);
-        canvas.height = Math.round(rect.height * dpr);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return null;
-        ctx.drawImage(
-          img,
-          Math.round(rect.left * dpr),
-          Math.round(rect.top * dpr),
-          Math.round(rect.width * dpr),
-          Math.round(rect.height * dpr),
-          0,
-          0,
-          Math.round(rect.width * dpr),
-          Math.round(rect.height * dpr)
-        );
-        dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-
-      } catch (e) {
-        dataUrl = null;
-      }
-
-      if (!dataUrl) return null;
-      return { dataUrl };
-    } finally {
-      _isCapturing = false;
-      for (const { el, prevOpacity, prevTransition } of hiddenEls) {
-        try {
-          el.style.transition = prevTransition;
-          el.style.opacity    = prevOpacity;
-        } catch (e) {}
-      }
-    }
-  } catch (e) {
-    return null;
-  }
-}
-
-async function capturePageScreenshotBase64() {
-  // Temporarily hide KickClip UI elements
-  const hiddenEls = [];
-  for (const id of KC_CAPTURE_HIDE_IDS) {
-    try {
-      const el = findKCElement(id);
-      if (el && el.style.display !== 'none') {
-        hiddenEls.push({ el, prevOpacity: el.style.opacity, prevTransition: el.style.transition });
-        el.style.transition = '';
-        el.style.opacity = '0';
-      }
-    } catch (e) {}
-  }
-
-  _isCapturing = true;
-  try {
-    // Wait for the browser to repaint with hidden KickClip UI before capturing.
-    // Two rAFs ensure layout/paint; the extra 32ms settles compositor flush.
-    await waitForRepaint();
-    await new Promise((resolve) => setTimeout(resolve, 32));
-
-    const result = await new Promise((resolve) => {
-      try {
-        chrome.runtime.sendMessage({ action: 'capture-visible-tab' }, (response) => {
-          if (chrome.runtime.lastError) {
-            resolve(null);
-            return;
-          }
-          resolve(response);
-        });
-      } catch (e) {
-        resolve(null);
-      }
-    });
-
-    if (!result?.success || !result?.dataUrl) return null;
-
-    const dpr = window.devicePixelRatio || 1;
-
-    // Crop out scrollbars if present.
-    // clientWidth/clientHeight excludes scrollbars; innerWidth/innerHeight includes them.
-    // If they differ, the difference is the scrollbar thickness — crop the image accordingly.
-    const scrollbarX = Math.max(0, Math.round((window.innerWidth  - document.documentElement.clientWidth)  * dpr));
-    const scrollbarY = Math.max(0, Math.round((window.innerHeight - document.documentElement.clientHeight) * dpr));
-
-    if (scrollbarX > 0 || scrollbarY > 0) {
-      try {
-        const fullImg = await new Promise((resolve, reject) => {
-          const image = new Image();
-          image.onload  = () => resolve(image);
-          image.onerror = () => reject(new Error('img load failed'));
-          image.src = result.dataUrl;
-        });
-        const cropW = (fullImg.naturalWidth  || fullImg.width)  - scrollbarX;
-        const cropH = (fullImg.naturalHeight || fullImg.height) - scrollbarY;
-        if (cropW > 0 && cropH > 0) {
-          const cropCanvas = document.createElement('canvas');
-          cropCanvas.width  = cropW;
-          cropCanvas.height = cropH;
-          const cropCtx = cropCanvas.getContext('2d');
-          if (cropCtx) {
-            cropCtx.drawImage(fullImg, 0, 0);
-            const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.8);
-            return { dataUrl: croppedDataUrl };
-          }
-        }
-      } catch (_) {
-        // Crop failed — fall back to original
-      }
-    }
-
-    return { dataUrl: result.dataUrl };
-  } finally {
-    _isCapturing = false;
-    // Always restore KickClip UI elements
-    for (const { el, prevOpacity, prevTransition } of hiddenEls) {
-      try {
-        el.style.transition = prevTransition;
-        el.style.opacity    = prevOpacity;
-      } catch (e) {}
-    }
-    try {
-      const currentActive = state.activeCoreItem;
-      if (currentActive && currentActive.nodeType === 1) {
-        showCoreHighlight(currentActive);
-      }
-    } catch (e) {}
-  }
-}
-
-/**
- * Stage 1: raw screenshot capture only. Hides KickClip UI, waits for repaint,
- * and invokes chrome.tabs.captureVisibleTab via background. Returns the raw
- * dataUrl WITHOUT bg-color sampling or scrollbar cropping.
- *
- * This allows the calling code to show the Optimistic Card with the screenshot
- * as soon as the raw capture completes, then run the post-processing (Stage 2)
- * in parallel with other async work.
- *
- * Returns: { rawDataUrl: string } | null
- */
-async function capturePageScreenshotRaw() {
-  // Temporarily hide KickClip UI elements
-  const hiddenEls = [];
-  for (const id of KC_CAPTURE_HIDE_IDS) {
-    try {
-      const el = findKCElement(id);
-      if (el && el.style.display !== 'none') {
-        hiddenEls.push({ el, prevOpacity: el.style.opacity, prevTransition: el.style.transition });
-        el.style.transition = '';
-        el.style.opacity = '0';
-      }
-    } catch (e) {}
-  }
-
-  _isCapturing = true;
-  try {
-    // Wait for the browser to repaint with hidden KickClip UI before capturing.
-    await waitForRepaint();
-    await new Promise((resolve) => setTimeout(resolve, 32));
-
-    const result = await new Promise((resolve) => {
-      try {
-        chrome.runtime.sendMessage({ action: 'capture-visible-tab' }, (response) => {
-          if (chrome.runtime.lastError) {
-            resolve(null);
-            return;
-          }
-          resolve(response);
-        });
-      } catch (e) {
-        resolve(null);
-      }
-    });
-
-    if (!result?.success || !result?.dataUrl) return null;
-    return { rawDataUrl: result.dataUrl };
-  } finally {
-    _isCapturing = false;
-    // Always restore KickClip UI elements
-    for (const { el, prevOpacity, prevTransition } of hiddenEls) {
-      try {
-        el.style.transition = prevTransition;
-        el.style.opacity    = prevOpacity;
-      } catch (e) {}
-    }
-    try {
-      const currentActive = state.activeCoreItem;
-      if (currentActive && currentActive.nodeType === 1) {
-        showCoreHighlight(currentActive);
-      }
-    } catch (e) {}
-  }
-}
-
-/**
- * Stage 2: post-process a raw screenshot dataUrl:
- *   - crop out scrollbars if present
- * Returns: { dataUrl }
- */
-async function processPageScreenshot(rawDataUrl) {
-  if (!rawDataUrl) return null;
-
-  const dpr = window.devicePixelRatio || 1;
-
-  // Crop out scrollbars if present.
-  const scrollbarX = Math.max(0, Math.round((window.innerWidth  - document.documentElement.clientWidth)  * dpr));
-  const scrollbarY = Math.max(0, Math.round((window.innerHeight - document.documentElement.clientHeight) * dpr));
-
-  if (scrollbarX > 0 || scrollbarY > 0) {
-    try {
-      const fullImg = await new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload  = () => resolve(image);
-        image.onerror = () => reject(new Error('img load failed'));
-        image.src = rawDataUrl;
-      });
-      const cropW = (fullImg.naturalWidth  || fullImg.width)  - scrollbarX;
-      const cropH = (fullImg.naturalHeight || fullImg.height) - scrollbarY;
-      if (cropW > 0 && cropH > 0) {
-        const cropCanvas = document.createElement('canvas');
-        cropCanvas.width  = cropW;
-        cropCanvas.height = cropH;
-        const cropCtx = cropCanvas.getContext('2d');
-        if (cropCtx) {
-          cropCtx.drawImage(fullImg, 0, 0);
-          const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.8);
-          return { dataUrl: croppedDataUrl };
-        }
-      }
-    } catch (_) {
-      // Crop failed — fall back to original
-    }
-  }
-
-  return { dataUrl: rawDataUrl };
 }
 
 function withInstagramActiveHoverUrl(meta = {}, coreItem = null, cachedExtraction = null) {
@@ -1000,11 +556,9 @@ function coreClear() {
     state.activeHoverUrl = null;
     state.lastExtractedMetadata = null;
     try { hideCoreHighlight(); } catch (e) {}
-    postHighlightToTop('show-fullpage');
   } else {
     clearCoreSelection();
     initPageLevelMetadata();
-    // showFullpageEntryToast() handles page-level guidance toast directly.
   }
   _lastMouseoverTarget = null;
 }
@@ -1049,7 +603,7 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     return false;
   }
   const evidenceType = getItemMapEvidenceType(coreItemContainer);
-  if (evidenceType === EVIDENCE_TYPE_ANCHOR || evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
+  if (evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
     const anchor = target?.matches?.('a') ? target : target?.closest?.('a');
     const hasAnchor = !!anchor;
     const contained = hasAnchor && !!coreItemContainer.contains?.(anchor);
@@ -1067,116 +621,6 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
       if (state.activeCoreItem) coreClear();
       return false;
     }
-  }
-
-  // Type C: the hovered element itself is the CoreItem — no anchor traversal
-  if (evidenceType === EVIDENCE_TYPE_C) {
-    let mailUrl   = '';
-    let mailTitle = '';
-    let mailSender = '';
-
-    const currentHref = String(window?.location?.href || '');
-
-    if (currentHref.startsWith('https://mail.google.com/')) {
-      // Gmail: build URL from data-legacy-thread-id
-      const threadIdEl = coreItemContainer.querySelector?.('[data-legacy-thread-id]');
-      const threadId   = threadIdEl?.getAttribute?.('data-legacy-thread-id') || '';
-      mailUrl   = threadId
-        ? `${window.location.origin}${window.location.pathname}#inbox/${threadId}`
-        : '';
-      mailTitle = threadId
-        ? String(threadIdEl?.textContent || '').trim() || 'Gmail message'
-        : 'Gmail message';
-      // Extract sender — ordered fallback chain:
-      // 1) span.yP[name] → name attribute (most reliable, Gmail standard)
-      // 2) span.yP[email] → textContent
-      // 3) any span[email] inside td.yX → name or textContent
-      // 4) first span[email] anywhere in CoreItem → name or textContent
-      try {
-        const yPEl = coreItemContainer.querySelector?.('span.yP[name]')
-          || coreItemContainer.querySelector?.('span.yP[email]');
-        if (yPEl) {
-          mailSender = yPEl.getAttribute?.('name')?.trim()
-            || yPEl.textContent?.trim()
-            || '';
-        }
-        if (!mailSender) {
-          const tdSenderEl = coreItemContainer.querySelector?.('td.yX span[email]');
-          mailSender = tdSenderEl?.getAttribute?.('name')?.trim()
-            || tdSenderEl?.textContent?.trim()
-            || '';
-        }
-        if (!mailSender) {
-          const anyEmailEl = coreItemContainer.querySelector?.('span[email]');
-          mailSender = anyEmailEl?.getAttribute?.('name')?.trim()
-            || anyEmailEl?.textContent?.trim()
-            || '';
-        }
-      } catch (_) {}
-
-    } else if (currentHref.startsWith('https://mail.naver.com/')) {
-      // Naver Mail: get href from .mail_title > a
-      const anchor = coreItemContainer.querySelector?.('.mail_title a');
-      const rawHref     = anchor?.getAttribute?.('href') || '';
-      const cleanedHref = rawHref.replace('/popup/', '/');
-      mailUrl = cleanedHref
-        ? `${window.location.origin}${cleanedHref}`
-        : '';
-      // Title from .mail_title .text span
-      const titleEl = coreItemContainer.querySelector?.('.mail_title .text');
-      mailTitle = titleEl
-        ? String(titleEl.textContent || '').trim() || 'Naver message'
-        : 'Naver message';
-      // Extract sender from button.button_sender — text nodes only (exclude .blind span)
-      try {
-        const senderBtn = coreItemContainer.querySelector?.('button.button_sender');
-        if (senderBtn) {
-          mailSender = Array.from(senderBtn.childNodes)
-            .filter((n) => n.nodeType === Node.TEXT_NODE)
-            .map((n) => String(n.textContent || '').trim())
-            .filter(Boolean)
-            .join('') || '';
-        }
-      } catch (_) {}
-    }
-
-    state.activeCoreItem = coreItemContainer;
-    state.activeHoverUrl = mailUrl;
-
-    let mailCategory      = '';
-    let mailPlatform      = '';
-    let mailConfirmedType = '';
-    if (mailUrl) {
-      try {
-        const mailCatResult = detectItemCategory(mailUrl, window.location.href, null);
-        mailCategory      = mailCatResult?.category      || '';
-        mailPlatform      = mailCatResult?.platform      || '';
-        mailConfirmedType = mailCatResult?.confirmedType || '';
-      } catch (_) {}
-    }
-
-    state.lastExtractedMetadata = {
-      activeHoverUrl: mailUrl,
-      title:          mailTitle,
-      ...(mailCategory      ? { category:      mailCategory }      : {}),
-      ...(mailPlatform      ? { platform:      mailPlatform }      : {}),
-      ...(mailConfirmedType ? { confirmedType: mailConfirmedType } : {}),
-      sender: mailSender,
-    };
-    if (IS_IFRAME) {
-      postHighlightToTop('hide-fullpage');
-      showCoreHighlight(coreItemContainer, false);
-      if (!_isCapturing) {
-        showCoreStatusBadge('default');
-      }
-      return true;
-    }
-    showCoreHighlight(coreItemContainer, false);
-    if (!_isCapturing) {
-      // showMetadataTooltip disabled — CoreItem hover uses status badge only
-      showCoreStatusBadge('default');
-    }
-    return true;
   }
 
   const platformForB = evidenceType === 'B' ? getCurrentPlatform() : '';
@@ -1215,7 +659,7 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
       : '';
   let coreItem = coreItemContainer;
   let closestAtag = null;
-  if (evidenceType === EVIDENCE_TYPE_ANCHOR || evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
+  if (evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
     const anchor = target?.matches?.('a') ? target : target?.closest?.('a');
     const anchorValid = anchor && (await isValidTypeAAnchor(anchor));
     const effectiveTarget = anchorValid ? target : await findPrimaryTypeAAnchor(coreItemContainer);
@@ -1354,11 +798,8 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     state.activeCoreItem = coreItem;
     state.activeHoverUrl = syncedMeta.activeHoverUrl;
     state.lastExtractedMetadata = syncedMeta;
-    postHighlightToTop('hide-fullpage');
     showCoreHighlight(coreItem, false);
-    if (!_isCapturing) {
-      showCoreStatusBadge('default');
-    }
+    showCoreStatusBadge('default');
     if (evidenceType === 'B') {
       requestInstagramPostDataForTypeB(coreItem, state.lastExtractedMetadata, null, null);
     }
@@ -1368,14 +809,12 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   state.activeHoverUrl = syncedMeta.activeHoverUrl;
   state.lastExtractedMetadata = syncedMeta;
   showCoreHighlight(coreItem, false);
-  if (!_isCapturing) {
-    // showMetadataTooltip disabled — CoreItem hover uses status badge only
-    showCoreStatusBadge('default');
-  }
+  // showMetadataTooltip disabled — CoreItem hover uses status badge only
+  showCoreStatusBadge('default');
   if (evidenceType === 'B') {
     requestInstagramPostDataForTypeB(coreItem, state.lastExtractedMetadata, clientX, clientY);
   }
-  if (evidenceType === EVIDENCE_TYPE_ANCHOR || evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
+  if (evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
     requestInstagramThumbnailForTypeA(coreItem, state.lastExtractedMetadata, clientX, clientY);
   }
   return true;
@@ -1521,6 +960,20 @@ function mountObservers() {
       );
       for (const mutation of mutations) {
         if (isYouTube && mutation.target?.closest?.('#video-preview')) continue;
+        // === PHASE20_HOTFIX_SRC_MUTATION ===
+        // React to <img src> attribute mutations (lazy-load real swap).
+        if (
+          mutation.type === 'attributes' &&
+          mutation.attributeName === 'src' &&
+          mutation.target?.nodeType === 1 &&
+          String(mutation.target.tagName || '').toUpperCase() === 'IMG'
+        ) {
+          // Skip noise sources
+          if (mutation.target.closest?.('#video-preview') || mutation.target.closest?.('ytd-miniplayer')) continue;
+          schedulePreScan(document, false, 'mutation-img-src');
+          return;
+        }
+        // === END PHASE20_HOTFIX_SRC_MUTATION ===
         for (const node of mutation.addedNodes) {
           if (node.nodeType !== 1) continue;
           if (NON_VISUAL_TAGS.has(String(node.tagName || '').toUpperCase())) continue;
@@ -1544,7 +997,18 @@ function mountObservers() {
       }
     });
 
-    obs.observe(targetNode, { childList: true, subtree: true });
+    // === PHASE20_HOTFIX_SRC_MUTATION ===
+    // Also observe attribute changes filtered to 'src'. Lazy-loaded images
+    // mutate their src attribute when they become visible (placeholder→real
+    // swap). Without this, Phase 20 may run before src is set and miss the
+    // image. attributeFilter limits noise to only src changes.
+    obs.observe(targetNode, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src'],
+    });
+    // === END PHASE20_HOTFIX_SRC_MUTATION ===
 
     // Detect document.open(): after document.open(), document.documentElement
     // is replaced. Poll every 200ms; if the live document's root differs from
@@ -1562,15 +1026,6 @@ function mountObservers() {
     }, 200);
   }
   registerObserver();
-}
-
-function extractPageOpenGraphMeta() {
-  const url = String(window.location.href || '').trim();
-  const title =
-    String(document.querySelector('meta[property="og:title"]')?.content || '').trim() ||
-    String(document.title || '').trim() ||
-    url;
-  return { url, title };
 }
 
 /**
@@ -1744,278 +1199,44 @@ async function resolveSaveShutterStatus() {
   return uid && serverOk ? 'success' : 'error';
 }
 
-/**
- * Extracts the sender name from the DOM when viewing a specific email thread.
- * Only applies to Gmail and Naver Mail email thread pages.
- * Returns empty string if not on an email thread page or sender not found.
- */
-function extractPageMailSender() {
-  try {
-    const href = String(window?.location?.href || '');
-
-    // Gmail: real thread page has hash with two segments e.g. #inbox/{id}
-    if (href.startsWith('https://mail.google.com/')) {
-      const hash = window.location.hash || '';
-      const parts = hash.replace(/^#/, '').split('/').filter(Boolean);
-      if (parts.length < 2) return ''; // folder page, not a thread
-      // span.gD[name] or span.gD[email] — first match wins
-      const senderEl = document.querySelector('span.gD[name], span.gD[email]');
-      if (senderEl) {
-        return (
-          senderEl.getAttribute('name') ||
-          senderEl.textContent ||
-          ''
-        ).trim();
-      }
-      return '';
-    }
-
-    // Naver Mail: real thread page is /v2/read/{folderId}/{mailId}
-    if (href.startsWith('https://mail.naver.com/')) {
-      const pathname = window.location.pathname.toLowerCase();
-      if (!pathname.startsWith('/v2/read/')) return ''; // folder page
-      // .mail_option_item.sender .button_user — first text node only
-      const btn = document.querySelector('.mail_option_item.sender .button_user');
-      if (btn) {
-        const textNode = Array.from(btn.childNodes).find(
-          (n) => n.nodeType === Node.TEXT_NODE && String(n.textContent || '').trim().length > 0
-        );
-        return textNode ? String(textNode.textContent || '').trim() : '';
-      }
-      return '';
-    }
-  } catch (e) {}
-  return '';
-}
-
 async function saveActiveCoreItem(request = {}) {
-  const saveShutterStatus = await resolveSaveShutterStatus();
     const activeItem = state.activeCoreItem;
     const activeUrl = String(state.activeHoverUrl || '').trim();
 
-    // No CoreItem active → save current page via OpenGraph metadata
+    // No CoreItem active → complete silent ignore
     if (!activeItem || !activeUrl) {
-      const { url, title } = extractPageOpenGraphMeta();
-      if (!url) {
-        return { success: false, reason: 'missing-url' };
-      }
-
-      const youtubeShortcode = extractYouTubeShortcodeFromUrl(url);
-      const youtubeThumbnailUrl = youtubeShortcode ? getYouTubeThumbnailUrl(youtubeShortcode) : '';
-      const isYouTubeSave = !!youtubeThumbnailUrl;
-      // Generate tempId for end-to-end matching: Optimistic Card ↔ Firestore doc
-      // Only generated in top-level frame (iframes skip Optimistic Card dispatch).
-      const tempId = window.self === window.top
-        ? `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-        : '';
-
-      // Stage 1: raw screenshot capture (non-YouTube only) — blocking just for
-      // the chrome.tabs.captureVisibleTab call, not for post-processing.
-      let rawScreenshotDataUrl = null;
-      if (!isYouTubeSave) {
-        const rawResult = await capturePageScreenshotRaw();
-        if (rawResult?.rawDataUrl) {
-          rawScreenshotDataUrl = rawResult.rawDataUrl;
-        }
-      }
-
-      // Capture is done. Continue immediately with follow-up async work,
-      // BEFORE any other async work (userId, fetch-metadata, optimistic card,
-      // shutter effect, toast). This keeps the perceived "screen blank" window
-      // to just the capture itself, and ensures triggerShutterEffect below is
-      // visible as soon as capture returns. Stage 2 post-processing
-      // (screenshotProcessPromise) continues independently.
-
-      // Stage 2: post-process the raw screenshot (bg color + crop) in parallel
-      // with other async work (userId, fetch-metadata, etc.). Await result at
-      // payload construction time.
-      const screenshotProcessPromise = rawScreenshotDataUrl
-        ? processPageScreenshot(rawScreenshotDataUrl)
-        : Promise.resolve(null);
-
-      // Request userId from background.js (cached from sidepanel sign-in)
-      let userId = null;
-      try {
-        // First attempt — service worker may be asleep
-        const userIdResponse = await new Promise((resolve) => {
-          chrome.runtime.sendMessage({ action: 'get-cached-user-id' }, (response) => {
-            if (chrome.runtime.lastError) {
-              // Service worker was asleep or not ready — resolve with null to trigger retry
-              resolve(null);
-            } else {
-              resolve(response);
-            }
-          });
-        });
-
-        if (userIdResponse?.userId) {
-          userId = userIdResponse.userId;
-        } else {
-          // Retry once after a short delay to allow service worker to wake up
-          await new Promise((r) => setTimeout(r, 150));
-          const retryResponse = await new Promise((resolve) => {
-            chrome.runtime.sendMessage({ action: 'get-cached-user-id' }, (response) => {
-              if (chrome.runtime.lastError) {
-                resolve(null);
-              } else {
-                resolve(response);
-              }
-            });
-          });
-          userId = retryResponse?.userId || null;
-        }
-      } catch {
-        userId = null;
-      }
-
-      // Naver Mail: collect login cookies for server-side Puppeteer injection
-      let naverCookies = null;
-      if (url.startsWith('https://mail.naver.com/')) {
-        naverCookies = await getNaverCookies();
-      }
-
-      const pageCategory      = String(state.lastExtractedMetadata?.category      || '').trim();
-      const pagePlatform      = String(state.lastExtractedMetadata?.platform      || '').trim();
-      const pageConfirmedType = String(state.lastExtractedMetadata?.confirmedType || '').trim();
-      // Extract sender from DOM when saving a real email thread page
-      const pageSender = pageCategory === 'Mail' ? extractPageMailSender() : '';
-      // Fetch page description via background.js HTTP fetch —
-      // more reliable than DOM-based extraction since it reads
-      // the raw HTML source, the same way chat app link previews work.
-      let pageDescription = '';
-      if (pageCategory === 'Page') {
-        try {
-          const metaResponse = await new Promise((resolve) => {
-            chrome.runtime.sendMessage(
-              { action: 'fetch-metadata', url },
-              (response) => {
-                resolve(chrome.runtime.lastError ? null : response);
-              }
-            );
-          });
-          if (metaResponse?.success && metaResponse.description) {
-            pageDescription = String(metaResponse.description).trim();
-          }
-        } catch (e) {}
-      }
-
-      // Optimistic UI: notify Side Panel to show a temporary card immediately.
-      // Position is post-fetch-metadata so page_description is available and
-      // the dispatch payload matches the CoreItem flow shape — pattern is
-      // "OptimisticCard receives all DataCard-displayable fields at creation
-      // time so reconcile can be visual-no-op".
-      //
-      // Skip if running inside an iframe — only the top-level frame should
-      // create optimistic cards. Fullpage flow never enters via iframe relay
-      // so window.self === window.top is the sole guard.
-      //
-      // imgUrl is the raw (Stage 1) screenshot dataUrl — Stage 2 post-
-      // processing produces the variant sent to server, but the user-visible
-      // preview uses raw.
-      if (window.self === window.top && isSignedIn()) {
-        try {
-          chrome.runtime.sendMessage({
-            action:             'optimistic-card',
-            tempId,
-            url,
-            title:              title || url,
-            imgUrl:             isYouTubeSave ? youtubeThumbnailUrl : (rawScreenshotDataUrl || ''),
-            isScreenshot:       !isYouTubeSave && !!rawScreenshotDataUrl,
-            category:           pageCategory || '',
-            platform:           pagePlatform || '',
-            confirmedType:      pageConfirmedType || '',
-            sender:             pageSender || '',
-            page_description:   pageDescription || '',
-            img_url_method:     isYouTubeSave ? 'youtube-thumbnail' : 'screenshot',
-            createdAt:          Date.now(),
-          });
-        } catch { /* Side Panel may not be open — silently ignore */ }
-      }
-
-      // Clipboard copy: start async copy without blocking. Result is combined
-      // with save result (from saveShutterStatus) after triggerShutterEffect
-      // to produce a single unified Toast.
-      const pageClipboardPromise = (window.self === window.top)
-        ? performClipboardCopy(pageCategory || '', url, document.body, {
-            confirmedType: pageConfirmedType || '',
-            imageUrl: String(
-              isYouTubeSave ? youtubeThumbnailUrl : (state.lastExtractedMetadata?.image?.url || '')
-            ).trim(),
-          })
-        : Promise.resolve({ success: false });
-
-      // Immediately update _savedUrlSet before shutter so checkIsSavedSync() returns true
-      // even if saved-urls-updated arrives before fetch completes.
-      if (isSignedIn()) {
-        try {
-          const savedUrl = normalizeUrlForSavedCheck(url);
-          if (savedUrl) _savedUrlSet.add(savedUrl);
-        } catch (e) {}
-      }
-
-      const effectiveSaveShutterStatus = isSignedIn() ? saveShutterStatus : 'success';
-      triggerShutterEffect('page', effectiveSaveShutterStatus);
-
-      // Combined Toast: show after shutter effect fires, using shutter status
-      // as the save-success indicator (per intended design).
-      if (window.self === window.top) {
-        (async () => {
-          try {
-            const clipboardResult = await pageClipboardPromise;
-            const message = buildToastMessage(
-              pageCategory || '',
-              !!clipboardResult?.success
-            );
-            showFullpageToast(message, 'result');
-          } catch (_) { /* silent */ }
-        })();
-      }
-
-      // Await Stage 2 post-processing result — started in parallel earlier.
-      // By now, it has likely completed while userId/fetch-metadata/etc. ran.
-      const processedScreenshot = await screenshotProcessPromise;
-      const pageScreenshotBase64 = processedScreenshot?.dataUrl || null;
-
-      const payload = {
-        url,
-        title: title || url,
-        timestamp: Date.now(),
-        saved_by: 'browser-extension',
-        userLanguage: navigator.language || 'en',
-        page_save: true,
-        ...(tempId ? { temp_id: tempId } : {}),
-        ...(pageScreenshotBase64 ? { screenshot_base64: pageScreenshotBase64 } : {}),
-        ...(pageCategory      ? { category:       pageCategory }      : {}),
-        ...(pagePlatform      ? { platform:        pagePlatform }      : {}),
-        ...(pageConfirmedType ? { confirmed_type:  pageConfirmedType } : {}),
-        ...(pageSender        ? { sender:          pageSender }        : {}),
-        ...(pageCategory === 'Page' ? { page_description: pageDescription } : {}),
-        is_portrait: !isYouTubeSave && pageCategory === 'Page' && !!pageScreenshotBase64,
-        img_url_method: isYouTubeSave ? 'youtube-thumbnail' : 'screenshot',
-        ...(isYouTubeSave ? { img_url: youtubeThumbnailUrl } : {}),
-        ...(userId ? { userId } : {}),
-        ...(naverCookies ? { naver_cookies: naverCookies } : {}),
-      };
-
-      if (isSignedIn()) {
-        const response = await fetch(`${KC_SERVER_URL}/api/v1/save-url`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error(`save failed: ${response.status}`);
-        }
-
-        return { success: true, payload };
-      }
-
-      return { success: true };
+      return { success: false, reason: 'no-core-item' };
     }
+
+    const saveShutterStatus = await resolveSaveShutterStatus();
 
     // CoreItem active → existing logic
     const meta = state.lastExtractedMetadata;
+
+    // === PHASE20_HOTFIX_CLIP_TIME_IMAGE ===
+    // Re-extract image at clip time. The cached `meta.image` was computed at
+    // hover-start (mouseover event). If the user hovered further and the page
+    // swapped the visible image (e.g., Temu's side-stacked carousel hover-swap),
+    // the cached URL points to the no-longer-visible image. Re-extracting here
+    // allows hotfix v8's coreItem-rect inside check to evaluate against the
+    // current rect snapshot, selecting the image actually visible at clip time.
+    //
+    // Guard: state.activeCoreItem may be a stub `{}` in iframe-relay mode
+    // (no DOM methods). Re-extraction is skipped in that case; cached image
+    // is used.
+    let freshImage = meta?.image;
+    try {
+      const activeCoreEl = state.activeCoreItem;
+      if (activeCoreEl && typeof activeCoreEl.getBoundingClientRect === 'function') {
+        const freshResult = extractImageFromCoreItem(activeCoreEl);
+        const freshUrl = String(freshResult?.image?.url || '').trim();
+        if (freshUrl) {
+          freshImage = freshResult.image;
+        }
+      }
+    } catch (e) { /* keep cached image */ }
+    // === END PHASE20_HOTFIX_CLIP_TIME_IMAGE ===
+
     // Relay mode: top-frame is processing a clip that originated inside a
     // cross-origin iframe. The iframe handler already drew shutter +
     // status_badge text in its own Shadow DOM (Phase 11a). The top frame
@@ -2046,7 +1267,7 @@ async function saveActiveCoreItem(request = {}) {
     const title = String(meta?.title || document.title || url).trim();
     const imgUrl = isYouTubeSave
       ? youtubeThumbnailUrl
-      : String(request?.img_url || meta?.image?.url || '').trim();
+      : String(request?.img_url || freshImage?.url || '').trim();
     // Reflects whether extractImageFromCoreItem() produced a result —
     // independent of which URL is ultimately used as img_url.
     const isExtractedImg = !!(meta?.image?.url && String(meta.image.url).trim().length > 0);
@@ -2206,8 +1427,8 @@ async function saveActiveCoreItem(request = {}) {
       const effectiveCoreSaveShutterStatus = isSignedIn() ? saveShutterStatus : 'success';
       triggerShutterEffect('core', effectiveCoreSaveShutterStatus);
 
-      // CoreItem clip feedback lives in the per-item status_badge, NOT in a
-      // fullpage toast. We wait for the clipboard result, then write the
+      // CoreItem clip feedback lives in the per-item status_badge.
+      // We wait for the clipboard result, then write the
       // category-aware "clipped" wording on success. Failure text is already
       // applied automatically by triggerShutterEffect('core', 'error') via
       // the registered _coreBadgeFailedText.
@@ -2274,12 +1495,6 @@ async function saveActiveCoreItem(request = {}) {
       userId = null;
     }
 
-    // Naver Mail: collect login cookies for server-side Puppeteer injection
-    let naverCookies = null;
-    if (url.startsWith('https://mail.naver.com/')) {
-      naverCookies = await getNaverCookies();
-    }
-
     // Extract HTML context from the active CoreItem for AI type inference
     const htmlContext = extractCoreItemHtmlContext(activeItem);
     // Fetch page_description via background.js HTTP fetch when
@@ -2316,8 +1531,6 @@ async function saveActiveCoreItem(request = {}) {
       ...(meta?.category      ? { category:       meta.category }      : {}),
       ...(meta?.platform      ? { platform:        meta.platform }      : {}),
       ...(meta?.confirmedType ? { confirmed_type:  meta.confirmedType } : {}),
-      sender: meta?.sender ?? '',
-      ...(naverCookies ? { naver_cookies: naverCookies } : {}),
       ...(Number.isFinite(overlayRatio) ? { overlay_ratio: overlayRatio } : {}),
       is_portrait: isPortraitExtracted,
       ...(isPage ? { page_description: coreItemPageDescription } : {}),
@@ -2340,7 +1553,6 @@ async function saveActiveCoreItem(request = {}) {
           category:           String(meta?.category      || '').trim(),
           platform:           String(meta?.platform      || '').trim(),
           confirmedType:      String(meta?.confirmedType || '').trim(),
-          sender:             String(meta?.sender        || '').trim(),
           ...(isPage ? { page_description: coreItemPageDescription } : {}),
           img_url_method: isYouTubeSave
             ? 'youtube-thumbnail'
@@ -2678,27 +1890,6 @@ async function performClipboardCopy(category, url, rootElementForDominant, optio
   }
 }
 
-/**
- * Build the FullPage clip result message in the unified
- * "clip/clipped" terminology. Called only from the FullPage clip
- * path — CoreItem clips render their result on the per-item
- * status_badge directly via setCoreStatusBadgeText (Phase 10b).
- *
- * Matrix:
- *   copy ✓, category 'Mail'             → "Mail URL clipped"
- *   copy ✓, category 'Page' / 'SNS' / *  → "Page URL clipped"
- *   copy ✗ (any category)               → "Clip failed"
- *
- * Note: category 'Image' is unreachable here — Image is only set for
- * CoreItem Image targets, which take the status_badge path, not this
- * function. Default branch covers it defensively.
- */
-function buildToastMessage(category, copySuccess) {
-  if (!copySuccess) return 'Clip failed';
-  if (category === 'Mail') return 'Mail URL clipped';
-  return 'Page URL clipped';
-}
-
 function mountSaveMessageListener() {
   if (window.__kcSaveMessageListenerMounted) return;
   if (!chrome?.runtime?.onMessage?.addListener) return;
@@ -2808,7 +1999,6 @@ function mountSaveMessageListener() {
                 platform: iframeRelayData.platform || '',
                 confirmedType: iframeRelayData.confirmedType || '',
                 image: iframeRelayData.imgUrl ? { url: iframeRelayData.imgUrl } : null,
-                _screenshotBase64: iframeRelayData.screenshotBase64 || null,
                 _overlayRatio: Number.isFinite(iframeRelayData.overlay_ratio)
                   ? iframeRelayData.overlay_ratio
                   : null,
@@ -2885,14 +2075,6 @@ function mountSaveMessageListener() {
             const meta = state.lastExtractedMetadata || {};
             const imgUrl = String(meta?.image?.url || '').trim();
 
-            let screenshotBase64 = null;
-            if (!imgUrl && activeItem && activeItem.nodeType === 1) {
-              const screenshotResult = await captureScreenshotBase64(activeItem);
-              if (screenshotResult) {
-                screenshotBase64 = screenshotResult.dataUrl;
-              }
-            }
-
             // Calculate overlay_ratio from the iframe's active CoreItem bounding rect
             let overlayRatioRelay;
             try {
@@ -2913,7 +2095,6 @@ function mountSaveMessageListener() {
                 url: activeUrl,
                 title: String(meta?.title || '').trim(),
                 imgUrl,
-                screenshotBase64,
                 category: String(meta?.category || '').trim(),
                 platform: String(meta?.platform || '').trim(),
                 confirmedType: String(meta?.confirmedType || '').trim(),
@@ -2999,8 +2180,7 @@ function mountWindowListeners() {
   document.addEventListener('mouseout', (e) => {
     if (IS_IFRAME) {
       // iframe context: when the pointer leaves the iframe document,
-      // clean up any active CoreHighlight and notify the top frame to
-      // restore the FullPageHighlight. coreClear() handles both.
+      // clean up any active CoreHighlight via coreClear().
       try {
         const to = e.relatedTarget || e.toElement;
         if ((!to || !document.contains(to)) && state.activeCoreItem) {
@@ -3113,11 +2293,6 @@ function mountWindowListeners() {
     const onBrowserVisible = () => {
       _windowFocused = true;
       try { initPageLevelMetadata(); } catch (e) {}
-      if (_mouseHasMovedOnPage) {
-        try {
-          showFullpageEntryToast();
-        } catch (e) {}
-      }
     };
 
     // Case 1: tab switch (visibilitychange fires, window.blur also fires but
@@ -3165,22 +2340,6 @@ function mountIframeSaveQueryListener() {
     },
     { passive: true }
   );
-}
-
-function mountIframeFullPageListener() {
-  if (window.__kcIframeFullPageListenerMounted) return;
-  window.__kcIframeFullPageListenerMounted = true;
-  window.addEventListener('message', (e) => {
-    try {
-      const data = e.data;
-      if (!data || !data[KC_MSG_PREFIX]) return;
-      if (data.type === 'hide-fullpage') {
-        hideFullpageToast();
-      } else if (data.type === 'show-fullpage') {
-        initPageLevelMetadata();
-      }
-    } catch (err) {}
-  }, { passive: true });
 }
 
 async function checkKcUserAndInit() {
@@ -3275,7 +2434,6 @@ function mountLifecycle() {
       }
     }
     mountIframeSaveQueryListener();
-    mountIframeFullPageListener();
   }
 }
 
@@ -3315,7 +2473,6 @@ window.__kcApplyCoreItem = (coreItem) => {
       state.activeHoverUrl = null;
       state.lastExtractedMetadata = null;
       try { hideCoreHighlight(); } catch (e) {}
-      postHighlightToTop('show-fullpage');
     } else {
       clearCoreSelection();
       initPageLevelMetadata();
@@ -3359,11 +2516,8 @@ window.__kcApplyCoreItem = (coreItem) => {
     state.activeCoreItem = coreItem;
     state.activeHoverUrl = syncedMeta.activeHoverUrl;
     state.lastExtractedMetadata = syncedMeta;
-    postHighlightToTop('hide-fullpage');
     showCoreHighlight(coreItem, false);
-    if (!_isCapturing) {
-      showCoreStatusBadge('default');
-    }
+    showCoreStatusBadge('default');
     const coreRect = coreItem.getBoundingClientRect ? coreItem.getBoundingClientRect() : null;
     let tipX = null;
     let tipY = null;

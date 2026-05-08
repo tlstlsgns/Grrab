@@ -1793,7 +1793,15 @@ export function extractImageFromCoreItem(coreItem) {
 
     const rootFontSize = getRootFontSizePx();
     const viewportBasedSize = Math.max(0, Number(window?.innerWidth || 0) * 0.03);
-    const minContentSize = Math.max(rootFontSize * 2, 32, viewportBasedSize);
+    // === PHASE20_HOTFIX_ROOTFONT_CAP ===
+    // Cap rootFontSize at 16 (web standard) when computing min content size.
+    // Mirrors itemDetector.js hotfix v10. Some pages (e.g., Temu mobile) set
+    // <html style="font-size: 100px"> as a viewport-scaling trick, which would
+    // otherwise inflate `rootFontSize * 2` to 200 and wrongly reject 184×184
+    // product images at clip time, causing favicon fallback.
+    const cappedRootFontSize = Math.min(rootFontSize, 16);
+    const minContentSize = Math.max(cappedRootFontSize * 2, 32, viewportBasedSize);
+    // === END PHASE20_HOTFIX_ROOTFONT_CAP ===
     const getBackgroundImageUrl = (el) => {
       try {
         const cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
@@ -1835,7 +1843,24 @@ export function extractImageFromCoreItem(coreItem) {
         const centerY = r.top + height / 2;
         const passViewport =
           centerX >= 0 && centerX < vw && centerY >= 0 && centerY < vh;
-        return passViewport;
+        if (!passViewport) return false;
+        // === PHASE20_HOTFIX_CAROUSEL_INSIDE_CARD ===
+        // coreItem-rect inside check: the image's center must lie inside the
+        // coreItem's bounding rect. This handles side-stacked carousel layouts
+        // (e.g., Temu's hover-swap image positioned next to the visible image)
+        // where ALL images pass the viewport check but only the user-visible
+        // image is inside the card. Instagram's off-screen-slide pattern is
+        // already handled by the platform-specific logic above; this check
+        // adds protection for non-Instagram side-stacked layouts.
+        const coreRect = coreItem?.getBoundingClientRect?.();
+        if (coreRect && coreRect.width > 0 && coreRect.height > 0) {
+          const insideCard =
+            centerX >= coreRect.left && centerX <= coreRect.right &&
+            centerY >= coreRect.top && centerY <= coreRect.bottom;
+          if (!insideCard) return false;
+        }
+        // === END PHASE20_HOTFIX_CAROUSEL_INSIDE_CARD ===
+        return true;
       } catch (e) {
         return false;
       }
@@ -2133,7 +2158,13 @@ async function isImgVisuallySignificantForAnchor(img) {
     }
     const rootFontSize = getRootFontSizePx();
     const viewportBasedSize = Math.max(0, Number(window?.innerWidth || 0) * 0.03);
-    const minContentSize = Math.max(rootFontSize * 2, 48, viewportBasedSize);
+    // === PHASE20_HOTFIX_ROOTFONT_CAP ===
+    // Cap rootFontSize at 16 — same rationale as in extractImageFromCoreItem.
+    // The 48 floor is preserved (stricter than the 32 floor used elsewhere
+    // because anchor validation should reject smaller candidates).
+    const cappedRootFontSize = Math.min(rootFontSize, 16);
+    const minContentSize = Math.max(cappedRootFontSize * 2, 48, viewportBasedSize);
+    // === END PHASE20_HOTFIX_ROOTFONT_CAP ===
     const r = img.getBoundingClientRect();
     if (!r) return false;
     const layoutWidth = Math.max(0, Number(r.width || 0));
@@ -3364,11 +3395,6 @@ export function extractMetadataForCoreItem(coreItem, closestAtag = null, hovered
 
 // ── Category detection (mirrors server-side detectCategoryAndType) ────────────
 
-const _CATEGORY_MAIL_TYPE_MAP = {
-  'google.com': 'Gmail',
-  'naver.com': 'Naver',
-};
-
 function _getCategoryBaseDomain(url) {
   try {
     const host = new URL(url).hostname.toLowerCase();
@@ -3514,51 +3540,6 @@ export function detectItemCategory(savedUrl, pageUrl, htmlContext) {
         platform: snsPlatform,
         confirmedType: hasDominantMedia ? 'contents' : 'post',
       };
-    }
-
-    // ── Step 2: Mail ──────────────────────────────────────────────────────────
-    // Only classify as Mail when the savedUrl points to an actual email thread.
-    // Folder/label pages (inbox list) are classified as Page instead.
-    const savedHostParts = host.split('.');
-    if (savedHostParts[0] === 'mail') {
-      let mailRegDomain = '';
-      try {
-        const mh = new URL(savedUrl).hostname.toLowerCase();
-        const mp = mh.replace(/^www\./, '').split('.');
-        mailRegDomain = mp.slice(-2).join('.');
-      } catch (_) {}
-
-      // Gmail: real email thread → hash contains two segments: #{label}/{id}
-      // e.g. #inbox/18f3a... → Mail   |   #inbox → Page
-      if (mailRegDomain === 'google.com') {
-        try {
-          const gmailHash = new URL(savedUrl).hash || '';
-          // Strip leading '#', split by '/'
-          const gmailParts = gmailHash.replace(/^#/, '').split('/').filter(Boolean);
-          if (gmailParts.length < 2) {
-            // Only a label segment (e.g. #inbox, #sent) — folder page, not a thread
-            return { category: 'Page', platform: 'google', confirmedType: '' };
-          }
-        } catch (_) {}
-        return { category: 'Mail', platform: 'Gmail', confirmedType: '' };
-      }
-
-      // Naver Mail: real email → /v2/read/{folderId}/{mailId}
-      // Folder page → /v2/folders/{folderId}
-      if (mailRegDomain === 'naver.com') {
-        try {
-          const naverPath = new URL(savedUrl).pathname.toLowerCase();
-          if (naverPath.startsWith('/v2/folders/')) {
-            // Folder list page, not a specific email
-            return { category: 'Page', platform: 'naver', confirmedType: '' };
-          }
-          // /v2/read/{folderId}/{mailId} → real email thread
-        } catch (_) {}
-        return { category: 'Mail', platform: 'Naver', confirmedType: '' };
-      }
-
-      const mailPlatform = _CATEGORY_MAIL_TYPE_MAP[mailRegDomain] || 'Other';
-      return { category: 'Mail', platform: mailPlatform, confirmedType: '' };
     }
 
     // ── Step 2.5: Unconditional Video hosts → Page ────────────────────────────

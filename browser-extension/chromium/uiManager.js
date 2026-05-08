@@ -198,8 +198,10 @@ export function updateCoreHighlightClass(isSaved, shutterState = 'none', forceRe
 const GREEN_LAYER_ID = 'kickclip-green-candidate-layer';
 const METADATA_TOOLTIP_ID = 'kickclip-metadata-tooltip';
 const EVIDENCE_TYPE_INTERACTION = 'B';
-const EVIDENCE_TYPE_C = 'C';
 const EVIDENCE_TYPE_IMAGE_ANCHOR = 'D';
+// === TYPED_REDESIGN_PHASE20_TYPEE ===
+const EVIDENCE_TYPE_E = 'E';
+// === END TYPED_REDESIGN_PHASE20_TYPEE ===
 
 let greenOutlinedElements = new Set();
 
@@ -650,11 +652,19 @@ export function renderItemMapCandidates(candidates) {
     const el = item?.element;
     if (!el) continue;
     try {
+      // === TYPED_PHASE20_RENDERER START ===
+      // Phase 20 image-first Type D system uses similarityType 'typeD-image-first'.
+      // Render those with black outline to distinguish from legacy Type D (orange).
+      const isPhase20TypeD = item?.similarityType === 'typeD-image-first';
       const color =
-        item?.evidenceType === EVIDENCE_TYPE_C             ? '#1a73e8' :
         item?.evidenceType === EVIDENCE_TYPE_INTERACTION   ? 'red'     :
-        item?.evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR ? '#FFA500' :
+        item?.evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR ?
+          (isPhase20TypeD ? 'black' : '#FFA500') :
+        // === TYPED_REDESIGN_PHASE20_TYPEE — yellow for Type E fallback ===
+        item?.evidenceType === EVIDENCE_TYPE_E             ? '#FACC15' :
+        // === END TYPED_REDESIGN_PHASE20_TYPEE ===
         'green';
+      // === TYPED_PHASE20_RENDERER END ===
       el.style.setProperty('outline', `2px solid ${color}`, 'important');
       el.style.setProperty('outline-offset', '-2px', 'important');
       greenOutlinedElements.add(el);

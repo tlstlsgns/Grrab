@@ -551,7 +551,6 @@
       background: var(--bg-primary);
     }
 
-    .sp-category-section[data-category="Mail"] .sp-category-list,
     .sp-category-section[data-category="Pages"] .sp-category-list {
       flex-direction: column;
       align-items: stretch;
@@ -590,7 +589,6 @@
     /* ── Card styles ── */
     .card-container { width: 100%; flex-shrink: 0; box-sizing: border-box; min-width: 0; }
     .card-container.image_card { width: calc(33.333% - 2px); }
-    .card-container.mail_card { width: 100%; }
     .card-wrapper {
       position: relative;
       background: white;
@@ -851,52 +849,6 @@
       animation: data-card-spin 0.7s linear infinite;
       flex-shrink: 0;
       margin: auto;
-    }
-    /* ── Mail card ── */
-    .data-card--mail .data-card-mail-body {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: var(--space-200);
-      padding: var(--space-200) var(--space-200);
-      height: 60px;
-      box-sizing: border-box;
-    }
-    .data-card-mail-favicon {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      object-fit: contain;
-      flex-shrink: 0;
-      background: var(--bg-primary);
-    }
-    .data-card-mail-favicon--placeholder {
-      background: var(--bg-primary);
-    }
-    .data-card-mail-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 0;
-      flex: 1;
-    }
-    .data-card-mail-sender {
-      font-family: 'Roboto', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .data-card-mail-title {
-      font-family: 'Roboto', sans-serif;
-      font-size: 10px;
-      font-weight: 400;
-      color: rgba(0, 0, 0, 0.55);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
     @keyframes data-card-spin {
       to { transform: rotate(360deg); }
@@ -1274,7 +1226,6 @@
         <div id="sp-tab-bar">
           <button class="sp-tab active" data-tab="Img">Img</button>
           <button class="sp-tab" data-tab="SNS">SNS</button>
-          <button class="sp-tab" data-tab="Mail">Mail</button>
           <button class="sp-tab" data-tab="Pages">Pages</button>
         </div>
       </div>
@@ -1329,9 +1280,6 @@
           </div>
           <div class="sp-category-section" data-category="SNS">
             <div class="sp-category-list" data-category-list="SNS"></div>
-          </div>
-          <div class="sp-category-section" data-category="Mail">
-            <div class="sp-category-list" data-category-list="Mail"></div>
           </div>
           <div class="sp-category-section" data-category="Pages">
             <div class="sp-category-list" data-category-list="Pages"></div>

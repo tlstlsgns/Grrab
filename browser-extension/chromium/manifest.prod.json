@@ -18,8 +18,7 @@
     "windows",
     "sidePanel",
     "identity",
-    "clipboardWrite",
-    "cookies"
+    "clipboardWrite"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -36,7 +35,6 @@
       ],
       "js": [
         "config.js",
-        "html2canvas.bundle.js",
         "content-loader.js"
       ],
       "all_frames": true,

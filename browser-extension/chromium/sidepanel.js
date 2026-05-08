@@ -438,7 +438,7 @@ function mountShortcutRecorder() {
 }
 
 // ── Category section order ────────────────────────────────────────────────
-const CATEGORY_ORDER = ['Img', 'SNS', 'Mail', 'Pages'];
+const CATEGORY_ORDER = ['Img', 'SNS', 'Pages'];
 
 let _activeTab = 'Img';
 let _isCategoryTransitioning = false;
@@ -541,15 +541,14 @@ function normalizeItemCategoryAndType(item) {
 }
 
 /**
- * Returns the target list box key ('Img' | 'SNS' | 'Mail' | 'Pages') for a given item.
+ * Returns the target list box key ('Img' | 'SNS' | 'Pages') for a given item.
  * Uses the NEW schema category via normalization so legacy Firestore docs are routed correctly.
  */
 function resolveItemListKey(item) {
   const { category } = normalizeItemCategoryAndType(item);
   if (category === 'Image') return 'Img';
   if (category === 'SNS')   return 'SNS';
-  if (category === 'Mail')  return 'Mail';
-  // Page and anything else → Pages (default)
+  // Page, legacy Mail, and anything else → Pages (default)
   return 'Pages';
 }
 
@@ -663,7 +662,7 @@ function insertTimelineDividers(listEl, items) {
  */
 function getCategoryList(category) {
   const cat = (category || '').trim();
-  const known = ['Img', 'SNS', 'Mail', 'Pages'];
+  const known = ['Img', 'SNS', 'Pages'];
   if (!known.includes(cat)) return null;
   return document.querySelector(`.sp-category-list[data-category-list="${cat}"]`);
 }
@@ -979,11 +978,10 @@ function getTypeIconSVG(type) {
 // ── Card creation (main.html CSS-compatible structure) ────────────────────────
 /**
  * Resolve which canonical layout a card should use.
- * Returns one of: 'image' | 'mail' | 'default'.
+ * Returns one of: 'image' | 'default'.
  */
 function getCardLayoutKind(item) {
   const { category, confirmedType } = normalizeItemCategoryAndType(item);
-  if (category === 'Mail') return 'mail';
   if (category === 'Image') return 'image';
   if (category === 'SNS' && confirmedType === 'contents') return 'image';
   return 'default';
@@ -1000,73 +998,6 @@ function createDataCard(item) {
   const escapedImgUrl = imgUrl.replace(/"/g, '&quot;');
   const pageDescription = String(item.page_description || '');
   const directoryId  = item.directoryId && item.directoryId !== 'undefined' ? item.directoryId : '';
-
-  // ── Mail card: full-width layout with favicon + sender + title ───────────
-  const isMail = (item.category || '').trim() === 'Mail';
-  if (isMail) {
-    const mailSender  = (item.sender  || '').trim();
-    const mailPlatform = (item.platform || '').trim(); // 'Gmail' | 'Naver' | 'Other'
-    // Derive favicon domain from platform name for logo endpoint
-    const faviconDomain = mailPlatform === 'Gmail'  ? 'google.com'
-                        : mailPlatform === 'Naver'  ? 'naver.com'
-                        : '';
-    const faviconUrl = faviconDomain
-      ? `${KC_SERVER_URL}/api/v1/logo/${faviconDomain}`
-      : '';
-    const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    return `
-      <div id="${cardId}"
-           class="data-card data-card--mail"
-           data-url="${escapedUrl}"
-           data-title="${escapedTitle}"
-           data-type="${type}"
-           data-img-url=""
-           data-item-id="${itemId}"
-           data-doc-id="${item.id || ''}"
-           data-directory-id="${directoryId}">
-        <div class="data-card-header">
-          <div class="data-card-context">
-            <span class="data-card-content-type">Mail</span>
-            ${mailPlatform ? `<span class="data-card-type-separator">›</span><span class="data-card-detail-type">${esc(mailPlatform)}</span>` : ''}
-          </div>
-          <div class="data-card-upload" title="Upload to folder">
-            <button type="button" class="data-card-upload-btn" aria-label="Upload to folder">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <svg class="kc-upload-mark kc-upload-mark--check" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-              <svg class="kc-upload-mark kc-upload-mark--x" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <div class="data-card-delete" title="Delete">
-            <div class="data-card-delete-btn">
-              <svg viewBox="0 0 24 24" class="delete-icon-x">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-              <svg viewBox="0 0 24 24" class="delete-icon-check" style="display:none;">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-        <div class="data-card-mail-body">
-          ${faviconUrl
-            ? `<img src="${esc(faviconUrl)}" class="data-card-mail-favicon" alt="${esc(mailPlatform)}" onerror="this.style.display='none'">`
-            : `<div class="data-card-mail-favicon data-card-mail-favicon--placeholder"></div>`
-          }
-          <div class="data-card-mail-info">
-            ${mailSender
-              ? `<span class="data-card-mail-sender">${esc(mailSender)}</span>`
-              : ''
-            }
-            <span class="data-card-mail-title">${esc(displayTitle)}</span>
-          </div>
-        </div>
-      </div>`;
-  }
 
   // Upload button HTML (shared) — appears immediately left of delete in header
   const uploadBtn = `
@@ -1205,7 +1136,6 @@ function createCardElement(item, isNew = false) {
   const layoutKind = getCardLayoutKind(item);
   const containerClass =
     layoutKind === 'image' ? 'image_card' :
-    layoutKind === 'mail'  ? 'mail_card'  :
                              'pages_card';
   container.classList.add(containerClass);
 
@@ -1294,7 +1224,7 @@ function animateEntrance(container, wrapper) {
 }
 
 // ── Optimistic UI ─────────────────────────────────────────────────────────────
-function addOptimisticCard({ tempId, url, title, imgUrl, isScreenshot: isScreenshotFlag, category, platform, confirmedType, sender, pageDescription, imgUrlMethod, createdAt }) {
+function addOptimisticCard({ tempId, url, title, imgUrl, isScreenshot: isScreenshotFlag, category, platform, confirmedType, pageDescription, imgUrlMethod, createdAt }) {
   if (!currentUser) return;
 
   // Deduplication: ignore if a temp card with same tempId already exists
@@ -1406,7 +1336,6 @@ function addOptimisticCard({ tempId, url, title, imgUrl, isScreenshot: isScreens
     category:        category      || '',
     platform:        platform      || '',
     confirmed_type:  confirmedType || '',
-    sender:            sender           || '',
     page_description: pageDescription || '',
     img_url_method:   imgUrlMethod || '',
     createdAt: typeof createdAt === 'number' ? createdAt : Date.now(),
@@ -3392,7 +3321,6 @@ if (chrome?.runtime?.onMessage) {
         category:          message.category      || '',
         platform:          message.platform      || '',
         confirmedType:     message.confirmedType || '',
-        sender:            message.sender        || '',
         pageDescription:     message.page_description || '',
         imgUrlMethod:      message.img_url_method   || '',
         createdAt:         typeof message.createdAt === 'number' ? message.createdAt : Date.now(),
