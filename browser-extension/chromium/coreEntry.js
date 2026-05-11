@@ -1270,26 +1270,6 @@ async function saveActiveCoreItem(request = {}) {
     // independent of which URL is ultimately used as img_url.
     const isExtractedImg = !!(meta?.image?.url && String(meta.image.url).trim().length > 0);
 
-    // Calculate overlay_ratio from the active CoreItem's bounding rect
-    let overlayRatio;
-    try {
-      const activeCoreEl = state.activeCoreItem; // the DOM element currently highlighted
-      if (activeCoreEl && typeof activeCoreEl.getBoundingClientRect === 'function') {
-        const rect = activeCoreEl.getBoundingClientRect();
-        if (rect && rect.width > 0 && rect.height > 0) {
-          overlayRatio = parseFloat((rect.width / rect.height).toFixed(4));
-        }
-      }
-    } catch (e) {}
-
-    // For iframe relay saves, activeCoreItem is a stub {} — fall back to relayed ratio
-    if (!Number.isFinite(overlayRatio)) {
-      const relayedRatio = meta?._overlayRatio;
-      if (Number.isFinite(relayedRatio)) {
-        overlayRatio = relayedRatio;
-      }
-    }
-
     // CoreItem saves never capture a screenshot — just wait for repaint.
     await waitForRepaint();
     await new Promise((resolve) => setTimeout(resolve, 32));
@@ -1504,7 +1484,6 @@ async function saveActiveCoreItem(request = {}) {
       ...(meta?.category      ? { category:       meta.category }      : {}),
       ...(meta?.platform      ? { platform:        meta.platform }      : {}),
       ...(meta?.confirmedType ? { confirmed_type:  meta.confirmedType } : {}),
-      ...(Number.isFinite(overlayRatio) ? { overlay_ratio: overlayRatio } : {}),
       img_url_method: isYouTubeSave
         ? 'youtube-thumbnail'
         : (isExtractedImg ? 'extracted' : 'favicon'),
@@ -1520,7 +1499,6 @@ async function saveActiveCoreItem(request = {}) {
           url,
           title:              title || url,
           imgUrl:             faviconImgUrl || '',
-          isScreenshot:       false,
           category:           String(meta?.category      || '').trim(),
           platform:           String(meta?.platform      || '').trim(),
           confirmedType:      String(meta?.confirmedType || '').trim(),
@@ -1965,9 +1943,6 @@ function mountSaveMessageListener() {
                 platform: iframeRelayData.platform || '',
                 confirmedType: iframeRelayData.confirmedType || '',
                 image: iframeRelayData.imgUrl ? { url: iframeRelayData.imgUrl } : null,
-                _overlayRatio: Number.isFinite(iframeRelayData.overlay_ratio)
-                  ? iframeRelayData.overlay_ratio
-                  : null,
                 _pageUrl: iframeRelayData.pageUrl || '',
                 _isExtractedImg: typeof iframeRelayData.isExtractedImg === 'boolean'
                   ? iframeRelayData.isExtractedImg
@@ -2054,18 +2029,6 @@ function mountSaveMessageListener() {
             }
             await waitForRepaint();
 
-            // Calculate overlay_ratio from the iframe's active CoreItem bounding rect
-            let overlayRatioRelay;
-            try {
-              const iframeCoreEl = state.activeCoreItem;
-              if (iframeCoreEl && typeof iframeCoreEl.getBoundingClientRect === 'function') {
-                const iframeRect = iframeCoreEl.getBoundingClientRect();
-                if (iframeRect && iframeRect.width > 0 && iframeRect.height > 0) {
-                  overlayRatioRelay = parseFloat((iframeRect.width / iframeRect.height).toFixed(4));
-                }
-              }
-            } catch (e) {}
-
             window.top.postMessage(
               {
                 [KC_MSG_PREFIX]: true,
@@ -2077,7 +2040,6 @@ function mountSaveMessageListener() {
                 category: String(meta?.category || '').trim(),
                 platform: String(meta?.platform || '').trim(),
                 confirmedType: String(meta?.confirmedType || '').trim(),
-                ...(Number.isFinite(overlayRatioRelay) ? { overlay_ratio: overlayRatioRelay } : {}),
                 isExtractedImg: !!(meta?.image?.url && String(meta.image.url || '').trim().length > 0),
                 pageUrl: String(window.location.href || '').trim(),
               },

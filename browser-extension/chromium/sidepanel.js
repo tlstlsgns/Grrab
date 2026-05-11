@@ -438,7 +438,7 @@ function mountShortcutRecorder() {
 }
 
 // ── Category section order ────────────────────────────────────────────────
-const CATEGORY_ORDER = ['Img', 'SNS', 'Pages'];
+const CATEGORY_ORDER = ['Img', 'SNS'];
 
 let _activeTab = 'Img';
 let _isCategoryTransitioning = false;
@@ -468,6 +468,7 @@ function dismissClearConfirmPendingIfActive() {
  * and any future automated tab switch.
  */
 function setActiveTab(newTab) {
+  if (newTab == null || !CATEGORY_ORDER.includes(newTab)) return;
   if (newTab === _activeTab) return;
 
   // Dismiss confirm-pending on the clear bar before changing tabs.
@@ -535,15 +536,20 @@ function normalizeItemCategoryAndType(item) {
 }
 
 /**
- * Returns the target list box key ('Img' | 'SNS' | 'Pages') for a given item.
+ * Returns the target list box key ('Img' | 'SNS') for a given item,
+ * or null if the item's category does not map to a visible bucket
+ * (legacy records with unknown categories are intentionally hidden).
  * Uses the NEW schema category via normalization so legacy Firestore docs are routed correctly.
  */
 function resolveItemListKey(item) {
   const { category } = normalizeItemCategoryAndType(item);
   if (category === 'Image') return 'Img';
   if (category === 'SNS')   return 'SNS';
-  // Anything else (legacy / unrecognized categories) → Pages (default)
-  return 'Pages';
+  // Anything else (legacy / unrecognized categories) → null
+  // Render path treats null as "do not render" — legacy records with
+  // unknown categories are hidden from the sidepanel UI but preserved
+  // in Firestore.
+  return null;
 }
 
 /**
@@ -656,7 +662,7 @@ function insertTimelineDividers(listEl, items) {
  */
 function getCategoryList(category) {
   const cat = (category || '').trim();
-  const known = ['Img', 'SNS', 'Pages'];
+  const known = ['Img', 'SNS'];
   if (!known.includes(cat)) return null;
   return document.querySelector(`.sp-category-list[data-category-list="${cat}"]`);
 }
@@ -1216,7 +1222,7 @@ function animateEntrance(container, wrapper) {
 }
 
 // ── Optimistic UI ─────────────────────────────────────────────────────────────
-function addOptimisticCard({ tempId, url, title, imgUrl, isScreenshot: isScreenshotFlag, category, platform, confirmedType, imgUrlMethod, createdAt }) {
+function addOptimisticCard({ tempId, url, title, imgUrl, category, platform, confirmedType, imgUrlMethod, createdAt }) {
   if (!currentUser) return;
 
   // Deduplication: ignore if a temp card with same tempId already exists
@@ -1324,7 +1330,6 @@ function addOptimisticCard({ tempId, url, title, imgUrl, isScreenshot: isScreens
     directoryId: 'undefined',
     order:       -Infinity, // Always at the top
     _isOptimistic:   true,
-    _isScreenshot:   !!isScreenshotFlag,
     category:        category      || '',
     platform:        platform      || '',
     confirmed_type:  confirmedType || '',
@@ -3308,7 +3313,6 @@ if (chrome?.runtime?.onMessage) {
         url:               message.url,
         title:             message.title,
         imgUrl:            message.imgUrl || '',
-        isScreenshot:      !!message.isScreenshot,
         category:          message.category      || '',
         platform:          message.platform      || '',
         confirmedType:     message.confirmedType || '',
