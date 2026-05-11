@@ -69,58 +69,6 @@ const extractSource = (url: string): string => {
   }
 };
 
-// ─── 헬퍼: determineType ──────────────────────────────────────────────────────
-const determineType = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname.toLowerCase();
-    const searchParams = urlObj.searchParams;
-    if (
-      pathname.includes("/watch") || pathname.includes("/video") ||
-      pathname.includes("/v/") || pathname.includes("/embed/") ||
-      searchParams.has("v") || searchParams.has("video_id")
-    ) return "video";
-    if (urlObj.hostname.includes("instagram.com") && pathname.startsWith("/reel/")) return "reels";
-    if (urlObj.hostname.includes("instagram.com") && pathname.startsWith("/p/")) return "instagram_post";
-    if (
-      pathname.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i) ||
-      pathname.includes("/image") || pathname.includes("/photo") ||
-      pathname.includes("/picture") || pathname.includes("/img/")
-    ) return "image";
-    if (
-      (urlObj.hostname.includes("pinterest.com") && pathname.startsWith("/pin/")) ||
-      (pathname.match(/\/p\/[^/]+/) && !urlObj.hostname.includes("instagram.com")) ||
-      pathname.match(/\/posts?\/[^/]+/) ||
-      pathname.match(/\/status\/[^/]+/) ||
-      pathname.match(/\/tweet\/[^/]+/)
-    ) return "social_post";
-    if (
-      pathname.includes("/search") || searchParams.has("q") ||
-      searchParams.has("query") || searchParams.has("search")
-    ) return "search";
-    if (
-      pathname.match(/\/article[s]?\/[^/]+/) || pathname.match(/\/post[s]?\/[^/]+/) ||
-      pathname.match(/\/blog\/[^/]+/) || pathname.match(/\/entry\/[^/]+/) ||
-      pathname.match(/\/[0-9]{4}\/[0-9]{2}\/[^/]+/)
-    ) return "article";
-    if (
-      pathname.match(/\/@[^/]+/) || pathname.match(/\/user[s]?\/[^/]+/) ||
-      pathname.match(/\/profile[s]?\/[^/]+/) || pathname.match(/\/people\/[^/]+/)
-    ) return "profile";
-    if (
-      pathname.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i) ||
-      pathname.includes("/document") || pathname.includes("/file/")
-    ) return "document";
-    if (
-      pathname.includes("/playlist") || pathname.includes("/collection") ||
-      pathname.includes("/list/")
-    ) return "collection";
-    return "webpage";
-  } catch {
-    return "webpage";
-  }
-};
-
 // ─── 헬퍼: uploadScreenshotToStorage ─────────────────────────────────────────
 async function uploadScreenshotToStorage(
   base64DataUrl: string,
@@ -274,7 +222,7 @@ async function fetchMetadata(url: string): Promise<{ title: string | null; descr
 // ── POST /api/v1/save-url ────────────────────────────────────────────────────
 app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> => {
   const {
-    url, title, timestamp, img_url, saved_by, type,
+    url, title, timestamp, img_url, saved_by,
     screenshot_base64, screenshot_bg_color, category, confirmed_type,
   } = req.body;
 
@@ -291,30 +239,17 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
   const resolvedUrl = url ? String(url).trim() : "";
   const resolvedImgUrl = img_url ? String(img_url).trim() : "";
   const clientCategoryRaw = typeof category === "string" ? category.trim() : "";
-  const isPageCategory = clientCategoryRaw === "Page";
   const clientPlatformRaw = typeof req.body.platform === "string" ? req.body.platform.trim() : "";
   const clientConfirmedTypeRaw = typeof confirmed_type === "string" ? confirmed_type.trim() : "";
-  const isSnsPageCategory = clientCategoryRaw === "SNS" && clientConfirmedTypeRaw === "Page";
   const clientSenderRaw = typeof req.body.sender === "string" ? req.body.sender.trim() : "";
-  const clientPageDescriptionRaw = typeof req.body.page_description === "string" ?
-    req.body.page_description.trim() : "";
-  const clientIsPortraitRaw = typeof req.body.is_portrait === "boolean" ? req.body.is_portrait : false;
   const clientImgUrlMethodRaw =
     typeof req.body.img_url_method === "string" &&
     ["screenshot", "extracted", "favicon", "youtube-thumbnail"].includes(req.body.img_url_method) ?
       (req.body.img_url_method as string) : "";
   const clientScreenshotPaddingRaw = typeof req.body.screenshot_padding === "number" ?
     req.body.screenshot_padding : 0;
-  const clientIsExtractedImgRaw = typeof req.body.is_extracted_img === "boolean" ?
-    req.body.is_extracted_img : undefined;
-  const clientOverlayRatioRaw = typeof req.body.overlay_ratio === "number" ?
-    req.body.overlay_ratio : undefined;
   const clientTempIdRaw = typeof req.body.temp_id === "string" ?
     req.body.temp_id.trim() : "";
-  const isPortraitExtracted =
-    isPageCategory && clientIsExtractedImgRaw === true &&
-    typeof clientOverlayRatioRaw === "number" &&
-    Number.isFinite(clientOverlayRatioRaw) && clientOverlayRatioRaw < 1.2;
 
   const userId = typeof req.body.userId === "string" ? req.body.userId.trim() : "";
   if (!userId) {
@@ -358,11 +293,6 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
 
     const domain = resolvedUrl.length > 0 ?
       extractSource(resolvedUrl) : (resolvedImgUrl ? "local" : "unknown");
-    const itemType = type ?
-      String(type).trim() :
-      resolvedImgUrl ? "image" :
-        resolvedUrl.length > 0 ? determineType(resolvedUrl) :
-          "image";
 
     // Recompute newOrder for both paths — the doc (new or existing)
     // floats to the top of the user's list either way.
@@ -385,7 +315,6 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
       title: String(title).trim(),
       timestamp,
       domain,
-      type: itemType,
       order: newOrder,
       saved_by: saved_by || "browser-extension",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -395,14 +324,8 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     if (clientPlatformRaw) baseFields.platform = clientPlatformRaw;
     if (clientConfirmedTypeRaw) baseFields.confirmed_type = clientConfirmedTypeRaw;
     if (clientSenderRaw) baseFields.sender = clientSenderRaw;
-    if (clientPageDescriptionRaw) baseFields.page_description = clientPageDescriptionRaw;
     if (clientScreenshotPaddingRaw > 0) baseFields.screenshot_padding = clientScreenshotPaddingRaw;
     if (clientTempIdRaw) baseFields.temp_id = clientTempIdRaw;
-    if (typeof clientIsExtractedImgRaw === "boolean") baseFields.is_extracted_img = clientIsExtractedImgRaw;
-    if (clientOverlayRatioRaw !== undefined && Number.isFinite(clientOverlayRatioRaw)) {
-      baseFields.overlay_ratio = clientOverlayRatioRaw;
-    }
-    if (clientIsPortraitRaw) baseFields.is_portrait = true;
     if (clientImgUrlMethodRaw) baseFields.img_url_method = clientImgUrlMethodRaw;
 
     let docId: string;
@@ -431,8 +354,7 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     // Screenshot Storage upload (background) — applies to both
     // create and update paths. Writes to the resolved docId.
     if (
-      screenshot_base64 && userId && !isPortraitExtracted &&
-      (!resolvedImgUrl || isPageCategory || isSnsPageCategory)
+      screenshot_base64 && userId && !resolvedImgUrl
     ) {
       const docPath = `users/${userId}/items/${docId}`;
       (async () => {
