@@ -1334,15 +1334,11 @@ async function detectTypeDItemMaps(root = document) {
 
     const candidateCards = [cardWrapper, ...(matchingSiblings || [])];
 
-    // Mark all images inside discovered cards to avoid reprocessing
-    for (const card of candidateCards) {
-      try {
-        const innerImgs = card.querySelectorAll?.('img[src]') || [];
-        for (const innerImg of innerImgs) processedImages.add(innerImg);
-      } catch (e) {
-        // ignore
-      }
-    }
+    // Phase 22: processedImages marking moved to AFTER card conditions
+    // pass (search for "Phase 22 marking" below). This prevents a failed
+    // wrong-level wrapper (e.g., multi-card column container) from
+    // poisoning subsequent iterations and blocking correct tile-level
+    // detection.
 
     // ─── Step 3: Per-card dominance + anchor verification ───
     const validCards = [];
@@ -1463,6 +1459,9 @@ async function detectTypeDItemMaps(root = document) {
         if (significantImageSet.has(card)) acceptedImageRefs.add(card);
         const innerImgs = card.querySelectorAll?.('img[src]') || [];
         for (const innerImg of innerImgs) {
+          // Phase 22 marking: now that card conditions have passed, mark
+          // these images to prevent reprocessing in subsequent loop iters.
+          processedImages.add(innerImg);
           if (significantImageSet.has(innerImg)) acceptedImageRefs.add(innerImg);
         }
       } catch (e) {
