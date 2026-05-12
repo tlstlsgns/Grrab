@@ -659,7 +659,7 @@ export function renderItemMapCandidates(candidates) {
       const color =
         item?.evidenceType === EVIDENCE_TYPE_INTERACTION   ? 'red'     :
         item?.evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR ?
-          (isPhase20TypeD ? 'black' : '#FFA500') :
+          (isPhase20TypeD ? '#3B82F6' : '#FFA500') :
         // === TYPED_REDESIGN_PHASE20_TYPEE — yellow for Type E fallback ===
         item?.evidenceType === EVIDENCE_TYPE_E             ? '#FACC15' :
         // === END TYPED_REDESIGN_PHASE20_TYPEE ===
