@@ -606,9 +606,18 @@ function isImageDominantInCoreItem(imageRect, coreRect) {
     if (mw <= 0 || mh <= 0) return false;
     const widthRatio = mw / coreWidth;
     const heightRatio = mh / coreHeight;
+    // Phase 25: Area-ratio guard. The existing OR-shaped axis
+    // dominance permits cards where the image fully fills the short
+    // axis but only partially the long axis (e.g., a small
+    // thumbnail next to a meta text region in a horizontally-laid
+    // card). For those cards the image is visually NOT the
+    // dominant content. Require the image to also cover at least
+    // half the card's area.
+    const areaRatio = (mw * mh) / (coreWidth * coreHeight);
     return (
-      (widthRatio >= 0.75 && heightRatio >= 0.4) ||
-      (heightRatio >= 0.75 && widthRatio >= 0.4)
+      ((widthRatio >= 0.75 && heightRatio >= 0.4) ||
+       (heightRatio >= 0.75 && widthRatio >= 0.4)) &&
+      areaRatio >= 0.5
     );
   } catch (e) {
     return false;
