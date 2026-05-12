@@ -690,6 +690,82 @@ function isVisuallyHidden(el) {
 }
 
 /**
+ * Phase 26: Detect whether an element is part of a map widget.
+ *
+ * Map widgets render their visual content as <img> tiles or
+ * pre-baked static-map images. These tiles are visualization
+ * assets, not user-actionable image content, so they should be
+ * excluded from the significant-image pool that feeds Type D /
+ * Type E detection.
+ *
+ * Two complementary checks (Phase 26 supports Google Maps embeds
+ * and Naver Maps embeds only; other providers are deferred until
+ * a concrete page surfaces them):
+ *
+ * 1. If the element is an <img>, check its src against a list of
+ *    known map-tile host patterns.
+ * 2. Walk ancestors (up to depth 12, stopping at body) for
+ *    structural map signals:
+ *      - role="region" with aria-label matching map / 지도 /
+ *        地图 / 地圖
+ *      - aria-roledescription matching map / 지도
+ *      - data-test-id exactly mtc, met, or moc (Google Maps'
+ *        internal tile/event/overlay containers)
+ *
+ * Class-name pattern matching is intentionally NOT included in
+ * Phase 26; we only add patterns once a concrete page surfaces
+ * them.
+ */
+function isMapTileUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  return /(?:map\.pstatic\.net|ssl\.pstatic\.net\/static\/maps|maps\.gstatic\.com|maps\.googleapis\.com|mt[0-3]?\.googleapis\.com)/i.test(url);
+}
+
+function isInsideMapContainer(el) {
+  if (!el || el.nodeType !== 1) return false;
+
+  // 1. <img> src domain check (catches Naver-style tile servers;
+  //    no ARIA needed).
+  try {
+    if (el.tagName === 'IMG') {
+      const src = el.getAttribute?.('src') || '';
+      if (isMapTileUrl(src)) return true;
+    }
+  } catch (e) {
+    // fall through to ancestor checks
+  }
+
+  // 2. Ancestor signals walk (depth-limited).
+  try {
+    let ancestor = el.parentElement;
+    let depth = 0;
+    while (ancestor && ancestor !== document.body && depth < 12) {
+      // 2a. role="region" + aria-label map signal.
+      const role = ancestor.getAttribute?.('role') || '';
+      if (role === 'region') {
+        const ariaLabel = ancestor.getAttribute?.('aria-label') || '';
+        if (/\b(map|지도|地图|地圖)\b/i.test(ariaLabel)) return true;
+      }
+
+      // 2b. aria-roledescription map signal.
+      const ariaDesc = ancestor.getAttribute?.('aria-roledescription') || '';
+      if (/\b(map|지도)\b/i.test(ariaDesc)) return true;
+
+      // 2c. data-test-id map-internal markers (Google Maps).
+      const testId = ancestor.getAttribute?.('data-test-id') || '';
+      if (testId === 'mtc' || testId === 'met' || testId === 'moc') return true;
+
+      ancestor = ancestor.parentElement;
+      depth += 1;
+    }
+  } catch (e) {
+    // Defensive: ancestor walk should never throw, but stay quiet.
+  }
+
+  return false;
+}
+
+/**
  * Phase 21: shared significant-image pool for Type D and Type E.
  * Threshold is viewport-independent: Math.max(80, cappedRootFontSize * 2),
  * preserving the existing root-font cap at 16.
@@ -748,6 +824,15 @@ function filterSignificantImages(root = document) {
     // ItemMap behavior.
     if (isVisuallyHidden(img)) continue;
     // === END PHASE23_VISIBILITY_FILTER ===
+
+    // === PHASE26_MAP_FILTER ===
+    // Exclude images that belong to a map widget (e.g., Google Maps
+    // embed, Naver Maps embed). Map tiles are visualization assets,
+    // not user-actionable image content. Phase 26 supports Google
+    // and Naver only; other providers are added when a concrete page
+    // surfaces them.
+    if (isInsideMapContainer(img)) continue;
+    // === END PHASE26_MAP_FILTER ===
 
     significantImages.push({ img, rect });
   }
