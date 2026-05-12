@@ -587,6 +587,108 @@ function getEffectiveImageRectForImageGate(img) {
 }
 
 /**
+ * Phase 27d: Approximate rect equality for hover-companion
+ * matching. Used to identify DOM elements that occupy the same
+ * visual area as a given <img>. The tolerance is small (4px)
+ * because observed real-world cases (Behance, etc.) wrap the
+ * <img> with elements that paint the same box exactly. A larger
+ * tolerance risks pulling in nearby-but-not-overlapping
+ * elements.
+ */
+function rectsApproxEqual(a, b, tolerance = 4) {
+  if (!a || !b) return false;
+  const aw = Number(a.width) || 0;
+  const ah = Number(a.height) || 0;
+  const bw = Number(b.width) || 0;
+  const bh = Number(b.height) || 0;
+  if (aw <= 0 || ah <= 0 || bw <= 0 || bh <= 0) return false;
+  return Math.abs(a.left - b.left) < tolerance &&
+         Math.abs(a.top - b.top) < tolerance &&
+         Math.abs(aw - bw) < tolerance &&
+         Math.abs(ah - bh) < tolerance;
+}
+
+/**
+ * Phase 27d: Identifies DOM elements that visually occupy the
+ * same area as a given <img>, used as hover-target companions
+ * so that intercepting sibling/wrapper elements still resolve
+ * to the correct candidate.
+ *
+ * Search neighborhood (intentionally narrow):
+ *   1. Immediate ancestors of <img> whose rect matches the
+ *      <img>'s effective rect. Max 3 levels up.
+ *   2. Direct siblings of <img> (i.e., other children of
+ *      <img>.parentElement) whose rect matches.
+ *   3. Direct siblings of <img>'s immediate parent (i.e.,
+ *      other children of <img>.parentElement.parentElement)
+ *      whose rect matches.
+ *
+ * NOT included:
+ *   - Arbitrary deep ancestors. They would re-open whole-card
+ *     activation, which Phase 27 explicitly retired.
+ *   - The <img> itself. The caller registers <img> separately.
+ *
+ * Rect source: `getEffectiveImageRectForImageGate(img)`. This
+ * is the same rect the dominance gate uses, so companion
+ * matching stays consistent with admission semantics.
+ */
+function findHoverCompanions(img) {
+  const companions = new Set();
+  try {
+    if (!img || img.nodeType !== 1) return companions;
+    const imgRect = getEffectiveImageRectForImageGate(img);
+    if (!imgRect || imgRect.width <= 0 || imgRect.height <= 0) return companions;
+
+    // 1. Ancestor walk (up to 3 levels).
+    let ancestor = img.parentElement;
+    let depth = 0;
+    while (ancestor && ancestor !== document.body && depth < 3) {
+      try {
+        const ar = ancestor.getBoundingClientRect?.();
+        if (rectsApproxEqual(ar, imgRect)) {
+          companions.add(ancestor);
+        } else {
+          // First mismatch ends the upward walk — further ancestors
+          // will only be larger.
+          break;
+        }
+      } catch (e) {
+        break;
+      }
+      ancestor = ancestor.parentElement;
+      depth += 1;
+    }
+
+    // 2. Direct siblings of <img>.
+    const directParent = img.parentElement;
+    if (directParent) {
+      for (const sib of Array.from(directParent.children || [])) {
+        if (sib === img) continue;
+        try {
+          const sr = sib.getBoundingClientRect?.();
+          if (rectsApproxEqual(sr, imgRect)) companions.add(sib);
+        } catch (e) {}
+      }
+    }
+
+    // 3. Direct siblings of <img>'s immediate parent.
+    const grandparent = directParent?.parentElement;
+    if (grandparent) {
+      for (const sib of Array.from(grandparent.children || [])) {
+        if (sib === directParent) continue;
+        try {
+          const sr = sib.getBoundingClientRect?.();
+          if (rectsApproxEqual(sr, imgRect)) companions.add(sib);
+        } catch (e) {}
+      }
+    }
+  } catch (e) {
+    // defensive
+  }
+  return companions;
+}
+
+/**
  * Returns true if the image's bounding rect is "dominant" within
  * the coreItem's bounding rect, applying the same ratio rule used
  * by dataExtractor.js's getDominantMediaType for category: Image
@@ -1344,6 +1446,16 @@ function detectFacebookFallback(root, existingElements = new Set()) {
       const seedImages = findDominantImagesInElement(unit);
       if (!seedImages.size) continue;
       // === END PHASE27A_TYPE_B_STRICT ===
+      // === PHASE27D_HOVER_COMPANIONS (Type B facebook fallback) ===
+      const hoverCompanions = new Set();
+      try {
+        for (const seedImg of seedImages) {
+          for (const comp of findHoverCompanions(seedImg)) {
+            hoverCompanions.add(comp);
+          }
+        }
+      } catch (e) {}
+      // === END PHASE27D_HOVER_COMPANIONS ===
       out.push({
         key: signature,
         signature,
@@ -1353,6 +1465,9 @@ function detectFacebookFallback(root, existingElements = new Set()) {
         evidenceType: EVIDENCE_TYPE_INTERACTION,
         element: unit,
         seedImages,
+        // === PHASE27D_HOVER_COMPANIONS_FIELD ===
+        hoverCompanions,
+        // === END PHASE27D_HOVER_COMPANIONS_FIELD ===
         similarityType: 'facebook-feedunit-fallback',
         classPattern: '',
         attrKey: 'data-pagelet',
@@ -1678,6 +1793,21 @@ async function detectTypeDItemMaps(root = document) {
     }
 
     for (const { card, dominantImgs } of filteredCards) {
+      // === PHASE27D_HOVER_COMPANIONS (Type D) ===
+      // Compute companions for each dominant <img> in this card.
+      // Companions are non-<img> sibling/wrapper elements that
+      // visually overlap the <img> and intercept its mouseover.
+      const hoverCompanions = new Set();
+      try {
+        for (const seedImg of dominantImgs) {
+          for (const comp of findHoverCompanions(seedImg)) {
+            hoverCompanions.add(comp);
+          }
+        }
+      } catch (e) {
+        // defensive
+      }
+      // === END PHASE27D_HOVER_COMPANIONS ===
       candidates.push({
         key: itemMapSignature,
         signature: itemMapSignature,
@@ -1689,6 +1819,9 @@ async function detectTypeDItemMaps(root = document) {
         // === PHASE27A_SEED_IMAGES ===
         seedImages: dominantImgs,
         // === END PHASE27A_SEED_IMAGES ===
+        // === PHASE27D_HOVER_COMPANIONS_FIELD ===
+        hoverCompanions,
+        // === END PHASE27D_HOVER_COMPANIONS_FIELD ===
         similarityType: 'typeD-image-first',
         classPattern: '',
         attrKey: '',
@@ -1717,6 +1850,14 @@ async function detectTypeEItemMaps(rejectedImages = []) {
 
   for (const { img } of rejected) {
     if (!img || String(img?.tagName || '').toUpperCase() !== 'IMG') continue;
+    // === PHASE27D_HOVER_COMPANIONS (Type E) ===
+    let hoverCompanions = new Set();
+    try {
+      hoverCompanions = findHoverCompanions(img);
+    } catch (e) {
+      hoverCompanions = new Set();
+    }
+    // === END PHASE27D_HOVER_COMPANIONS ===
     candidates.push({
       key: `typeE::${candidates.length}`,
       signature: `typeE::${candidates.length}`,
@@ -1725,6 +1866,9 @@ async function detectTypeEItemMaps(rejectedImages = []) {
       structureSignature: 'typeE',
       evidenceType: EVIDENCE_TYPE_E,
       element: img,
+      // === PHASE27D_HOVER_COMPANIONS_FIELD ===
+      hoverCompanions,
+      // === END PHASE27D_HOVER_COMPANIONS_FIELD ===
       similarityType: 'typeE-fallback-image',
       classPattern: '',
       attrKey: '',
@@ -1943,6 +2087,16 @@ export async function detectItemMaps(root = document) {
             if (!seedImages.size) continue;
           }
           // === END PHASE27A_TYPE_B_STRICT ===
+          // === PHASE27D_HOVER_COMPANIONS (Type B primary) ===
+          const hoverCompanions = new Set();
+          try {
+            for (const seedImg of seedImages) {
+              for (const comp of findHoverCompanions(seedImg)) {
+                hoverCompanions.add(comp);
+              }
+            }
+          } catch (e) {}
+          // === END PHASE27D_HOVER_COMPANIONS ===
           candidates.push({
             key: itemMapSignature,
             signature: itemMapSignature,
@@ -1954,6 +2108,9 @@ export async function detectItemMaps(root = document) {
             // === PHASE27A_SEED_IMAGES ===
             seedImages,
             // === END PHASE27A_SEED_IMAGES ===
+            // === PHASE27D_HOVER_COMPANIONS_FIELD ===
+            hoverCompanions,
+            // === END PHASE27D_HOVER_COMPANIONS_FIELD ===
             similarityType: 'composite',
             classPattern: parts[1] || '',
             attrKey: parts[0] || '',
@@ -2082,6 +2239,16 @@ export async function detectItemMaps(root = document) {
             const seedImages = findDominantImagesInElement(cand);
             if (!seedImages.size) continue;
             // === END PHASE27A_TYPE_B_STRICT ===
+            // === PHASE27D_HOVER_COMPANIONS (Type B sibling recovery) ===
+            const hoverCompanions = new Set();
+            try {
+              for (const seedImg of seedImages) {
+                for (const comp of findHoverCompanions(seedImg)) {
+                  hoverCompanions.add(comp);
+                }
+              }
+            } catch (e) {}
+            // === END PHASE27D_HOVER_COMPANIONS ===
             out.push({
               key: `${seed.key || seed.signature || ''}::BXR`,
               signature: `${seed.signature || seed.key || ''}::BXR`,
@@ -2091,6 +2258,9 @@ export async function detectItemMaps(root = document) {
               evidenceType: EVIDENCE_TYPE_INTERACTION,
               element: cand,
               seedImages,
+              // === PHASE27D_HOVER_COMPANIONS_FIELD ===
+              hoverCompanions,
+              // === END PHASE27D_HOVER_COMPANIONS_FIELD ===
               similarityType: customTagException
                 ? 'comprehensive-sibling-recovery-custom-tag'
                 : 'comprehensive-sibling-recovery-type-b',
@@ -2283,6 +2453,13 @@ function buildImageToItem(items) {
         if (img && String(img.tagName || '').toUpperCase() === 'IMG' && !map.has(img)) {
           map.set(img, item);
         }
+        // === PHASE27D_HOVER_COMPANIONS_REGISTER (Type E) ===
+        if (item.hoverCompanions instanceof Set) {
+          for (const comp of item.hoverCompanions) {
+            if (comp && !map.has(comp)) map.set(comp, item);
+          }
+        }
+        // === END PHASE27D_HOVER_COMPANIONS_REGISTER ===
       } else if (
         item.evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR ||
         item.evidenceType === EVIDENCE_TYPE_INTERACTION
@@ -2295,6 +2472,13 @@ function buildImageToItem(items) {
             }
           }
         }
+        // === PHASE27D_HOVER_COMPANIONS_REGISTER (Type B / D) ===
+        if (item.hoverCompanions instanceof Set) {
+          for (const comp of item.hoverCompanions) {
+            if (comp && !map.has(comp)) map.set(comp, item);
+          }
+        }
+        // === END PHASE27D_HOVER_COMPANIONS_REGISTER ===
       }
     }
   } catch (e) {
@@ -2317,15 +2501,19 @@ export function ensureClusterCacheFromState() {
 }
 
 /**
- * Phase 27a: Returns the candidate associated with a given <img>
- * via the seedImages lookup, or null. This is the image-keyed
- * companion to `findClusterContainerFromTarget`. Phase 27b will
- * use it as the Type B / Type D / Type E hover lookup.
+ * Phase 27d: Returns the candidate associated with a given DOM
+ * element. The element may be:
+ *   - the candidate's seed `<img>` (Type B / Type D seed,
+ *     Type E element)
+ *   - a hover-companion of a seed `<img>` registered during
+ *     detection (Phase 27d)
+ * Function name is preserved from Phase 27a for backward
+ * compatibility; the input is no longer restricted to <img>.
  */
-export function findItemByImage(img) {
+export function findItemByImage(el) {
   try {
-    if (!img || String(img.tagName || '').toUpperCase() !== 'IMG') return null;
-    return imageToItem.get(img) || null;
+    if (!el || el.nodeType !== 1) return null;
+    return imageToItem.get(el) || null;
   } catch (e) {
     return null;
   }

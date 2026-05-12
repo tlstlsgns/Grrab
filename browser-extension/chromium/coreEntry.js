@@ -2074,24 +2074,19 @@ function mountWindowListeners() {
     // Preserve active state when moving within the same CoreItem.
     const active = state.activeCoreItem;
     if (active && target && active.contains(target)) return;
-    // === PHASE27C_NONIMG_CLEAR ===
-    // Phase 27 image-keyed activation: only <img> targets can
-    // initiate a new CoreItem activation. Non-img targets that
-    // are NOT inside the currently active CoreItem cannot start
-    // a new activation, but they MUST clear any existing
-    // activation so the user-visible highlight disappears when
-    // the cursor leaves the active <img>.
-    // Order of operations:
-    //   - active.contains(target) above already preserved the
-    //     in-card case, so reaching this line means target is
-    //     outside the active CoreItem (or there is no active).
-    //   - Non-img: clear if active, then return without dispatch.
-    //   - Img: proceed to updateCoreSelectionFromTarget(...).
-    if (!target || String(target.tagName || '').toUpperCase() !== 'IMG') {
+    // === PHASE27D_RELAXED_DISPATCH ===
+    // Phase 27d: relaxed mouseover dispatch. Phase 27c rejected
+    // any non-img target outright. With Phase 27d's hover-
+    // companion registration, non-img elements that are visual
+    // companions of a seed <img> resolve to a candidate via
+    // findItemByImage(). Therefore dispatch any element node
+    // here; updateCoreSelectionFromTarget() will clear when no
+    // candidate is found.
+    if (!target) {
       if (active) coreClear();
       return;
     }
-    // === END PHASE27C_NONIMG_CLEAR ===
+    // === END PHASE27D_RELAXED_DISPATCH ===
     await updateCoreSelectionFromTarget(target, e.clientX, e.clientY);
   }, { passive: true, capture: true });
   window.addEventListener('mousemove', (e) => {
