@@ -1417,15 +1417,18 @@ async function detectTypeDItemMaps(root = document) {
 
       // === PHASE20_HOTFIX_SIZE_GUARD ===
       // Reject cards that are too large to plausibly be grid cards.
-      // Behance's full-width gallery modules (~991px on a 1280px viewport,
-      // widthRatio ≈ 0.77) are caught by widthRatio > 0.6.
-      // areaRatio guards against tall single-column layouts that pass widthRatio
-      // but cover most of the viewport area.
       const viewportWidth = Math.max(1, Number(window?.innerWidth || 0));
       const viewportHeight = Math.max(1, Number(window?.innerHeight || 0));
       const widthRatio = cardRect.width / viewportWidth;
       const areaRatio = (cardRect.width * cardRect.height) / (viewportWidth * viewportHeight);
-      if (widthRatio > 0.6 || areaRatio > 0.4) continue;
+      // Phase 24: Tightened upper bound. Legitimate image card grids
+      // observed in the wild occupy at most ~0.31 widthRatio (Instagram
+      // explore is the largest sampled). Banner-like content such as
+      // GitHub README <p>-wrapped images sits at 0.5+ widthRatio. The
+      // 0.4 threshold leaves safe margin above real grids while
+      // rejecting banner content. areaRatio is tightened in parallel as
+      // a secondary signal.
+      if (widthRatio > 0.4 || areaRatio > 0.25) continue;
       // === END PHASE20_HOTFIX_SIZE_GUARD ===
 
       // dominance: at least one inner img must pass isImageDominantInCoreItem
