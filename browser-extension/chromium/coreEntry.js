@@ -689,14 +689,29 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     );
   }
 
-  // === PHASE27B_TYPE_E_URL_FALLBACK ===
-  // Type E does not have its own URL source (the candidate is an
-  // <img> with no descendant anchors). Force the page URL so the
-  // clip path has a usable activeHoverUrl.
+  // === PHASE27F_TYPE_E_OVERRIDES ===
+  // Phase 27b: Type E has no descendant anchor, so force
+  //   meta.activeHoverUrl = window.location.href for the clip path.
+  // Phase 27f: extractMetadataForCoreItem returns null for an
+  //   <img>-only coreItem (no activeHoverUrl inside the <img>),
+  //   so meta.image is typically absent. With the new <img>
+  //   short-circuit in extractImageFromCoreItem (Phase 27f
+  //   Edit 1), we can populate meta.image directly here so the
+  //   clip path has a usable image URL at clip time.
   if (evidenceType === 'E') {
+    if (!meta?.image) {
+      try {
+        const imgResult = extractImageFromCoreItem(coreItem);
+        if (imgResult?.image) {
+          meta = { ...meta, image: imgResult.image };
+        }
+      } catch (e) {
+        // defensive
+      }
+    }
     meta = { ...meta, activeHoverUrl: String(window.location.href || '') };
   }
-  // === END PHASE27B_TYPE_E_URL_FALLBACK ===
+  // === END PHASE27F_TYPE_E_OVERRIDES ===
 
   // Type B no-URL gate (preserved). Type B without a URL must not
   // activate; the prior Instagram/Threads/Facebook enrichment was
@@ -759,6 +774,20 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
       if (confirmedType) syncedMeta = { ...syncedMeta, confirmedType };
     } catch (e) {}
   }
+
+  // === PHASE27F_TYPE_E_CATEGORY ===
+  // Type E activeCoreItem represents a standalone <img>. The
+  // generic category enrichment above calls detectItemCategory
+  // with pageUrl as both arguments and an <img>-internal htmlCtx,
+  // which cannot reliably infer a category and typically returns
+  // undefined. Per Phase 27f user decision, Type E saves are
+  // always category: 'Image'. Override unconditionally.
+  // Note: platform / confirmedType are left as-is so any genuine
+  // signal detectItemCategory produced is preserved.
+  if (evidenceType === 'E') {
+    syncedMeta = { ...syncedMeta, category: 'Image' };
+  }
+  // === END PHASE27F_TYPE_E_CATEGORY ===
 
   // Final activation. The iframe-vs-top split is preserved.
   if (IS_IFRAME) {

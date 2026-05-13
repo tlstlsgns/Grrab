@@ -1325,6 +1325,42 @@ function extractInstagramCaptionFromCoreItem(coreItem) {
 export function extractImageFromCoreItem(coreItem) {
   try {
     if (!coreItem || !coreItem.querySelectorAll) return null;
+
+    // === PHASE27F_TYPE_E_IMG_SHORTCUT ===
+    // When the coreItem is itself an <img> (Type E case), the
+    // generic descendant search returns nothing because <img>
+    // has no children. Return the <img>'s own src directly.
+    //
+    // Width/height precedence:
+    //   1. Layout rect (getBoundingClientRect) — current paint size
+    //   2. naturalWidth / naturalHeight — falls back when the
+    //      layout rect is 0×0 (lazy-load placeholder), matching
+    //      the same fallback pattern used by
+    //      getEffectiveImageRectForImageGate in itemDetector.js.
+    if (String(coreItem.tagName || '').toUpperCase() === 'IMG') {
+      const src = String(
+        coreItem.getAttribute?.('src') || coreItem.src || ''
+      ).trim();
+      if (src) {
+        const rect = coreItem.getBoundingClientRect?.();
+        const layoutW = Number(rect?.width) || 0;
+        const layoutH = Number(rect?.height) || 0;
+        const naturalW = Number(coreItem.naturalWidth) || 0;
+        const naturalH = Number(coreItem.naturalHeight) || 0;
+        const width = layoutW > 0 ? layoutW : naturalW;
+        const height = layoutH > 0 ? layoutH : naturalH;
+        return {
+          image: {
+            url: src,
+            width: Math.round(width),
+            height: Math.round(height),
+          },
+          usedCustomLogic: false,
+        };
+      }
+    }
+    // === END PHASE27F_TYPE_E_IMG_SHORTCUT ===
+
     const platform = getCurrentPlatform();
     if (platform === SUPPORTED_PLATFORMS.THREADS) {
       const toImgMeta = (img) => {
