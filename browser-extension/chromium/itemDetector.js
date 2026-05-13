@@ -609,35 +609,70 @@ function rectsApproxEqual(a, b, tolerance = 4) {
 }
 
 /**
- * Phase 27d: Identifies DOM elements that visually occupy the
- * same area as a given <img>, used as hover-target companions
- * so that intercepting sibling/wrapper elements still resolve
- * to the correct candidate.
+ * Phase 27d/27e: Identifies DOM elements that visually occupy
+ * the same area as a given <img>, used as hover-target
+ * companions so that intercepting sibling/wrapper elements
+ * still resolve to the correct candidate.
  *
- * Search neighborhood (intentionally narrow):
- *   1. Immediate ancestors of <img> whose rect matches the
- *      <img>'s effective rect. Max 3 levels up.
- *   2. Direct siblings of <img> (i.e., other children of
- *      <img>.parentElement) whose rect matches.
- *   3. Direct siblings of <img>'s immediate parent (i.e.,
- *      other children of <img>.parentElement.parentElement)
- *      whose rect matches.
+ * Two operating modes:
  *
- * NOT included:
- *   - Arbitrary deep ancestors. They would re-open whole-card
- *     activation, which Phase 27 explicitly retired.
- *   - The <img> itself. The caller registers <img> separately.
+ * SCOPE-WIDE MODE (Phase 27e) — used by Type B / Type D:
+ *   The caller passes `scopeElement` (the card or post
+ *   container, i.e., candidate.element). Every descendant of
+ *   scopeElement whose effective rect matches the <img>'s
+ *   effective rect is added as a companion. The scope element
+ *   itself is NEVER added (would re-open whole-card activation
+ *   and defeat Phase 27).
  *
- * Rect source: `getEffectiveImageRectForImageGate(img)`. This
- * is the same rect the dominance gate uses, so companion
- * matching stays consistent with admission semantics.
+ *   This handles cases where the intercepting element sits
+ *   deeper than the <img>'s direct neighborhood, e.g.,
+ *   Behance's <a> link buried under a Cover-overlay sibling of
+ *   <picture>'s parent.
+ *
+ * SIBLING/ANCESTOR MODE (Phase 27d) — used by Type E:
+ *   When `scopeElement` is null/undefined, the walk is local:
+ *   <img>'s near ancestors with same rect (depth <= 3), direct
+ *   siblings of <img>, and direct siblings of <img>'s immediate
+ *   parent. Type E has no card-scope concept, so the narrow
+ *   walk is the right behavior there.
+ *
+ * Rect source for both modes: `getEffectiveImageRectForImageGate(img)`.
+ * This matches the rect used by the dominance admission gate so
+ * companion matching stays consistent.
  */
-function findHoverCompanions(img) {
+function findHoverCompanions(img, scopeElement = null) {
   const companions = new Set();
   try {
     if (!img || img.nodeType !== 1) return companions;
     const imgRect = getEffectiveImageRectForImageGate(img);
-    if (!imgRect || imgRect.width <= 0 || imgRect.height <= 0) return companions;
+    if (!imgRect || imgRect.width <= 0 || imgRect.height <= 0) {
+      return companions;
+    }
+
+    // === PHASE27E_SCOPE_WIDE ===
+    // Scope-wide mode (Type B / Type D): search the entire
+    // candidate.element subtree for descendants with matching
+    // rect. Excludes <img> and scopeElement itself.
+    if (scopeElement && scopeElement.nodeType === 1) {
+      try {
+        const descendants = scopeElement.querySelectorAll?.('*') || [];
+        for (const el of descendants) {
+          if (el === img) continue;
+          if (el === scopeElement) continue;
+          try {
+            const r = el.getBoundingClientRect?.();
+            if (rectsApproxEqual(r, imgRect)) {
+              companions.add(el);
+            }
+          } catch (e) {}
+        }
+      } catch (e) {}
+      return companions;
+    }
+    // === END PHASE27E_SCOPE_WIDE ===
+
+    // Sibling/ancestor mode (Type E or scope-less callers):
+    // Phase 27d's original walk preserved verbatim.
 
     // 1. Ancestor walk (up to 3 levels).
     let ancestor = img.parentElement;
@@ -1446,16 +1481,17 @@ function detectFacebookFallback(root, existingElements = new Set()) {
       const seedImages = findDominantImagesInElement(unit);
       if (!seedImages.size) continue;
       // === END PHASE27A_TYPE_B_STRICT ===
-      // === PHASE27D_HOVER_COMPANIONS (Type B facebook fallback) ===
+      // === PHASE27E_HOVER_COMPANIONS (Type B facebook fallback) ===
       const hoverCompanions = new Set();
       try {
         for (const seedImg of seedImages) {
-          for (const comp of findHoverCompanions(seedImg)) {
+          // Phase 27e: pass `unit` (the FeedUnit container) as scope.
+          for (const comp of findHoverCompanions(seedImg, unit)) {
             hoverCompanions.add(comp);
           }
         }
       } catch (e) {}
-      // === END PHASE27D_HOVER_COMPANIONS ===
+      // === END PHASE27E_HOVER_COMPANIONS ===
       out.push({
         key: signature,
         signature,
@@ -1793,21 +1829,20 @@ async function detectTypeDItemMaps(root = document) {
     }
 
     for (const { card, dominantImgs } of filteredCards) {
-      // === PHASE27D_HOVER_COMPANIONS (Type D) ===
-      // Compute companions for each dominant <img> in this card.
-      // Companions are non-<img> sibling/wrapper elements that
-      // visually overlap the <img> and intercept its mouseover.
+      // === PHASE27E_HOVER_COMPANIONS (Type D) ===
       const hoverCompanions = new Set();
       try {
         for (const seedImg of dominantImgs) {
-          for (const comp of findHoverCompanions(seedImg)) {
+          // Phase 27e: pass card as scope so the descendant
+          // search covers the whole grid-item subtree.
+          for (const comp of findHoverCompanions(seedImg, card)) {
             hoverCompanions.add(comp);
           }
         }
       } catch (e) {
         // defensive
       }
-      // === END PHASE27D_HOVER_COMPANIONS ===
+      // === END PHASE27E_HOVER_COMPANIONS ===
       candidates.push({
         key: itemMapSignature,
         signature: itemMapSignature,
@@ -2087,16 +2122,17 @@ export async function detectItemMaps(root = document) {
             if (!seedImages.size) continue;
           }
           // === END PHASE27A_TYPE_B_STRICT ===
-          // === PHASE27D_HOVER_COMPANIONS (Type B primary) ===
+          // === PHASE27E_HOVER_COMPANIONS (Type B primary) ===
           const hoverCompanions = new Set();
           try {
             for (const seedImg of seedImages) {
-              for (const comp of findHoverCompanions(seedImg)) {
+              // Phase 27e: pass `el` (the post container) as scope.
+              for (const comp of findHoverCompanions(seedImg, el)) {
                 hoverCompanions.add(comp);
               }
             }
           } catch (e) {}
-          // === END PHASE27D_HOVER_COMPANIONS ===
+          // === END PHASE27E_HOVER_COMPANIONS ===
           candidates.push({
             key: itemMapSignature,
             signature: itemMapSignature,
@@ -2239,16 +2275,17 @@ export async function detectItemMaps(root = document) {
             const seedImages = findDominantImagesInElement(cand);
             if (!seedImages.size) continue;
             // === END PHASE27A_TYPE_B_STRICT ===
-            // === PHASE27D_HOVER_COMPANIONS (Type B sibling recovery) ===
+            // === PHASE27E_HOVER_COMPANIONS (Type B sibling recovery) ===
             const hoverCompanions = new Set();
             try {
               for (const seedImg of seedImages) {
-                for (const comp of findHoverCompanions(seedImg)) {
+                // Phase 27e: pass `cand` (the recovered container) as scope.
+                for (const comp of findHoverCompanions(seedImg, cand)) {
                   hoverCompanions.add(comp);
                 }
               }
             } catch (e) {}
-            // === END PHASE27D_HOVER_COMPANIONS ===
+            // === END PHASE27E_HOVER_COMPANIONS ===
             out.push({
               key: `${seed.key || seed.signature || ''}::BXR`,
               signature: `${seed.signature || seed.key || ''}::BXR`,
