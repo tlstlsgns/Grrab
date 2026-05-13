@@ -22,8 +22,6 @@ interface SaveUrlPayload {
   type: string;
   img_url?: string;
   img_url_dom?: string;
-  is_extracted_img?: boolean;
-  overlay_ratio?: number;
   saved_by?: string; // 'extension' or undefined (for Electron app saves)
   screenshot_base64?: string;
   screenshot_bg_color?: string;
@@ -274,272 +272,6 @@ const forwardToElectronApp = async (payload: any): Promise<{ success: boolean; r
     return { success: false };
   }
 };
-
-type ItemCategory = 'SNS' | 'Mail' | 'Contents' | 'Page';
-
-function getBaseDomainForCategory(url: string): string {
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    const parts = host.replace(/^www\./, '').split('.');
-    return parts.slice(-2).join('.');
-  } catch {
-    return '';
-  }
-}
-
-/**
- * Code-based category and type detection. No AI. Returns category and optionally
- * confirmedType when the category alone determines the exact type.
- */
-function detectCategoryAndType(
-  savedUrl: string,
-  pageUrl: string | undefined,
-  htmlContext: Record<string, any> | undefined
-): { category: ItemCategory; platform: string; confirmedType: string } {
-  try {
-    const u = new URL(savedUrl);
-    const host = u.hostname.toLowerCase();
-    const path = u.pathname.toLowerCase();
-
-    // ── Helper: dominant media type ───────────────────────────────────────────
-    function getDominantMediaType(): 'Video' | 'Image' | '' {
-      if (!htmlContext) return '';
-      try {
-        const coreWidth  = Number(htmlContext?.boundingBox?.width)  || 0;
-        const coreHeight = Number(htmlContext?.boundingBox?.height) || 0;
-        if (coreWidth <= 0 || coreHeight <= 0) return '';
-        const mediaItems = [
-          ...(Array.isArray(htmlContext.images) ? htmlContext.images : []),
-          ...(Array.isArray(htmlContext.videos) ? htmlContext.videos : []),
-        ];
-        for (const media of mediaItems) {
-          const mw = Number(media?.width)  || 0;
-          const mh = Number(media?.height) || 0;
-          if (mw <= 0 || mh <= 0) continue;
-          const widthRatio  = mw / coreWidth;
-          const heightRatio = mh / coreHeight;
-          if (
-            (widthRatio >= 0.75 && heightRatio >= 0.4) ||
-            (heightRatio >= 0.75 && widthRatio >= 0.4)
-          ) {
-            const isDominantVideo = Array.isArray(htmlContext.videos) &&
-              htmlContext.videos.some((v: any) => {
-                const vw = Number(v?.width)  || 0;
-                const vh = Number(v?.height) || 0;
-                const wr = vw / coreWidth;
-                const hr = vh / coreHeight;
-                return (wr >= 0.75 && hr >= 0.4) || (hr >= 0.75 && wr >= 0.4);
-              });
-            return isDominantVideo ? 'Video' : 'Image';
-          }
-        }
-      } catch { /* ignore */ }
-      return '';
-    }
-
-    function getPageDomain(): string {
-      return pageUrl ? getBaseDomainForCategory(pageUrl) : '';
-    }
-
-    // Returns true if pageUrl is a search engine domain but NOT a search results page.
-    // In this case dominant media check should be suppressed — items on search engine
-    // home/non-search pages (e.g. google.com main, naver.com main) are not real Contents.
-    function isSearchEngineNonSearchPage(): boolean {
-      if (!pageUrl) return false;
-      try {
-        const ph = new URL(pageUrl).hostname.toLowerCase();
-        const pp = new URL(pageUrl).pathname.toLowerCase();
-        const ps = new URL(pageUrl).search.toLowerCase();
-
-        // Google: search results → /search?q=...
-        if (ph.includes('google.com')) {
-          return !(pp.startsWith('/search') && ps.includes('q='));
-        }
-        // Naver: search results → search.naver.com/...
-        if (ph === 'search.naver.com') return false; // IS a search page
-        if (ph.includes('naver.com')) return true; // naver.com but not search subdomain
-
-        // Bing: search results → /search?q=...
-        if (ph.includes('bing.com')) {
-          return !(pp.startsWith('/search') && ps.includes('q='));
-        }
-        // DuckDuckGo: search results → duckduckgo.com/?q=...
-        if (ph.includes('duckduckgo.com')) {
-          return !ps.includes('q=');
-        }
-        // Yahoo Search: search results → search.yahoo.com/search?...
-        if (ph.includes('yahoo.com')) {
-          return !(ph.startsWith('search.') && pp.startsWith('/search'));
-        }
-        // Daum: search results → search.daum.net/search?...
-        if (ph.includes('daum.net')) {
-          return !(ph.startsWith('search.') && pp.startsWith('/search'));
-        }
-        // Baidu: search results → baidu.com/s?...
-        if (ph.includes('baidu.com')) {
-          return !(pp === '/s' || pp.startsWith('/s?') || ps.includes('wd='));
-        }
-        // Yandex: search results → yandex.com/search/...
-        if (ph.includes('yandex.com') || ph.includes('yandex.ru')) {
-          return !pp.startsWith('/search');
-        }
-      } catch {
-        /* ignore */
-      }
-      return false;
-    }
-
-    // ── Step 1: SNS ───────────────────────────────────────────────────────────
-    let snsPlatform = '';
-    if (host.includes('instagram.com')) {
-      snsPlatform = 'Instagram';
-    } else if (host.includes('x.com') || host.includes('twitter.com')) {
-      snsPlatform = 'X';
-    } else if (host.includes('threads.net')) {
-      snsPlatform = 'Threads';
-    } else if (
-      host.includes('linkedin.com') &&
-      (path.startsWith('/posts/') || path.includes('/feed/update/') || path.startsWith('/in/'))
-    ) {
-      snsPlatform = 'LinkedIn';
-    } else if (host.includes('facebook.com') && !!htmlContext) {
-      snsPlatform = 'Facebook';
-    } else if (host.includes('tiktok.com')) {
-      snsPlatform = 'TikTok';
-    } else if (host.includes('reddit.com') && (path.includes('/r/') || path.includes('/user/'))) {
-      snsPlatform = 'Reddit';
-    }
-
-    if (snsPlatform) {
-      const dominantType = getDominantMediaType();
-      if (dominantType) {
-        return { category: 'SNS', platform: snsPlatform, confirmedType: dominantType };
-      }
-      let snsConfirmedType = 'Page';
-      if (snsPlatform === 'LinkedIn' || snsPlatform === 'Facebook') {
-        snsConfirmedType = 'Post';
-      } else if (snsPlatform === 'Instagram') {
-        if (path.includes('/p/') || path.includes('/reel/')) snsConfirmedType = 'Post';
-      } else if (snsPlatform === 'X') {
-        if (path.includes('/status/')) snsConfirmedType = 'Post';
-      } else if (snsPlatform === 'Threads') {
-        if (path.includes('/post/')) snsConfirmedType = 'Post';
-      } else if (snsPlatform === 'TikTok') {
-        if (path.includes('/video/')) snsConfirmedType = 'Post';
-      } else if (snsPlatform === 'Reddit') {
-        if (path.includes('/comments/')) snsConfirmedType = 'Post';
-      }
-      return { category: 'SNS', platform: snsPlatform, confirmedType: snsConfirmedType };
-    }
-
-    // ── Step 2: Mail ──────────────────────────────────────────────────────────
-    // Only classify as Mail when the savedUrl points to an actual email thread.
-    // Folder/label pages (inbox list) are classified as Page instead.
-    const savedHostParts = host.split('.');
-    if (savedHostParts[0] === 'mail') {
-      const baseDomain = getBaseDomainForCategory(savedUrl);
-
-      // Gmail: real email thread → hash contains two segments: #{label}/{id}
-      if (baseDomain === 'google.com') {
-        try {
-          const gmailHash = new URL(savedUrl).hash || '';
-          const gmailParts = gmailHash.replace(/^#/, '').split('/').filter(Boolean);
-          if (gmailParts.length < 2) {
-            return { category: 'Page', platform: 'google', confirmedType: '' };
-          }
-        } catch { /* ignore */ }
-        return { category: 'Mail', platform: 'Gmail', confirmedType: '' };
-      }
-
-      // Naver Mail: folder page → /v2/folders/{id} → Page
-      if (baseDomain === 'naver.com') {
-        try {
-          const naverPath = new URL(savedUrl).pathname.toLowerCase();
-          if (naverPath.startsWith('/v2/folders/')) {
-            return { category: 'Page', platform: 'naver', confirmedType: '' };
-          }
-        } catch { /* ignore */ }
-        return { category: 'Mail', platform: 'Naver', confirmedType: '' };
-      }
-
-      const mailPlatform = baseDomain === 'google.com' ? 'Gmail'
-        : baseDomain === 'naver.com' ? 'Naver'
-        : 'Other';
-      return { category: 'Mail', platform: mailPlatform, confirmedType: '' };
-    }
-
-    // ── Step 2.5: Unconditional Video hosts ───────────────────────────────────
-    if (
-      (host.includes('youtube.com') && (path.includes('/watch') || path.includes('/shorts/'))) ||
-      host.includes('youtu.be') ||
-      host.includes('vimeo.com') ||
-      host.includes('twitch.tv')
-    ) {
-      return { category: 'Contents', platform: getBaseDomainForCategory(savedUrl), confirmedType: 'Video' };
-    }
-
-    // ── Step 3: Dominant media check (non-SNS) ────────────────────────────────
-    // Skip dominant media check when pageUrl is a search engine non-search page
-    // (e.g. google.com homepage) — items there are ads/products, not real Contents.
-    const dominantType = isSearchEngineNonSearchPage() ? '' : getDominantMediaType();
-    if (dominantType) {
-      if (dominantType === 'Video') {
-        return { category: 'Contents', platform: getBaseDomainForCategory(savedUrl), confirmedType: 'Video' };
-      }
-      return { category: 'Contents', platform: getPageDomain(), confirmedType: 'Image' };
-    }
-
-    // ── Step 4: Same-origin URL-based ─────────────────────────────────────────
-    const savedDomain = getBaseDomainForCategory(savedUrl);
-    const pageDomain  = pageUrl ? getBaseDomainForCategory(pageUrl) : '';
-    const sameOrigin  = !!savedDomain && !!pageDomain && savedDomain === pageDomain;
-
-    if (sameOrigin) {
-      if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(path))
-        return { category: 'Contents', platform: getPageDomain(), confirmedType: 'Image' };
-      if (/\.(mp4|webm)$/i.test(path))
-        return { category: 'Contents', platform: savedDomain, confirmedType: 'Video' };
-      if (
-        (host.includes('youtube.com') && (path.includes('/watch') || path.includes('/shorts/'))) ||
-        host.includes('youtu.be') ||
-        host.includes('vimeo.com') ||
-        host.includes('twitch.tv')
-      ) return { category: 'Contents', platform: savedDomain, confirmedType: 'Video' };
-    }
-
-    // ── Step 5: Weighted scoring ──────────────────────────────────────────────
-    // Skip scoring-based Contents classification on search engine non-search pages.
-    if (!isSearchEngineNonSearchPage()) {
-      let score = 0;
-      const mediaRatio = Number(htmlContext?.mediaRatio) || 0;
-      if (mediaRatio > 0.7) score += 70;
-      else if (mediaRatio > 0.5) score += 40;
-      const videoCount = Number(htmlContext?.videoCount) || 0;
-      if (videoCount > 0) score += 50;
-      const imageCount = Number(htmlContext?.imageCount) || 0;
-      if (imageCount + videoCount === 1) score += 30;
-      if (/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm)$/i.test(path)) score += 20;
-      if (
-        (host.includes('youtube.com') && (path.includes('/watch') || path.includes('/shorts/'))) ||
-        host.includes('youtu.be') ||
-        host.includes('vimeo.com') ||
-        host.includes('twitch.tv')
-      ) score += 20;
-      if (imageCount + videoCount > 2) score -= 30;
-      if (score >= 100) {
-        if (videoCount > 0) {
-          return { category: 'Contents', platform: getBaseDomainForCategory(savedUrl), confirmedType: 'Video' };
-        }
-        return { category: 'Contents', platform: getPageDomain(), confirmedType: 'Image' };
-      }
-    }
-
-    // ── Step 6: Default ───────────────────────────────────────────────────────
-    return { category: 'Page', platform: getBaseDomainForCategory(savedUrl), confirmedType: '' };
-  } catch {
-    return { category: 'Page', platform: '', confirmedType: '' };
-  }
-}
 
 /**
  * Calls Gemini API with the given prompt and returns the raw text response.
@@ -1254,7 +986,6 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
     screenshot_bg_color,
     category,
     confirmed_type,
-    page_save,
   } = req.body as Omit<SaveUrlPayload, 'domain'> & {
     img_url?: string;
     img_url_dom?: string;
@@ -1264,7 +995,6 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
     screenshot_bg_color?: string;
     category?: string;
     confirmed_type?: string;
-    page_save?: boolean;
   };
 
   const isValidString = (value: unknown) =>
@@ -1290,22 +1020,11 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
 
   // Prepare payload for forwarding (will add domain later, but preserve type from extension)
   const clientCategoryRaw      = typeof category === 'string' ? category.trim() : '';
-  const isPageCategory         = clientCategoryRaw === 'Page';
   const clientPlatformRaw      = typeof (req.body as any).platform === 'string'
     ? (req.body as any).platform.trim() : '';
   const clientConfirmedTypeRaw = typeof confirmed_type === 'string' ? confirmed_type.trim() : '';
-  const isSnsPageCategory = clientCategoryRaw === 'SNS' &&
-    clientConfirmedTypeRaw === 'Page';
   const clientSenderRaw        = typeof (req.body as any).sender === 'string'
     ? (req.body as any).sender.trim() : '';
-  const clientPageDescriptionRaw =
-    typeof (req.body as any).page_description === 'string'
-      ? (req.body as any).page_description.trim()
-      : '';
-  const clientIsPortraitRaw =
-    typeof (req.body as any).is_portrait === 'boolean'
-      ? (req.body as any).is_portrait
-      : false;
   const clientImgUrlMethodRaw =
     typeof (req.body as any).img_url_method === 'string' &&
     ['screenshot', 'extracted', 'favicon'].includes((req.body as any).img_url_method)
@@ -1313,16 +1032,6 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
       : '';
   const clientScreenshotPaddingRaw = typeof (req.body as any).screenshot_padding === 'number'
     ? (req.body as any).screenshot_padding : 0;
-  const clientIsExtractedImgRaw = typeof (req.body as any).is_extracted_img === 'boolean'
-    ? (req.body as any).is_extracted_img : undefined;
-  const clientOverlayRatioRaw = typeof (req.body as any).overlay_ratio === 'number'
-    ? (req.body as any).overlay_ratio : undefined;
-  const isPortraitExtracted =
-    isPageCategory &&
-    clientIsExtractedImgRaw === true &&
-    typeof clientOverlayRatioRaw === 'number' &&
-    Number.isFinite(clientOverlayRatioRaw) &&
-    clientOverlayRatioRaw < 1.2;
   const gmailTokenRaw = typeof (req.body as any).gmail_token === 'string'
     ? (req.body as any).gmail_token.trim()
     : '';
@@ -1343,15 +1052,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
     ...(clientPlatformRaw      && { platform:        clientPlatformRaw }),
     ...(clientConfirmedTypeRaw && { confirmed_type:  clientConfirmedTypeRaw }),
     ...(clientSenderRaw        && { sender:             clientSenderRaw }),
-    ...(clientPageDescriptionRaw && { page_description: clientPageDescriptionRaw }),
     ...(clientScreenshotPaddingRaw > 0 && { screenshot_padding: clientScreenshotPaddingRaw }),
-    ...(typeof clientIsExtractedImgRaw === 'boolean'
-      ? { is_extracted_img: clientIsExtractedImgRaw }
-      : {}),
-    ...(clientOverlayRatioRaw !== undefined && Number.isFinite(clientOverlayRatioRaw)
-      ? { overlay_ratio: clientOverlayRatioRaw }
-      : {}),
-    ...(clientIsPortraitRaw ? { is_portrait: true } : {}),
     ...(clientImgUrlMethodRaw && { img_url_method: clientImgUrlMethodRaw }),
   };
 
@@ -1370,7 +1071,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
       docPath = `users/${userId}/items/${documentId}`;
 
       const screenshotBase64Fwd = screenshot_base64;
-      if (screenshotBase64Fwd && userId && documentId && !isPortraitExtracted && (!resolvedImgUrl || isPageCategory || isSnsPageCategory)) {
+      if (screenshotBase64Fwd && userId && documentId && !resolvedImgUrl) {
         (async () => {
           try {
             const uploadResult = await uploadScreenshotToStorage(
@@ -1463,15 +1164,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
       if (clientPlatformRaw)      firestoreEntry.platform       = clientPlatformRaw;
       if (clientConfirmedTypeRaw) firestoreEntry.confirmed_type = clientConfirmedTypeRaw;
       if (clientSenderRaw)                    firestoreEntry.sender             = clientSenderRaw;
-      if (clientPageDescriptionRaw) firestoreEntry.page_description = clientPageDescriptionRaw;
       if (clientScreenshotPaddingRaw > 0)     firestoreEntry.screenshot_padding = clientScreenshotPaddingRaw;
-      if (typeof clientIsExtractedImgRaw === 'boolean') {
-        firestoreEntry.is_extracted_img = clientIsExtractedImgRaw;
-      }
-      if (clientOverlayRatioRaw !== undefined && Number.isFinite(clientOverlayRatioRaw)) {
-        firestoreEntry.overlay_ratio = clientOverlayRatioRaw;
-      }
-      if (clientIsPortraitRaw) firestoreEntry.is_portrait = true;
       if (clientImgUrlMethodRaw) firestoreEntry.img_url_method = clientImgUrlMethodRaw;
 
       const newDocRef = itemsRef.doc();
@@ -1480,7 +1173,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
       console.log('✅ Saved directly to Firestore (Electron offline):', newDocRef.id);
 
       const screenshotBase64Direct = screenshot_base64;
-      if (screenshotBase64Direct && uid && !isPortraitExtracted && (!resolvedImgUrl || isPageCategory || isSnsPageCategory)) {
+      if (screenshotBase64Direct && uid && !resolvedImgUrl) {
         const newItemId = newDocRef.id;
         const newDocPath = `users/${uid}/items/${newItemId}`;
         (async () => {
