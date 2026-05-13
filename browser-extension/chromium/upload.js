@@ -232,15 +232,42 @@ function formatItemAsMarkdown(item) {
   return lines.join('\n');
 }
 
-/** @param {string} imgUrl */
-async function fetchImageAsBlob(imgUrl) {
-  const response = await chrome.runtime.sendMessage({ action: 'fetch-image', url: imgUrl });
-  if (!response || !response.success || !response.dataUrl) {
+/** @param {string} imgUrl @param {string} [fallbackUrl] */
+// === PHASE27G_SAVE_FALLBACK ===
+async function fetchImageAsBlob(imgUrl, fallbackUrl = '') {
+  const tryOne = async (u) => {
+    const response = await chrome.runtime.sendMessage({ action: 'fetch-image', url: u });
+    if (response?.success && response.dataUrl) {
+      const blobResponse = await fetch(response.dataUrl);
+      return await blobResponse.blob();
+    }
     throw new Error(response?.error || 'Image fetch failed (background relay)');
+  };
+
+  try {
+    const blob = await tryOne(imgUrl);
+    return { blob, usedFallback: false };
+  } catch (_) {
+    /* fall through */
   }
-  const res = await fetch(response.dataUrl);
-  return await res.blob();
+
+  const fb = String(fallbackUrl || '').trim();
+  if (fb && fb !== imgUrl) {
+    try {
+      if (fb.startsWith('data:')) {
+        const blobResponse = await fetch(fb);
+        return { blob: await blobResponse.blob(), usedFallback: true };
+      }
+      const blob = await tryOne(fb);
+      return { blob, usedFallback: true };
+    } catch (_) {
+      /* fall through */
+    }
+  }
+
+  throw new Error('All image fetch attempts failed');
 }
+// === END PHASE27G_SAVE_FALLBACK ===
 
 /** @param {FileSystemDirectoryHandle | null} handle */
 async function ensureWritableHandle(handle) {
@@ -341,13 +368,21 @@ export async function saveItemViaDownloads(item) {
     const category = (item.category || '').trim();
     let blob;
     let ext;
+    let usedFallback = false;
 
     if (category === 'Image') {
       const imgUrl = (item.img_url || '').trim();
       if (!imgUrl) {
         return { ok: false, reason: 'generic', message: 'No image URL' };
       }
-      blob = await fetchImageAsBlob(imgUrl);
+      // === PHASE27G_FALLBACK_ARG ===
+      const imgResult = await fetchImageAsBlob(
+        imgUrl,
+        (item.img_url_dom || '').trim()
+      );
+      blob = imgResult.blob;
+      usedFallback = imgResult.usedFallback;
+      // === END PHASE27G_FALLBACK_ARG ===
       ext = inferImageExtension(imgUrl, blob);
     } else {
       const md = formatItemAsMarkdown(item);
@@ -397,7 +432,7 @@ export async function saveItemViaDownloads(item) {
           const newState = delta.state.current;
           if (newState === 'complete') {
             cleanup();
-            resolve({ ok: true, filename: finalName });
+            resolve({ ok: true, filename: finalName, usedFallback });
           } else if (newState === 'interrupted') {
             cleanup();
             const err = delta.error?.current || '';
@@ -471,13 +506,21 @@ export async function writeItemToHandle(handle, item) {
     const category = (item.category || '').trim();
     let blob;
     let ext;
+    let usedFallback = false;
 
     if (category === 'Image') {
       const imgUrl = (item.img_url || '').trim();
       if (!imgUrl) {
         return { ok: false, reason: 'generic', message: 'No image URL' };
       }
-      blob = await fetchImageAsBlob(imgUrl);
+      // === PHASE27G_FALLBACK_ARG ===
+      const imgResult = await fetchImageAsBlob(
+        imgUrl,
+        (item.img_url_dom || '').trim()
+      );
+      blob = imgResult.blob;
+      usedFallback = imgResult.usedFallback;
+      // === END PHASE27G_FALLBACK_ARG ===
       ext = inferImageExtension(imgUrl, blob);
     } else {
       const md = formatItemAsMarkdown(item);
@@ -510,6 +553,7 @@ export async function writeItemToHandle(handle, item) {
       ok: true,
       filename: finalName,
       primaryFolderName: writable.name,
+      usedFallback,
     };
   } catch (e) {
     return { ok: false, reason: 'generic', message: e?.message || String(e) };
@@ -568,7 +612,7 @@ export async function buildDriveUploadPayload(item) {
       if (!imgUrl) {
         return { ok: false, reason: 'generic', message: 'No image URL' };
       }
-      blob = await fetchImageAsBlob(imgUrl);
+      blob = (await fetchImageAsBlob(imgUrl, (item.img_url_dom || '').trim())).blob;
       ext = inferImageExtension(imgUrl, blob);
       mimeType = blob.type || (ext === 'jpg' ? 'image/jpeg' : `image/${ext}`);
     } else {

@@ -1480,6 +1480,48 @@ async function saveActiveCoreItem(request = {}) {
       userId = null;
     }
 
+    // === PHASE27G_DOM_IMG_SRC ===
+    // Capture the actual <img> src visible in the page at clip
+    // time. For Cloudflare-protected origins where img_url cannot
+    // be re-fetched by KickClip (proxy / direct / background all
+    // blocked), the DOM src is what the user's browser actually
+    // rendered and is therefore the only reliably-displayable
+    // fallback. Saved alongside img_url so DataCard / file-save
+    // can fall back when the original is unreachable. img_url
+    // remains the full-resolution intent for downloads.
+    let domImgSrc = '';
+    try {
+      const activeCoreEl = state.activeCoreItem;
+      if (activeCoreEl && activeCoreEl.nodeType === 1) {
+        let domImg = null;
+        if (String(activeCoreEl.tagName || '').toUpperCase() === 'IMG') {
+          domImg = activeCoreEl;
+        } else if (typeof activeCoreEl.querySelectorAll === 'function') {
+          const innerImgs = activeCoreEl.querySelectorAll('img[src]') || [];
+          let largestArea = 0;
+          for (const candidate of innerImgs) {
+            try {
+              const rect = candidate.getBoundingClientRect?.();
+              if (!rect) continue;
+              const area = (Number(rect.width) || 0) * (Number(rect.height) || 0);
+              if (area > largestArea) {
+                largestArea = area;
+                domImg = candidate;
+              }
+            } catch (e) { /* ignore candidate */ }
+          }
+        }
+        if (domImg) {
+          domImgSrc = String(
+            domImg.getAttribute?.('src') || domImg.src || ''
+          ).trim();
+        }
+      }
+    } catch (e) {
+      // defensive — leave domImgSrc empty
+    }
+    // === END PHASE27G_DOM_IMG_SRC ===
+
     // Extract HTML context from the active CoreItem for AI type inference
     const htmlContext = extractCoreItemHtmlContext(activeItem);
     const payload = {
@@ -1492,6 +1534,11 @@ async function saveActiveCoreItem(request = {}) {
       ...(tempId ? { temp_id: tempId } : {}),
       ...(htmlContext ? { htmlContext } : {}),
       ...(faviconImgUrl ? { img_url: faviconImgUrl } : {}),
+      // === PHASE27G_PAYLOAD_DOM ===
+      ...(domImgSrc && domImgSrc !== faviconImgUrl
+        ? { img_url_dom: domImgSrc }
+        : {}),
+      // === END PHASE27G_PAYLOAD_DOM ===
       ...(userId ? { userId } : {}),
       ...(meta?.category      ? { category:       meta.category }      : {}),
       ...(meta?.platform      ? { platform:        meta.platform }      : {}),
@@ -1511,6 +1558,11 @@ async function saveActiveCoreItem(request = {}) {
           url,
           title:              title || url,
           imgUrl:             faviconImgUrl || '',
+          // === PHASE27G_OPTIMISTIC_DOM ===
+          ...(domImgSrc && domImgSrc !== faviconImgUrl
+            ? { imgUrlDom: domImgSrc }
+            : {}),
+          // === END PHASE27G_OPTIMISTIC_DOM ===
           category:           String(meta?.category      || '').trim(),
           platform:           String(meta?.platform      || '').trim(),
           confirmedType:      String(meta?.confirmedType || '').trim(),

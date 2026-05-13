@@ -224,6 +224,7 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
   const {
     url, title, timestamp, img_url, saved_by,
     screenshot_base64, screenshot_bg_color, category, confirmed_type,
+    img_url_dom, // === PHASE27G_FIELD ===
   } = req.body;
 
   const isValidString = (v: unknown) => typeof v === "string" && (v as string).trim().length > 0;
@@ -320,6 +321,12 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     if (resolvedImgUrl) baseFields.img_url = resolvedImgUrl;
+    // === PHASE27G_FIELD ===
+    const resolvedImgUrlDom = typeof img_url_dom === "string" ?
+      img_url_dom.trim() :
+      "";
+    if (resolvedImgUrlDom) baseFields.img_url_dom = resolvedImgUrlDom;
+    // === END PHASE27G_FIELD ===
     if (clientCategoryRaw) baseFields.category = clientCategoryRaw;
     if (clientPlatformRaw) baseFields.platform = clientPlatformRaw;
     if (clientConfirmedTypeRaw) baseFields.confirmed_type = clientConfirmedTypeRaw;

@@ -21,6 +21,7 @@ interface SaveUrlPayload {
   domain: string;
   type: string;
   img_url?: string;
+  img_url_dom?: string;
   is_extracted_img?: boolean;
   overlay_ratio?: number;
   saved_by?: string; // 'extension' or undefined (for Electron app saves)
@@ -1246,6 +1247,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
     title,
     timestamp,
     img_url,
+    img_url_dom, // === PHASE27G_FIELD ===
     saved_by,
     type,
     screenshot_base64,
@@ -1255,6 +1257,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
     page_save,
   } = req.body as Omit<SaveUrlPayload, 'domain'> & {
     img_url?: string;
+    img_url_dom?: string;
     saved_by?: string;
     type?: string; // Type from extension (e.g., 'instagram_post')
     screenshot_base64?: string;
@@ -1281,6 +1284,9 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
 
   // Use img_url from payload directly — OG image fetch is done in background after save
   const resolvedImgUrl = img_url ? img_url.trim() : '';
+  // === PHASE27G_FIELD ===
+  const resolvedImgUrlDom = typeof img_url_dom === 'string' ? img_url_dom.trim() : '';
+  // === END PHASE27G_FIELD ===
 
   // Prepare payload for forwarding (will add domain later, but preserve type from extension)
   const clientCategoryRaw      = typeof category === 'string' ? category.trim() : '';
@@ -1330,6 +1336,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
     timestamp,
     ...(type && { type: type.trim() }),
     ...(resolvedImgUrl && { img_url: resolvedImgUrl }),
+    ...(resolvedImgUrlDom && { img_url_dom: resolvedImgUrlDom }),
     ...(req.body.thumbnail && { thumbnail: req.body.thumbnail.trim() }),
     ...(saved_by && { saved_by }),
     ...(clientCategoryRaw      && { category:       clientCategoryRaw }),
@@ -1448,6 +1455,9 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
         createdAt:   admin.firestore.FieldValue.serverTimestamp(),
       };
       if (resolvedImgUrl) firestoreEntry.img_url = resolvedImgUrl;
+      // === PHASE27G_FIELD ===
+      if (resolvedImgUrlDom) firestoreEntry.img_url_dom = resolvedImgUrlDom;
+      // === END PHASE27G_FIELD ===
 
       if (clientCategoryRaw)      firestoreEntry.category       = clientCategoryRaw;
       if (clientPlatformRaw)      firestoreEntry.platform       = clientPlatformRaw;
@@ -1544,6 +1554,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
       domain,
       type: localType,
       ...(resolvedImgUrl && { img_url: resolvedImgUrl }),
+      ...(resolvedImgUrlDom && { img_url_dom: resolvedImgUrlDom }),
       ...(saved_by && { saved_by }),
     };
 
