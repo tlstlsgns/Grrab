@@ -851,7 +851,112 @@ function isVisuallyHidden(el) {
     let ancestor = el.parentElement;
     let depth = 0;
     while (ancestor && ancestor !== document.body && depth < 10) {
-      if (ancestor.getAttribute?.('aria-hidden') === 'true') return true;
+      // === PHASE_ARIA_HIDDEN_ANCHOR_BYPASS ===
+      // YouTube (and similar a11y patterns) wraps a thumbnail <img> in an
+      // <a href aria-hidden="true"> when a separate, screen-reader-facing
+      // <a href> to the same target carries the title text. The thumbnail
+      // anchor is hidden from the accessibility tree but visually on
+      // screen for sighted users. Treating it as "visually hidden" causes
+      // the thumbnail to be dropped at filterSignificantImages Gate G,
+      // and the parent card to lose both Type D (no dominant image found
+      // inside the card) and Type E (no rejectedImages entry for the
+      // thumbnail). Both outline classes go missing from one wrong
+      // verdict here.
+      //
+      // The bypass is intentionally narrow:
+      //   - el must be an <img>. Non-image elements keep strict rules.
+      //   - ancestor must be an <a>. <div aria-hidden> / <section
+      //     aria-hidden> stay rejected — those typically mark genuinely
+      //     off-screen carousel panels or collapsed accordions, not
+      //     visually-present duplicate-link wrappers.
+      //   - the <a> must have a non-empty href. <a aria-hidden> without
+      //     href is unusual and not the YouTube pattern; play it safe.
+      //   - display:none / visibility:hidden on the same anchor still
+      //     reject below. We only bypass the aria-hidden signal.
+      //   - ancestors ABOVE the bypassed anchor continue to be checked
+      //     by the rest of the loop, so a genuinely-hidden parent
+      //     section still wins.
+      //
+      // Companion to PHASE_LAZY_LOAD_ZERO_RECT_FALLBACK above: both
+      // distinguish visual visibility (KickClip's concern) from
+      // accessibility-tree visibility (aria-hidden's semantic).
+      //
+      // Nested wrapper handling: YouTube mix-playlist cards add a decorative
+      // <yt-collection-thumbnail-view-model aria-hidden="true"> between the
+      // <img> and the duplicate-link <a href aria-hidden="true"> that the
+      // direct bypass above handles. Without look-ahead, the ancestor walk
+      // hits the wrapper first and rejects before reaching the anchor. For
+      // <img> targets, when an aria-hidden non-<a> ancestor is encountered,
+      // we look further up (within the same depth-10 budget) for an
+      // enclosing <a href aria-hidden="true">. If found, the wrapper's
+      // aria-hidden is treated as part of the same a11y-hidden region as
+      // the anchor — bypassed for the aria-hidden indicator only.
+      // display:none / visibility:hidden on the wrapper itself still
+      // rejects on the lines immediately below this block.
+      if (ancestor.getAttribute?.('aria-hidden') === 'true') {
+        const elTag = String(el.tagName || '').toUpperCase();
+        const ancestorTag = String(ancestor.tagName || '').toUpperCase();
+        const ancestorHref = ancestor.getAttribute?.('href');
+        const isDirectBypassShape =
+          elTag === 'IMG' &&
+          ancestorTag === 'A' &&
+          typeof ancestorHref === 'string' &&
+          ancestorHref.length > 0;
+        if (isDirectBypassShape) {
+          // Variant A pattern: the aria-hidden ancestor is itself the
+          // duplicate-link anchor. Fall through to display/visibility checks
+          // on this same ancestor, then to the next ancestor up the chain.
+        } else if (elTag === 'IMG') {
+          // Variant B pattern: aria-hidden on a non-anchor wrapper. Look
+          // upward from the current ancestor's parent for an enclosing
+          // <a href aria-hidden="true"> within the remaining depth budget.
+          // A "hard hide" encountered during the look-ahead (display:none,
+          // visibility:hidden) means the subtree really is hidden — stop
+          // and reject.
+          let foundEnclosingAnchor = false;
+          let lookAheadNode = ancestor.parentElement;
+          let lookAheadDepth = depth + 1;
+          while (
+            lookAheadNode &&
+            lookAheadNode !== document.body &&
+            lookAheadDepth < 10
+          ) {
+            // Hard-hide short-circuits: if a wrapper above the current
+            // aria-hidden node is genuinely hidden via computed style,
+            // the entire subtree (including el) is genuinely hidden.
+            const laCs = window.getComputedStyle
+              ? window.getComputedStyle(lookAheadNode)
+              : null;
+            if (laCs) {
+              if (laCs.display === 'none') break;
+              if (laCs.visibility === 'hidden') break;
+            }
+            const laTag = String(lookAheadNode.tagName || '').toUpperCase();
+            const laAriaHidden =
+              lookAheadNode.getAttribute?.('aria-hidden') === 'true';
+            const laHref = lookAheadNode.getAttribute?.('href');
+            if (
+              laTag === 'A' &&
+              laAriaHidden &&
+              typeof laHref === 'string' &&
+              laHref.length > 0
+            ) {
+              foundEnclosingAnchor = true;
+              break;
+            }
+            lookAheadNode = lookAheadNode.parentElement;
+            lookAheadDepth += 1;
+          }
+          if (!foundEnclosingAnchor) return true;
+          // Fall through: bypass the aria-hidden indicator on this node,
+          // continue to display/visibility checks on the same node, then
+          // the next ancestor up.
+        } else {
+          // Non-<img> target: aria-hidden ancestor is a genuine hide signal.
+          return true;
+        }
+      }
+      // === END PHASE_ARIA_HIDDEN_ANCHOR_BYPASS ===
       const acs = window.getComputedStyle ? window.getComputedStyle(ancestor) : null;
       if (acs) {
         if (acs.display === 'none') return true;
