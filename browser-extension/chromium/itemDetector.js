@@ -1705,7 +1705,42 @@ function signatureOfNode(el) {
   const role = el.getAttribute?.('role');
   if (role != null) parts.push(`role=${role}`);
   const tag = String(el.tagName || '').toUpperCase();
-  if (tag === 'A' && el.hasAttribute?.('href')) parts.push('href');
+  // === PHASE_MEANINGFUL_URL_SIGNATURE ===
+  // An <a>'s 'href' contributes to the path signature only when it resolves
+  // to a meaningful navigation URL — the same criterion KickClip uses to
+  // pick activeHoverUrl. Anchors whose href is non-navigation (empty,
+  // fragment-only, javascript:, Google-style internal redirects like
+  // /imgres? or /url?, etc.) leave the signature unchanged.
+  //
+  // Reason: on Google Images results pages, the image-wrapping <a> starts
+  // with no href. On hover, Google's JS adds href="/imgres?..." (Google's
+  // internal redirect, never the card's real navigation target — the
+  // meaningful URL is on a separate <a class="EZAeBe"> in the card's
+  // metadata block). The injected href persists across mouseleave, so on
+  // the next detection cycle the hovered card's wrapper <a> signature
+  // becomes 'a|href' while sibling cards' wrappers remain 'a|'. Strict
+  // path matching fails, the hovered card is dropped from Type D, and it
+  // gets reclassified as Type E. As subsequent cards get hovered they
+  // accumulate the same injected href until the majority flips and the
+  // group recoheres — observed as the "scroll/hover restores Type D"
+  // behavior in the wild.
+  //
+  // resolveAnchorUrl is the existing KickClip predicate that returns
+  // non-null only for anchors that qualify as a Type D / Type B / Type A
+  // candidate's activeHoverUrl source. Gating the signature contribution
+  // on it means: only anchors that *could* be the card's clip target
+  // affect path matching. Hover-driven non-navigation hrefs are invisible
+  // to detection — matching the maintainer's principle that "a change to
+  // an <a> that is NOT the activeHoverUrl source should not affect Type D
+  // detection."
+  //
+  // Note: <a> remains 'a|' (no 'href' suffix) for anchors with no href
+  // AND for anchors with non-meaningful href. Path matching across a
+  // grid where all cards have stable real navigation hrefs continues to
+  // see 'a|href' on every sibling — unchanged behavior on Pinterest,
+  // Instagram, ArchDaily, etc.
+  // === END PHASE_MEANINGFUL_URL_SIGNATURE ===
+  if (tag === 'A' && resolveAnchorUrl(el)) parts.push('href');
   if (tag === 'IMG' && el.hasAttribute?.('src')) parts.push('src');
   return parts.join('|');
 }
