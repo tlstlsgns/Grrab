@@ -40,6 +40,7 @@ import {
   getKCShadowElement,
   findKCElement,
 } from './uiManager.js';
+import { determineTypeDOverlayElement } from './itemDetector.js';
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
 /** Readable gate for signed-in save / optimistic UI (signed-out = clipboard-only exploration). */
@@ -534,6 +535,9 @@ function requestInstagramThumbnail(coreItem, meta, clientX = null, clientY = nul
 
 function coreClear() {
   _aiAnalyzeSession++;
+  // === PHASE_OVERLAY_ON_IMAGE ===
+  state.activeOverlayElement = null;
+  // === END PHASE_OVERLAY_ON_IMAGE ===
   if (IS_IFRAME) {
     state.activeCoreItem = null;
     state.activeHoverUrl = null;
@@ -790,11 +794,64 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   // === END PHASE27F_TYPE_E_CATEGORY ===
 
   // Final activation. The iframe-vs-top split is preserved.
+  // === PHASE_OVERLAY_ON_IMAGE ===
+  // Type D overlays target the image region, not the full card. Other
+  // evidence types continue to outline the activeCoreItem directly.
+  let overlayElement = coreItem;
+  if (evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
+    // Resolve the relevant dominantImg + anchor for the hover target.
+    //
+    // Strategy: prefer the anchor closest to the hover target, then find
+    // the seedImage that anchor wraps. If the closest anchor doesn't
+    // contain any seedImage (rare — e.g. target is outside the image
+    // region but still inside the card), fall back to the first seedImage
+    // and that image's closest anchor.
+    let anchor = null;
+    let dominantImg = null;
+    try {
+      anchor = target?.closest?.('a') || null;
+    } catch (e) {
+      anchor = null;
+    }
+    const seeds = itemEntry?.seedImages instanceof Set ? itemEntry.seedImages : null;
+    if (anchor && seeds) {
+      for (const img of seeds) {
+        try {
+          if (img && anchor.contains?.(img)) {
+            dominantImg = img;
+            break;
+          }
+        } catch (e) {
+          // ignore disconnected nodes
+        }
+      }
+    }
+    if (!dominantImg && seeds && seeds.size > 0) {
+      dominantImg = seeds.values().next().value || null;
+      if (!anchor && dominantImg) {
+        try {
+          anchor = dominantImg.closest?.('a') || null;
+        } catch (e) {
+          anchor = null;
+        }
+      }
+    }
+    overlayElement = determineTypeDOverlayElement(coreItem, dominantImg, anchor);
+  }
+  state.activeOverlayElement = overlayElement;
+  const overlayRect = overlayElement === coreItem
+    ? null
+    : overlayElement.getBoundingClientRect?.();
+  if (overlayRect && overlayRect.width > 0 && overlayRect.height > 0) {
+    showCoreHighlight(coreItem, false, overlayRect);
+  } else {
+    showCoreHighlight(coreItem, false);
+  }
+  // === END PHASE_OVERLAY_ON_IMAGE ===
   if (IS_IFRAME) {
     state.activeCoreItem = coreItem;
     state.activeHoverUrl = syncedMeta.activeHoverUrl;
     state.lastExtractedMetadata = syncedMeta;
-    showCoreHighlight(coreItem, false);
     showCoreStatusBadge('default');
     if (evidenceType === 'B') {
       requestInstagramPostDataForTypeB(coreItem, state.lastExtractedMetadata, null, null);
@@ -804,7 +861,6 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   state.activeCoreItem = coreItem;
   state.activeHoverUrl = syncedMeta.activeHoverUrl;
   state.lastExtractedMetadata = syncedMeta;
-  showCoreHighlight(coreItem, false);
   showCoreStatusBadge('default');
   if (evidenceType === 'B') {
     requestInstagramPostDataForTypeB(coreItem, state.lastExtractedMetadata, clientX, clientY);
@@ -2180,7 +2236,13 @@ function mountWindowListeners() {
     if (!active) return;
     // Compute current rect for the active CoreItem and pass it as rectOverride
     // so showCoreHighlight() treats this as a scroll update (isScrollUpdate = true).
-    const scrollRect = active.getBoundingClientRect?.();
+    // === PHASE_OVERLAY_ON_IMAGE ===
+    // Scroll re-paint follows the overlay element (Type D may differ from
+    // activeCoreItem), so the outline stays anchored to the image region
+    // rather than jumping to the whole-card rect on scroll.
+    const overlayElement = state.activeOverlayElement || active;
+    const scrollRect = overlayElement.getBoundingClientRect?.();
+    // === END PHASE_OVERLAY_ON_IMAGE ===
     const rectOverride = scrollRect && scrollRect.width > 0 && scrollRect.height > 0
       ? { top: scrollRect.top, left: scrollRect.left, width: scrollRect.width, height: scrollRect.height, right: scrollRect.right }
       : null;

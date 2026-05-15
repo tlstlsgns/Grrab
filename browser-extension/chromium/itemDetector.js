@@ -2896,6 +2896,104 @@ export function findItemByImage(el) {
   }
 }
 
+// === PHASE_OVERLAY_ON_IMAGE ===
+// Three-case rule for choosing the overlay element on Type D activation:
+//
+//   Case 1: <img> fits within (or equals) the anchor on all four edges
+//           → overlay = <img>. The visible image footprint is exactly
+//             the img's layout box.
+//
+//   Case 2: <img> extends beyond the anchor in layout, AND a clip-producing
+//           CSS property is present somewhere on the path img → anchor
+//           (overflow ≠ visible, clip-path ≠ none, or contain with paint/
+//           strict/content). The clip restricts the rendered image to
+//           within the anchor's box → overlay = anchor.
+//
+//   Case 3: <img> extends beyond the anchor in layout AND no clip applies
+//           along that path. The img is genuinely painted outside the
+//           anchor's layout box → overlay = <img>.
+//
+// Edge comparison uses strict inequality (>= / <=, no tolerance) — the user
+// explicitly requested no 4-px tolerance here, unlike rectsApproxEqual elsewhere.
+//
+// Fallbacks: if either rect is unavailable / zero-sized, or if dominantImg
+// or anchor is missing, the function returns coreItem so the existing
+// whole-card outline remains as a safe default.
+export function determineTypeDOverlayElement(coreItem, dominantImg, anchor) {
+  if (!dominantImg || !anchor) return coreItem;
+  const imgRect = dominantImg.getBoundingClientRect?.();
+  const anchorRect = anchor.getBoundingClientRect?.();
+  if (!imgRect || !anchorRect) return coreItem;
+  if (imgRect.width <= 0 || imgRect.height <= 0) return coreItem;
+  if (anchorRect.width <= 0 || anchorRect.height <= 0) return coreItem;
+
+  // Case 1: img fully within anchor (no tolerance).
+  if (
+    imgRect.left >= anchorRect.left &&
+    imgRect.top >= anchorRect.top &&
+    imgRect.right <= anchorRect.right &&
+    imgRect.bottom <= anchorRect.bottom
+  ) {
+    return dominantImg;
+  }
+
+  // img > anchor in layout. Check whether the overflow is actually clipped
+  // visually by any element on the img → anchor ancestor chain.
+  if (isImgClippedAlongAnchorPath(dominantImg, anchor)) {
+    // Case 2: clip restricts visible image area to within anchor.
+    return anchor;
+  }
+
+  // Case 3: no clip; img genuinely paints outside anchor's box.
+  return dominantImg;
+}
+
+// Walk from img upward through its ancestor chain. Returns true if any
+// element on the path up to and including `anchor` carries a clip-producing
+// CSS property. Stops at `anchor` (inclusive). If `anchor` is not reached
+// (e.g. disconnected, or anchor is not an ancestor of img), the walk
+// terminates at the root and returns whatever was found en route.
+function isImgClippedAlongAnchorPath(img, anchor) {
+  // Start at img.parentElement, not img itself. overflow on a replaced
+  // element (<img>, <video>, etc.) controls its own raster content within
+  // its box — it doesn't constrain the box's position relative to an
+  // ancestor. Modern Chrome sets overflow: clip on <img> by default when
+  // aspect-ratio is present, which would false-positive every Type D
+  // image otherwise.
+  let cur = img?.parentElement || null;
+  while (cur) {
+    if (hasClipStyle(cur)) return true;
+    if (cur === anchor) break;
+    cur = cur.parentElement;
+  }
+  return false;
+}
+
+// CSS-level clip detection. Returns true if the element introduces any
+// clip-producing rule:
+//   - overflow-x or overflow-y is not 'visible' (hidden, clip, scroll, auto)
+//   - clip-path is not 'none'
+//   - contain includes 'paint', 'strict', or 'content' (which imply paint
+//     containment, which clips overflow).
+// Other clip mechanisms (mask-image, etc.) are intentionally out of scope —
+// add them here if real-world cases emerge that need them.
+function hasClipStyle(el) {
+  if (!el || el.nodeType !== 1) return false;
+  try {
+    const cs = window.getComputedStyle?.(el);
+    if (!cs) return false;
+    if (cs.overflowX && cs.overflowX !== 'visible') return true;
+    if (cs.overflowY && cs.overflowY !== 'visible') return true;
+    if (cs.clipPath && cs.clipPath !== 'none') return true;
+    const contain = String(cs.contain || '');
+    if (/\b(paint|strict|content)\b/.test(contain)) return true;
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+// === END PHASE_OVERLAY_ON_IMAGE ===
+
 // Aliases
 export const findItemsOnPage = detectItemMaps;
 export const buildItemMap = detectItemMaps;
