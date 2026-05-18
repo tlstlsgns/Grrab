@@ -87,6 +87,55 @@ export function getKCShadowElement(id) {
   return root.getElementById ? root.getElementById(id) : root.querySelector(`#${id}`);
 }
 
+// === PHASE_BADGE_SHADOW_SEPARATE ===
+// Status badge and metadata tooltip live in a SEPARATE shadow host so
+// their compositor layer is independent of #kickclip-shadow-host's
+// dynamic z-index (PHASE_OVERLAY_STACKING_ZINDEX in showCoreHighlight
+// lowers the main host below sticky headers; the badge should stay on
+// top regardless). The badge host's z-index is fixed at max and never
+// modified at runtime.
+const KC_BADGE_SHADOW_HOST_ID = 'kickclip-badge-shadow-host';
+let _kcBadgeShadowRoot = null;
+
+function getKCBadgeShadowRoot() {
+  if (_kcBadgeShadowRoot) return _kcBadgeShadowRoot;
+
+  let host = document.getElementById(KC_BADGE_SHADOW_HOST_ID);
+  if (!host) {
+    host = document.createElement('div');
+    host.id = KC_BADGE_SHADOW_HOST_ID;
+    host.style.cssText = [
+      'position: fixed',
+      'top: 0',
+      'left: 0',
+      'width: 0',
+      'height: 0',
+      'pointer-events: none',
+      'z-index: 2147483647',
+    ].join(';');
+    (document.body || document.documentElement).appendChild(host);
+  }
+
+  _kcBadgeShadowRoot = host.shadowRoot || host.attachShadow({ mode: 'closed' });
+
+  try {
+    if (_kcBadgeShadowRoot && !_kcBadgeShadowRoot.getElementById('kickclip-overlay-styles')) {
+      const styleEl = buildOverlayStyleElement();
+      if (styleEl) _kcBadgeShadowRoot.appendChild(styleEl);
+    }
+  } catch (_) {
+    // defensive: style injection must not block badge creation
+  }
+
+  return _kcBadgeShadowRoot;
+}
+
+function getKCBadgeShadowElement(id) {
+  const root = getKCBadgeShadowRoot();
+  return root.getElementById ? root.getElementById(id) : root.querySelector(`#${id}`);
+}
+// === END PHASE_BADGE_SHADOW_SEPARATE ===
+
 /**
  * Look up an element by id, searching the shadow root first, then document.body.
  * Used by UI functions during the Phase 3 migration when some elements have
@@ -177,7 +226,7 @@ export function updateCoreHighlightClass(isSaved, shutterState = 'none', forceRe
     else if (shutterState === 'error') overlay.classList.add('shutter-error');
 
     // Sync core status badge
-    const coreBadge = getKCShadowElement(CORE_BADGE_ID);
+    const coreBadge = getKCBadgeShadowElement(CORE_BADGE_ID);
     if (!coreBadge) return;
     coreBadge.style.transition = '';
     coreBadge.classList.remove('shutter-success', 'shutter-error');
@@ -223,6 +272,46 @@ function formatPlatformLabel(platform) {
   }
 }
 
+// === PHASE_OVERLAY_STACKING_ZINDEX ===
+// Compute the effective stacking z-index for an element by walking its
+// ancestor chain (up to but not including document.body) and tracking
+// the maximum positive explicit z-index. Negative z-indices are ignored
+// — the overlay should not sink below page background. Returns 0 when
+// no positive explicit z-index is found in the chain, meaning the
+// overlay sits just above page normal flow (and below any sticky header
+// that has its own positive z-index).
+//
+// Used by showCoreHighlight to sync the shadow host's z-index to the
+// coreItem's stacking context so page chrome (sticky headers, modal
+// shells, etc.) renders above the overlay when appropriate.
+function computeStackingZIndexForElement(el) {
+  if (!el || el.nodeType !== 1) return 0;
+  let cur = el;
+  let maxZ = -Infinity;
+  let depth = 0;
+  const maxDepth = 50; // defensive: avoid pathological deep trees
+  while (cur && cur !== document.body && depth < maxDepth) {
+    try {
+      const cs = window.getComputedStyle?.(cur);
+      if (cs) {
+        const zStr = cs.zIndex;
+        if (zStr && zStr !== 'auto') {
+          const z = parseInt(zStr, 10);
+          if (Number.isFinite(z) && z > maxZ) {
+            maxZ = z;
+          }
+        }
+      }
+    } catch (e) {
+      // defensive: getComputedStyle on disconnected nodes
+    }
+    cur = cur.parentElement;
+    depth++;
+  }
+  return Number.isFinite(maxZ) && maxZ > 0 ? maxZ : 0;
+}
+// === END PHASE_OVERLAY_STACKING_ZINDEX ===
+
 function ensurePurpleOverlay() {
   injectKickClipOverlayStyles();
   let el = getKCShadowElement(PURPLE_OVERLAY_ID);
@@ -250,7 +339,8 @@ function ensurePurpleOverlay() {
 }
 
 function ensureCoreBadge() {
-  let el = getKCShadowElement(CORE_BADGE_ID);
+  // === PHASE_BADGE_SHADOW_SEPARATE ===
+  let el = getKCBadgeShadowElement(CORE_BADGE_ID);
   if (el) return el;
   el = document.createElement('div');
   el.id = CORE_BADGE_ID;
@@ -270,8 +360,9 @@ function ensureCoreBadge() {
       top: 0;
       left: 0;
     `;
-  getKCShadowRoot().appendChild(el);
+  getKCBadgeShadowRoot().appendChild(el);
   return el;
+  // === END PHASE_BADGE_SHADOW_SEPARATE ===
 }
 
 /**
@@ -300,7 +391,7 @@ export function setCoreBadgeTexts({ defaultText, failedText } = {}) {
  */
 export function setCoreStatusBadgeText(text) {
   try {
-    const el = getKCShadowElement(CORE_BADGE_ID);
+    const el = getKCBadgeShadowElement(CORE_BADGE_ID);
     if (!el) return;
     el.textContent = String(text || '');
   } catch (_) {}
@@ -326,7 +417,7 @@ export function showCoreStatusBadge(badgeState = 'default') {
 
 export function hideCoreStatusBadge() {
   try {
-    const el = getKCShadowElement(CORE_BADGE_ID);
+    const el = getKCBadgeShadowElement(CORE_BADGE_ID);
     if (el) {
       // Keep opacity transition for fade-out; disable only background transition for instant color reset
       el.style.transition = 'opacity 0.15s ease';
@@ -343,7 +434,7 @@ export function hideCoreStatusBadge() {
 
 export function positionCoreStatusBadge(clientX, clientY) {
   try {
-    const el = getKCShadowElement(CORE_BADGE_ID);
+    const el = getKCBadgeShadowElement(CORE_BADGE_ID);
     if (!el || el.style.opacity === '0') return;
     const x = Number(clientX);
     const y = Number(clientY);
@@ -361,7 +452,8 @@ export function positionCoreStatusBadge(clientX, clientY) {
 }
 
 function ensureMetadataTooltip() {
-  let el = getKCShadowElement(METADATA_TOOLTIP_ID);
+  // === PHASE_BADGE_SHADOW_SEPARATE ===
+  let el = getKCBadgeShadowElement(METADATA_TOOLTIP_ID);
   if (el) return el;
   el = document.createElement('div');
   el.id = METADATA_TOOLTIP_ID;
@@ -398,8 +490,9 @@ function ensureMetadataTooltip() {
       <div data-kc-tooltip-ai-summary style="margin-top:3px;font-size:11px;line-height:1.45;opacity:0.90;word-break:break-word;"></div>
     </div>
   `;
-  getKCShadowRoot().appendChild(el);
+  getKCBadgeShadowRoot().appendChild(el);
   return el;
+  // === END PHASE_BADGE_SHADOW_SEPARATE ===
 }
 
 function setMetadataTooltipContent(meta) {
@@ -453,7 +546,7 @@ function setMetadataTooltipContent(meta) {
 
 export function setAiTooltipContent({ type, summary }) {
   try {
-    const el = getKCShadowElement(METADATA_TOOLTIP_ID);
+    const el = getKCBadgeShadowElement(METADATA_TOOLTIP_ID);
     if (!el) return;
     const aiWrap = el.querySelector('[data-kc-tooltip-ai]');
     const typeEl = el.querySelector('[data-kc-tooltip-ai-type]');
@@ -467,7 +560,7 @@ export function setAiTooltipContent({ type, summary }) {
 
 export function clearAiTooltipContent() {
   try {
-    const el = getKCShadowElement(METADATA_TOOLTIP_ID);
+    const el = getKCBadgeShadowElement(METADATA_TOOLTIP_ID);
     if (!el) return;
     const aiWrap = el.querySelector('[data-kc-tooltip-ai]');
     const typeEl = el.querySelector('[data-kc-tooltip-ai-type]');
@@ -516,7 +609,7 @@ export function showMetadataTooltip(meta, clientX = null, clientY = null) {
 }
 
 export function hideMetadataTooltip() {
-  const el = getKCShadowElement(METADATA_TOOLTIP_ID);
+  const el = getKCBadgeShadowElement(METADATA_TOOLTIP_ID);
   if (el) el.style.display = 'none';
 }
 
@@ -528,6 +621,24 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
   try {
     const r = rectOverride ?? (coreItem?.getBoundingClientRect?.());
     if (!r || r.width <= 0 || r.height <= 0) return false;
+    // === PHASE_OVERLAY_STACKING_ZINDEX ===
+    // Sync the shadow host's z-index to coreItem's effective stacking
+    // context (max positive z-index in its ancestor chain, or 0 if none).
+    // Page chrome with higher explicit z-index (e.g. sticky headers
+    // typically at 100–9999) then renders above the overlay naturally,
+    // instead of being painted over by the host's previous near-max
+    // z-index. Applied to the host element only — the badge and
+    // overlay div retain their relative z-indices within the shadow.
+    try {
+      const host = document.getElementById(KC_SHADOW_HOST_ID);
+      if (host) {
+        const targetZ = computeStackingZIndexForElement(coreItem);
+        host.style.zIndex = String(targetZ + 1);
+      }
+    } catch (e) {
+      // defensive: never let stacking sync block the highlight
+    }
+    // === END PHASE_OVERLAY_STACKING_ZINDEX ===
     const overlay = ensurePurpleOverlay();
 
     const isHidden = overlay.style.opacity !== '1';
@@ -556,7 +667,7 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
     if (!isScrollUpdate) {
       // Reset shutter classes immediately (no transition) before applying new state.
       // Handles adjacent CoreItem hover where hideCoreHighlight() is not called.
-      const coreBadge = getKCShadowElement(CORE_BADGE_ID);
+      const coreBadge = getKCBadgeShadowElement(CORE_BADGE_ID);
       overlay.classList.remove('shutter-success', 'shutter-error');
       // Phase 17: classify element by size (sqrt(area) — equivalent
       // square side length) and apply the matching size class. The
