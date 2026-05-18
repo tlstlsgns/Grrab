@@ -42,17 +42,22 @@ import {
   findKCElement,
 } from './uiManager.js';
 import { determineTypeDOverlayElement } from './itemDetector.js';
+import { getShortcut, onShortcutChange, matchesShortcut, formatShortcut } from './shortcutStore.js';
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
 /** Readable gate for signed-in save / optimistic UI (signed-out = clipboard-only exploration). */
 function isSignedIn() {
   return _kcUserReady === true;
 }
-// Cached keyboard shortcut display string, derived from
-// chrome.storage.local.kickclipShortcut (written by background.js
-// runShortcutPoll). Updated on init and via storage.onChanged so toast
-// and status-badge text can be built synchronously.
-let _shortcutDisplay = '';
+// === PHASE_BADGE_SHORTCUT_SYNC ===
+// Module-level cache of the active clip shortcut. Shared by:
+//   - syncCoreBadgeTexts() — for the in-page "Press X to clip" badge.
+//   - The keydown listener in PHASE_KEYDOWN_SHORTCUT — for shortcut matching.
+//
+// Backed by shortcutStore.js (chrome.storage.local.kickclipShortcutV2).
+// Initialized at module load below; refreshed via onShortcutChange.
+let _activeShortcut = null;
+// === END PHASE_BADGE_SHORTCUT_SYNC ===
 
 let scanTimer = 0;
 let lastFingerprint = '';
@@ -121,68 +126,45 @@ function normalizeSavedUrlsResponse(entries) {
     .filter(Boolean);
 }
 
-/**
- * Convert a raw shortcut string ("Ctrl+Shift+S" / "MacCtrl+Shift+S")
- * to the platform-appropriate display: glyphs on Mac, plain text elsewhere.
- */
-function formatShortcutForDisplay(raw) {
-  const r = String(raw || 'Ctrl+Shift+S');
-  const isMac =
-    navigator.platform.toUpperCase().includes('MAC') ||
-    navigator.userAgent.includes('Mac');
-  return isMac
-    ? r
-        .replace(/MacCtrl/gi, '⌃')
-        .replace(/Ctrl/gi, '⌘')
-        .replace(/Command/gi, '⌘')
-        .replace(/Shift/gi, '⇧')
-        .replace(/Alt/gi, '⌥')
-        .replace(/\+/g, '')
-    : r;
-}
-
-/**
- * Populate _shortcutDisplay from chrome.storage and keep it in sync
- * with future updates. Idempotent — safe to call once at module init.
- */
-function initShortcutCache() {
+// === PHASE_BADGE_SHORTCUT_SYNC ===
+// Initialize the shared _activeShortcut cache from shortcutStore.js, then
+// keep the in-page badge text in sync as the user changes the shortcut.
+// The same _activeShortcut is read by the keydown listener (no separate
+// subscription needed there).
+function initShortcutSync() {
+  // Initial fetch.
+  (async () => {
+    try {
+      _activeShortcut = await getShortcut();
+      syncCoreBadgeTexts();
+    } catch (_) {
+      // _activeShortcut stays null; syncCoreBadgeTexts falls back to 'shortcut'.
+    }
+  })();
+  // Subscribe to changes.
   try {
-    _shortcutDisplay = formatShortcutForDisplay('Ctrl+Shift+S');
-    syncCoreBadgeTexts();
-    chrome.storage.local.get('kickclipShortcut', (result) => {
-      try {
-        _shortcutDisplay = formatShortcutForDisplay(result?.kickclipShortcut);
-        syncCoreBadgeTexts();
-      } catch (_) {}
-    });
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local') return;
-      if ('kickclipShortcut' in changes) {
-        try {
-          _shortcutDisplay = formatShortcutForDisplay(
-            changes.kickclipShortcut?.newValue
-          );
-          syncCoreBadgeTexts();
-        } catch (_) {}
-      }
+    onShortcutChange((shortcut) => {
+      _activeShortcut = shortcut;
+      syncCoreBadgeTexts();
     });
   } catch (_) {}
 }
+// === END PHASE_BADGE_SHORTCUT_SYNC ===
 
 /**
  * Build the current status_badge texts from the cached shortcut and
  * register them with uiManager. Called at init and whenever the
- * shortcut changes via storage.onChanged.
+ * shortcut changes via onShortcutChange.
  */
 function syncCoreBadgeTexts() {
-  const shortcut = _shortcutDisplay || 'shortcut';
+  const display = _activeShortcut ? formatShortcut(_activeShortcut) : 'shortcut';
   setCoreBadgeTexts({
-    defaultText: `Press ${shortcut} to clip`,
+    defaultText: `Press ${display} to clip`,
     failedText: 'Clip failed',
   });
 }
 
-initShortcutCache();
+initShortcutSync();
 
 // Waits for the browser to complete two paint frames.
 // Used to ensure DOM visibility changes are reflected on screen.
@@ -2281,6 +2263,43 @@ function mountWindowListeners() {
       rectOverride
     );
   }, { passive: true, capture: true });
+  // === PHASE_KEYDOWN_SHORTCUT ===
+  // Custom clip shortcut. Listens for the user-configured shortcut
+  // (stored via shortcutStore.js as 'kickclipShortcutV2') and, when
+  // matched, conditionally triggers the clip flow:
+  //   - If state.activeCoreItem and state.activeHoverUrl are set
+  //     (overlay is active on a clippable item), preventDefault the
+  //     keystroke and invoke saveActiveCoreItem directly.
+  //   - Otherwise, do nothing — the keystroke proceeds to its default
+  //     behavior (text copy for Cmd+C, save dialog for Cmd+S, etc.),
+  //     so we don't interfere with Chrome's native shortcuts when the
+  //     user isn't actively trying to clip.
+  //
+  // Capture phase (third arg = true) is used so KickClip evaluates the
+  // gate before any page-level listener can preventDefault and steal
+  // the event.
+  //
+  // _activeShortcut is module-level (initialized by PHASE_BADGE_SHORTCUT_SYNC
+  // above). The keydown listener just reads it; no separate init needed.
+
+  document.addEventListener('keydown', async (event) => {
+    if (!_activeShortcut) return;
+    if (!matchesShortcut(event, _activeShortcut)) return;
+    // Shortcut matched. Check gate.
+    if (!state.activeCoreItem || !state.activeHoverUrl) {
+      // Inactive — fall through to native behavior.
+      return;
+    }
+    // Active — claim the event and trigger clip.
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      await saveActiveCoreItem({ action: 'save-url' });
+    } catch (e) {
+      // defensive — clip failures shouldn't crash the listener
+    }
+  }, true);
+  // === END PHASE_KEYDOWN_SHORTCUT ===
   window.addEventListener('resize', () => schedulePreScan(document, false, 'window-resize'), { passive: true });
   window.addEventListener('mouseover', async (e) => {
     if (!_windowFocused) return;

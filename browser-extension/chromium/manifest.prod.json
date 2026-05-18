@@ -57,6 +57,7 @@
         "assets/favicons/naver.png",
         "brandConfig.js",
         "stateLite.js",
+        "shortcutStore.js",
         "coreEngine.js",
         "itemDetector.js",
         "dataExtractor.js",

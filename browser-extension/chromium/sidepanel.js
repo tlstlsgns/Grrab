@@ -45,6 +45,17 @@ import {
   clearDestination,
 } from './uploadStorage.js';
 
+// === PHASE_SHORTCUT_RECORDER ===
+import {
+  getShortcut,
+  setShortcut,
+  getDefaultShortcut,
+  isShortcutForbidden,
+  formatShortcut,
+  onShortcutChange,
+} from './shortcutStore.js';
+// === END PHASE_SHORTCUT_RECORDER ===
+
 const KC_AUTO_STORAGE_KEY = 'kc_upload_auto_enabled';
 
 // Picker popup window tracking for auto-close + re-click handling.
@@ -348,9 +359,6 @@ let currentItems       = [];
 let activeCardItemId   = null;
 let _isExplicitSignOut      = false;
 
-// ── Shortcut key state ────────────────────────────────────────────────────────
-let _currentShortcut = ''; // raw Chrome shortcut string, e.g. 'Ctrl+Shift+S'
-
 // Optimistic UI: tracks temp card IDs waiting for Firestore confirmation
 // key: tempId, value: { url, title, imgUrl, cardContainer }
 const optimisticCards = new Map();
@@ -374,7 +382,6 @@ const loginScreen     = document.getElementById('login-screen');
 const dashboardScreen = document.getElementById('dashboard-screen');
 const btnSignin       = document.getElementById('btn-signin');
 const btnSignout      = document.getElementById('btn-signout');
-const spShortcutBtn   = document.getElementById('sp-shortcut-btn');
 const dirFolderBtn    = document.getElementById('kc-dir-folder-btn');
 const dirAutoBox      = document.getElementById('kc-dir-auto-checkbox');
 const loginError      = document.getElementById('login-error');
@@ -388,54 +395,202 @@ const spAiBoardTitle   = document.getElementById('sp-ai-board-title');
 const spAiBoardBody    = document.getElementById('sp-ai-board-body');
 const spAiBoardClose   = document.getElementById('sp-ai-board-close');
 
-/**
- * Formats a raw Chrome shortcut string for display.
- * On Mac: Ctrl→⌘, Shift→⇧, Alt→⌥, MacCtrl→⌃
- * On Windows/Linux: keeps 'Ctrl+Shift+S' style but uses '+'
- * Returns a compact display string like '⌘⇧S' or 'Ctrl+Shift+S'.
- */
-function formatShortcutDisplay(raw) {
-  if (!raw) return '⌘⇧S';
-  const isMac = navigator.platform.toUpperCase().includes('MAC') ||
-    navigator.userAgent.includes('Mac');
-  if (isMac) {
-    return raw
-      .replace(/MacCtrl/gi, '⌃')
-      .replace(/Ctrl/gi, '⌘')
-      .replace(/Command/gi, '⌘')
-      .replace(/Shift/gi, '⇧')
-      .replace(/Alt/gi, '⌥')
-      .replace(/\+/g, '');
+// === PHASE_SHORTCUT_RECORDER ===
+// Inline shortcut recorder for #sp-shortcut-btn.
+//
+// State machine:
+//   idle       → chip shows the current shortcut (e.g. "⌘C"). Click → recording.
+//   recording  → chip shows "Press a key…". Listens for keydown. On valid
+//                modifier+key combo → save + idle. On forbidden → flash error,
+//                stay in recording. On Escape → cancel, return to idle without
+//                save.
+//
+// Validation rules:
+//   - At least one of metaKey / ctrlKey must be pressed (no bare keystrokes).
+//   - Must not match any FORBIDDEN_SHORTCUTS entry.
+//   - The "main key" is event.code; modifier-only keystrokes (e.g. just Cmd)
+//     are ignored (waiting for the user to press the main key).
+
+const sp_shortcutBtn_v2 = document.getElementById('sp-shortcut-btn');
+const sp_shortcutReset = document.getElementById('sp-shortcut-reset-btn');
+const sp_shortcutError = document.getElementById('sp-shortcut-error');
+
+let _sp_recording = false;
+let _sp_priorShortcut = null;
+let _sp_keydownListener = null;
+let _sp_errorTimer = null;
+
+function sp_renderChip(shortcut) {
+  if (!sp_shortcutBtn_v2) return;
+  sp_shortcutBtn_v2.textContent = formatShortcut(shortcut);
+  sp_shortcutBtn_v2.dataset.shortcut = JSON.stringify(shortcut);
+}
+
+function sp_setRecordingState(on) {
+  if (!sp_shortcutBtn_v2) return;
+  _sp_recording = on;
+  if (on) {
+    sp_shortcutBtn_v2.classList.add('recording');
+    sp_shortcutBtn_v2.textContent = 'Press a key…';
+  } else {
+    sp_shortcutBtn_v2.classList.remove('recording');
   }
-  return raw; // e.g. 'Ctrl+Shift+S'
 }
 
-function loadShortcut() {
-  try {
-    chrome.runtime.sendMessage({ action: 'get-shortcut' }, (response) => {
-      if (chrome.runtime.lastError) return;
-      const raw = response?.shortcut || 'Ctrl+Shift+S';
-      _currentShortcut = raw;
-      if (spShortcutBtn) {
-        spShortcutBtn.textContent = formatShortcutDisplay(raw);
-        spShortcutBtn.dataset.shortcut = raw;
+function sp_showError(msg) {
+  if (!sp_shortcutBtn_v2 || !sp_shortcutError) return;
+  sp_shortcutError.textContent = msg;
+  sp_shortcutError.hidden = false;
+  sp_shortcutBtn_v2.classList.add('error');
+  clearTimeout(_sp_errorTimer);
+  _sp_errorTimer = setTimeout(() => {
+    sp_shortcutError.hidden = true;
+    sp_shortcutBtn_v2.classList.remove('error');
+  }, 1500);
+}
+
+function sp_isModifierOnly(event) {
+  // event.code for modifier keys: 'MetaLeft', 'MetaRight', 'ControlLeft',
+  // 'ShiftLeft', 'AltLeft', etc. We want to ignore these — wait for a
+  // non-modifier main key.
+  const code = String(event.code || '');
+  return /^(Meta|Control|Shift|Alt)(Left|Right)?$/.test(code);
+}
+
+function sp_startRecording() {
+  if (_sp_recording) return;
+  // Capture current shortcut so we can restore on Escape.
+  getShortcut().then((cur) => {
+    _sp_priorShortcut = cur;
+    sp_setRecordingState(true);
+
+    _sp_keydownListener = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        sp_stopRecording(false);
+        return;
       }
-    });
-  } catch {}
-}
-
-function mountShortcutRecorder() {
-  if (!spShortcutBtn) return;
-  if (spShortcutBtn.dataset.recorderMounted) return;
-  spShortcutBtn.dataset.recorderMounted = 'true';
-
-  spShortcutBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-    try {
-      chrome.runtime.sendMessage({ action: 'start-shortcut-polling' });
-    } catch {}
+      if (sp_isModifierOnly(event)) {
+        // Modifier alone — wait for main key.
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      // Build candidate shortcut from event.
+      const candidate = {
+        metaKey: !!event.metaKey,
+        ctrlKey: !!event.ctrlKey,
+        shiftKey: !!event.shiftKey,
+        altKey: !!event.altKey,
+        code: event.code,
+        display: '', // filled below via formatShortcut
+      };
+      // Validate: at least one modifier required.
+      if (!candidate.metaKey && !candidate.ctrlKey) {
+        sp_showError('Modifier required (⌘ or Ctrl)');
+        return;
+      }
+      // Validate: not forbidden.
+      if (isShortcutForbidden(candidate)) {
+        sp_showError('This shortcut is unavailable');
+        return;
+      }
+      // Save.
+      candidate.display = formatShortcut(candidate);
+      setShortcut(candidate).then((ok) => {
+        if (!ok) {
+          sp_showError('Failed to save');
+          return;
+        }
+        // Pass the saved shortcut so sp_stopRecording can render it
+        // synchronously — avoids the race with onShortcutChange.
+        sp_stopRecording(true, candidate);
+      });
+    };
+    document.addEventListener('keydown', _sp_keydownListener, true);
   });
 }
+
+function sp_stopRecording(saved, savedShortcut) {
+  if (!_sp_recording) return;
+  if (_sp_keydownListener) {
+    document.removeEventListener('keydown', _sp_keydownListener, true);
+    _sp_keydownListener = null;
+  }
+  sp_setRecordingState(false);
+  if (saved && savedShortcut) {
+    // Render the freshly-saved shortcut directly. We can't rely on the
+    // onShortcutChange callback because its ordering relative to
+    // setShortcut().then() is not guaranteed — the callback may fire while
+    // _sp_recording is still true (in which case its own guard skips the
+    // render). Calling sp_renderChip here makes the success path
+    // deterministic.
+    sp_renderChip(savedShortcut);
+  } else if (!saved && _sp_priorShortcut) {
+    // Cancel path — restore prior display.
+    sp_renderChip(_sp_priorShortcut);
+  }
+  _sp_priorShortcut = null;
+}
+
+function sp_resetShortcut() {
+  setShortcut(getDefaultShortcut()).then(() => {
+    // onShortcutChange will refresh display.
+  });
+}
+
+// Wire click handlers.
+if (sp_shortcutBtn_v2) {
+  sp_shortcutBtn_v2.addEventListener('click', () => {
+    if (_sp_recording) {
+      sp_stopRecording(false);
+    } else {
+      sp_startRecording();
+    }
+  });
+}
+if (sp_shortcutReset) {
+  sp_shortcutReset.addEventListener('click', () => {
+    sp_resetShortcut();
+  });
+}
+
+// Initial render + subscribe to changes.
+(async () => {
+  try {
+    const cur = await getShortcut();
+    sp_renderChip(cur);
+  } catch (e) {
+    // ignore — chip keeps HTML placeholder
+  }
+})();
+onShortcutChange((newShortcut) => {
+  if (!_sp_recording) {
+    sp_renderChip(newShortcut);
+  }
+});
+// Auto-cancel recording when the sidepanel's window loses focus. This
+// handles shortcuts that don't deliver keydown to the page (Cmd+T,
+// Cmd+W, Cmd+N, etc.) — Chrome's own action takes effect, the user
+// moves to the new tab / window, and our recorder cancels cleanly
+// instead of leaving the chip stuck on "Press a key…". On return, the
+// user sees the prior shortcut and can retry with a different combo.
+//
+// We use window.blur instead of document.visibilitychange because
+// Chrome's sidepanel does NOT fire visibilitychange when the user
+// switches focus to a new tab — the sidepanel stays "visible" alongside
+// the new tab. window.blur, however, fires reliably when the sidepanel
+// window itself loses focus (verified empirically).
+//
+// Clicking on the host page does NOT blur the sidepanel — the sidepanel
+// retains focus during normal browsing. blur only fires for true focus
+// transitions (new tab, new window, OS-level switches).
+window.addEventListener('blur', () => {
+  if (_sp_recording) {
+    sp_stopRecording(false);
+  }
+});
+// === END PHASE_SHORTCUT_RECORDER ===
 
 // ── Category section order ────────────────────────────────────────────────
 const CATEGORY_ORDER = ['Img', 'SNS'];
@@ -759,9 +914,6 @@ function showDashboardScreen(user) {
   }
 
   startListeners(user.uid);
-
-  loadShortcut();
-  mountShortcutRecorder();
 }
 
 // ── Firestore listeners ───────────────────────────────────────────────────────
@@ -3355,18 +3507,6 @@ if (chrome?.runtime?.onMessage) {
         }
       })();
       return;
-    }
-
-    if (message.action === 'shortcut-updated') {
-      const raw = typeof message.shortcut === 'string' && message.shortcut
-        ? message.shortcut
-        : 'Ctrl+Shift+S';
-      _currentShortcut = raw;
-      if (spShortcutBtn) {
-        spShortcutBtn.textContent = formatShortcutDisplay(raw);
-        spShortcutBtn.dataset.shortcut = raw;
-      }
-      return false;
     }
 
     if (message.action === 'optimistic-card') {

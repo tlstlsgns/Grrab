@@ -154,6 +154,48 @@
       color: var(--accent);
       border-color: var(--accent);
     }
+    /* === PHASE_SHORTCUT_RECORDER === */
+    #sp-shortcut-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #sp-shortcut-btn.recording {
+      background: rgba(99, 102, 241, 0.12);
+      border-color: rgba(99, 102, 241, 0.6);
+      color: rgb(99, 102, 241);
+    }
+
+    #sp-shortcut-btn.error {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: rgb(239, 68, 68);
+    }
+
+    #sp-shortcut-reset-btn {
+      background: transparent;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 4px;
+      padding: 0 4px;
+      font-size: 11px;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.6;
+    }
+    #sp-shortcut-reset-btn:hover {
+      opacity: 1;
+    }
+
+    #sp-shortcut-error {
+      font-size: 10px;
+      color: rgb(239, 68, 68);
+      margin-left: 4px;
+    }
+    #sp-shortcut-error[hidden] {
+      display: none;
+    }
+    /* === END PHASE_SHORTCUT_RECORDER === */
     #sp-filter {
       display: flex;
       align-items: center;
@@ -1183,7 +1225,13 @@
           <img id="sp-user-avatar" src="" alt="avatar" />
           <button id="btn-signout">Sign out</button>
         </div>
-        <button id="sp-shortcut-btn" title="Click to change shortcut">⌘⇧S</button>
+        <!-- === PHASE_SHORTCUT_RECORDER === -->
+        <div id="sp-shortcut-container">
+          <button id="sp-shortcut-btn" title="Click to record a new shortcut">⌘C</button>
+          <button id="sp-shortcut-reset-btn" title="Reset to default" type="button">↺</button>
+          <span id="sp-shortcut-error" aria-live="polite" hidden></span>
+        </div>
+        <!-- === END PHASE_SHORTCUT_RECORDER === -->
       </div>
 
       <div class="kc-dir-container" id="kc-dir-container">
