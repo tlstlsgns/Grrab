@@ -781,7 +781,24 @@ function isInsideNavLikeAncestor(el) {
     let cur = el?.parentElement || null;
     while (cur && cur !== document.body) {
       const tag = String(cur.tagName || '').toUpperCase();
-      if (TYPED_NAV_TAGS.has(tag)) return true;
+      if (TYPED_NAV_TAGS.has(tag)) {
+        // === PHASE_SECTIONAL_HEADER_ALLOW ===
+        // HTML5 distinguishes site-level <header> (page banner, usually a
+        // direct child of <body>) from sectional <header> (article title,
+        // byline, lead image — a child of <article> or <main>). The
+        // sectional case is semantically content, not navigation, and
+        // its lead images should be eligible for clipping.
+        //
+        // Treat <header> inside <article>/<main> as non-nav and keep
+        // walking. <header> elsewhere (and <footer>/<nav> anywhere)
+        // continues to count as nav.
+        if (tag === 'HEADER' && cur.closest('article, main')) {
+          cur = cur.parentElement;
+          continue;
+        }
+        // === END PHASE_SECTIONAL_HEADER_ALLOW ===
+        return true;
+      }
       const role = String(cur.getAttribute?.('role') || '').toLowerCase().trim();
       if (TYPED_NAV_ROLES.has(role)) return true;
       cur = cur.parentElement;
