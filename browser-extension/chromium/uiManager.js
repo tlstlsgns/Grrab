@@ -130,7 +130,7 @@ function getKCBadgeShadowRoot() {
   return _kcBadgeShadowRoot;
 }
 
-function getKCBadgeShadowElement(id) {
+export function getKCBadgeShadowElement(id) {
   const root = getKCBadgeShadowRoot();
   return root.getElementById ? root.getElementById(id) : root.querySelector(`#${id}`);
 }

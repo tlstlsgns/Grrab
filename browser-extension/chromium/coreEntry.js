@@ -38,7 +38,7 @@ import {
 import {
   getKCShadowRoot,
   getKCShadowElement,
-  findKCElement,
+  getKCBadgeShadowElement,
 } from './uiManager.js';
 import { determineTypeDOverlayElement } from './itemDetector.js';
 import { getShortcut, onShortcutChange, matchesShortcut, formatShortcut } from './shortcutStore.js';
@@ -190,7 +190,11 @@ function hideKCSaveFeedbackUi() {
   const hidden = [];
   for (const id of [METADATA_TOOLTIP_ID]) {
     try {
-      const el = document.getElementById(id);
+      // === PHASE_BADGE_SHADOW_REGRESSION_FIX ===
+      // Metadata tooltip lives in the badge shadow root (closed mode), not
+      // light DOM. document.getElementById always returned null here.
+      const el = getKCBadgeShadowElement(id);
+      // === END PHASE_BADGE_SHADOW_REGRESSION_FIX ===
       if (el && el.style.display !== 'none') {
         hidden.push({ el, prevOpacity: el.style.opacity, prevTransition: el.style.transition });
         el.style.opacity = '0';
@@ -1398,9 +1402,14 @@ async function saveActiveCoreItem(request = {}) {
     const coreOverlayEl = !isIframeRelay
       ? getKCShadowElement('kickclip-highlight-overlay')
       : null;
+    // === PHASE_BADGE_SHADOW_REGRESSION_FIX ===
+    // Badge moved to separate shadow root by PHASE_BADGE_SHADOW_SEPARATE.
+    // Main-shadow lookup returned null, making the save-time opacity
+    // hide/restore at 1405/1581 a silent no-op. Use the badge accessor.
     const coreBadgeEl = !isIframeRelay
-      ? getKCShadowElement('kickclip-status-badge-core')
+      ? getKCBadgeShadowElement('kickclip-status-badge-core')
       : null;
+    // === END PHASE_BADGE_SHADOW_REGRESSION_FIX ===
     if (coreOverlayEl) { coreOverlayEl.style.transition = ''; coreOverlayEl.style.opacity = '0'; }
     if (coreBadgeEl)   { coreBadgeEl.style.transition = '';   coreBadgeEl.style.opacity = '0'; }
 
@@ -2922,14 +2931,20 @@ function mountKcAuthWatcher() {
       _kcUserReady = false;
       // Force-hide all KickClip UI immediately
       try {
+        // === PHASE_BADGE_SHADOW_REGRESSION_FIX ===
+        // Badge lives in the badge shadow root (closed mode). Overlay lives
+        // in main shadow. document.getElementById returned null for both.
         const ids = [
           'kickclip-highlight-overlay',
           'kickclip-status-badge-core',
         ];
         for (const id of ids) {
-          const el = document.getElementById(id);
+          const el = id === 'kickclip-status-badge-core'
+            ? getKCBadgeShadowElement(id)
+            : getKCShadowElement(id);
           if (el) { el.style.transition = ''; el.style.opacity = '0'; }
         }
+        // === END PHASE_BADGE_SHADOW_REGRESSION_FIX ===
       } catch (e) {}
     }
   });
