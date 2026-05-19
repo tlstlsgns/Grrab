@@ -1565,26 +1565,29 @@ async function saveActiveCoreItem(request = {}) {
       //
       // Skipped entirely in relay mode — the iframe handler already drew
       // shutter and badge text in its own Shadow DOM (Phase 11a).
-      if (window.self === window.top) {
-        (async () => {
-          try {
-            const clipboardResult = await coreClipboardPromise;
-            if (clipboardResult?.success) {
-              const successText = coreClipboardCategory === 'Image'
-                ? 'Image clipped'
-                : 'URL clipped';
-              setCoreStatusBadgeText(successText);
-            } else if (!isSignedIn()) {
-              triggerShutterEffect('core', 'error');
-            }
-            // Signed-in case where clipboard fails but save might succeed:
-            // shutter already reflects save status correctly via
-            // saveShutterStatus; "Clip failed" text would be wrong because
-            // save did clip something to Firestore. Keep current behavior
-            // (text was set by triggerShutterEffect based on save status).
-          } catch (_) { /* silent */ }
-        })();
-      }
+      // === PHASE_IFRAME_CLIPBOARD ===
+      // IIFE now runs in iframe too so iframe keydown updates badge
+      // text on clipboard success. Outer !isIframeRelay still gates
+      // relay (top-frame relay-receiver path).
+      (async () => {
+        try {
+          const clipboardResult = await coreClipboardPromise;
+          if (clipboardResult?.success) {
+            const successText = coreClipboardCategory === 'Image'
+              ? 'Image clipped'
+              : 'URL clipped';
+            setCoreStatusBadgeText(successText);
+          } else if (!isSignedIn()) {
+            triggerShutterEffect('core', 'error');
+          }
+          // Signed-in case where clipboard fails but save might succeed:
+          // shutter already reflects save status correctly via
+          // saveShutterStatus; "Clip failed" text would be wrong because
+          // save did clip something to Firestore. Keep current behavior
+          // (text was set by triggerShutterEffect based on save status).
+        } catch (_) { /* silent */ }
+      })();
+      // === END PHASE_IFRAME_CLIPBOARD ===
     }
 
     if (coreOverlayEl) { coreOverlayEl.style.transition = ''; coreOverlayEl.style.opacity = '1'; }
@@ -1996,11 +1999,17 @@ async function dataUrlToPngBlob(dataUrl) {
 //      fallback in sync path per maintainer — instant clipboard
 //      prioritized).
 //   3. Default: navigator.clipboard.writeText(url).
-//   4. Iframe (window.self !== window.top): null — clipboard is
-//      top-frame only.
+//   4. Iframe: clipboard write is attempted in iframe contexts too.
+//      Per PHASE_IFRAME_CLIPBOARD, the extension's clipboardWrite
+//      permission generally permits content-script clipboard writes
+//      from any frame given user activation in that frame. Cross-
+//      origin iframes without an explicit clipboard-write Permissions
+//      Policy may fail with NotAllowedError — handled as clipboard
+//      failure (no thick border, badge text falls through to default).
+// === PHASE_IFRAME_CLIPBOARD ===
 function performSyncClipboardWrite(state) {
-  if (window.self !== window.top) return null;
   if (!state) return null;
+  // === END PHASE_IFRAME_CLIPBOARD ===
 
   const meta = state.lastExtractedMetadata || {};
   const category = String(meta.category || '').trim();
