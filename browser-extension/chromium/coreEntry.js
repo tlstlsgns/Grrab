@@ -84,6 +84,9 @@ const KC_IFRAME_HOVER = '__kc_iframe_hover__';
 const KC_IFRAME_HOVER_END = '__kc_iframe_hover_end__';
 const KC_IFRAME_CLIPBOARD_RESULT = '__kc_iframe_clipboard_result__';
 // === END PHASE_IFRAME_HOVER_PROPAGATION ===
+// === PHASE_IFRAME_CLIP_REQUEST ===
+const KC_IFRAME_CLIP_REQUEST = '__kc_iframe_clip_request__';
+// === END PHASE_IFRAME_CLIP_REQUEST ===
 
 /** Metadata tooltip id — hidden briefly during save (shutter uses overlay fills in uiManager). */
 const METADATA_TOOLTIP_ID = 'kickclip-metadata-tooltip';
@@ -1547,7 +1550,11 @@ async function saveActiveCoreItem(request = {}) {
       // When clipping via iframeHoverInfo propagation, visual feedback
       // (thick border + badge text) is owned by the iframe via
       // KC_IFRAME_CLIPBOARD_RESULT — top-frame should not paint its own.
-      if (!request?.fromIframeHover) {
+      // === PHASE_IFRAME_CLIP_REQUEST ===
+      // When iframe-focused keydown delegates clipboard to top via W2,
+      // visual feedback also comes from top via KC_IFRAME_CLIPBOARD_RESULT.
+      if (!request?.fromIframeHover && !request?.fromIframeClipRequest) {
+      // === END PHASE_IFRAME_CLIP_REQUEST ===
       // === END PHASE_IFRAME_HOVER_PROPAGATION ===
         (async () => {
           try {
@@ -2457,6 +2464,42 @@ function mountWindowListeners() {
   document.addEventListener('keydown', async (event) => {
     if (!_activeShortcut) return;
     if (!matchesShortcut(event, _activeShortcut)) return;
+    // === PHASE_IFRAME_CLIP_REQUEST ===
+    // Iframe-focused keydown: clipboard.write would be blocked by Permissions
+    // Policy on most cross-origin iframes. Instead, delegate to top frame via
+    // postMessage — per Chrome User Activation v2, iframe's keydown activates
+    // all containing frames (including top), so top's clipboard.write succeeds.
+    // DO NOT call performSyncClipboardWrite in iframe — that would consume
+    // the transient activation bit on all frames in the tree.
+    if (IS_IFRAME) {
+      if (!state.activeCoreItem || !state.activeHoverUrl) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const meta = state.lastExtractedMetadata || {};
+      try {
+        window.top.postMessage({
+          [KC_MSG_PREFIX]: true,
+          [KC_IFRAME_CLIP_REQUEST]: true,
+          url: String(state.activeHoverUrl || '').trim(),
+          imageUrl: String(meta?.image?.url || '').trim(),
+          category: String(meta?.category || '').trim(),
+          confirmedType: String(meta?.confirmedType || '').trim(),
+          title: String(meta?.title || '').trim(),
+          platform: String(meta?.platform || '').trim(),
+          pageUrl: String(window.location.href || '').trim(),
+        }, '*');
+      } catch (_) { /* defensive */ }
+      try {
+        await saveActiveCoreItem({
+          action: 'save-url',
+          skipClipboard: true,
+          clipboardPromise: null,
+          fromIframeClipRequest: true,
+        });
+      } catch (e) { /* defensive */ }
+      return;
+    }
+    // === END PHASE_IFRAME_CLIP_REQUEST ===
     // === PHASE_IFRAME_HOVER_PROPAGATION ===
     const hasLocalHover = !!(state.activeCoreItem && state.activeHoverUrl);
     const iframeInfo = state.iframeHoverInfo;
@@ -2800,7 +2843,44 @@ function mountIframeHoverPropagationListener() {
           if (state.iframeHoverInfo?.sourceWindow === event.source) {
             state.iframeHoverInfo = null;
           }
+        // === PHASE_IFRAME_CLIP_REQUEST ===
+        } else if (data[KC_IFRAME_CLIP_REQUEST] === true) {
+          // Iframe-focused clipboard delegation. Build synthetic state
+          // from message payload (same shape as buildSyntheticStateFromIframeHover
+          // expects) and call performSyncClipboardWrite in this message
+          // handler's sync turn — per Chrome UAv2, iframe's keydown activation
+          // is visible on top frame, so clipboard.write succeeds.
+          const info = {
+            url: String(data.url || '').trim(),
+            imageUrl: String(data.imageUrl || '').trim(),
+            category: String(data.category || '').trim(),
+            confirmedType: String(data.confirmedType || '').trim(),
+            title: String(data.title || '').trim(),
+            platform: String(data.platform || '').trim(),
+            pageUrl: String(data.pageUrl || '').trim(),
+            sourceWindow: event.source,
+          };
+          const syntheticState = buildSyntheticStateFromIframeHover(info);
+          let clipboardPromise = null;
+          try {
+            clipboardPromise = performSyncClipboardWrite(syntheticState);
+          } catch (_) { /* defensive */ }
+          if (clipboardPromise) {
+            notifyIframeClipboardResult(info, clipboardPromise);
+          } else {
+            // Synthetic clipboard returned null — no image and no DOM (always
+            // true in synthetic). Notify iframe of failure.
+            try {
+              event.source?.postMessage({
+                [KC_MSG_PREFIX]: true,
+                [KC_IFRAME_CLIPBOARD_RESULT]: true,
+                success: false,
+                successText: null,
+              }, '*');
+            } catch (_) { /* defensive */ }
+          }
         }
+        // === END PHASE_IFRAME_CLIP_REQUEST ===
       } catch (_) { /* defensive */ }
     },
     { passive: true }
