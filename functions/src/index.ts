@@ -225,6 +225,7 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     url, title, timestamp, img_url, saved_by,
     screenshot_base64, screenshot_bg_color, category, confirmed_type,
     img_url_dom, // === PHASE27G_FIELD ===
+    img_thumbnail_b64,
   } = req.body;
 
   const isValidString = (v: unknown) => typeof v === "string" && (v as string).trim().length > 0;
@@ -327,6 +328,14 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
       "";
     if (resolvedImgUrlDom) baseFields.img_url_dom = resolvedImgUrlDom;
     // === END PHASE27G_FIELD ===
+    // === PHASE_IMAGE_URL_PIPELINE ===
+    const resolvedImgThumbnailB64 =
+      typeof img_thumbnail_b64 === "string" &&
+      img_thumbnail_b64.trim().startsWith("data:image/") ?
+        img_thumbnail_b64.trim() :
+        "";
+    if (resolvedImgThumbnailB64) baseFields.img_thumbnail_b64 = resolvedImgThumbnailB64;
+    // === END PHASE_IMAGE_URL_PIPELINE ===
     if (clientCategoryRaw) baseFields.category = clientCategoryRaw;
     if (clientPlatformRaw) baseFields.platform = clientPlatformRaw;
     if (clientConfirmedTypeRaw) baseFields.confirmed_type = clientConfirmedTypeRaw;

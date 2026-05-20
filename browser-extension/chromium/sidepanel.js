@@ -611,7 +611,9 @@ function getUnifiedDockList() {
   return document.getElementById('sp-unified-list');
 }
 
+// === PHASE_IMAGE_URL_PIPELINE ===
 function shouldUsePlaceholder(item) {
+  if (item?.img_thumbnail_b64) return false;
   if (item?.img_url_method === 'favicon') return true;
   const imgUrl = String(item?.img_url || '').trim();
   if (imgUrl) return false;
@@ -620,11 +622,14 @@ function shouldUsePlaceholder(item) {
 }
 
 function getCardThumbnailUrl(item) {
+  const b64 = String(item?.img_thumbnail_b64 || '').trim();
+  if (b64) return b64;
   if (shouldUsePlaceholder(item)) return null;
   const imgUrl = String(item?.img_url || '').trim();
   if (imgUrl) return imgUrl;
   return String(item?.img_url_dom || '').trim() || null;
 }
+// === END PHASE_IMAGE_URL_PIPELINE ===
 // === END PHASE_SIDEPANEL_UNIFIED_LIST ===
 
 /**
@@ -1160,6 +1165,27 @@ function createDataCard(item) {
 }
 // === END PHASE_SIDEPANEL_UNIFIED_LIST ===
 
+// === PHASE_IMAGE_URL_PIPELINE ===
+function attachCardImageErrorFallback(card, item) {
+  const img = card?.querySelector?.('.data-card-image');
+  if (!img) return;
+  const escInfo = (s) =>
+    String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  img.addEventListener('error', () => {
+    const container = img.closest?.('.data-card-imgcontainer');
+    if (!container) return;
+    const title = item?.title || item?.url || 'Untitled';
+    container.innerHTML = `
+      <div class="sp-card-placeholder">
+        <span class="sp-card-placeholder-title">${escInfo(title)}</span>
+      </div>`;
+  }, { once: true });
+}
+// === END PHASE_IMAGE_URL_PIPELINE ===
+
 function createCardElement(item, isNew = false) {
   const itemId  = getItemId(item);
   const cardHtml = createDataCard(item);
@@ -1179,6 +1205,7 @@ function createCardElement(item, isNew = false) {
   // === END PHASE27G_DOM_DATASET ===
 
   kcCardItemByEl.set(card, item);
+  attachCardImageErrorFallback(card, item);
 
   const wrapper = document.createElement('div');
   wrapper.className  = 'card-wrapper';
@@ -1273,7 +1300,7 @@ function animateEntrance(container, wrapper) {
 }
 
 // ── Optimistic UI ─────────────────────────────────────────────────────────────
-function addOptimisticCard({ tempId, url, title, imgUrl, imgUrlDom = '', category, platform, confirmedType, imgUrlMethod, createdAt }) {
+function addOptimisticCard({ tempId, url, title, imgUrl, imgUrlDom = '', imgThumbnailB64 = '', category, platform, confirmedType, imgUrlMethod, createdAt }) {
   if (!currentUser) return;
 
   // Deduplication: ignore if a temp card with same tempId already exists
@@ -1374,6 +1401,7 @@ function addOptimisticCard({ tempId, url, title, imgUrl, imgUrlDom = '', categor
     title:       title || 'Untitled',
     img_url:     imgUrl || '',
     img_url_dom: (imgUrlDom || '').trim(),
+    ...(imgThumbnailB64 ? { img_thumbnail_b64: imgThumbnailB64 } : {}),
     domain:      (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })(),
     directoryId: 'undefined',
     order:       -Infinity, // Always at the top
@@ -3381,6 +3409,7 @@ if (chrome?.runtime?.onMessage) {
         title:             message.title,
         imgUrl:            message.imgUrl || '',
         imgUrlDom:         message.imgUrlDom || '',
+        imgThumbnailB64:   message.imgThumbnailB64 || '',
         category:          message.category      || '',
         platform:          message.platform      || '',
         confirmedType:     message.confirmedType || '',

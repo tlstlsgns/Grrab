@@ -34,6 +34,7 @@ import {
 import {
   extractYouTubeShortcodeFromUrl,
   getYouTubeThumbnailUrl,
+  resolveAbsoluteImageUrl,
 } from './dataExtractor.js';
 import {
   getKCShadowRoot,
@@ -1938,9 +1939,9 @@ async function saveActiveCoreItem(request = {}) {
           }
         }
         if (domImg) {
-          domImgSrc = String(
-            domImg.getAttribute?.('src') || domImg.src || ''
-          ).trim();
+          domImgSrc = resolveAbsoluteImageUrl(
+            domImg.getAttribute?.('src') || domImg.src
+          );
         }
       }
     } catch (e) {
@@ -1950,6 +1951,24 @@ async function saveActiveCoreItem(request = {}) {
 
     // Extract HTML context from the active CoreItem for AI type inference
     const htmlContext = extractCoreItemHtmlContext(activeItem);
+
+    // === PHASE_IMAGE_URL_PIPELINE ===
+    let imgThumbnailB64 = null;
+    if (request?.clipboardPromise) {
+      try {
+        const clipResult = await Promise.resolve(request.clipboardPromise);
+        if (clipResult?.thumbnailPromise) {
+          imgThumbnailB64 = await Promise.race([
+            clipResult.thumbnailPromise,
+            new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
+          ]);
+        }
+      } catch (_) {
+        imgThumbnailB64 = null;
+      }
+    }
+    // === END PHASE_IMAGE_URL_PIPELINE ===
+
     const payload = {
       url,
       title: title || url,
@@ -1960,6 +1979,9 @@ async function saveActiveCoreItem(request = {}) {
       ...(tempId ? { temp_id: tempId } : {}),
       ...(htmlContext ? { htmlContext } : {}),
       ...(faviconImgUrl ? { img_url: faviconImgUrl } : {}),
+      // === PHASE_IMAGE_URL_PIPELINE ===
+      ...(imgThumbnailB64 ? { img_thumbnail_b64: imgThumbnailB64 } : {}),
+      // === END PHASE_IMAGE_URL_PIPELINE ===
       // === PHASE27G_PAYLOAD_DOM ===
       ...(domImgSrc && domImgSrc !== faviconImgUrl
         ? { img_url_dom: domImgSrc }
@@ -1984,6 +2006,9 @@ async function saveActiveCoreItem(request = {}) {
           url,
           title:              title || url,
           imgUrl:             faviconImgUrl || '',
+          // === PHASE_IMAGE_URL_PIPELINE ===
+          ...(imgThumbnailB64 ? { imgThumbnailB64 } : {}),
+          // === END PHASE_IMAGE_URL_PIPELINE ===
           // === PHASE27G_OPTIMISTIC_DOM ===
           ...(domImgSrc && domImgSrc !== faviconImgUrl
             ? { imgUrlDom: domImgSrc }
@@ -2055,6 +2080,54 @@ function getDominantImageElement(rootElement) {
  * re-encode as needed for ClipboardItem.
  * Returns null if all paths fail.
  */
+// === PHASE_IMAGE_URL_PIPELINE ===
+// Resize a clipboard-bound Blob to a 400x400 JPEG thumbnail data URL
+// for storage in Firestore (img_thumbnail_b64 field).
+async function blobToThumbnailDataUrl(blob) {
+  if (!blob) return null;
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const MAX = 400;
+    const srcW = bitmap.width || 1;
+    const srcH = bitmap.height || 1;
+    const scale = Math.min(MAX / srcW, MAX / srcH, 1);
+    const dstW = Math.max(1, Math.round(srcW * scale));
+    const dstH = Math.max(1, Math.round(srcH * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = dstW;
+    canvas.height = dstH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0, dstW, dstH);
+    bitmap.close?.();
+    return await new Promise((resolve) => {
+      canvas.toBlob((thumbBlob) => {
+        if (!thumbBlob) {
+          resolve(null);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || '') || null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(thumbBlob);
+      }, 'image/jpeg', 0.8);
+    });
+  } catch (_) {
+    return null;
+  }
+}
+
+function attachThumbnailPromiseToClipboardWrite(blobPromise) {
+  const thumbnailPromise = Promise.resolve(blobPromise)
+    .then((blob) => blobToThumbnailDataUrl(blob))
+    .catch(() => null);
+  return navigator.clipboard
+    .write([new ClipboardItem({ 'image/png': blobPromise })])
+    .then(() => ({ success: true, thumbnailPromise }))
+    .catch(() => ({ success: false, thumbnailPromise }));
+}
+// === END PHASE_IMAGE_URL_PIPELINE ===
+
 async function imageUrlToPngBlob(imageUrl) {
   if (!imageUrl) return null;
 
@@ -2388,10 +2461,9 @@ function performSyncClipboardWrite(state) {
   if (category === 'Image') {
     if (!imageUrl && !(activeItem instanceof Element)) return null;
     const blobPromise = buildImageBlobPromise();
-    return navigator.clipboard
-      .write([new ClipboardItem({ 'image/png': blobPromise })])
-      .then(() => ({ success: true }))
-      .catch(() => ({ success: false }));
+    // === PHASE_IMAGE_URL_PIPELINE ===
+    return attachThumbnailPromiseToClipboardWrite(blobPromise);
+    // === END PHASE_IMAGE_URL_PIPELINE ===
   }
 
   if (category === 'SNS' && confirmedType === 'contents' && imageUrl) {
@@ -2404,10 +2476,9 @@ function performSyncClipboardWrite(state) {
       } catch (_) { /* fall through */ }
       throw new Error('SNS blob unavailable');
     })();
-    return navigator.clipboard
-      .write([new ClipboardItem({ 'image/png': blobPromise })])
-      .then(() => ({ success: true }))
-      .catch(() => ({ success: false }));
+    // === PHASE_IMAGE_URL_PIPELINE ===
+    return attachThumbnailPromiseToClipboardWrite(blobPromise);
+    // === END PHASE_IMAGE_URL_PIPELINE ===
   }
 
   if (!url) return null;

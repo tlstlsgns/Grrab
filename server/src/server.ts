@@ -22,6 +22,7 @@ interface SaveUrlPayload {
   type: string;
   img_url?: string;
   img_url_dom?: string;
+  img_thumbnail_b64?: string;
   saved_by?: string; // 'extension' or undefined (for Electron app saves)
   screenshot_base64?: string;
   screenshot_bg_color?: string;
@@ -980,6 +981,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
     timestamp,
     img_url,
     img_url_dom, // === PHASE27G_FIELD ===
+    img_thumbnail_b64,
     saved_by,
     type,
     screenshot_base64,
@@ -989,6 +991,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
   } = req.body as Omit<SaveUrlPayload, 'domain'> & {
     img_url?: string;
     img_url_dom?: string;
+    img_thumbnail_b64?: string;
     saved_by?: string;
     type?: string; // Type from extension (e.g., 'instagram_post')
     screenshot_base64?: string;
@@ -1017,6 +1020,13 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
   // === PHASE27G_FIELD ===
   const resolvedImgUrlDom = typeof img_url_dom === 'string' ? img_url_dom.trim() : '';
   // === END PHASE27G_FIELD ===
+  // === PHASE_IMAGE_URL_PIPELINE ===
+  const resolvedImgThumbnailB64 =
+    typeof img_thumbnail_b64 === 'string' &&
+    img_thumbnail_b64.trim().startsWith('data:image/')
+      ? img_thumbnail_b64.trim()
+      : '';
+  // === END PHASE_IMAGE_URL_PIPELINE ===
 
   // Prepare payload for forwarding (will add domain later, but preserve type from extension)
   const clientCategoryRaw      = typeof category === 'string' ? category.trim() : '';
@@ -1046,6 +1056,7 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
     ...(type && { type: type.trim() }),
     ...(resolvedImgUrl && { img_url: resolvedImgUrl }),
     ...(resolvedImgUrlDom && { img_url_dom: resolvedImgUrlDom }),
+    ...(resolvedImgThumbnailB64 && { img_thumbnail_b64: resolvedImgThumbnailB64 }),
     ...(req.body.thumbnail && { thumbnail: req.body.thumbnail.trim() }),
     ...(saved_by && { saved_by }),
     ...(clientCategoryRaw      && { category:       clientCategoryRaw }),
@@ -1159,6 +1170,9 @@ app.post('/api/v1/save-url', async (req: Request, res: Response) => {
       // === PHASE27G_FIELD ===
       if (resolvedImgUrlDom) firestoreEntry.img_url_dom = resolvedImgUrlDom;
       // === END PHASE27G_FIELD ===
+      // === PHASE_IMAGE_URL_PIPELINE ===
+      if (resolvedImgThumbnailB64) firestoreEntry.img_thumbnail_b64 = resolvedImgThumbnailB64;
+      // === END PHASE_IMAGE_URL_PIPELINE ===
 
       if (clientCategoryRaw)      firestoreEntry.category       = clientCategoryRaw;
       if (clientPlatformRaw)      firestoreEntry.platform       = clientPlatformRaw;

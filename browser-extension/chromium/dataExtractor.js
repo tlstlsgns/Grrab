@@ -346,6 +346,29 @@ export function resolveAnchorUrl(anchor) {
   }
 }
 
+// === PHASE_IMAGE_URL_PIPELINE ===
+// Image URL absolute resolution. dataExtractor's image extraction reads
+// img.getAttribute('src') first (raw HTML attribute), which on many sites
+// is relative ("../images/foo.jpg", "/images/bar.jpg", "images/baz.jpg").
+// Downstream consumers (Firestore, sidepanel iframe at chrome-extension://
+// origin) cannot resolve relatives against the original page. This helper
+// guarantees an absolute URL by resolving against window.location.href.
+//
+// Returns the input unchanged if it's already absolute (https://...) or
+// a data: URL. Returns empty string for invalid/empty input.
+export function resolveAbsoluteImageUrl(rawSrc) {
+  const raw = String(rawSrc || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('data:')) return raw;
+  if (raw.startsWith('chrome-extension://')) return raw;
+  try {
+    return new URL(raw, window.location.href).href;
+  } catch (_) {
+    return raw;
+  }
+}
+// === END PHASE_IMAGE_URL_PIPELINE ===
+
 export function resolveAbsoluteAnchorUrl(anchor) {
   try {
     if (!anchor || anchor.nodeType !== 1) return null;
@@ -1338,9 +1361,11 @@ export function extractImageFromCoreItem(coreItem) {
     //      the same fallback pattern used by
     //      getEffectiveImageRectForImageGate in itemDetector.js.
     if (String(coreItem.tagName || '').toUpperCase() === 'IMG') {
-      const src = String(
-        coreItem.getAttribute?.('src') || coreItem.src || ''
-      ).trim();
+      // === PHASE_IMAGE_URL_PIPELINE ===
+      const src = resolveAbsoluteImageUrl(
+        coreItem.getAttribute?.('src') || coreItem.src
+      );
+      // === END PHASE_IMAGE_URL_PIPELINE ===
       if (src) {
         const rect = coreItem.getBoundingClientRect?.();
         const layoutW = Number(rect?.width) || 0;
@@ -1366,7 +1391,9 @@ export function extractImageFromCoreItem(coreItem) {
       const toImgMeta = (img) => {
         try {
           if (!img || String(img.tagName || '').toUpperCase() !== 'IMG') return null;
-          const src = String(img.getAttribute?.('src') || img.currentSrc || img.src || '').trim();
+          const src = resolveAbsoluteImageUrl(
+            img.getAttribute?.('src') || img.currentSrc || img.src
+          );
           if (!src) return null;
           const r = img.getBoundingClientRect ? img.getBoundingClientRect() : null;
           const w = Math.round(Math.max(0, Number(r?.width || 0)));
@@ -1480,11 +1507,21 @@ export function extractImageFromCoreItem(coreItem) {
           const resolveBestImgUrl = (img) => {
             try {
               if (!img || img.nodeType !== 1) return '';
-              const src = String(img.getAttribute?.('src') || img.currentSrc || img.src || '').trim();
+              // === PHASE_IMAGE_URL_PIPELINE ===
+              const src = resolveAbsoluteImageUrl(
+                img.getAttribute?.('src') || img.currentSrc || img.src
+              );
               const srcset = String(img.getAttribute?.('srcset') || '').trim();
-              const dataSrc = String(img.getAttribute?.('data-delayed-url') || img.getAttribute?.('data-src') || '').trim();
+              const dataSrc = resolveAbsoluteImageUrl(
+                img.getAttribute?.('data-delayed-url') || img.getAttribute?.('data-src')
+              );
               const dataLoaded = String(img.getAttribute?.('data-loaded') || '').trim().toLowerCase();
               const isLinkedInMedia = (u) => String(u || '').includes('media.licdn.com/dms/image/');
+              const absSrcsetFirst = () => {
+                if (!srcset) return '';
+                const first = srcset.split(',').map((p) => p.trim().split(/\s+/)[0]).find(Boolean) || '';
+                return resolveAbsoluteImageUrl(first);
+              };
 
               // High-res strategy:
               // - data-loaded=true: prefer src
@@ -1492,20 +1529,17 @@ export function extractImageFromCoreItem(coreItem) {
               if (dataLoaded === 'true') {
                 if (isLinkedInMedia(src)) return src;
                 if (isLinkedInMedia(dataSrc)) return dataSrc;
-                if (srcset) {
-                  const first = srcset.split(',').map((p) => p.trim().split(/\s+/)[0]).find(Boolean) || '';
-                  if (isLinkedInMedia(first)) return first;
-                }
+                const fromSet = absSrcsetFirst();
+                if (isLinkedInMedia(fromSet)) return fromSet;
                 return '';
               }
 
               if (isLinkedInMedia(dataSrc)) return dataSrc;
               if (isLinkedInMedia(src)) return src;
-              if (srcset) {
-                const first = srcset.split(',').map((p) => p.trim().split(/\s+/)[0]).find(Boolean) || '';
-                if (isLinkedInMedia(first)) return first;
-              }
+              const fromSet = absSrcsetFirst();
+              if (isLinkedInMedia(fromSet)) return fromSet;
               return '';
+              // === END PHASE_IMAGE_URL_PIPELINE ===
             } catch (e) {
               return '';
             }
@@ -1647,9 +1681,9 @@ export function extractImageFromCoreItem(coreItem) {
               const r = img.getBoundingClientRect
                 ? img.getBoundingClientRect()
                 : null;
-              const src = String(
-                img.getAttribute?.('src') || img.src || ''
-              ).trim();
+              const src = resolveAbsoluteImageUrl(
+                img.getAttribute?.('src') || img.src
+              );
               if (src && r && r.width > 0 && r.height > 0) {
                 return {
                   image: {
@@ -1811,6 +1845,7 @@ export function extractImageFromCoreItem(coreItem) {
               );
             }
           }
+          originalUrl = resolveAbsoluteImageUrl(originalUrl);
           if (originalUrl && /^https?:\/\//i.test(originalUrl)) {
             return {
               image: {
@@ -1844,7 +1879,9 @@ export function extractImageFromCoreItem(coreItem) {
         const bg = String(cs?.backgroundImage || '').trim();
         if (!bg || bg === 'none') return '';
         const m = bg.match(/url\((['"]?)(.*?)\1\)/i);
-        return String(m?.[2] || '').trim();
+        // === PHASE_IMAGE_URL_PIPELINE ===
+        return resolveAbsoluteImageUrl(String(m?.[2] || '').trim());
+        // === END PHASE_IMAGE_URL_PIPELINE ===
       } catch (e) {
         return '';
       }
@@ -1910,7 +1947,7 @@ export function extractImageFromCoreItem(coreItem) {
     for (const img of imgNodes) {
       const r = getEffectiveImageRect(img);
       if (!isVisuallySignificantImage(r)) continue;
-      const src = String(img.getAttribute('src') || img.src || '').trim();
+      const src = resolveAbsoluteImageUrl(img.getAttribute('src') || img.src);
       if (!src) continue;
       // Skip profile/avatar images — "profile_images" in the URL path is
       // a reliable cross-platform signal that the image is a user avatar,
@@ -2809,11 +2846,17 @@ function extractFacebookShortcode(element) {
       }
     };
     const resolveImageUrl = (img) => {
-      const src = String(img?.getAttribute?.('src') || img?.currentSrc || img?.src || '').trim();
+      // === PHASE_IMAGE_URL_PIPELINE ===
+      const src = resolveAbsoluteImageUrl(
+        img?.getAttribute?.('src') || img?.currentSrc || img?.src
+      );
       if (isRepresentativeImageUrl(src)) return src;
-      const dataSrc = String(img?.getAttribute?.('data-src') || img?.getAttribute?.('data-delayed-url') || '').trim();
+      const dataSrc = resolveAbsoluteImageUrl(
+        img?.getAttribute?.('data-src') || img?.getAttribute?.('data-delayed-url')
+      );
       if (isRepresentativeImageUrl(dataSrc)) return dataSrc;
       return '';
+      // === END PHASE_IMAGE_URL_PIPELINE ===
     };
     const extractRepresentativeImageUrl = () => {
       const allImgs = Array.from(element.querySelectorAll?.('img[src], img[data-src], img[data-delayed-url]') || []);
