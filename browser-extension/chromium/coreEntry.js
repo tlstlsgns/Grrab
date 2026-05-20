@@ -67,6 +67,22 @@ let _forceFullScanOnMutation = false; // true after navigation: next MutationObs
 let lastPointerX = null;
 let lastPointerY = null;
 let _lastMouseoverTarget = null;
+// === PHASE_COREITEM_LIVE_METADATA ===
+// MutationObserver for live refresh of state.lastExtractedMetadata when the
+// hovered activeCoreItem's <a> descendants change (added / removed / href).
+// Lazy DOM updates (e.g., Google Images populating <a href> with the
+// imgurl=ENCODED_FULL_URL parameter via JavaScript after hover) would
+// otherwise leave the frozen hover-snapshot stale until next hover.
+//
+// Observer is attached on hover-set, detached on every hover-clear path
+// (coreClear top + iframe branches, onBrowserHidden).
+//
+// Debounce ~50ms — burst mutations during framework render cycles collapse
+// to a single refresh.
+let _coreItemMutationObserver = null;
+let _coreItemMetadataDebounceTimer = null;
+let _observedCoreItemElement = null;
+// === END PHASE_COREITEM_LIVE_METADATA ===
 const instagramFetchInFlightByElement = new WeakMap();
 
 const IS_IFRAME = window.self !== window.top;
@@ -528,12 +544,269 @@ function requestInstagramThumbnail(coreItem, meta, clientX = null, clientY = nul
   } catch (e) {}
 }
 
+// === PHASE_COREITEM_LIVE_METADATA ===
+// Sync re-extraction + sync-safe enrichment of activeCoreItem metadata.
+// Called from observer's debounced callback on <a> mutation. Does NOT
+// touch UI, does NOT trigger Instagram async refetch. In iframe context,
+// re-broadcasts KC_IFRAME_HOVER with the fresh payload so top's
+// iframeHoverInfo stays current.
+function refreshCoreItemMetadata(coreItem) {
+  try {
+    if (!coreItem || coreItem !== state.activeCoreItem) return;
+
+    const typeBEntry = getItemMapEntryByElement(coreItem);
+    const evidenceType = typeBEntry?.evidenceType || '';
+    const platformForB = evidenceType === 'B' ? getCurrentPlatform() : '';
+    const cachedExtraction = typeBEntry?.cachedShortcodeNormalized ?? null;
+    const cacheOverrides =
+      evidenceType === 'B' && typeBEntry?.cachedMetadata
+        ? {
+            cachedImage:
+              typeBEntry.cachedMetadata.imageIsCustom && typeBEntry.cachedMetadata.image != null
+                ? { value: typeBEntry.cachedMetadata.image, usedCustomLogic: true }
+                : null,
+            cachedTitle:
+              typeBEntry.cachedMetadata.titleIsCustom && typeBEntry.cachedMetadata.title != null
+                ? { value: typeBEntry.cachedMetadata.title, usedCustomLogic: true }
+                : null,
+          }
+        : null;
+
+    let meta =
+      evidenceType === 'B' && typeBEntry?.cachedMetadata
+        ? extractMetadataForCoreItem(coreItem, null, _lastMouseoverTarget, cacheOverrides) || {}
+        : extractMetadataForCoreItem(coreItem, null, _lastMouseoverTarget) || {};
+
+    let instagramPreresolvedUrl = '';
+    if (evidenceType === 'B' && platformForB === 'INSTAGRAM') {
+      const shortcodeResult =
+        cachedExtraction ??
+        normalizeShortcodeExtractionResult(extractShortcode(coreItem), platformForB);
+      const shortcode = String(shortcodeResult?.shortcode || '').trim();
+      if (shortcode) {
+        instagramPreresolvedUrl = `https://www.instagram.com/p/${encodeURIComponent(shortcode)}/`;
+      }
+    }
+    const shortcodeForB =
+      evidenceType === 'B' && platformForB === 'INSTAGRAM'
+        ? (cachedExtraction?.shortcode || '').trim() ||
+          normalizeShortcodeExtractionResult(extractShortcode(coreItem), platformForB).shortcode
+        : '';
+
+    if (evidenceType === 'B' && platformForB === 'INSTAGRAM' && instagramPreresolvedUrl) {
+      meta = {
+        ...meta,
+        activeHoverUrl: instagramPreresolvedUrl,
+        platform: platformForB,
+        shortcode: shortcodeForB,
+      };
+    } else if (evidenceType === 'B' && platformForB === 'INSTAGRAM') {
+      meta = withInstagramActiveHoverUrl(
+        { ...meta, platform: platformForB, ...(shortcodeForB ? { shortcode: shortcodeForB } : {}) },
+        coreItem,
+        cachedExtraction
+      );
+    } else if (evidenceType === 'B' && platformForB === 'LINKEDIN') {
+      const li = cachedExtraction ?? normalizeShortcodeExtractionResult(extractShortcode(coreItem), platformForB);
+      meta = withLinkedInCanonicalActiveHoverUrl(
+        { ...meta, platform: platformForB, ...(li.shortcode ? { shortcode: li.shortcode } : {}), ...(li.activeHoverUrl ? { activeHoverUrl: li.activeHoverUrl } : {}) },
+        coreItem,
+        cachedExtraction
+      );
+    } else if (evidenceType === 'B' && platformForB === 'THREADS') {
+      const th = cachedExtraction ?? normalizeShortcodeExtractionResult(extractShortcode(coreItem), platformForB);
+      meta = withThreadsActiveHoverUrl(
+        { ...meta, platform: platformForB, ...(th.shortcode ? { shortcode: th.shortcode } : {}), ...(th.activeHoverUrl ? { activeHoverUrl: th.activeHoverUrl } : {}) },
+        coreItem,
+        cachedExtraction
+      );
+    } else if (evidenceType === 'B' && platformForB === 'FACEBOOK') {
+      const fb = cachedExtraction ?? normalizeShortcodeExtractionResult(extractShortcode(coreItem), platformForB);
+      meta = withFacebookTimestampActiveHoverUrl(
+        { ...meta, platform: platformForB, ...(fb.activeHoverUrl ? { activeHoverUrl: fb.activeHoverUrl } : {}), ...(fb.imageUrl ? { image: { ...(meta?.image || {}), url: fb.imageUrl } } : {}) },
+        coreItem,
+        cachedExtraction
+      );
+    }
+
+    if (evidenceType === 'E') {
+      if (!meta?.image) {
+        try {
+          const imgResult = extractImageFromCoreItem(coreItem);
+          if (imgResult?.image) {
+            meta = { ...meta, image: imgResult.image };
+          }
+        } catch (e) {
+          // defensive
+        }
+      }
+      let typeEActiveUrl = '';
+      try {
+        const wrappingAnchor = coreItem?.closest?.('a[href]') || null;
+        if (wrappingAnchor) {
+          const resolved = resolveAnchorUrl(wrappingAnchor);
+          if (typeof resolved === 'string' && resolved.length > 0) {
+            typeEActiveUrl = resolved;
+          }
+        }
+      } catch (e) {
+        // defensive
+      }
+      if (!typeEActiveUrl) {
+        typeEActiveUrl = String(window.location.href || '');
+      }
+      meta = { ...meta, activeHoverUrl: typeEActiveUrl };
+    }
+
+    if (!meta?.activeHoverUrl) return;
+
+    let syncedMeta = meta;
+    if (evidenceType === 'B') {
+      const platform = getCurrentPlatform();
+      syncedMeta = { ...syncedMeta, platform };
+      if (platform !== 'FACEBOOK') {
+        const shortcodeResult = cachedExtraction ?? normalizeShortcodeExtractionResult(extractShortcode(coreItem), platform);
+        if (shortcodeResult?.shortcode) {
+          syncedMeta = {
+            ...syncedMeta,
+            shortcode: shortcodeResult.shortcode,
+            ...(shortcodeResult.activeHoverUrl ? { activeHoverUrl: shortcodeResult.activeHoverUrl } : {}),
+          };
+        }
+      }
+      if (instagramPreresolvedUrl) {
+        syncedMeta = {
+          ...syncedMeta,
+          activeHoverUrl: instagramPreresolvedUrl,
+        };
+      } else {
+        syncedMeta = withInstagramActiveHoverUrl(syncedMeta, coreItem, cachedExtraction);
+      }
+      syncedMeta = withLinkedInCanonicalActiveHoverUrl(syncedMeta, coreItem, cachedExtraction);
+      syncedMeta = withThreadsActiveHoverUrl(syncedMeta, coreItem, cachedExtraction);
+      syncedMeta = withFacebookTimestampActiveHoverUrl(syncedMeta, coreItem, cachedExtraction);
+    }
+
+    if (syncedMeta.activeHoverUrl) {
+      try {
+        const htmlCtx = extractCoreItemHtmlContext(coreItem);
+        const { category, platform, confirmedType } = detectItemCategory(
+          syncedMeta.activeHoverUrl,
+          window.location.href,
+          htmlCtx
+        );
+        syncedMeta = { ...syncedMeta, category };
+        if (platform) syncedMeta = { ...syncedMeta, platform };
+        if (confirmedType) syncedMeta = { ...syncedMeta, confirmedType };
+      } catch (e) {}
+    }
+
+    if (evidenceType === 'E') {
+      syncedMeta = { ...syncedMeta, category: 'Image' };
+    }
+
+    state.lastExtractedMetadata = syncedMeta;
+    const freshUrl = String(syncedMeta.activeHoverUrl || '').trim();
+    if (freshUrl && freshUrl !== state.activeHoverUrl) {
+      state.activeHoverUrl = freshUrl;
+    }
+
+    if (IS_IFRAME) {
+      try {
+        window.top.postMessage({
+          [KC_MSG_PREFIX]: true,
+          [KC_IFRAME_HOVER]: true,
+          url: String(state.activeHoverUrl || '').trim(),
+          imageUrl: String(syncedMeta?.image?.url || '').trim(),
+          category: String(syncedMeta?.category || '').trim(),
+          confirmedType: String(syncedMeta?.confirmedType || '').trim(),
+          title: String(syncedMeta?.title || '').trim(),
+          platform: String(syncedMeta?.platform || '').trim(),
+          pageUrl: String(window.location.href || '').trim(),
+        }, '*');
+      } catch (_) { /* defensive */ }
+    }
+  } catch (_) { /* defensive — refresh failures are non-fatal */ }
+}
+
+function mountActiveCoreItemMutationObserver(coreItem) {
+  unmountActiveCoreItemMutationObserver();
+
+  if (!coreItem || typeof MutationObserver === 'undefined') return;
+
+  const cb = (mutations) => {
+    let relevant = false;
+    for (const m of mutations) {
+      if (m.type === 'attributes') {
+        if (String(m.target?.tagName || '').toUpperCase() === 'A') {
+          relevant = true;
+          break;
+        }
+      } else if (m.type === 'childList') {
+        const isAnchorOrContainsAnchor = (node) =>
+          node?.nodeType === 1 &&
+          (String(node.tagName || '').toUpperCase() === 'A' || node.querySelector?.('a') != null);
+        for (const n of m.addedNodes) {
+          if (isAnchorOrContainsAnchor(n)) {
+            relevant = true;
+            break;
+          }
+        }
+        if (relevant) break;
+        for (const n of m.removedNodes) {
+          if (isAnchorOrContainsAnchor(n)) {
+            relevant = true;
+            break;
+          }
+        }
+        if (relevant) break;
+      }
+    }
+    if (!relevant) return;
+
+    if (_coreItemMetadataDebounceTimer) {
+      clearTimeout(_coreItemMetadataDebounceTimer);
+    }
+    _coreItemMetadataDebounceTimer = setTimeout(() => {
+      _coreItemMetadataDebounceTimer = null;
+      refreshCoreItemMetadata(coreItem);
+    }, 50);
+  };
+
+  const observer = new MutationObserver(cb);
+  observer.observe(coreItem, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['href'],
+  });
+
+  _coreItemMutationObserver = observer;
+  _observedCoreItemElement = coreItem;
+}
+
+function unmountActiveCoreItemMutationObserver() {
+  if (_coreItemMetadataDebounceTimer) {
+    try { clearTimeout(_coreItemMetadataDebounceTimer); } catch (_) {}
+    _coreItemMetadataDebounceTimer = null;
+  }
+  if (_coreItemMutationObserver) {
+    try { _coreItemMutationObserver.disconnect(); } catch (_) {}
+    _coreItemMutationObserver = null;
+  }
+  _observedCoreItemElement = null;
+}
+// === END PHASE_COREITEM_LIVE_METADATA ===
+
 function coreClear() {
   _aiAnalyzeSession++;
   // === PHASE_OVERLAY_ON_IMAGE ===
   state.activeOverlayElement = null;
   // === END PHASE_OVERLAY_ON_IMAGE ===
   if (IS_IFRAME) {
+    // === PHASE_COREITEM_LIVE_METADATA ===
+    unmountActiveCoreItemMutationObserver();
+    // === END PHASE_COREITEM_LIVE_METADATA ===
     state.activeCoreItem = null;
     state.activeHoverUrl = null;
     state.lastExtractedMetadata = null;
@@ -548,6 +821,9 @@ function coreClear() {
     } catch (_) { /* defensive */ }
     // === END PHASE_IFRAME_HOVER_PROPAGATION ===
   } else {
+    // === PHASE_COREITEM_LIVE_METADATA ===
+    unmountActiveCoreItemMutationObserver();
+    // === END PHASE_COREITEM_LIVE_METADATA ===
     clearCoreSelection();
   }
 }
@@ -929,6 +1205,9 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     state.activeCoreItem = coreItem;
     state.activeHoverUrl = syncedMeta.activeHoverUrl;
     state.lastExtractedMetadata = syncedMeta;
+    // === PHASE_COREITEM_LIVE_METADATA ===
+    mountActiveCoreItemMutationObserver(coreItem);
+    // === END PHASE_COREITEM_LIVE_METADATA ===
     showCoreStatusBadge('default');
     if (evidenceType === 'B') {
       requestInstagramPostDataForTypeB(coreItem, state.lastExtractedMetadata, null, null);
@@ -957,6 +1236,9 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   state.activeCoreItem = coreItem;
   state.activeHoverUrl = syncedMeta.activeHoverUrl;
   state.lastExtractedMetadata = syncedMeta;
+  // === PHASE_COREITEM_LIVE_METADATA ===
+  mountActiveCoreItemMutationObserver(coreItem);
+  // === END PHASE_COREITEM_LIVE_METADATA ===
   showCoreStatusBadge('default');
   if (evidenceType === 'B') {
     requestInstagramPostDataForTypeB(coreItem, state.lastExtractedMetadata, clientX, clientY);
@@ -2793,6 +3075,9 @@ function mountWindowListeners() {
       try { hideCoreHighlight(); }   catch (e) {}
       try { hideMetadataTooltip(); }   catch (e) {}
       try { if (!IS_IFRAME) { hideCoreStatusBadge(); } }       catch (e) {}
+      // === PHASE_COREITEM_LIVE_METADATA ===
+      unmountActiveCoreItemMutationObserver();
+      // === END PHASE_COREITEM_LIVE_METADATA ===
       state.activeCoreItem       = null;
       state.activeHoverUrl       = null;
       state.lastExtractedMetadata = null;
