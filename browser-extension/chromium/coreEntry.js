@@ -712,6 +712,22 @@ function refreshCoreItemMetadata(coreItem) {
       state.activeHoverUrl = freshUrl;
     }
 
+    // === PHASE_HOVER_IMAGE_PREFETCH ===
+    // Re-run image prefetch after metadata refresh. The MutationObserver fires
+    // when <a href> changes (e.g., Google Images lazy-populates the link
+    // target). If the refreshed image URL differs from the original hover-time
+    // URL, this prefetches the fresh URL into the LRU cache so clip-time has
+    // a cache hit. Same URL → cache hit returns existing promise, no extra
+    // fetch.
+    try {
+      const refreshedUrl = syncedMeta?.image?.url;
+      if (refreshedUrl) {
+        const fallbackImgEl = getDominantImageElement(coreItem);
+        prefetchImageBlob(refreshedUrl, fallbackImgEl);
+      }
+    } catch (_) { /* defensive — prefetch failures are non-fatal */ }
+    // === END PHASE_HOVER_IMAGE_PREFETCH ===
+
     if (IS_IFRAME) {
       try {
         window.top.postMessage({
@@ -1202,6 +1218,27 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     showCoreHighlight(coreItem, false);
   }
   // === END PHASE_OVERLAY_ON_IMAGE ===
+  // === PHASE_HOVER_IMAGE_PREFETCH ===
+  // Kick off image blob prefetch in the background. Cache is keyed by
+  // URL so subsequent hovers on the same item are no-ops, and the clip-
+  // time path can await the cached promise directly without the 1000ms
+  // race. Failure is silent — clip-time fallback (DOM image for Image
+  // category, race-timeout for SNS contents) still handles errors.
+  try {
+    const prefetchUrl = syncedMeta?.image?.url;
+    if (prefetchUrl) {
+      // Pass the active item's dominant <img> as a fallback for prefetch.
+      // If the original URL fetch fails (CORS, 404, etc.), prefetch tries
+      // imgElementToBlob on the DOM element directly.
+      const fallbackImgEl = coreItem instanceof Element
+        ? getDominantImageElement(coreItem)
+        : null;
+      prefetchImageBlob(prefetchUrl, fallbackImgEl);
+    }
+  } catch (_) {
+    // defensive — never block hover on prefetch
+  }
+  // === END PHASE_HOVER_IMAGE_PREFETCH ===
   if (IS_IFRAME) {
     state.activeCoreItem = coreItem;
     state.activeHoverUrl = syncedMeta.activeHoverUrl;
@@ -2128,6 +2165,86 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise) {
 }
 // === END PHASE_IMAGE_URL_PIPELINE ===
 
+// === PHASE_HOVER_IMAGE_PREFETCH ===
+// Image blob LRU cache for hover-time prefetch.
+//
+// Keyed by image URL. Stores in-flight or settled Promise<Blob>.
+// On promise reject, the entry is removed so the next hover can retry.
+// Eviction: simple LRU — oldest entry removed when size exceeds cap.
+//
+// Sized for typical SNS feed / image grid scrolling. 30 entries × ~200KB
+// avg blob ≈ 6MB worst case. Browser GC will reclaim if pressure rises.
+const KC_HOVER_BLOB_CACHE_MAX = 30;
+const _hoverBlobCache = new Map();
+
+function getCachedBlobPromise(imageUrl) {
+  const key = String(imageUrl || '').trim();
+  if (!key) return null;
+  if (!_hoverBlobCache.has(key)) return null;
+  // LRU touch: move to end.
+  const promise = _hoverBlobCache.get(key);
+  _hoverBlobCache.delete(key);
+  _hoverBlobCache.set(key, promise);
+  return promise;
+}
+
+function setCachedBlobPromise(imageUrl, promise) {
+  const key = String(imageUrl || '').trim();
+  if (!key || !promise) return;
+  _hoverBlobCache.set(key, promise);
+  // Auto-evict on both rejection and resolved-null. imageUrlToPngBlob
+  // resolves null on failure rather than rejecting, so a .catch() alone
+  // would leave failed entries cached until LRU eviction.
+  promise.then(
+    (result) => {
+      if (result === null && _hoverBlobCache.get(key) === promise) {
+        _hoverBlobCache.delete(key);
+      }
+    },
+    () => {
+      if (_hoverBlobCache.get(key) === promise) {
+        _hoverBlobCache.delete(key);
+      }
+    }
+  );
+  // Evict oldest if cap exceeded.
+  while (_hoverBlobCache.size > KC_HOVER_BLOB_CACHE_MAX) {
+    const oldestKey = _hoverBlobCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    _hoverBlobCache.delete(oldestKey);
+  }
+}
+
+// Prefetch: start fetch if not cached, cache the promise, return it.
+// Safe to call from hover handlers — does not throw on failure (catch
+// auto-removes from cache).
+function prefetchImageBlob(imageUrl, fallbackImgEl = null) {
+  const key = String(imageUrl || '').trim();
+  if (!key) return null;
+  const cached = getCachedBlobPromise(key);
+  if (cached) return cached;
+  // Two-stage fetch: original URL via proxy/CORS/background, then if that
+  // returns null, DOM <img> element via imgElementToBlob. This catches
+  // CORS-blocked image hosts (e.g., Instagram crawler URLs on Google Image
+  // Search) at hover time so clip-time has a cache hit.
+  const promise = (async () => {
+    try {
+      const b = await imageUrlToPngBlob(key);
+      if (b) return b;
+    } catch (_) { /* fall through */ }
+    if (fallbackImgEl) {
+      try {
+        const b = await imgElementToBlob(fallbackImgEl);
+        if (b) return b;
+      } catch (_) { /* fall through */ }
+    }
+    return null;
+  })();
+  setCachedBlobPromise(key, promise);
+  return promise;
+}
+// === END PHASE_HOVER_IMAGE_PREFETCH ===
+
 async function imageUrlToPngBlob(imageUrl) {
   if (!imageUrl) return null;
 
@@ -2417,12 +2534,21 @@ function notifyIframeClipboardResult(info, clipboardPromise) {
 // be GC'd. The next fetch of the same URL hits browser cache anyway.
 const KC_SYNC_IMAGE_FETCH_TIMEOUT_MS = 1000;
 
+// === PHASE_HOVER_IMAGE_PREFETCH ===
 function raceImageUrlToPngBlob(imageUrl) {
+  // Cache hit: hover-time prefetch already kicked off this fetch.
+  // Await the cached promise directly — no race needed because the
+  // prefetch had the full hover-to-clip interval (typically 200-2000ms)
+  // to complete, far longer than the cold-path 1000ms race window.
+  const cached = getCachedBlobPromise(imageUrl);
+  if (cached) return cached;
+  // Cache miss: fall through to existing race behavior.
   return Promise.race([
     imageUrlToPngBlob(imageUrl),
     new Promise((resolve) => setTimeout(() => resolve(null), KC_SYNC_IMAGE_FETCH_TIMEOUT_MS)),
   ]);
 }
+// === END PHASE_HOVER_IMAGE_PREFETCH ===
 // === END PHASE_CLIPBOARD_TIMEOUT_FALLBACK ===
 
 // === PHASE_IFRAME_CLIPBOARD ===
