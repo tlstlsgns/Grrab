@@ -1868,7 +1868,7 @@ function getSourceDirectoryId(e) {
   return e.dataTransfer.getData('application/x-source-directory-id') || null;
 }
 
-// ── Firestore proxy calls (via localhost server) ───────────────────────────────
+// ── Firestore proxy calls (via Cloud Functions / KC_SERVER_URL) ───────────────
 async function moveItemToPosition(userId, itemId, targetDirectoryId, newIndex, sourceDirectoryId) {
   const res = await fetch(`${KC_SERVER_URL}/api/v1/firestore/move-item`, {
     method: 'POST',

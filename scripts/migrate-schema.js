@@ -65,8 +65,8 @@ if (isDryRun && isExecute) {
 // Firebase Admin SDK initialization
 // ──────────────────────────────────────────────────────────────────────────
 const serviceAccountFile = project === 'dev'
-  ? 'server/service-account-dev.json'
-  : 'server/service-account-prod.json';
+  ? 'credentials/service-account-dev.json'
+  : 'credentials/service-account-prod.json';
 
 const serviceAccountPath = path.resolve(__dirname, '..', serviceAccountFile);
 

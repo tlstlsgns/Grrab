@@ -28,7 +28,7 @@
  *   - Firestore batch writes used for subcollection doc deletion
  *
  * Authentication:
- *   Uses server/service-account-<project>.json (the existing service
+ *   Uses credentials/service-account-<project>.json (the existing service
  *   account files already in the repo, matching migrate-schema.js's
  *   pattern).
  */
@@ -85,8 +85,8 @@ if (isDryRun && isExecute) {
 // Firebase Admin SDK initialization
 // ──────────────────────────────────────────────────────────────────────────
 const serviceAccountFile = project === 'dev'
-  ? 'server/service-account-dev.json'
-  : 'server/service-account-prod.json';
+  ? 'credentials/service-account-dev.json'
+  : 'credentials/service-account-prod.json';
 
 const serviceAccountPath = path.resolve(__dirname, '..', serviceAccountFile);
 

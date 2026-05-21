@@ -162,12 +162,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 // runShortcutPoll/stopShortcutPolling, and the 'get-shortcut' /
 // 'start-shortcut-polling' message handlers — was removed in
 // Sub-phase 4b of the custom-shortcut feature.
-//
-// Note: the onCommand listener previously posted a "Loading..."
-// placeholder to the Electron desktop app at http://localhost:3001/
-// pending-save for instant UI feedback. That integration is intentionally
-// removed here; restoring it (likely from the content-script keydown
-// path) is tracked as separate future work.
 // === END REMOVED ===
 
 // Create context menu items
@@ -1056,33 +1050,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     // Return true to indicate we will send a response asynchronously
     return true;
-  }
-
-  // Handle AI URL analysis request — proxies to localhost to bypass
-  // Chrome's Private Network Access restriction from content scripts.
-  if (request.action === 'ai-analyze-url') {
-    const { url } = request;
-    if (!url || typeof url !== 'string') {
-      sendResponse({ success: false, error: 'Invalid payload' });
-      return true;
-    }
-    fetch(`${KC_SERVER_URL}/api/v1/ai-analyze-url`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          sendResponse({ success: false, error: `Server error ${res.status}` });
-          return;
-        }
-        const data = await res.json();
-        sendResponse({ success: true, data });
-      })
-      .catch((err) => {
-        sendResponse({ success: false, error: err.message || 'Failed to fetch' });
-      });
-    return true; // async response
   }
 
   if (request.action === 'sidepanel-focused' || request.action === 'sidepanel-blurred') {

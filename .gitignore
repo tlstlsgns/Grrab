@@ -69,6 +69,7 @@ node_modules/
 .dataconnect
 
 # Firebase service account keys (sensitive credentials)
+# Credentials directory (actual JSON keys stay local; only credentials/.gitkeep is tracked)
 **/firebase-service-account.json
 server/config/firebase-service-account.json
 

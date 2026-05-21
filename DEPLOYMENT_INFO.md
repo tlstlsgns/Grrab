@@ -170,13 +170,12 @@ These files exist in the working tree but are excluded from git. Each needs its 
 | File | Content | Current backup status |
 |---|---|---|
 | `browser-extension/keys/*.pem` | Extension signing keys | ✅ Bitwarden |
-| `server/.env` | Gemini API key, other server-side secrets | ⚠️ **NOT BACKED UP** (TODO) |
-| `server/service-account-dev.json` | Firebase Admin credential (DEV project `saveurl-a8593`) | ✅ Bitwarden *(backed up 2026-04-21)* |
-| `server/service-account-prod.json` | Firebase Admin credential (PROD project `saveurl-prod`) — **newly generated 2026-04-21** | ✅ Bitwarden *(backed up 2026-04-21)* |
+| `credentials/service-account-dev.json` | Firebase Admin credential (DEV project `saveurl-a8593`) | ✅ Bitwarden *(backed up 2026-04-21)* |
+| `credentials/service-account-prod.json` | Firebase Admin credential (PROD project `saveurl-prod`) — **newly generated 2026-04-21** | ✅ Bitwarden *(backed up 2026-04-21)* |
 | `client/.env` | Electron app environment variables | ⚠️ **NOT BACKED UP** (TODO) |
 | `functions/.env` | Cloud Functions environment *(does not exist as of 2026-04-21)* | N/A |
 
-> 📌 **TODO (remaining):** Extend Bitwarden backup to cover `server/.env` and `client/.env`. See Phase B / recovery backlog.
+> 📌 **TODO (remaining):** Extend Bitwarden backup to cover `client/.env`. See Phase B / recovery backlog.
 >
 > 📌 **DONE 2026-04-21:** Bitwarden backup for DEV (`service-account-dev.json`, renamed from `service-account.json`) and PROD (`service-account-prod.json`, new key generated). `.gitignore` pattern updated from `service-account.json` to `service-account*.json` to cover both.
 
@@ -246,16 +245,17 @@ Copied from DEV to PROD verbatim. See Firebase Console for current content.
    - Extension ID should be `knpcebcbpcjoiagccededjhamononapd` (matches DEV OAuth Client)
 6. **Sign in test:** If it fails, verify GCP OAuth Client's Application ID matches the loaded Extension ID.
 7. **Restore other env files:**
-   - `server/service-account-dev.json` — restore from Bitwarden (item: `KickClip - DEV Firebase Service Account Key`). `chmod 600`.
-   - `server/service-account-prod.json` — restore from Bitwarden (item: `KickClip - PROD Firebase Service Account Key`). `chmod 600`.
-   - `server/.env` — ⚠️ not yet backed up; retrieve from Gemini API key source (Google AI Studio) if needed.
+   - `credentials/service-account-dev.json` — restore from Bitwarden (item: `KickClip - DEV Firebase Service Account Key`). `chmod 600`.
+   - `credentials/service-account-prod.json` — restore from Bitwarden (item: `KickClip - PROD Firebase Service Account Key`). `chmod 600`.
    - `client/.env` — ⚠️ not yet backed up; reference `client/.env.example` if exists.
-8. **If running migration scripts:**
+8. **If running maintenance scripts:**
 ```bash
    cd ~/Projects/KickClip
    node scripts/migrate-schema.js --project=dev --dry-run
+   node scripts/reset-firestore.js --project=dev --dry-run
 ```
-   Dry-run should show `To update: 0 items` on a schema-current database.
+   `migrate-schema.js` dry-run should show `To update: 0 items` on a schema-current database.
+   `reset-firestore.js` dry-run previews destructive Firestore + Auth reset (G1 re-submission tool; use `--execute` only after dry-run review).
 
 ### Scenario B: `.pem` file accidentally deleted locally
 
@@ -340,10 +340,9 @@ Copied from DEV to PROD verbatim. See Firebase Console for current content.
   - **Infrastructure:**
     - `firebase-admin` installed as root-level devDependency (for migration scripts).
     - Root `package.json` formalized as `kickclip-scripts` (private, for maintenance scripts only).
-    - `server/service-account.json` renamed to `server/service-account-dev.json` for disambiguation.
-    - New PROD service account key generated → `server/service-account-prod.json`.
+    - Service account keys renamed to `service-account-dev.json` / `service-account-prod.json` for disambiguation.
+    - New PROD service account key generated.
     - `.gitignore` pattern updated `service-account.json` → `service-account*.json` to cover both files.
-    - `server/package.json` `dev` script updated to reference new DEV key filename.
     - Bitwarden backups added for both DEV and PROD service account keys.
   - **PROD release:**
     - New `dist/kickclip-prod.zip` rebuilt (324.98 KB, 23 files).

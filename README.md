@@ -22,7 +22,7 @@ Mail, Product, etc.) and synced via Firebase Firestore.
 ## Architecture
 
 - **Chrome Extension** (Manifest V3) — `browser-extension/chromium/`
-- **Cloud Run server** (Node.js/Express) — `server/`
+- **Cloud Functions** (Firebase) — `functions/`
 - **Firebase**
   - Firestore: user profiles, saved items metadata
   - Auth: Google OAuth sign-in
@@ -41,10 +41,6 @@ Mail, Product, etc.) and synced via Firebase Firestore.
 ```bash
 # Extension dependencies
 cd browser-extension
-npm install
-
-# Server dependencies (optional — for local API development)
-cd ../server
 npm install
 ```
 
@@ -66,18 +62,6 @@ This copies `manifest.dev.json` → `chromium/manifest.json` and
 2. Enable "Developer mode" (top right)
 3. Click "Load unpacked"
 4. Select `browser-extension/chromium/`
-
-**3. (Optional) Run server locally**:
-
-```bash
-cd server
-npm run dev
-```
-
-Server runs on `http://localhost:3000` by default. The dev build's
-`config.dev.js` points to the deployed dev Cloud Run URL by default;
-adjust `KC_SERVER_URL` in `config.dev.js` if you want to hit your
-local server instead.
 
 ## Configuration
 
@@ -104,17 +88,18 @@ KickClip uses environment-specific manifest and config files:
 Chrome extensions use PKCE flow via `chrome.identity.getAuthToken`,
 so **no client secret** is stored or needed in the extension.
 
-### Server configuration
+### Maintenance scripts (Firebase Admin)
 
-The server uses Firebase Admin SDK. Place service account JSON files at:
+Place service account JSON files at:
 
-- `server/service-account-dev.json` — Firebase service account for
+- `credentials/service-account-dev.json` — Firebase service account for
   dev project (`saveurl-a8593`)
-- `server/service-account-prod.json` — Firebase service account for
+- `credentials/service-account-prod.json` — Firebase service account for
   prod project (`saveurl-prod`)
 
-**Both files are gitignored**. Download them from Firebase Console →
-Project Settings → Service Accounts for your own projects.
+**Both files are gitignored**. Restore them from Bitwarden (see
+`DEPLOYMENT_INFO.md`) or download from Firebase Console → Project
+Settings → Service Accounts.
 
 ## Build
 
@@ -162,12 +147,9 @@ KickClip/
 │   │   ├── build-prod.js
 │   │   └── build-user-package.js
 │   └── package.json
-├── server/                    # Cloud Run API server
-│   ├── src/
-│   │   └── server.ts
-│   ├── scripts/
-│   │   └── backfill-user-profiles.js
-│   └── package.json
+├── credentials/               # gitignored service-account JSON (see .gitkeep)
+├── scripts/                   # maintenance scripts (migrate-schema, reset-firestore)
+├── functions/                 # Firebase Cloud Functions
 ├── docs/                      # documentation + privacy policy pages
 │   ├── index.html
 │   ├── privacy-policy.html

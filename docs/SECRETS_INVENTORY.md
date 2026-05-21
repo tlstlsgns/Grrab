@@ -35,14 +35,14 @@ Recovery always proceeds by opening the Bitwarden Secure Note, copying the Notes
 
 | File | Firebase project | Backup | Bitwarden item | Integrity | Recovery |
 |---|---|---|---|---|---|
-| `server/service-account-dev.json` | `saveurl-a8593` | 🔐⚠️ | `KickClip - DEV Firebase Service Account` | Verification skipped (see note below) | See recovery playbook |
-| `server/service-account-prod.json` | `saveurl-prod` | 🔐⚠️ | `KickClip - PROD Firebase Service Account` | Verification skipped (see note below) | See recovery playbook |
+| `credentials/service-account-dev.json` | `saveurl-a8593` | 🔐⚠️ | `KickClip - DEV Firebase Service Account` | Verification skipped (see note below) | See recovery playbook |
+| `credentials/service-account-prod.json` | `saveurl-prod` | 🔐⚠️ | `KickClip - PROD Firebase Service Account` | Verification skipped (see note below) | See recovery playbook |
 
 **Why verification skipped**: these keys are cheaply regenerable via Firebase Console -> Service accounts -> Generate new private key. If the Bitwarden memo turns out to be corrupted when needed, regeneration costs minutes, not data. Acceptable risk trade-off.
 
 **Consumption (from Phase 3.1b grep):**
-- `server/package.json:9` - `dev` script sets `GOOGLE_APPLICATION_CREDENTIALS=./service-account-dev.json` inline.
-- `scripts/migrate-schema.js:68-69` - hardcodes `server/service-account-dev.json` and `server/service-account-prod.json` via `firebase-admin`.
+- `scripts/migrate-schema.js` - hardcodes `credentials/service-account-dev.json` and `credentials/service-account-prod.json` via `firebase-admin`.
+- `scripts/reset-firestore.js` - same credential paths as `migrate-schema.js`.
 - `functions/` - does not read these files (uses Cloud Functions runtime service account).
 
 **Rotation impact**: low. Cloud Functions are unaffected.
@@ -93,11 +93,11 @@ pbpaste > /tmp/kc-verify.pem && calc_ext_id /tmp/kc-verify.pem && rm -f /tmp/kc-
 
 | File | Purpose | Key count | Keys (names only) | Backup | Bitwarden item | Integrity |
 |---|---|---|---|---|---|---|
-| `server/.env` | Local Express backend - Gemini API access, Firebase Storage bucket | 2 | `GEMINI_API_KEY`, `FIREBASE_STORAGE_BUCKET` | 🔐 | `KickClip - server/.env (GEMINI_API_KEY + Storage Bucket)` | `sha256` in Bitwarden Custom Field |
+| `server/.env` | **DEPRECATED** (removed with server/ cleanup) — was: Local Express backend - Gemini API access, Firebase Storage bucket. Bitwarden memo retained for historical reference; file no longer exists on disk. | 2 | `GEMINI_API_KEY`, `FIREBASE_STORAGE_BUCKET` | 🔐 | `KickClip - server/.env (GEMINI_API_KEY + Storage Bucket)` | `sha256` in Bitwarden Custom Field |
 | `client/.env` | Electron desktop app - Firebase client SDK + Google OAuth | 10 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`, `FIREBASE_MEASUREMENT_ID`, `OAUTH_CALLBACK_PORT`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | 🔐 | `KickClip - client/.env (Firebase + Google OAuth)` | `sha256` in Bitwarden Custom Field |
 
 **Sensitivity:**
-- `GEMINI_API_KEY` (`server/.env`): **real secret**. Leakage -> uncapped billing on developer's Google AI account. Rotate at <https://aistudio.google.com/app/apikey>.
+- **DEPRECATED** (server/ removed): `GEMINI_API_KEY` (was at `server/.env`): **real secret**. Leakage -> uncapped billing on developer's Google AI account. Rotate at <https://aistudio.google.com/app/apikey>.
 - `GOOGLE_CLIENT_SECRET` (`client/.env`): **real secret**. Leakage -> OAuth impersonation. Rotate at Google Cloud Console -> APIs & Services -> Credentials -> the Electron OAuth client -> Reset secret.
 - `FIREBASE_API_KEY` family (`client/.env`): 🌐 public-by-design per Firebase client-SDK model. Backed up for convenience, not secrecy.
 - `OAUTH_CALLBACK_PORT`: non-secret configuration.
@@ -117,16 +117,15 @@ diff <(shasum -a 256 <env-path> | awk '{print $1}') <(pbpaste | shasum -a 256 | 
 | File | Purpose | Status |
 |---|---|---|
 | `client/.env.example` | Template for `client/.env` | 📄 All values verified as PLACEHOLDER (Phase 3.1, 2026-04-23) |
-| `server/.env.example` | Template for `server/.env` | 📄 `GEMINI_API_KEY` / `FIREBASE_STORAGE_BUCKET` are PLACEHOLDER; `GOOGLE_APPLICATION_CREDENTIALS` is a non-secret filepath placeholder (`./service-account.json`) |
+| `server/.env.example` | **DEPRECATED** (removed with server/ cleanup) — Template for `server/.env` | 📄 `GEMINI_API_KEY` / `FIREBASE_STORAGE_BUCKET` are PLACEHOLDER; `GOOGLE_APPLICATION_CREDENTIALS` is a non-secret filepath placeholder (`./service-account.json`) |
 
 **Intentionally tracked** - `.env.example` is onboarding documentation. Do not `.gitignore`.
 
 **Deferred cleanup (not handled in this backup phase):**
-- `server/.env.example:1` contains legacy `# Blink Server Environment Variables` comment (Phase 4 rebrand miss).
-- `server/.env.example:11` contains `GOOGLE_APPLICATION_CREDENTIALS` line - appears to be dead entry as actual consumption paths (`server/package.json:9`, `scripts/migrate-schema.js:68-69`) hardcode the service-account JSON path instead of reading this env var.
+- **RESOLVED**: previous bullets about `server/.env.example` legacy text and `GOOGLE_APPLICATION_CREDENTIALS` line — file removed with server/ cleanup (this commit).
 - `.gitignore:72-73` contains legacy `firebase-service-account.json` patterns superseded by `service-account*.json` at line 75.
 
-All three are queued for a future legacy-cleanup phase.
+Queued for a future legacy-cleanup phase.
 
 ### Firebase project config (tracked, non-secret)
 
@@ -160,10 +159,10 @@ All recovery procedures below assume Bitwarden access. The basic pattern is:
 ### Service account key compromised or lost
 
 1. Firebase Console -> affected project -> Service accounts -> **delete** compromised key.
-2. Generate new key -> save to `server/service-account-{dev,prod}.json`.
+2. Generate new key -> save to `credentials/service-account-{dev,prod}.json`.
 3. **Update Bitwarden Secure Note**: open memo -> select Notes field all -> delete -> paste new JSON content -> save.
 4. Update `backup_date` Custom Field.
-5. Restart local `server/` module or migration script if running.
+5. Restart migration script if running.
 6. No Cloud Functions changes needed.
 
 ### Extension `.pem` compromised or lost
@@ -176,6 +175,8 @@ All recovery procedures below assume Bitwarden access. The basic pattern is:
    - Rebuild, redistribute user package, notify all testers to reinstall.
 
 ### `GEMINI_API_KEY` leaked
+
+> **DEPRECATED** (server/ removed in this commit). Procedure below is retained for reference; to actually execute it, `server/` directory must first be restored (was Express backend, lived at repo root).
 
 1. <https://aistudio.google.com/app/apikey> -> delete leaked key.
 2. Create new key -> write to `server/.env`.
@@ -191,6 +192,8 @@ All recovery procedures below assume Bitwarden access. The basic pattern is:
 
 ### `.env` file deleted from working tree (not leak, just loss)
 
+> **DEPRECATED** (server/ removed in this commit). Procedure below is retained for reference; to actually execute it, `server/` directory must first be restored (was Express backend, lived at repo root).
+
 1. Open corresponding Bitwarden Secure Note.
 2. `Cmd+A`, `Cmd+C` on Notes field.
 3. In repo root terminal: `pbpaste > server/.env` (or `client/.env`).
@@ -204,8 +207,8 @@ Verified via `git check-ignore` in Phase 2.1:
 | File | `.gitignore` rule that covers it |
 |---|---|
 | `client/.env` | `client/.gitignore:2:.env` |
-| `server/.env` | `.gitignore:66:.env` |
-| `server/service-account-*.json` | `.gitignore:75:service-account*.json` |
+| `server/.env` **(DEPRECATED — removed)** | `.gitignore:66:.env` |
+| `credentials/service-account-*.json` | `.gitignore:75:service-account*.json` |
 | `browser-extension/keys/*.pem` | `browser-extension/.gitignore:9:keys/` |
 
 All real-secret files confirmed ignored. Zero commits in history for any of them.

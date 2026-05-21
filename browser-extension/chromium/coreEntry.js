@@ -18,8 +18,6 @@ import {
   clearCoreSelection,
   ensureClusterCacheFromState,
   showMetadataTooltip,
-  setAiTooltipContent,
-  clearAiTooltipContent,
   positionMetadataTooltip,
   showCoreStatusBadge,
   setCoreBadgeTexts,
@@ -816,7 +814,6 @@ function unmountActiveCoreItemMutationObserver() {
 // === END PHASE_COREITEM_LIVE_METADATA ===
 
 function coreClear() {
-  _aiAnalyzeSession++;
   // === PHASE_OVERLAY_ON_IMAGE ===
   state.activeOverlayElement = null;
   // === END PHASE_OVERLAY_ON_IMAGE ===
@@ -1286,53 +1283,6 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   }
   return true;
   // === END PHASE27B_HOVER_DISPATCH ===
-}
-
-/**
- * Analyzes a URL via the AI server and updates the tooltip with Type + Summary.
- * Uses a session token to discard stale responses when the user has already
- * moved to a different CoreItem.
- */
-let _aiAnalyzeSession = 0;
-const _aiUrlCache = new Map(); // url → { type, summary }
-
-async function analyzeUrlForTooltip(url) {
-  if (!url) return;
-  const session = ++_aiAnalyzeSession;
-
-  // Cache hit — show result instantly without calling the API
-  if (_aiUrlCache.has(url)) {
-    const cached = _aiUrlCache.get(url);
-    setAiTooltipContent({ type: cached.type, summary: cached.summary });
-    return;
-  }
-
-  clearAiTooltipContent(); // show "Analyzing..." immediately
-  try {
-    const result = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(
-        { action: 'ai-analyze-url', url },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-            return;
-          }
-          if (!response || !response.success) {
-            reject(new Error(response?.error || 'Unknown error'));
-            return;
-          }
-          resolve(response.data);
-        }
-      );
-    });
-    // Discard if user has moved to a different CoreItem
-    if (session !== _aiAnalyzeSession) return;
-    _aiUrlCache.set(url, { type: result.type, summary: result.summary });
-    setAiTooltipContent({ type: result.type, summary: result.summary });
-  } catch (e) {
-    if (session !== _aiAnalyzeSession) return;
-    setAiTooltipContent({ type: '', summary: 'Analysis unavailable.' });
-  }
 }
 
 function schedulePreScan(scope = document, force = false, trigger = 'unknown') {
