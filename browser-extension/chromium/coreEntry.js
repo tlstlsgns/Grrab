@@ -38,8 +38,13 @@ import {
   getKCShadowRoot,
   getKCShadowElement,
   getKCBadgeShadowElement,
+  isCoreHighlightShown,
 } from './uiManager.js';
-import { determineTypeDOverlayElement } from './itemDetector.js';
+import {
+  determineTypeDOverlayElement,
+  findDominantImagesInElement,
+  findHoverCompanions,
+} from './itemDetector.js';
 import { getShortcut, onShortcutChange, matchesShortcut, formatShortcut } from './shortcutStore.js';
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
@@ -573,8 +578,8 @@ function refreshCoreItemMetadata(coreItem) {
 
     let meta =
       evidenceType === 'B' && typeBEntry?.cachedMetadata
-        ? extractMetadataForCoreItem(coreItem, null, _lastMouseoverTarget, cacheOverrides) || {}
-        : extractMetadataForCoreItem(coreItem, null, _lastMouseoverTarget) || {};
+        ? extractMetadataForCoreItem(coreItem, null, _lastMouseoverTarget, cacheOverrides, evidenceType) || {}
+        : extractMetadataForCoreItem(coreItem, null, _lastMouseoverTarget, null, evidenceType) || {};
 
     let instagramPreresolvedUrl = '';
     if (evidenceType === 'B' && platformForB === 'INSTAGRAM') {
@@ -709,6 +714,64 @@ function refreshCoreItemMetadata(coreItem) {
       state.activeHoverUrl = freshUrl;
     }
 
+    // === PHASE_OVERLAY_REFRESH_REEVAL ===
+    // Re-evaluate overlay element after metadata refresh. Carousel slide
+    // changes mutate the DOM but don't trigger mouseover (pointer stays
+    // put), so without this the overlay stays on the prior slide's
+    // dominant img. We recompute seedImages, hoverCompanions, rebuild
+    // imageToItem map for activation key consistency, then resolve a new
+    // overlay element. Show or hide based on pointer hit-test against
+    // the new rect.
+    try {
+      const itemEntry = getItemMapEntryByElement(coreItem);
+      const evType = itemEntry?.evidenceType || '';
+      if (itemEntry && (evType === 'B' || evType === EVIDENCE_TYPE_IMAGE_ANCHOR)) {
+        const newSeedImages = findDominantImagesInElement(coreItem);
+
+        const newHoverCompanions = new Set();
+        for (const seedImg of newSeedImages) {
+          try {
+            for (const comp of findHoverCompanions(seedImg, coreItem)) {
+              newHoverCompanions.add(comp);
+            }
+          } catch (e) { /* defensive */ }
+        }
+
+        itemEntry.seedImages = newSeedImages;
+        itemEntry.hoverCompanions = newHoverCompanions;
+
+        ensureClusterCacheFromState();
+
+        const newDominantImg = newSeedImages.values().next().value || null;
+        const newAnchor = newDominantImg?.closest?.('a') || null;
+
+        const newOverlay = newDominantImg
+          ? determineTypeDOverlayElement(coreItem, newDominantImg, newAnchor)
+          : null;
+
+        state.activeOverlayElement = newOverlay;
+
+        if (newOverlay === null) {
+          hideCoreHighlight();
+        } else if (
+          newOverlay !== coreItem &&
+          !isPointerInsideOverlay(newOverlay, lastPointerX, lastPointerY, null)
+        ) {
+          hideCoreHighlight();
+        } else {
+          const newOverlayRect = newOverlay === coreItem
+            ? null
+            : newOverlay.getBoundingClientRect?.();
+          if (newOverlayRect && newOverlayRect.width > 0 && newOverlayRect.height > 0) {
+            showCoreHighlight(coreItem, false, newOverlayRect);
+          } else {
+            showCoreHighlight(coreItem, false);
+          }
+        }
+      }
+    } catch (_) { /* refresh re-eval failures non-fatal */ }
+    // === END PHASE_OVERLAY_REFRESH_REEVAL ===
+
     // === PHASE_HOVER_IMAGE_PREFETCH ===
     // Re-run image prefetch after metadata refresh. The MutationObserver fires
     // when <a href> changes (e.g., Google Images lazy-populates the link
@@ -719,7 +782,7 @@ function refreshCoreItemMetadata(coreItem) {
     try {
       const refreshedUrl = syncedMeta?.image?.url;
       if (refreshedUrl) {
-        const fallbackImgEl = getDominantImageElement(coreItem);
+        const fallbackImgEl = pickDominantImageElement(coreItem);
         prefetchImageBlob(refreshedUrl, fallbackImgEl);
       }
     } catch (_) { /* defensive — prefetch failures are non-fatal */ }
@@ -994,8 +1057,8 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
       : null;
   let meta =
     evidenceType === 'B' && typeBEntry?.cachedMetadata
-      ? extractMetadataForCoreItem(coreItem, closestAtag, target, cacheOverrides) || {}
-      : extractMetadataForCoreItem(coreItem, closestAtag, target) || {};
+      ? extractMetadataForCoreItem(coreItem, closestAtag, target, cacheOverrides, evidenceType) || {}
+      : extractMetadataForCoreItem(coreItem, closestAtag, target, null, evidenceType) || {};
 
   // Instagram pre-resolved URL (Type B only, preserved).
   let instagramPreresolvedUrl = '';
@@ -1178,10 +1241,14 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
 
   // Final activation. The iframe-vs-top split is preserved.
   // === PHASE_OVERLAY_ON_IMAGE ===
-  // Type D overlays target the image region, not the full card. Other
-  // evidence types continue to outline the activeCoreItem directly.
+  // Type B and Type D overlays target the dominant image region, not the
+  // full card. Both types' seedImages now contain only dominant <img>
+  // (per the dominance unification — isImageDominantInCoreItem axial
+  // ratio + center-X gates). The same resolver applies to both: anchor +
+  // seed intersection → determineTypeDOverlayElement. Type E remains on
+  // coreItem (the <img> itself is the overlay target).
   let overlayElement = coreItem;
-  if (evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR) {
+  if (evidenceType === EVIDENCE_TYPE_IMAGE_ANCHOR || evidenceType === 'B') {
     // Resolve the relevant dominantImg + anchor for the hover target.
     //
     // Strategy: prefer the anchor closest to the hover target, then find
@@ -1222,31 +1289,31 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     overlayElement = determineTypeDOverlayElement(coreItem, dominantImg, anchor);
   }
   // === PHASE_OVERLAY_HOVER_GATE ===
-  // New-activation gate: the pointer must be inside the resolved overlay
-  // region. For Type D where overlayElement is the dominantImg or branch
-  // container, this rejects activations triggered by hovering caption
-  // text, byline, or other figure chrome that sits inside the same
-  // coreItem. The hit-test uses pointer coords (clientX/Y) against the
-  // overlay's bounding rect because DOM `contains` fails on layouts that
-  // stack sibling overlay elements above the image (see helper notes).
-  // For Type B / Type E (overlayElement === coreItem), the precondition
-  // short-circuits → gate is a no-op.
-  if (
+  // Lifecycle decoupling: activeCoreItem stays alive regardless of
+  // overlay outcome. The overlay element (and its companion status
+  // badge) follows a narrower lifecycle — shown only when (a) the
+  // resolver returns a non-null overlay AND (b) the pointer is inside
+  // that overlay's rect (or overlay === coreItem, a degenerate case
+  // for Type E). Both failure cases call hideCoreHighlight; clip is
+  // naturally gated by isCoreHighlightShown from the prior commit.
+  // === END PHASE_OVERLAY_HOVER_GATE ===
+  state.activeOverlayElement = overlayElement;
+  if (overlayElement === null) {
+    hideCoreHighlight();
+  } else if (
     overlayElement !== coreItem &&
     !isPointerInsideOverlay(overlayElement, clientX, clientY, target)
   ) {
-    if (state.activeCoreItem) coreClear();
-    return false;
-  }
-  // === END PHASE_OVERLAY_HOVER_GATE ===
-  state.activeOverlayElement = overlayElement;
-  const overlayRect = overlayElement === coreItem
-    ? null
-    : overlayElement.getBoundingClientRect?.();
-  if (overlayRect && overlayRect.width > 0 && overlayRect.height > 0) {
-    showCoreHighlight(coreItem, false, overlayRect);
+    hideCoreHighlight();
   } else {
-    showCoreHighlight(coreItem, false);
+    const overlayRect = overlayElement === coreItem
+      ? null
+      : overlayElement.getBoundingClientRect?.();
+    if (overlayRect && overlayRect.width > 0 && overlayRect.height > 0) {
+      showCoreHighlight(coreItem, false, overlayRect);
+    } else {
+      showCoreHighlight(coreItem, false);
+    }
   }
   // === END PHASE_OVERLAY_ON_IMAGE ===
   // === PHASE_HOVER_IMAGE_PREFETCH ===
@@ -1262,7 +1329,7 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
       // If the original URL fetch fails (CORS, 404, etc.), prefetch tries
       // imgElementToBlob on the DOM element directly.
       const fallbackImgEl = coreItem instanceof Element
-        ? getDominantImageElement(coreItem)
+        ? pickDominantImageElement(coreItem)
         : null;
       prefetchImageBlob(prefetchUrl, fallbackImgEl);
     }
@@ -1277,7 +1344,12 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     // === PHASE_COREITEM_LIVE_METADATA ===
     mountActiveCoreItemMutationObserver(coreItem);
     // === END PHASE_COREITEM_LIVE_METADATA ===
-    showCoreStatusBadge('default');
+    // Only show status badge if the overlay was successfully shown
+    // above (consistent with non-iframe path where showCoreHighlight
+    // is the sole badge entry point).
+    if (state.activeOverlayElement !== null) {
+      showCoreStatusBadge('default');
+    }
     if (evidenceType === 'B') {
       requestInstagramPostDataForTypeB(coreItem, state.lastExtractedMetadata, null, null);
     }
@@ -1307,7 +1379,9 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   // === PHASE_COREITEM_LIVE_METADATA ===
   mountActiveCoreItemMutationObserver(coreItem);
   // === END PHASE_COREITEM_LIVE_METADATA ===
-  showCoreStatusBadge('default');
+  if (state.activeOverlayElement !== null) {
+    showCoreStatusBadge('default');
+  }
   if (evidenceType === 'B') {
     requestInstagramPostDataForTypeB(coreItem, state.lastExtractedMetadata, clientX, clientY);
   }
@@ -1641,6 +1715,17 @@ async function saveActiveCoreItem(request = {}) {
     // CoreItem active → existing logic
     const meta = state.lastExtractedMetadata;
 
+    // === PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
+    // Clip gate: refuse clip when the overlay is not currently shown
+    // (pointer outside the overlay rect, even if activeCoreItem is alive).
+    // Iframe-relay clips originate from a child iframe and bypass the
+    // local overlay state — those are handled by the iframe's own gate.
+    const isRelayClip = meta?._isIframeRelay === true;
+    if (!isRelayClip && !isCoreHighlightShown()) {
+      return { success: false, reason: 'overlay-hidden' };
+    }
+    // === END PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
+
     // === PHASE20_HOTFIX_CLIP_TIME_IMAGE ===
     // Re-extract image at clip time. The cached `meta.image` was computed at
     // hover-start (mouseover event). If the user hovered further and the page
@@ -1656,10 +1741,30 @@ async function saveActiveCoreItem(request = {}) {
     try {
       const activeCoreEl = state.activeCoreItem;
       if (activeCoreEl && typeof activeCoreEl.getBoundingClientRect === 'function') {
-        const freshResult = extractImageFromCoreItem(activeCoreEl);
-        const freshUrl = String(freshResult?.image?.url || '').trim();
-        if (freshUrl) {
-          freshImage = freshResult.image;
+        const itemEntry = getItemMapEntryByElement(activeCoreEl);
+        const evType = itemEntry?.evidenceType || '';
+        if (evType === 'B' || evType === 'D') {
+          const dominantImgs = findDominantImagesInElement(activeCoreEl);
+          const dominantImg = dominantImgs.values().next().value || null;
+          if (dominantImg) {
+            const r = dominantImg.getBoundingClientRect?.();
+            const src = resolveAbsoluteImageUrl(
+              dominantImg.getAttribute?.('src') || dominantImg.src
+            );
+            if (src && r && r.width > 0 && r.height > 0) {
+              freshImage = {
+                url: src,
+                width: Math.round(r.width),
+                height: Math.round(r.height),
+              };
+            }
+          }
+        } else {
+          const freshResult = extractImageFromCoreItem(activeCoreEl);
+          const freshUrl = String(freshResult?.image?.url || '').trim();
+          if (freshUrl) {
+            freshImage = freshResult.image;
+          }
         }
       }
     } catch (e) { /* keep cached image */ }
@@ -1942,35 +2047,24 @@ async function saveActiveCoreItem(request = {}) {
     return { success: true };
 }
 
-/**
- * Find the dominant <img> element within rootElement.
- * An image is dominant if its width/height ratio vs rootElement is >= 75%/40%
- * (or 40%/75%) — same thresholds as dataExtractor.js getDominantMediaType().
- */
-function getDominantImageElement(rootElement) {
-  const root = rootElement || document.body;
+// === PHASE_DOMINANT_IMAGE_UNIFIED ===
+// Single-element accessor for the dominant <img> inside a container.
+// Wraps findDominantImagesInElement (which uses the unified
+// isImageDominantInCoreItem predicate — axial ratio + center-X gate).
+// Returns the first dominant <img>, or null if none exists or the
+// input is not an Element. Replaces the prior getDominantImageElement
+// which used an axial-ratio-only predicate inconsistent with the
+// rest of the codebase's dominance definition.
+function pickDominantImageElement(rootElement) {
+  if (!rootElement || !(rootElement instanceof Element)) return null;
   try {
-    const rootRect = root.getBoundingClientRect();
-    const coreW = rootRect.width;
-    const coreH = rootRect.height;
-    if (coreW <= 0 || coreH <= 0) return null;
-
-    const imgs = Array.from(root.querySelectorAll('img'));
-    for (const img of imgs) {
-      const r = img.getBoundingClientRect();
-      const mw = r.width || img.naturalWidth || 0;
-      const mh = r.height || img.naturalHeight || 0;
-      if (mw <= 0 || mh <= 0) continue;
-
-      const wr = mw / coreW;
-      const hr = mh / coreH;
-      if ((wr >= 0.75 && hr >= 0.4) || (hr >= 0.75 && wr >= 0.4)) {
-        return img;
-      }
-    }
-  } catch (_) {}
-  return null;
+    const imgs = findDominantImagesInElement(rootElement);
+    return imgs.values().next().value || null;
+  } catch (_) {
+    return null;
+  }
 }
+// === END PHASE_DOMINANT_IMAGE_UNIFIED ===
 
 /**
  * Fetch an image URL and convert it to a clipboard-compatible PNG Blob.
@@ -2324,7 +2418,7 @@ async function dataUrlToPngBlob(dataUrl) {
 //
 // Branches:
 //   1. Image: Primary imageUrlToPngBlob(imageUrl), fallback to
-//      imgElementToBlob(getDominantImageElement(activeItem)). One
+//      imgElementToBlob(pickDominantImageElement(activeItem)). One
 //      Promise<Blob> passed to ClipboardItem.
 //   2. SNS contents + imageUrl: imageUrlToPngBlob only (no URL text
 //      fallback in sync path per maintainer — instant clipboard
@@ -2344,7 +2438,7 @@ async function dataUrlToPngBlob(dataUrl) {
 // keydown when only iframeHoverInfo is set (iframe hover but top focus).
 function buildSyntheticStateFromIframeHover(info) {
   return {
-    activeCoreItem: {},  // stub — top frame has no Element ref; getDominantImageElement won't fire
+    activeCoreItem: {},  // stub — top frame has no Element ref; pickDominantImageElement won't fire
     activeHoverUrl: info.url,
     lastExtractedMetadata: {
       activeHoverUrl: info.url,
@@ -2428,7 +2522,7 @@ function performSyncClipboardWrite(state) {
         if (raced) return raced;
       } catch (_) { /* fall through */ }
       if (activeItem instanceof Element) {
-        const imgEl = getDominantImageElement(activeItem);
+        const imgEl = pickDominantImageElement(activeItem);
         if (imgEl) {
           try {
             const b = await imgElementToBlob(imgEl);
@@ -2464,7 +2558,7 @@ async function performClipboardCopy(category, url, rootElementForDominant, optio
           // === END PHASE_CLIPBOARD_TIMEOUT_FALLBACK ===
         } catch (_) { /* fall through */ }
         if (!blob && rootElementForDominant instanceof Element) {
-          const imgEl = getDominantImageElement(rootElementForDominant);
+          const imgEl = pickDominantImageElement(rootElementForDominant);
           if (imgEl) {
             blob = await imgElementToBlob(imgEl);
           }
@@ -2914,13 +3008,24 @@ function mountWindowListeners() {
       // For Type B / Type E, activeOverlayElement === active, so the
       // condition `overlayEl !== active` short-circuits the gate.
       const overlayEl = state.activeOverlayElement;
-      if (
-        overlayEl &&
-        overlayEl !== active &&
-        !isPointerInsideOverlay(overlayEl, e.clientX, e.clientY, target)
-      ) {
-        coreClear();
-        return;
+      if (overlayEl && overlayEl !== active) {
+        // === PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
+        // Decoupled lifecycle: activeCoreItem stays alive as long as the
+        // pointer is inside `active`. The overlay + status_badge follow a
+        // narrower lifecycle: shown only while the pointer is inside the
+        // overlay element's rect. Hovering caption / byline / action bar
+        // (still inside `active`) hides them; returning to the image
+        // region re-shows them. Both transitions are stateless: idempotent
+        // show/hide on every mouseover.
+        if (isPointerInsideOverlay(overlayEl, e.clientX, e.clientY, target)) {
+          const overlayRect = overlayEl.getBoundingClientRect?.();
+          if (overlayRect && overlayRect.width > 0 && overlayRect.height > 0) {
+            showCoreHighlight(active, false, overlayRect);
+          }
+        } else {
+          hideCoreHighlight();
+        }
+        // === END PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
       }
       // === END PHASE_OVERLAY_HOVER_GATE ===
       return;

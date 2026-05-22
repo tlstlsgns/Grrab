@@ -650,7 +650,7 @@ function rectsApproxEqual(a, b, tolerance = 4) {
  * This matches the rect used by the dominance admission gate so
  * companion matching stays consistent.
  */
-function findHoverCompanions(img, scopeElement = null) {
+export function findHoverCompanions(img, scopeElement = null) {
   const companions = new Set();
   try {
     if (!img || img.nodeType !== 1) return companions;
@@ -735,18 +735,17 @@ function findHoverCompanions(img, scopeElement = null) {
 
 /**
  * Returns true if the image's bounding rect is "dominant" within
- * the coreItem's bounding rect, applying the same ratio rule used
- * by dataExtractor.js's getDominantMediaType for category: Image
- * decisions:
- *   (widthRatio  >= 0.75 && heightRatio >= 0.4) ||
- *   (heightRatio >= 0.75 && widthRatio  >= 0.4)
+ * the coreItem's bounding rect:
+ *   1. Axial ratio: (widthRatio >= 0.75 && heightRatio >= 0.4) ||
+ *      (heightRatio >= 0.75 && widthRatio >= 0.4)
+ *   2. Center-X alignment: image center X within ±10% of container
+ *      width from the container's center X
  *
- * Intuition: the image must occupy at least 75% of one axis AND
- * at least 40% of the other axis. Cards with small thumbnail
- * icons fail this check.
+ * The center-X gate selects the visible carousel slide and excludes
+ * off-axis thumbnails in horizontally-laid cards.
  *
- * Used by Phase 20 Type D detection (detectTypeDItemMaps) for the
- * dominance check on candidate cards.
+ * Used by Type B/D seedImages (findDominantImagesInElement) and
+ * Type D card detection (detectTypeDItemMaps).
  */
 function isImageDominantInCoreItem(imageRect, coreRect) {
   try {
@@ -758,19 +757,22 @@ function isImageDominantInCoreItem(imageRect, coreRect) {
     if (mw <= 0 || mh <= 0) return false;
     const widthRatio = mw / coreWidth;
     const heightRatio = mh / coreHeight;
-    // Phase 25: Area-ratio guard. The existing OR-shaped axis
-    // dominance permits cards where the image fully fills the short
-    // axis but only partially the long axis (e.g., a small
-    // thumbnail next to a meta text region in a horizontally-laid
-    // card). For those cards the image is visually NOT the
-    // dominant content. Require the image to also cover at least
-    // half the card's area.
-    const areaRatio = (mw * mh) / (coreWidth * coreHeight);
-    return (
-      ((widthRatio >= 0.75 && heightRatio >= 0.4) ||
-       (heightRatio >= 0.75 && widthRatio >= 0.4)) &&
-      areaRatio >= 0.5
-    );
+    // Axial dominance: image must fully fill one axis (>=75%) and at
+    // least partially fill the other (>=40%).
+    const passesAxialRatio =
+      (widthRatio >= 0.75 && heightRatio >= 0.4) ||
+      (heightRatio >= 0.75 && widthRatio >= 0.4);
+    if (!passesAxialRatio) return false;
+    // Center-X alignment: image rect's center X must be within ±10% of
+    // the container's width from the container's center X. This replaces
+    // the earlier area-50% guard. The new gate naturally selects the
+    // visible slide in carousels (where multiple sibling <img> may pass
+    // axial dominance but only the centered one is what the user sees)
+    // and excludes off-axis thumbnails in horizontally-laid cards.
+    const coreCenterX = (Number(coreRect?.left) || 0) + coreWidth / 2;
+    const imgCenterX = (Number(imageRect?.left) || 0) + mw / 2;
+    const tolerance = coreWidth * 0.1;
+    return Math.abs(imgCenterX - coreCenterX) <= tolerance;
   } catch (e) {
     return false;
   }
@@ -1098,7 +1100,7 @@ function isInsideMapContainer(el) {
  *     iterates inline, but Phase 27a expands its iteration to
  *     collect every dominant img rather than just the first)
  */
-function findDominantImagesInElement(container) {
+export function findDominantImagesInElement(container) {
   const out = new Set();
   try {
     if (!container || container.nodeType !== 1) return out;
@@ -1117,28 +1119,6 @@ function findDominantImagesInElement(container) {
   }
   return out;
 }
-
-// === PHASE_TYPE_B_DE_INTEGRATION ===
-// Significant-image collection scoped to a container element. Reuses
-// the same filtering policy as filterSignificantImages (size, ratio,
-// nav/map/visibility gates) — so a Type B post's seedImages cover the
-// same image set that Type D/E would otherwise capture standalone.
-//
-// Returns a Set<HTMLImageElement> (consistent with findDominantImagesInElement).
-function findSignificantImagesInElement(container) {
-  const out = new Set();
-  try {
-    if (!container || container.nodeType !== 1) return out;
-    const significants = filterSignificantImages(container);
-    for (const entry of significants) {
-      if (entry?.img) out.add(entry.img);
-    }
-  } catch (_) {
-    // defensive
-  }
-  return out;
-}
-// === END PHASE_TYPE_B_DE_INTEGRATION ===
 
 /**
  * Phase 21: shared significant-image pool for Type D and Type E.
@@ -1681,9 +1661,11 @@ function detectFacebookFallback(root, existingElements = new Set()) {
       // eligible when structural and share-button criteria pass. Dominant
       // images still populate seedImages for hover activation; text-only
       // posts may have an empty seedImages set.
-      // === PHASE_TYPE_B_DE_INTEGRATION ===
-      const seedImages = findSignificantImagesInElement(unit);
-      // === END PHASE_TYPE_B_DE_INTEGRATION ===
+      // === PHASE_TYPE_B_DOMINANT_UNIFICATION ===
+      // See main Type B registration above for rationale: dominant-image
+      // gate provides activation key + carousel slide selection.
+      const seedImages = findDominantImagesInElement(unit);
+      // === END PHASE_TYPE_B_DOMINANT_UNIFICATION ===
       // === END PHASE_TYPE_B_DROP_DOMINANT_IMAGE ===
       // === PHASE27E_HOVER_COMPANIONS (Type B facebook fallback) ===
       const hoverCompanions = new Set();
@@ -2366,9 +2348,15 @@ export async function detectItemMaps(root = document) {
           // activation; text-only posts may have an empty seedImages set.
           let seedImages = new Set();
           if (evidenceType === EVIDENCE_TYPE_INTERACTION) {
-            // === PHASE_TYPE_B_DE_INTEGRATION ===
-            seedImages = findSignificantImagesInElement(el);
-            // === END PHASE_TYPE_B_DE_INTEGRATION ===
+            // === PHASE_TYPE_B_DOMINANT_UNIFICATION ===
+            // Type B now uses the same dominance predicate as Type D
+            // (isImageDominantInCoreItem via findDominantImagesInElement).
+            // Combined with the updated dominance definition (axial ratio +
+            // center-X equality), this means seedImages contains only the
+            // <img>(s) centered in the post container — which for carousels
+            // is the currently visible slide. Empty Set for text-only posts.
+            seedImages = findDominantImagesInElement(el);
+            // === END PHASE_TYPE_B_DOMINANT_UNIFICATION ===
           }
           // === END PHASE_TYPE_B_DROP_DOMINANT_IMAGE ===
           // === PHASE27E_HOVER_COMPANIONS (Type B primary) ===
@@ -2542,9 +2530,9 @@ export async function detectItemMaps(root = document) {
             // === PHASE_TYPE_B_DROP_DOMINANT_IMAGE ===
             // Dominant image no longer gates Type B sibling recovery; seedImages
             // may be empty for text-only posts (same policy as main loop).
-            // === PHASE_TYPE_B_DE_INTEGRATION ===
-            const seedImages = findSignificantImagesInElement(cand);
-            // === END PHASE_TYPE_B_DE_INTEGRATION ===
+            // === PHASE_TYPE_B_DOMINANT_UNIFICATION ===
+            const seedImages = findDominantImagesInElement(cand);
+            // === END PHASE_TYPE_B_DOMINANT_UNIFICATION ===
             // === END PHASE_TYPE_B_DROP_DOMINANT_IMAGE ===
             // === PHASE27E_HOVER_COMPANIONS (Type B sibling recovery) ===
             const hoverCompanions = new Set();
@@ -3068,33 +3056,30 @@ export function findItemByImage(el) {
 }
 
 // === PHASE_OVERLAY_ON_IMAGE ===
-// Three-case rule for choosing the overlay element on Type D activation:
+// Resolves the overlay element for a Type B / Type D activation.
+// Returns the dominantImg (Case 1, 3), the comparator (Case 2 — anchor or
+// branch container in clipped overflow), or null if no valid overlay
+// element can be determined (no dominantImg, invalid rect, or no
+// matching anchor / sibling subtree anchor in the coreItem's subtree).
+// Callers handle null by hiding the overlay while keeping the
+// activation intact (overlay/clip gated by the null result).
 //
 //   Case 1: <img> fits within (or equals) the anchor on all four edges
-//           → overlay = <img>. The visible image footprint is exactly
-//             the img's layout box.
+//           → overlay = <img>.
 //
 //   Case 2: <img> extends beyond the anchor in layout, AND a clip-producing
-//           CSS property is present somewhere on the path img → anchor
-//           (overflow ≠ visible, clip-path ≠ none, or contain with paint/
-//           strict/content). The clip restricts the rendered image to
-//           within the anchor's box → overlay = anchor.
+//           CSS property is present on the path img → anchor/comparator
+//           → overlay = comparator (anchor or branch container).
 //
-//   Case 3: <img> extends beyond the anchor in layout AND no clip applies
-//           along that path. The img is genuinely painted outside the
-//           anchor's layout box → overlay = <img>.
+//   Case 3: <img> extends beyond the comparator AND no clip applies
+//           → overlay = <img>.
 //
-// Edge comparison uses strict inequality (>= / <=, no tolerance) — the user
-// explicitly requested no 4-px tolerance here, unlike rectsApproxEqual elsewhere.
-//
-// Fallbacks: if either rect is unavailable / zero-sized, or if dominantImg
-// or anchor is missing, the function returns coreItem so the existing
-// whole-card outline remains as a safe default.
+// Edge comparison uses strict inequality (>= / <=, no tolerance).
 export function determineTypeDOverlayElement(coreItem, dominantImg, anchor) {
-  if (!dominantImg) return coreItem;
+  if (!dominantImg) return null;
   const imgRect = dominantImg.getBoundingClientRect?.();
-  if (!imgRect) return coreItem;
-  if (imgRect.width <= 0 || imgRect.height <= 0) return coreItem;
+  if (!imgRect) return null;
+  if (imgRect.width <= 0 || imgRect.height <= 0) return null;
 
   // Branch A: image-wrapping anchor is present (anchor is an ancestor of img).
   // Apply the existing Case 1/2/3 rule with anchor as the comparator.
@@ -3138,7 +3123,7 @@ export function determineTypeDOverlayElement(coreItem, dominantImg, anchor) {
     }
     cur = cur.parentElement;
   }
-  return coreItem;
+  return null;
   // === END PHASE_OVERLAY_BRANCH_CONTAINER ===
 }
 
@@ -3148,8 +3133,8 @@ export function determineTypeDOverlayElement(coreItem, dominantImg, anchor) {
 // don't care about anchor semantics.
 function applyOverlayCaseRule(coreItem, dominantImg, comparator, imgRect) {
   const comparatorRect = comparator.getBoundingClientRect?.();
-  if (!comparatorRect) return coreItem;
-  if (comparatorRect.width <= 0 || comparatorRect.height <= 0) return coreItem;
+  if (!comparatorRect) return null;
+  if (comparatorRect.width <= 0 || comparatorRect.height <= 0) return null;
 
   // Case 1: img fully within comparator (no tolerance).
   if (

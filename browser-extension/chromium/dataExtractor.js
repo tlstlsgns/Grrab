@@ -4,6 +4,7 @@
  */
 
 import { getOriginalUrl, resolveCached, cleanTrackingParams, isNavigationUrl, getUrlIntent } from './urlResolver.js';
+import { findDominantImagesInElement } from './itemDetector.js';
 
 let lastExtractionLog = '';
 let extractionLogShortcutInstalled = false;
@@ -3345,7 +3346,7 @@ export function extractShortcode(element) {
   }
 }
 
-export function extractMetadataForCoreItem(coreItem, closestAtag = null, hoveredTarget = null, cacheOverrides = null) {
+export function extractMetadataForCoreItem(coreItem, closestAtag = null, hoveredTarget = null, cacheOverrides = null, evidenceType = '') {
   try {
     if (!coreItem || coreItem.nodeType !== 1) return null;
     let activeHoverUrl = null;
@@ -3386,14 +3387,49 @@ export function extractMetadataForCoreItem(coreItem, closestAtag = null, hovered
 
     let image;
     let imageIsCustom = false;
-    if (cacheOverrides?.cachedImage?.usedCustomLogic && cacheOverrides.cachedImage.value != null) {
+    // === PHASE_IMAGE_FROM_DOMINANT_PRIORITY ===
+    // Branch order: Type B/D fresh dominant FIRST, then cachedImage,
+    // then generic. Rationale: cachedImage (from typeBEntry.cachedMetadata
+    // at scan time) freezes meta.image to the scan-time slide on Instagram
+    // carousels — refresh re-runs but the cache path wins. Reordering so
+    // findDominantImagesInElement runs on every refresh for Type B/D
+    // restores per-slide tracking. cachedTitle (separate branch below)
+    // remains: caption is post-level, not slide-level.
+    if (evidenceType === 'B' || evidenceType === 'D') {
+      // Dominant <img> based: meta.image follows the same predicate
+      // (findDominantImagesInElement → isImageDominantInCoreItem) used
+      // for seedImages and overlay. seedImages is typically 1 element
+      // (center-X tolerance is tight). Empty set → image: null.
+      const dominantImgs = findDominantImagesInElement(coreItem);
+      const dominantImg = dominantImgs.values().next().value || null;
+      if (dominantImg) {
+        const r = dominantImg.getBoundingClientRect?.();
+        const src = resolveAbsoluteImageUrl(
+          dominantImg.getAttribute?.('src') || dominantImg.src
+        );
+        if (src && r && r.width > 0 && r.height > 0) {
+          image = {
+            url: src,
+            width: Math.round(r.width),
+            height: Math.round(r.height),
+          };
+          imageIsCustom = true;
+        } else {
+          image = null;
+        }
+      } else {
+        image = null;
+      }
+    } else if (cacheOverrides?.cachedImage?.usedCustomLogic && cacheOverrides.cachedImage.value != null) {
       image = cacheOverrides.cachedImage.value;
       imageIsCustom = true;
     } else {
+      // Type E or unknown evidence type: preserve existing behavior.
       const imageResult = extractImageFromCoreItem(coreItem);
       image = imageResult?.image ?? imageResult;
       imageIsCustom = imageResult?.usedCustomLogic ?? false;
     }
+    // === END PHASE_IMAGE_FROM_DOMINANT_PRIORITY ===
 
     const platform = getCurrentPlatform();
     const linkedInCommentary =

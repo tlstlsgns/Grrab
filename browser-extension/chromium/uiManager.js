@@ -647,6 +647,18 @@ export function hideCoreHighlight() {
   hideCoreStatusBadge();
 }
 
+// === PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
+// Returns true when the CoreHighlight overlay is currently shown
+// (showCoreHighlight succeeded most recently and no hideCoreHighlight
+// has cleared it since). Used by the clip gate in coreEntry's
+// saveActiveCoreItem to refuse clipping when the pointer is outside
+// the overlay region (overlay/tooltip hidden but activeCoreItem still
+// alive).
+export function isCoreHighlightShown() {
+  return _activeCoreHighlightItem != null;
+}
+// === END PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
+
 // === PHASE_SHUTTER_REMOVAL ===
 // Apply the "clipped" visual state to the active core highlight overlay.
 // This is the thick purple ring that signals clipboard success. Called
