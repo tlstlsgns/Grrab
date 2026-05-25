@@ -1749,7 +1749,7 @@ async function saveActiveCoreItem(request = {}) {
           if (dominantImg) {
             const r = dominantImg.getBoundingClientRect?.();
             const src = resolveAbsoluteImageUrl(
-              dominantImg.getAttribute?.('src') || dominantImg.src
+              dominantImg.getAttribute?.('src') || dominantImg.currentSrc || dominantImg.src
             );
             if (src && r && r.width > 0 && r.height > 0) {
               freshImage = {
@@ -2823,7 +2823,33 @@ function mountWindowListeners() {
   );
   // === END PHASE_IMG_LOAD_TRIGGER ===
 
+// === PHASE_SCROLL_PRESCAN_TRIGGER ===
+// Lazy-loaded images that already completed (class="lazyloaded") don't
+// fire load events again. Without a scroll-time scan, an image rejected
+// in the initial scan (e.g., for being off-screen with small rect)
+// remains undetected until an unrelated trigger (resize, mutation)
+// fires. Debounce at 500ms so scroll bursts don't flood schedulePreScan
+// (which itself coalesces, but the additional bound keeps the call
+// site cheap).
+let lastScrollScanTime = 0;
+const SCROLL_PRESCAN_DEBOUNCE_MS = 500;
+function schedulePreScanScrollDebounced() {
+  const now = Date.now();
+  if (now - lastScrollScanTime < SCROLL_PRESCAN_DEBOUNCE_MS) return;
+  lastScrollScanTime = now;
+  schedulePreScan(document, false, 'window-scroll');
+}
+// === END PHASE_SCROLL_PRESCAN_TRIGGER ===
+
   window.addEventListener('scroll', async () => {
+    // === PHASE_SCROLL_PRESCAN_TRIGGER_INTEGRATION ===
+    // Trigger a debounced pre-scan on scroll so lazy-loaded images
+    // newly entering the viewport get detected even without a fresh
+    // load event. Acts before the activeCoreItem early-return so it
+    // fires regardless of hover state.
+    schedulePreScanScrollDebounced();
+    // === END PHASE_SCROLL_PRESCAN_TRIGGER_INTEGRATION ===
+
     const active = state.activeCoreItem;
 
     if (!active) return;

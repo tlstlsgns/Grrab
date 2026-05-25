@@ -1182,7 +1182,7 @@ export function findDominantImagesInElement(container) {
     if (!container || container.nodeType !== 1) return out;
     const rect = container.getBoundingClientRect?.();
     if (!rect || rect.width <= 0 || rect.height <= 0) return out;
-    const innerImgs = container.querySelectorAll?.('img[src]') || [];
+    const innerImgs = container.querySelectorAll?.('img[src], img[srcset]') || [];
     for (const innerImg of innerImgs) {
       const innerRect = getEffectiveImageRectForImageGate(innerImg);
       if (!innerRect) continue;
@@ -1220,7 +1220,7 @@ function filterSignificantImages(root = document) {
   const cappedRootFontSize = Math.min(rootFontSizeRaw, 16);
   const minContentSize = Math.max(80, cappedRootFontSize * 2);
 
-  const allImgs = Array.from(root.querySelectorAll('img[src]') || []);
+  const allImgs = Array.from(root.querySelectorAll('img[src], img[srcset]') || []);
   for (const img of allImgs) {
     if (img.getAttribute?.('aria-hidden') === 'true') {
       const probeRect = img.getBoundingClientRect?.();
@@ -2179,7 +2179,7 @@ async function detectTypeDItemMaps(root = document) {
     for (const { card } of inclusiveCards) {
       try {
         if (significantImageSet.has(card)) acceptedImageRefs.add(card);
-        const innerImgs = card.querySelectorAll?.('img[src]') || [];
+        const innerImgs = card.querySelectorAll?.('img[src], img[srcset]') || [];
         for (const innerImg of innerImgs) {
           // Phase 22 marking: now that card conditions have passed, mark
           // these images to prevent reprocessing in subsequent loop iters.

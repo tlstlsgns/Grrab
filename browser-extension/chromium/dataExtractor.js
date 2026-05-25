@@ -1364,7 +1364,7 @@ export function extractImageFromCoreItem(coreItem) {
     if (String(coreItem.tagName || '').toUpperCase() === 'IMG') {
       // === PHASE_IMAGE_URL_PIPELINE ===
       const src = resolveAbsoluteImageUrl(
-        coreItem.getAttribute?.('src') || coreItem.src
+        coreItem.getAttribute?.('src') || coreItem.currentSrc || coreItem.src
       );
       // === END PHASE_IMAGE_URL_PIPELINE ===
       if (src) {
@@ -1683,7 +1683,7 @@ export function extractImageFromCoreItem(coreItem) {
                 ? img.getBoundingClientRect()
                 : null;
               const src = resolveAbsoluteImageUrl(
-                img.getAttribute?.('src') || img.src
+                img.getAttribute?.('src') || img.currentSrc || img.src
               );
               if (src && r && r.width > 0 && r.height > 0) {
                 return {
@@ -1770,7 +1770,7 @@ export function extractImageFromCoreItem(coreItem) {
       if (naverImg) {
         try {
           const proxySrc = String(
-            naverImg.getAttribute?.('src') || naverImg.src || ''
+            naverImg.getAttribute?.('src') || naverImg.currentSrc || naverImg.src || ''
           ).trim();
           if (proxySrc) {
             const proxyUrl = new URL(proxySrc);
@@ -1837,7 +1837,7 @@ export function extractImageFromCoreItem(coreItem) {
           // Strategy 2: fall back to src path conversion.
           if (!originalUrl) {
             const src = String(
-              pinterestImg.getAttribute?.('src') || pinterestImg.src || ''
+              pinterestImg.getAttribute?.('src') || pinterestImg.currentSrc || pinterestImg.src || ''
             ).trim();
             if (src && /pinimg\.com\/\d+x\//i.test(src)) {
               originalUrl = src.replace(
@@ -1948,7 +1948,7 @@ export function extractImageFromCoreItem(coreItem) {
     for (const img of imgNodes) {
       const r = getEffectiveImageRect(img);
       if (!isVisuallySignificantImage(r)) continue;
-      const src = resolveAbsoluteImageUrl(img.getAttribute('src') || img.src);
+      const src = resolveAbsoluteImageUrl(img.getAttribute('src') || img.currentSrc || img.src);
       if (!src) continue;
       // Skip profile/avatar images — "profile_images" in the URL path is
       // a reliable cross-platform signal that the image is a user avatar,
@@ -3434,7 +3434,7 @@ export function extractMetadataForCoreItem(coreItem, closestAtag = null, hovered
       if (dominantImg) {
         const r = dominantImg.getBoundingClientRect?.();
         const src = resolveAbsoluteImageUrl(
-          dominantImg.getAttribute?.('src') || dominantImg.src
+          dominantImg.getAttribute?.('src') || dominantImg.currentSrc || dominantImg.src
         );
         if (src && r && r.width > 0 && r.height > 0) {
           image = {
