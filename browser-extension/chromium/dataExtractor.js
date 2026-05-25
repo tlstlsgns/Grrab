@@ -3383,6 +3383,35 @@ export function extractMetadataForCoreItem(coreItem, closestAtag = null, hovered
       }
     }
 
+// === PHASE_PLACEHOLDER_HREF_PAGE_URL_FALLBACK ===
+// SPA grids (Canva templates, etc.) often wrap clickable tiles in
+// <a href="#"> with a JS click handler that mutates router state.
+// resolveAnchorUrl / resolveAnchorUrlRelaxed correctly reject these
+// for dedup safety, but that leaves Type D extraction with no
+// activeHoverUrl and aborts activation. Pattern scope is narrow:
+// exact "#" only. Fragment anchors (#section), javascript:*, and
+// missing-href anchors are intentionally NOT covered (legitimate
+// in-page navigation or other intent). Falls back to the current
+// page URL so the image can still be clipped; the dedup key is
+// (page URL + image URL), which keeps multiple cards on the same
+// page distinct via their distinct image URLs.
+    if (!activeHoverUrl) {
+      const placeholderCandidates = [
+        closestAtag,
+        ...getSortedAnchorCandidatesInItemMap(coreItem, hoveredTarget)
+          .filter((a) => coreItem === a || coreItem.contains?.(a)),
+      ];
+      for (const a of placeholderCandidates) {
+        if (!a || a.nodeType !== 1) continue;
+        const rawAttr = String(a.getAttribute?.('href') || '').trim();
+        if (rawAttr === '#') {
+          activeHoverUrl = window.location.href;
+          break;
+        }
+      }
+    }
+// === END PHASE_PLACEHOLDER_HREF_PAGE_URL_FALLBACK ===
+
     if (!activeHoverUrl) return null;
 
     let image;
