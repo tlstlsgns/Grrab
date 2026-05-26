@@ -2227,18 +2227,29 @@ async function detectTypeDItemMaps(root = document) {
 
       // === PHASE20_HOTFIX_SIZE_GUARD ===
       // Reject cards that are too large to plausibly be grid cards.
+      //
+      // Phase 24's combined gate (widthRatio > 0.4 || areaRatio > 0.25) was
+      // tuned against 3-4+ column grids only and rejected legitimate layouts:
+      // 2-column grids produce widthRatio ~0.43 and areaRatio ~0.36 (both
+      // false-positive rejects), and 1-column grids produce areaRatio
+      // ~0.83 (also rejected).
+      //
+      // This guard runs AFTER sibling matching has already confirmed a
+      // multi-card group (candidateCards length >= TYPED_MIN_GROUP_SIZE).
+      // Banner-like single content (e.g., GitHub README <p>-wrapped
+      // images) doesn't reach this point — each banner has a distinct
+      // parent path that fails sibling matching. So widthRatio's role
+      // under Phase 24 ("reject banner vs grid") is redundant here.
+      //
+      // areaRatio's remaining role: reject implausibly oversized "grids"
+      // — full-screen layouts (~1.0 areaRatio) that aren't really
+      // multi-card. The 0.85 threshold covers measured 1-column grids
+      // (~0.83 from Dribbble at ~1180×900 viewport with ~1130×780 cards)
+      // with small margin while still rejecting full-screen wrappers.
       const viewportWidth = Math.max(1, Number(window?.innerWidth || 0));
       const viewportHeight = Math.max(1, Number(window?.innerHeight || 0));
-      const widthRatio = cardRect.width / viewportWidth;
       const areaRatio = (cardRect.width * cardRect.height) / (viewportWidth * viewportHeight);
-      // Phase 24: Tightened upper bound. Legitimate image card grids
-      // observed in the wild occupy at most ~0.31 widthRatio (Instagram
-      // explore is the largest sampled). Banner-like content such as
-      // GitHub README <p>-wrapped images sits at 0.5+ widthRatio. The
-      // 0.4 threshold leaves safe margin above real grids while
-      // rejecting banner content. areaRatio is tightened in parallel as
-      // a secondary signal.
-      if (widthRatio > 0.4 || areaRatio > 0.25) continue;
+      if (areaRatio > 0.85) continue;
       // === END PHASE20_HOTFIX_SIZE_GUARD ===
 
       // === PHASE27A_TYPE_D_DOMINANT_IMAGES ===
