@@ -1966,47 +1966,6 @@ async function saveActiveCoreItem(request = {}) {
     if (coreBadgeEl)   { coreBadgeEl.style.transition = '';   coreBadgeEl.style.opacity = ''; }
 
     // Request userId from background.js (cached from sidepanel sign-in)
-    // === PHASE27G_DOM_IMG_SRC ===
-    // Capture the actual <img> src visible in the page at clip
-    // time. For Cloudflare-protected origins where img_url cannot
-    // be re-fetched by KickClip (proxy / direct / background all
-    // blocked), the DOM src is what the user's browser actually
-    // rendered and is therefore the only reliably-displayable
-    // fallback. Saved alongside img_url so DataCard / file-save
-    // can fall back when the original is unreachable. img_url
-    // remains the full-resolution intent for downloads.
-    let domImgSrc = '';
-    try {
-      const activeCoreEl = state.activeCoreItem;
-      if (activeCoreEl && activeCoreEl.nodeType === 1) {
-        let domImg = null;
-        if (String(activeCoreEl.tagName || '').toUpperCase() === 'IMG') {
-          domImg = activeCoreEl;
-        } else if (typeof activeCoreEl.querySelectorAll === 'function') {
-          const innerImgs = activeCoreEl.querySelectorAll('img[src]') || [];
-          let largestArea = 0;
-          for (const candidate of innerImgs) {
-            try {
-              const rect = candidate.getBoundingClientRect?.();
-              if (!rect) continue;
-              const area = (Number(rect.width) || 0) * (Number(rect.height) || 0);
-              if (area > largestArea) {
-                largestArea = area;
-                domImg = candidate;
-              }
-            } catch (e) { /* ignore candidate */ }
-          }
-        }
-        if (domImg) {
-          domImgSrc = resolveAbsoluteImageUrl(
-            domImg.getAttribute?.('src') || domImg.src
-          );
-        }
-      }
-    } catch (e) {
-      // defensive — leave domImgSrc empty
-    }
-    // === END PHASE27G_DOM_IMG_SRC ===
     let userId = null;
     try {
       // First attempt — service worker may be asleep
@@ -2134,11 +2093,6 @@ async function saveActiveCoreItem(request = {}) {
       ...(htmlContext ? { htmlContext } : {}),
       ...(imgUrl ? { img_url: imgUrl } : {}),
       ...(originSource ? { origin_source: originSource } : {}),
-    // === PHASE27G_PAYLOAD_DOM ===
-      ...(domImgSrc && domImgSrc !== imgUrl
-        ? { img_url_dom: domImgSrc }
-        : {}),
-      // === END PHASE27G_PAYLOAD_DOM ===
       // === PHASE_IMAGE_URL_PIPELINE ===
       ...(imgThumbnailB64 ? { img_thumbnail_b64: imgThumbnailB64 } : {}),
       // === END PHASE_IMAGE_URL_PIPELINE ===
@@ -2158,11 +2112,6 @@ async function saveActiveCoreItem(request = {}) {
           title:              title || url,
           imgUrl:             imgUrl || '',
           ...(originSource ? { originSource } : {}),
-    // === PHASE27G_OPTIMISTIC_DOM ===
-          ...(domImgSrc && domImgSrc !== imgUrl
-            ? { imgUrlDom: domImgSrc }
-            : {}),
-          // === END PHASE27G_OPTIMISTIC_DOM ===
           // === PHASE_IMAGE_URL_PIPELINE ===
           ...(imgThumbnailB64 ? { imgThumbnailB64 } : {}),
           // === END PHASE_IMAGE_URL_PIPELINE ===

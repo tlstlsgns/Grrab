@@ -616,8 +616,7 @@ function shouldUsePlaceholder(item) {
   if (item?.img_thumbnail_b64) return false;
   const imgUrl = String(item?.img_url || '').trim();
   if (imgUrl) return false;
-  const dom = String(item?.img_url_dom || '').trim();
-  return !dom;
+  return true;
 }
 
 function getCardThumbnailUrl(item) {
@@ -626,7 +625,7 @@ function getCardThumbnailUrl(item) {
   if (shouldUsePlaceholder(item)) return null;
   const imgUrl = String(item?.img_url || '').trim();
   if (imgUrl) return imgUrl;
-  return String(item?.img_url_dom || '').trim() || null;
+  return null;
 }
 // === END PHASE_IMAGE_URL_PIPELINE ===
 // === END PHASE_SIDEPANEL_UNIFIED_LIST ===
@@ -1043,10 +1042,6 @@ function createDataCard(item) {
   const escapedTitle = displayTitle.replace(/"/g, '&quot;');
   const imgUrl       = (item.img_url || '').trim();
   const escapedImgUrl = imgUrl.replace(/"/g, '&quot;');
-  // === PHASE27G_DOM_ATTR ===
-  const imgUrlDom       = (item.img_url_dom || '').trim();
-  const escapedImgUrlDom = imgUrlDom.replace(/"/g, '&quot;');
-  // === END PHASE27G_DOM_ATTR ===
   const directoryId  = item.directoryId && item.directoryId !== 'undefined' ? item.directoryId : '';
 
   // Upload button HTML (shared) — appears immediately left of delete in header
@@ -1122,7 +1117,6 @@ function createDataCard(item) {
          data-url="${escapedUrl}"
          data-title="${escapedTitle}"
          data-img-url="${escapedImgUrl}"
-         data-img-url-dom="${escapedImgUrlDom}"
          data-item-id="${itemId}"
          data-doc-id="${item.id || ''}"
          data-directory-id="${directoryId}">
@@ -1167,9 +1161,6 @@ function createCardElement(item, isNew = false) {
     card.dataset.directoryId = item.directoryId;
   }
   card.dataset.imgUrl = item.img_url || '';
-  // === PHASE27G_DOM_DATASET ===
-  card.dataset.imgUrlDom = item.img_url_dom || '';
-  // === END PHASE27G_DOM_DATASET ===
 
   kcCardItemByEl.set(card, item);
   attachCardImageErrorFallback(card, item);
@@ -1381,7 +1372,6 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
     url:         url || '',
     title:       title || 'Untitled',
     img_url:     imgUrl || '',
-    img_url_dom: (imgUrlDom || '').trim(),
     ...(imgThumbnailB64 ? { img_thumbnail_b64: imgThumbnailB64 } : {}),
     domain:      (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })(),
     directoryId: 'undefined',
@@ -1497,7 +1487,6 @@ function applyOptimisticCardImage(tempId, imgUrl) {
     img.src = getProxiedImageUrl(imgUrl);
     img.alt = String(entry.title || '');
     card.dataset.imgUrl = imgUrl;
-    card.dataset.imgUrlDom = String(entry.imgUrlDom || '').trim();
     return;
   }
 
@@ -1518,7 +1507,6 @@ function applyOptimisticCardImage(tempId, imgUrl) {
 
   // Reflect on the card's dataset so loadData() comparisons work.
   card.dataset.imgUrl = imgUrl;
-  card.dataset.imgUrlDom = String(entry.imgUrlDom || '').trim();
 }
 
 /**
@@ -2635,11 +2623,6 @@ function attachCardClickHandlers() {
   attachDeleteHandlers(document);
   attachUploadHandlers(document);
 
-  // === PHASE27G_DOM_FALLBACK ===
-  // Delegated image error handler: when the proxied URL fails, try
-  // img_url_dom (DOM src captured at clip time — often a data URL
-  // from Google image search thumbnails). If both fail, grey
-  // placeholder.
   document.querySelectorAll('.data-card-imgcontainer').forEach((container) => {
     if (container.dataset.imgHandlerAttached === 'true') return;
     container.dataset.imgHandlerAttached = 'true';
@@ -2648,21 +2631,6 @@ function attachCardClickHandlers() {
     if (!img) return;
 
     img.addEventListener('error', () => {
-      const card = container.closest('.data-card');
-      const domSrc = String(card?.dataset?.imgUrlDom || '').trim();
-
-      if (img.dataset.fallbackAttempted === 'true') {
-        container.classList.add('img-placeholder');
-        img.style.display = 'none';
-        return;
-      }
-
-      if (domSrc && img.src !== domSrc) {
-        img.dataset.fallbackAttempted = 'true';
-        img.src = domSrc;
-        return;
-      }
-
       container.classList.add('img-placeholder');
       img.style.display = 'none';
     });
@@ -2670,10 +2638,8 @@ function attachCardClickHandlers() {
     img.addEventListener('load', () => {
       container.classList.remove('img-placeholder');
       img.style.display = '';
-      delete img.dataset.fallbackAttempted;
     });
   });
-  // === END PHASE27G_DOM_FALLBACK ===
 }
 
 // Deactivate active card when clicking outside any card-wrapper
@@ -2948,24 +2914,9 @@ function updateCardImage(cardEl, newImgUrl) {
       cardEl.dataset.imgUrl = trimmed;
       delete imgEl.dataset.fallbackAttempted;
     };
-    // === PHASE27G_UPDATE_CARD_DOM_FALLBACK ===
     preloader.onerror = () => {
-      const domSrc = String(cardEl.dataset?.imgUrlDom || '').trim();
-      if (domSrc && domSrc !== trimmed) {
-        const fallback = new Image();
-        fallback.onload = () => {
-          imgEl.src = domSrc;
-          imgEl.dataset.fallbackAttempted = 'true';
-        };
-        fallback.onerror = () => {
-          imgEl.src = proxiedUrl;
-        };
-        fallback.src = domSrc;
-        return;
-      }
       imgEl.src = proxiedUrl;
     };
-    // === END PHASE27G_UPDATE_CARD_DOM_FALLBACK ===
     preloader.src = proxiedUrl;
   } catch (e) {}
 }
@@ -3122,8 +3073,6 @@ function loadData() {
           // Phase 12b post-image-ready). Leave src alone — base64 already
           // looks correct, swap would cause a re-fetch flicker.
         }
-        existingCard.dataset.imgUrlDom = String(item.img_url_dom || '').trim();
-
         kcCardItemByEl.set(existingCard, item);
 
         // Remove optimistic marker so the DOM clear loop won't skip this container
@@ -3145,9 +3094,6 @@ function loadData() {
         itemToRender = {
           ...item,
           ...(optimisticData.imgUrl && !item.img_url ? { img_url: optimisticData.imgUrl } : {}),
-          ...(optimisticData.imgUrlDom && !item.img_url_dom
-            ? { img_url_dom: optimisticData.imgUrlDom }
-            : {}),
         };
       }
       removeOptimisticCard(matchedTempId);
@@ -3167,7 +3113,6 @@ function loadData() {
 
         if (nextImgUrl && nextImgUrl !== prevImgUrl) {
           if (hasImgContainer) {
-            existingCard.dataset.imgUrlDom = String(itemToRender.img_url_dom || '').trim();
             updateCardImage(
               existingCard,
               nextImgUrl
@@ -3294,7 +3239,6 @@ function reconcileSnapshotSilently(snap) {
     if (item.img_url) {
       existingCard.dataset.imgUrl = item.img_url;
     }
-    existingCard.dataset.imgUrlDom = String(item.img_url_dom || '').trim();
 
     kcCardItemByEl.set(existingCard, item);
 

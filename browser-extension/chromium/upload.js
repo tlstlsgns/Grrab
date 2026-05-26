@@ -374,8 +374,7 @@ export async function saveItemViaDownloads(item) {
       // === PHASE_UPLOAD_FALLBACK_B64 ===
       // img_url fetch failure: fall back to img_thumbnail_b64 (the inline
       // 400x400 JPEG data URL saved at clip time — same image as clipboard,
-      // CORS-immune). Replaces former img_url_dom fallback, which was less
-      // reliable (DOM extraction often missed lazy-loaded images).
+      // CORS-immune).
       const imgResult = await fetchImageAsBlob(
         imgUrl,
         (item.img_thumbnail_b64 || '').trim()
@@ -516,8 +515,7 @@ export async function writeItemToHandle(handle, item) {
       // === PHASE_UPLOAD_FALLBACK_B64 ===
       // img_url fetch failure: fall back to img_thumbnail_b64 (the inline
       // 400x400 JPEG data URL saved at clip time — same image as clipboard,
-      // CORS-immune). Replaces former img_url_dom fallback, which was less
-      // reliable (DOM extraction often missed lazy-loaded images).
+      // CORS-immune).
       const imgResult = await fetchImageAsBlob(
         imgUrl,
         (item.img_thumbnail_b64 || '').trim()
@@ -619,8 +617,7 @@ export async function buildDriveUploadPayload(item) {
       // === PHASE_UPLOAD_FALLBACK_B64 ===
       // img_url fetch failure: fall back to img_thumbnail_b64 (the inline
       // 400x400 JPEG data URL saved at clip time — same image as clipboard,
-      // CORS-immune). Replaces former img_url_dom fallback, which was less
-      // reliable (DOM extraction often missed lazy-loaded images).
+      // CORS-immune).
       const imgResult = await fetchImageAsBlob(
         imgUrl,
         (item.img_thumbnail_b64 || '').trim()

@@ -224,7 +224,6 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
   const {
     url, title, timestamp, img_url,
     screenshot_base64, screenshot_bg_color, category,
-    img_url_dom, // === PHASE27G_FIELD ===
     img_thumbnail_b64,
     origin_source,
   } = req.body;
@@ -337,12 +336,6 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     };
     if (resolvedImgUrl) baseFields.img_url = resolvedImgUrl;
     if (resolvedOriginSource) baseFields.origin_source = resolvedOriginSource;
-    // === PHASE27G_FIELD ===
-    const resolvedImgUrlDom = typeof img_url_dom === "string" ?
-      img_url_dom.trim() :
-      "";
-    if (resolvedImgUrlDom) baseFields.img_url_dom = resolvedImgUrlDom;
-    // === END PHASE27G_FIELD ===
     // === PHASE_IMAGE_URL_PIPELINE ===
     const resolvedImgThumbnailB64 =
       typeof img_thumbnail_b64 === "string" &&
