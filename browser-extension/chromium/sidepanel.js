@@ -122,6 +122,13 @@ async function _refreshDirContainer(autoEnabled) {
       'kc-dir-drive-configured'
     );
 
+    // === PHASE_DIR_POPOVER ===
+    // Branch order:
+    //   destination = {type:'drive', ...}     → Drive label (existing)
+    //   destination = {type:'downloads'}      → "Downloads" (explicit selection)
+    //   destination = {type:'local'}          → IDB handle name (existing)
+    //   destination = null + cached handle    → IDB handle name (backfill compat)
+    //   destination = null + no handle        → "Downloads (기본)" (implicit default)
     if (destination && destination.type === 'drive') {
       const parent = destination.driveParentFolderName || '';
       const child = destination.driveFolderName || 'kickclip_files';
@@ -129,7 +136,11 @@ async function _refreshDirContainer(autoEnabled) {
       label.textContent = fullPath;
       btn.title = `Google Drive: ${fullPath}`;
       btn.classList.add('kc-dir-configured', 'kc-dir-drive-configured');
-    } else {
+    } else if (destination && destination.type === 'downloads') {
+      label.textContent = 'Downloads';
+      btn.title = '다운로드 폴더에 저장합니다';
+      btn.classList.add('kc-dir-configured');
+    } else if (destination && destination.type === 'local') {
       const handle = getPrimaryHandleForGesture();
       if (handle) {
         label.textContent = handle.name;
@@ -140,7 +151,20 @@ async function _refreshDirContainer(autoEnabled) {
         btn.title = '저장 폴더를 선택하세요';
         btn.classList.add('kc-dir-unconfigured');
       }
+    } else {
+      // destination === null — unconfigured default.
+      const handle = getPrimaryHandleForGesture();
+      if (handle) {
+        label.textContent = handle.name;
+        btn.title = `로컬 폴더: ${handle.name}`;
+        btn.classList.add('kc-dir-configured');
+      } else {
+        label.textContent = 'Downloads (기본)';
+        btn.title = '저장 위치 미설정 — 다운로드 폴더에 저장합니다. 클릭하여 변경하세요.';
+        btn.classList.add('kc-dir-unconfigured');
+      }
     }
+    // === END PHASE_DIR_POPOVER ===
 
     autoBox.checked = Boolean(autoEnabled);
   } catch (e) {
@@ -159,6 +183,13 @@ function _markDirFolderMissing(folderName) {
 }
 
 async function handleOpenFolderSettings() {
+  // === PHASE_DIR_POPOVER ===
+  // Pre-warning toast: showDirectoryPicker rejects sensitive directories
+  // (Desktop, Downloads, Documents, etc.) silently via AbortError. The
+  // toast warns the user before the picker steals focus.
+  showKcToast('시스템 폴더는 선택 불가. 별도 폴더를 만들어 선택하세요.', 'error', 3500);
+  // === END PHASE_DIR_POPOVER ===
+
   // Re-click: close any existing picker window first
   if (_kcPickerWindowId != null) {
     try {
@@ -1731,7 +1762,9 @@ function attachClearButtonHandlers() {
 btnSignin.addEventListener('click', signInWithGoogle);
 btnSignout.addEventListener('click', signOut);
 if (dirFolderBtn) {
-  dirFolderBtn.addEventListener('click', handleOpenFolderSettings);
+  // === PHASE_DIR_POPOVER ===
+  dirFolderBtn.addEventListener('click', () => openKcDirPopover(dirFolderBtn));
+  // === END PHASE_DIR_POPOVER ===
 }
 if (dirAutoBox) {
   dirAutoBox.addEventListener('change', handleAutoCheckboxChange);
@@ -2238,6 +2271,180 @@ function openKcUploadPopover(anchorBtn, item) {
   }, 0);
   document.addEventListener('keydown', onKcUploadEscapeKey, false);
 }
+
+// === PHASE_DIR_POPOVER ===
+// Dir-region popover. Three explicit choices for upload destination:
+//   📂 Downloads 폴더 (기본)  — sets destination to {type:'downloads'}.
+//   📁 폴더 직접 선택...      — pre-warning toast, then opens the
+//                                FileSystemDirectoryHandle picker popup.
+//                                Picker outcome (success/AbortError) is
+//                                handled by handleOpenFolderSettings.
+//   ☁️ Google Drive            — calls existing setupDriveDestination().
+//
+// Reuses the kc-upload-popover CSS classes (same visual treatment) plus
+// a new kc-upload-popover--active class on the currently-selected item.
+//
+// Active-state computation: each open re-queries getDestination() to
+// reflect the current pref. The null state is shown as "Downloads" being
+// active (matches the label "(기본)" in _refreshDirContainer).
+let kcDirPopoverEl = null;
+let kcDirOutsideDismiss = null;
+function onKcDirEscapeKey(ev) {
+  if (ev.key === 'Escape') closeKcDirPopover();
+}
+
+function closeKcDirPopover() {
+  if (kcDirOutsideDismiss) {
+    document.removeEventListener('click', kcDirOutsideDismiss, false);
+    kcDirOutsideDismiss = null;
+  }
+  document.removeEventListener('keydown', onKcDirEscapeKey, false);
+  if (kcDirPopoverEl) {
+    kcDirPopoverEl.classList.remove('kc-upload-popover--open');
+    kcDirPopoverEl.style.display = 'none';
+  }
+}
+
+function ensureKcDirPopover() {
+  if (kcDirPopoverEl) return kcDirPopoverEl;
+  const app = document.getElementById('app');
+  if (!app) return null;
+  const div = document.createElement('div');
+  div.className = 'kc-upload-popover kc-dir-popover';
+  div.setAttribute('role', 'menu');
+  div.innerHTML = `
+    <button type="button" class="kc-upload-popover-item" data-dir-choice="downloads" role="menuitem">
+      <span class="kc-upload-popover-icon" aria-hidden="true">📂</span>
+      <span>Downloads 폴더 (기본)</span>
+    </button>
+    <button type="button" class="kc-upload-popover-item" data-dir-choice="local" role="menuitem">
+      <span class="kc-upload-popover-icon" aria-hidden="true">📁</span>
+      <span>폴더 직접 선택...</span>
+    </button>
+    <button type="button" class="kc-upload-popover-item" data-dir-choice="drive" role="menuitem">
+      <span class="kc-upload-popover-icon" aria-hidden="true">☁️</span>
+      <span>Google Drive</span>
+    </button>
+  `;
+  div.querySelectorAll('.kc-upload-popover-item').forEach((itemBtn) => {
+    itemBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const choice = itemBtn.getAttribute('data-dir-choice') || '';
+      closeKcDirPopover();
+      if (choice === 'downloads') {
+        const ok = await setDestination({ type: 'downloads' });
+        if (!ok) {
+          showKcToast('저장 위치 변경 실패', 'error');
+          return;
+        }
+        await _refreshDirContainer(await getAutoEnabled());
+        showKcToast('저장 위치: Downloads 폴더', 'success');
+      } else if (choice === 'local') {
+        // handleOpenFolderSettings fires the pre-warning toast before
+        // opening the picker, and the post-warning toast on AbortError
+        // (added in this commit). On picker success the existing message
+        // handler in init() will call setDestination({type:'local'}) +
+        // _refreshDirContainer.
+        await handleOpenFolderSettings();
+      } else if (choice === 'drive') {
+        showKcToast('Google Drive 설정 중...', 'success');
+        const setup = await setupDriveDestination();
+        if (!setup || !setup.ok) {
+          showKcToast(`Drive 설정 실패: ${setup?.message || setup?.reason || 'Unknown'}`, 'error');
+          return;
+        }
+        await _refreshDirContainer(await getAutoEnabled());
+        showKcToast('저장 위치: Google Drive', 'success');
+      }
+    });
+  });
+  app.appendChild(div);
+  kcDirPopoverEl = div;
+  return div;
+}
+
+function positionKcDirPopover(anchorEl) {
+  const pop = ensureKcDirPopover();
+  if (!pop || !anchorEl) return;
+
+  pop.classList.remove('kc-upload-popover--open');
+  pop.style.display = 'block';
+  pop.style.visibility = 'hidden';
+  pop.style.position = 'fixed';
+  pop.style.left = '0px';
+  pop.style.top = '0px';
+
+  requestAnimationFrame(() => {
+    const ar = anchorEl.getBoundingClientRect();
+    const pr = pop.getBoundingClientRect();
+    const pad = 6;
+    let left = ar.left;
+    let top = ar.bottom + 4;
+
+    if (left + pr.width > window.innerWidth - pad) {
+      left = ar.right - pr.width;
+    }
+    if (left < pad) left = pad;
+
+    if (top + pr.height > window.innerHeight - pad) {
+      top = ar.top - pr.height - 4;
+    }
+    if (top < pad) top = pad;
+
+    pop.style.left = `${Math.round(left)}px`;
+    pop.style.top = `${Math.round(top)}px`;
+    pop.style.visibility = '';
+    pop.style.display = '';
+    pop.classList.add('kc-upload-popover--open');
+  });
+}
+
+async function openKcDirPopover(anchorBtn) {
+  const pop = ensureKcDirPopover();
+  if (!pop) return;
+
+  const wasOpen = pop.classList.contains('kc-upload-popover--open');
+  if (wasOpen) {
+    closeKcDirPopover();
+    return;
+  }
+
+  // Refresh active-item visual based on current destination.
+  try {
+    const dest = await getDestination();
+    const activeChoice = !dest
+      ? 'downloads'
+      : (dest.type === 'downloads' ? 'downloads'
+        : dest.type === 'local'    ? 'local'
+        : dest.type === 'drive'    ? 'drive'
+        : null);
+    pop.querySelectorAll('.kc-upload-popover-item').forEach((btn) => {
+      btn.classList.toggle(
+        'kc-upload-popover-item--active',
+        btn.getAttribute('data-dir-choice') === activeChoice
+      );
+    });
+  } catch (e) {
+    console.log('[KICKCLIP-LOG] openKcDirPopover active refresh error:', e);
+  }
+
+  positionKcDirPopover(anchorBtn);
+
+  if (kcDirOutsideDismiss) {
+    document.removeEventListener('click', kcDirOutsideDismiss, false);
+  }
+  const outside = (ev) => {
+    if (ev.target.closest('.kc-dir-popover')) return;
+    if (ev.target.closest('#kc-dir-folder-btn')) return;
+    closeKcDirPopover();
+  };
+  kcDirOutsideDismiss = outside;
+  setTimeout(() => {
+    document.addEventListener('click', outside, false);
+  }, 0);
+  document.addEventListener('keydown', onKcDirEscapeKey, false);
+}
+// === END PHASE_DIR_POPOVER ===
 
 function attachUploadHandlers(container) {
   container.querySelectorAll('.data-card-upload').forEach((wrap) => {
