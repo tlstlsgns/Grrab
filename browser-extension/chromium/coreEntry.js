@@ -1616,12 +1616,33 @@ function mountObservers() {
         for (const node of mutation.addedNodes) {
           if (node.nodeType !== 1) continue;
           if (NON_VISUAL_TAGS.has(String(node.tagName || '').toUpperCase())) continue;
+          // === PHASE_PREVIEW_VIDEO_MO_HOOK ===
           // Skip DOM changes inside #video-preview and ytd-miniplayer —
           // these are YouTube's thumbnail preview and miniplayer overlays
-          // which are unrelated to ItemMap detection.
-          // Other ytd-app subtree changes (e.g. PiP transition, related videos)
-          // are allowed through so ItemMap re-scans correctly.
-          if (node.closest?.('#video-preview') || node.closest?.('ytd-miniplayer')) continue;
+          // whose internal UI churn (player controls, caption windows, etc.)
+          // is unrelated to ItemMap detection.
+          //
+          // Exception: a <video> node being inserted INTO #video-preview
+          // (the preview's player <video> mounting at hover time) IS
+          // meaningful for ItemMap detection — it makes the preview
+          // <video> eligible for Type E registration so subsequent
+          // dispatcher logic (see PHASE_DOM_DRIVEN_REDISPATCH / dispatcher
+          // cleanup in later commits) can activate it. Without this hook,
+          // the preview <video> is registered late (only when an unrelated
+          // trigger such as scroll or resize re-runs detectItemMaps),
+          // producing a stage-2→stage-3 timing gap before Type E becomes
+          // available.
+          //
+          // ytd-miniplayer is treated as before (always skipped) — its
+          // internal <video> usage corresponds to a different in-app
+          // experience that is out of scope for this transform.
+          const isPreviewVideoMount =
+            String(node.tagName || '').toUpperCase() === 'VIDEO' &&
+            !!node.closest?.('#video-preview');
+          if (!isPreviewVideoMount) {
+            if (node.closest?.('#video-preview') || node.closest?.('ytd-miniplayer')) continue;
+          }
+          // === END PHASE_PREVIEW_VIDEO_MO_HOOK ===
           // After a SPA navigation, always run a full document scan with force=true
           // so that frameworks like Vue that re-render the full list are correctly detected.
           // Otherwise, run a full document scan on meaningful DOM additions.
