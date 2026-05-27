@@ -215,10 +215,7 @@ function formatItemAsMarkdown(item) {
   const krDate = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
   lines.push(`- **URL**: <${url}>`);
   lines.push(`- **저장 일시**: ${krDate}`);
-  let catLine = `- **카테고리**: ${category || '(none)'}`;
-  if (category === 'SNS' && confirmed) {
-    catLine += ` (${confirmed})`;
-  }
+  const catLine = `- **카테고리**: ${category || '(none)'}`;
   lines.push(catLine);
   if (platform) {
     lines.push(`- **플랫폼**: ${platform}`);
