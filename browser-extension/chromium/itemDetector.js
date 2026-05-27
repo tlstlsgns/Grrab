@@ -3560,15 +3560,43 @@ function applyOverlayCaseRule(coreItem, dominantImg, comparator, imgRect) {
   if (!comparatorRect) return null;
   if (comparatorRect.width <= 0 || comparatorRect.height <= 0) return null;
 
-  // Case 1: img fully within comparator (no tolerance).
+  // === PHASE_OVERLAY_CASE1_CONTENT_BOX ===
+  // Case 1: img fully within comparator's CONTENT box, within ±1px
+  // tolerance per edge.
+  //
+  // Two coordinated corrections vs the original border-box / zero-tolerance
+  // check:
+  //
+  //   (i)  Compare against the content box (border + padding subtracted),
+  //        not the border box. Comparators with non-zero padding (notably
+  //        YouTube's `a.ytLockupViewModelContentImage` with
+  //        `padding-bottom: 12px`) would otherwise force Case 1 to fail
+  //        when the dominant img exactly fills the visible thumbnail area
+  //        but does not extend into the padding region — leading to a
+  //        spurious Case 2 result (overlay = comparator) on every such
+  //        card.
+  //
+  //   (ii) Allow ±1px tolerance per edge to absorb sub-pixel fractional
+  //        rect drift (DPR scaling, fractional aspect-ratio layout).
+  //        Empirically observed at 0.0039px on YouTube; 1px is generous
+  //        enough to never reject visually identical layouts but tight
+  //        enough that an img genuinely overflowing the content area by
+  //        a meaningful amount still falls through to the clip check.
+  //
+  // Both corrections push the failure mode in the same direction: more
+  // permissive Case 1 → fewer spurious Case 2 hits. They do NOT change
+  // Case 2 or Case 3 semantics.
+  const CASE1_TOLERANCE_PX = 1;
+  const contentRect = getComparatorContentRect(comparator, comparatorRect);
   if (
-    imgRect.left >= comparatorRect.left &&
-    imgRect.top >= comparatorRect.top &&
-    imgRect.right <= comparatorRect.right &&
-    imgRect.bottom <= comparatorRect.bottom
+    imgRect.left   >= contentRect.left   - CASE1_TOLERANCE_PX &&
+    imgRect.top    >= contentRect.top    - CASE1_TOLERANCE_PX &&
+    imgRect.right  <= contentRect.right  + CASE1_TOLERANCE_PX &&
+    imgRect.bottom <= contentRect.bottom + CASE1_TOLERANCE_PX
   ) {
     return dominantImg;
   }
+  // === END PHASE_OVERLAY_CASE1_CONTENT_BOX ===
 
   // img > comparator in layout. Check whether the overflow is actually
   // clipped visually by any element on the img → comparator ancestor chain.
@@ -3580,6 +3608,46 @@ function applyOverlayCaseRule(coreItem, dominantImg, comparator, imgRect) {
   // Case 3: no clip; img genuinely paints outside comparator's box.
   return dominantImg;
 }
+
+// === PHASE_OVERLAY_CASE1_CONTENT_BOX ===
+// Returns a DOMRect-like object representing comparator's content box —
+// its border-box rect with borders and padding subtracted on each edge.
+// Used by applyOverlayCaseRule's Case 1 comparison so that comparators
+// with non-zero padding (e.g. YouTube's `a.ytLockupViewModelContentImage`
+// with `padding-bottom: 12px`) do not falsely fail Case 1 when the
+// dominant img exactly fills the comparator's content area but stops
+// short of the padding region. Without this correction, Case 1's strict
+// `imgRect.bottom <= comparatorRect.bottom` rejects the img by the full
+// padding amount, falls through to Case 2, and (if clip is present on
+// the img→comparator path) returns the comparator — producing an
+// overlay that includes the empty padding strip below the thumbnail.
+//
+// Falls back to the raw border-box rect when getComputedStyle is
+// unavailable or any parsed value is non-finite (defensive: never
+// degrade the comparison if style read fails).
+function getComparatorContentRect(comparator, borderBoxRect) {
+  try {
+    const cs = window.getComputedStyle?.(comparator);
+    if (!cs) return borderBoxRect;
+    const pl = parseFloat(cs.paddingLeft) || 0;
+    const pt = parseFloat(cs.paddingTop) || 0;
+    const pr = parseFloat(cs.paddingRight) || 0;
+    const pb = parseFloat(cs.paddingBottom) || 0;
+    const bl = parseFloat(cs.borderLeftWidth) || 0;
+    const bt = parseFloat(cs.borderTopWidth) || 0;
+    const br = parseFloat(cs.borderRightWidth) || 0;
+    const bb = parseFloat(cs.borderBottomWidth) || 0;
+    return {
+      left: borderBoxRect.left + bl + pl,
+      top: borderBoxRect.top + bt + pt,
+      right: borderBoxRect.right - br - pr,
+      bottom: borderBoxRect.bottom - bb - pb,
+    };
+  } catch (e) {
+    return borderBoxRect;
+  }
+}
+// === END PHASE_OVERLAY_CASE1_CONTENT_BOX ===
 
 // Walk from img upward through its ancestor chain. Returns true if any
 // element on the path up to and including `anchor` carries a clip-producing
