@@ -38,6 +38,9 @@ import {
   writeItemToHandle,
   saveItemViaDownloads,
   buildDriveUploadPayload,
+  // === PHASE_UPLOAD_AUTO_ROUTING ===
+  saveItemToDownloads,
+  // === END PHASE_UPLOAD_AUTO_ROUTING ===
 } from './upload.js';
 import {
   getDestination,
@@ -2107,18 +2110,65 @@ async function handleDriveUpload(item, anchorBtn) {
   }
 }
 
+// === PHASE_UPLOAD_AUTO_ROUTING ===
+// handleUploadButtonClick — card upload button entry point.
+//
+// Auto policy (per decision 2/Y):
+//   Auto ON  → route immediately via handleUploadToDestination (no popover)
+//   Auto OFF → show card popover (now 2 options: 내 컴퓨터 폴더 / 지정 디렉토리로 업로드)
+//
+// "지정 디렉토리로 업로드" in the popover calls the same
+// handleUploadToDestination dispatcher, so Auto ON and "popover →
+// 지정 디렉토리로 업로드" produce identical outcomes.
 async function handleUploadButtonClick(item, anchorBtn) {
   try {
-    const destination = await getDestination();
     const autoEnabled = await getAutoEnabled();
-
-    if (!destination) {
-      openKcUploadPopover(anchorBtn, item);
+    if (autoEnabled) {
+      await handleUploadToDestination(item, anchorBtn);
       return;
     }
+    openKcUploadPopover(anchorBtn, item);
+  } catch (e) {
+    console.log('[KICKCLIP-LOG] handleUploadButtonClick error:', e);
+    openKcUploadPopover(anchorBtn, item);
+  }
+}
 
-    if (!autoEnabled) {
-      openKcUploadPopover(anchorBtn, item);
+// handleUploadToDestination — destination-driven upload dispatcher.
+//
+// Called from two paths:
+//   1. handleUploadButtonClick when Auto is ON.
+//   2. Card popover's "지정 디렉토리로 업로드" item.
+//
+// Destination mapping:
+//   null                            → saveItemToDownloads (implicit default)
+//   {type: 'downloads'}             → saveItemToDownloads (explicit)
+//   {type: 'local'} + handle ok     → handleAutoPathUpload (existing IDB handle path)
+//   {type: 'local'} + handle missing → _markDirFolderMissing + toast + open Dir popover
+//   {type: 'drive', ...}             → handleAutoDriveUpload (existing Drive path)
+//
+// The Downloads paths (null + 'downloads') go through chrome.downloads
+// with filename '<sanitized>.<ext>' in the Downloads root and saveAs: false. No OS
+// dialog, no user gesture required.
+async function handleUploadToDestination(item, anchorBtn) {
+  try {
+    const destination = await getDestination();
+
+    // Downloads: null fallthrough and explicit type both route here.
+    if (!destination || destination.type === 'downloads') {
+      const result = await saveItemToDownloads(item);
+      if (result && result.ok) {
+        flashUploadMark(anchorBtn, true);
+        const safeTitle = (item.title || '').trim() || '(untitled)';
+        if (result.usedFallback) {
+          showKcToast(`${safeTitle}\n원본 다운로드 실패, 표시 이미지를 저장했습니다`, 'success');
+        } else {
+          showKcToast(`${safeTitle}\n저장 완료`, 'success');
+        }
+      } else {
+        flashUploadMark(anchorBtn, false);
+        showKcToast(`저장 실패: ${result?.message || 'Unknown error'}`, 'error');
+      }
       return;
     }
 
@@ -2126,7 +2176,11 @@ async function handleUploadButtonClick(item, anchorBtn) {
       const handle = getPrimaryHandleForGesture();
       if (!handle) {
         _markDirFolderMissing();
-        openKcUploadPopover(anchorBtn, item);
+        showKcToast('선택한 폴더를 찾을 수 없습니다. 저장 위치를 다시 선택해주세요.', 'error');
+        // Open Dir popover so user can re-pick. dirFolderBtn from module scope.
+        if (typeof dirFolderBtn !== 'undefined' && dirFolderBtn) {
+          openKcDirPopover(dirFolderBtn);
+        }
         return;
       }
       handleAutoPathUpload(item, anchorBtn, handle);
@@ -2138,12 +2192,22 @@ async function handleUploadButtonClick(item, anchorBtn) {
       return;
     }
 
-    openKcUploadPopover(anchorBtn, item);
+    // Defensive fallback: unknown destination shape → treat as Downloads.
+    const result = await saveItemToDownloads(item);
+    if (result && result.ok) {
+      flashUploadMark(anchorBtn, true);
+      showKcToast('저장 완료', 'success');
+    } else {
+      flashUploadMark(anchorBtn, false);
+      showKcToast(`저장 실패: ${result?.message || 'Unknown error'}`, 'error');
+    }
   } catch (e) {
-    console.log('[KICKCLIP-LOG] handleUploadButtonClick error:', e);
-    openKcUploadPopover(anchorBtn, item);
+    console.log('[KICKCLIP-LOG] handleUploadToDestination error:', e);
+    flashUploadMark(anchorBtn, false);
+    showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
   }
 }
+// === END PHASE_UPLOAD_AUTO_ROUTING ===
 
 // ── Upload destination popover (Phase U1 — UI only, no file I/O) ──────────────
 
@@ -2172,14 +2236,22 @@ function ensureKcUploadPopover() {
   const div = document.createElement('div');
   div.className = 'kc-upload-popover';
   div.setAttribute('role', 'menu');
+  // === PHASE_UPLOAD_AUTO_ROUTING ===
+  // Card popover items (decision 6):
+  //   📁 내 컴퓨터 폴더         → handleLocalUpload (OS save dialog, saveAs: true)
+  //   📁 지정 디렉토리로 업로드  → handleUploadToDestination (routes by destination)
+  //
+  // Drive option removed from card popover. Drive is set via the Dir
+  // popover (PHASE_DIR_POPOVER); once {type:'drive'} is the active
+  // destination, the "지정 디렉토리로 업로드" item routes there.
   div.innerHTML = `
     <button type="button" class="kc-upload-popover-item" data-destination="local" role="menuitem">
       <span class="kc-upload-popover-icon" aria-hidden="true">📁</span>
       <span>내 컴퓨터 폴더</span>
     </button>
-    <button type="button" class="kc-upload-popover-item" data-destination="drive" role="menuitem">
-      <span class="kc-upload-popover-icon" aria-hidden="true">☁️</span>
-      <span>Google Drive</span>
+    <button type="button" class="kc-upload-popover-item" data-destination="destination" role="menuitem">
+      <span class="kc-upload-popover-icon" aria-hidden="true">📁</span>
+      <span>지정 디렉토리로 업로드</span>
     </button>
   `;
   div.querySelectorAll('.kc-upload-popover-item').forEach((itemBtn) => {
@@ -2192,11 +2264,12 @@ function ensureKcUploadPopover() {
       if (!item) return;
       if (dest === 'local') {
         handleLocalUpload(item, anchorBtn);
-      } else if (dest === 'drive') {
-        await handleDriveUpload(item, anchorBtn);
+      } else if (dest === 'destination') {
+        await handleUploadToDestination(item, anchorBtn);
       }
     });
   });
+  // === END PHASE_UPLOAD_AUTO_ROUTING ===
   app.appendChild(div);
   kcUploadPopoverEl = div;
   return div;
