@@ -128,10 +128,18 @@ async function _refreshDirContainer(autoEnabled) {
     // === PHASE_DIR_POPOVER ===
     // Branch order:
     //   destination = {type:'drive', ...}     → Drive label (existing)
-    //   destination = {type:'downloads'}      → "Downloads" (explicit selection)
-    //   destination = {type:'local'}          → IDB handle name (existing)
-    //   destination = null + cached handle    → IDB handle name (backfill compat)
-    //   destination = null + no handle        → "Downloads (기본)" (implicit default)
+    //   destination = {type:'downloads'}      → "Downloads" (new, explicit)
+    //   destination = {type:'local'}          → IDB handle name (existing, but now
+    //                                            requires the handle to still exist)
+    //   destination = null + cached handle    → IDB handle name (backfill path,
+    //                                            existing — kept for U2 compat)
+    //   destination = null + no handle        → "Downloads (기본)" (new)
+    //
+    // Note: in this commit (U3) the actual upload of items with
+    // destination={type:'downloads'} or null still goes through the
+    // legacy local-handle code paths if a stale handle exists in the
+    // module cache. U4 rewrites the upload routing to use
+    // saveItemToDownloads for the 'downloads' / null cases.
     if (destination && destination.type === 'drive') {
       const parent = destination.driveParentFolderName || '';
       const child = destination.driveFolderName || 'kickclip_files';
@@ -150,14 +158,22 @@ async function _refreshDirContainer(autoEnabled) {
         btn.title = `로컬 폴더: ${handle.name}`;
         btn.classList.add('kc-dir-configured');
       } else {
+        // Handle was cleared (permission revoked, folder deleted, etc).
+        // Fall back to unconfigured display so user can re-pick.
         label.textContent = '저장 위치 선택';
         btn.title = '저장 폴더를 선택하세요';
         btn.classList.add('kc-dir-unconfigured');
       }
     } else {
       // destination === null — unconfigured default.
+      // Show "Downloads (기본)" as the implicit default.
       const handle = getPrimaryHandleForGesture();
       if (handle) {
+        // Backfill compatibility: a cached handle exists but no
+        // destination was ever set. The init code at module load sets
+        // destination={type:'local'} in this case, but if the IIFE
+        // hasn't run yet or failed, fall through here so the user sees
+        // their existing folder rather than the implicit default.
         label.textContent = handle.name;
         btn.title = `로컬 폴더: ${handle.name}`;
         btn.classList.add('kc-dir-configured');
@@ -190,6 +206,9 @@ async function handleOpenFolderSettings() {
   // Pre-warning toast: showDirectoryPicker rejects sensitive directories
   // (Desktop, Downloads, Documents, etc.) silently via AbortError. The
   // toast warns the user before the picker steals focus.
+  //
+  // Slightly longer duration (3500ms vs default 2500ms) so user has
+  // time to read it before the picker dialog opens.
   showKcToast('시스템 폴더는 선택 불가. 별도 폴더를 만들어 선택하세요.', 'error', 3500);
   // === END PHASE_DIR_POPOVER ===
 
@@ -2077,39 +2096,6 @@ async function setupDriveDestination() {
   }
 }
 
-/**
- * Popover 'Google Drive' handler. Direct flow (Phase U3.3c UX hotfix):
- * if configured, uploads immediately; if not, sets up Drive destination
- * inline and uploads - no picker popup intermediate.
- */
-async function handleDriveUpload(item, anchorBtn) {
-  try {
-    let destination = await getDestination();
-
-    if (!destination || destination.type !== 'drive') {
-      showKcToast('Google Drive 설정 중...');
-      const setup = await setupDriveDestination();
-      if (!setup.ok) {
-        showKcToast(`Drive 설정 실패: ${setup.message || setup.reason}`, 'error');
-        return;
-      }
-      destination = setup.destination;
-
-      const autoCheckbox = document.getElementById('kc-dir-auto-checkbox');
-      if (autoCheckbox && !autoCheckbox.checked) {
-        autoCheckbox.checked = true;
-        await setAutoEnabled(true);
-      }
-      await _refreshDirContainer(await getAutoEnabled());
-    }
-
-    await handleAutoDriveUpload(item, destination, anchorBtn);
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] handleDriveUpload error:', e);
-    showKcToast(`업로드 실패: ${e?.message || String(e)}`, 'error');
-  }
-}
-
 // === PHASE_UPLOAD_AUTO_ROUTING ===
 // handleUploadButtonClick — card upload button entry point.
 //
@@ -3614,6 +3600,37 @@ if (chrome?.runtime?.onMessage) {
       applyOptimisticCardImage(message.tempId, message.imgUrl || '');
       return false;
     }
+
+    // === PHASE_AUTO_UPLOAD_ON_CLIP ===
+    // Auto-upload trigger: when Auto is ON, route the saved item
+    // through handleUploadToDestination without requiring the user to
+    // click the card upload button. Fired from coreEntry.js after
+    // save-url success (relayed by background.js).
+    //
+    // anchorBtn is null — the card may not yet be in the DOM (snapshot
+    // hasn't arrived) and the upload is automatic, so no flashUploadMark
+    // is appropriate. Toasts (success/error) still fire normally.
+    //
+    // The dedup case (server merged into existing doc) still triggers
+    // here because the broadcast is response-status-based, not
+    // doc-creation-based — the second clip of the same image saves a
+    // second file, matching user intent.
+    if (message.action === 'clip-saved') {
+      (async () => {
+        try {
+          const autoEnabled = await getAutoEnabled();
+          if (!autoEnabled) return;
+          const item = message.item;
+          if (!item || !item.url) return;
+          await handleUploadToDestination(item, null);
+        } catch (e) {
+          console.log('[KICKCLIP-LOG] clip-saved auto-upload error:', e);
+        }
+      })();
+      return;
+    }
+    // === END PHASE_AUTO_UPLOAD_ON_CLIP ===
+
     return false;
   });
 }
