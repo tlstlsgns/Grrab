@@ -1688,6 +1688,104 @@ function mountObservers() {
   registerObserver();
 }
 
+// === PHASE_DOM_DRIVEN_REDISPATCH ===
+// DOM-driven hover re-dispatch layer.
+//
+// Purpose: When DOM mutations change the element under a stationary
+// pointer (no mouseover fires), the dispatcher misses the transition.
+// Canonical case: YouTube's preview <video> mounts on top of a card's
+// thumbnail while the user's cursor is parked there; current code
+// keeps the prior activation state stale because mouseover never
+// fires for the new <video>.
+//
+// This MutationObserver runs in parallel with mountObservers's pre-scan
+// observer (which handles detectItemMaps rescan). It has a separate
+// 50ms debounce and a separate responsibility: re-run the dispatcher
+// against whatever element is currently under (lastPointerX, lastPointerY).
+//
+// Safety guards prevent regressions:
+//   1. _mouseInsideDocument must be true (pointer in viewport)
+//   2. lastPointerX/Y must be finite (post first mouseover/mousemove)
+//   3. elementFromPoint must return an element
+//   4. The hit element must differ from _lastMouseoverTarget (dedup vs
+//      the dispatcher's own internal dedup)
+//   5. findItemByImage(hit) must match an ItemMap entry — without this,
+//      a mutation that puts page chrome under the pointer would trigger
+//      coreClear() and drop the active item
+//   6. The matched entry's element must differ from state.activeCoreItem
+//      (no-op if pointer is still on the same active item)
+//
+// Top-frame only. Iframes have their own activation lifecycle and the
+// preview-video pattern does not apply.
+let _mountedDomDrivenRedispatch = false;
+let _domDrivenRedispatchDebounceTimer = null;
+const KC_DOM_DRIVEN_REDISPATCH_DEBOUNCE_MS = 50;
+
+function mountDomDrivenRedispatch() {
+  if (_mountedDomDrivenRedispatch) return;
+  _mountedDomDrivenRedispatch = true;
+  if (window.self !== window.top) return; // top-frame only
+
+  const targetNode = window.document.documentElement || window.document.body;
+  if (!targetNode) return;
+
+  const fire = () => {
+    _domDrivenRedispatchDebounceTimer = null;
+    try {
+      if (!_mouseInsideDocument) return;
+      const x = Number(lastPointerX);
+      const y = Number(lastPointerY);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+      const hit = document.elementFromPoint(x, y);
+      if (!hit || hit.nodeType !== 1) return;
+
+      // Dedup vs the dispatcher's own _lastMouseoverTarget gate.
+      if (hit === _lastMouseoverTarget) return;
+
+      // Guard: only re-dispatch when the new hit maps to a known
+      // ItemMap entry AND that entry's element differs from the
+      // currently active core item. Without this, a mutation that
+      // changes the element under the pointer to an unregistered
+      // node (page chrome, sidebar, etc.) would cause the dispatcher
+      // to call coreClear() and silently drop the active item.
+      const entry = findItemByImage(hit);
+      if (!entry || !entry.element) return;
+      if (entry.element === state.activeCoreItem) return;
+
+      // Re-dispatch using the current pointer coordinates.
+      updateCoreSelectionFromTarget(hit, x, y);
+    } catch (_) {
+      // Defensive: never let the re-dispatch layer throw.
+    }
+  };
+
+  const schedule = () => {
+    if (_domDrivenRedispatchDebounceTimer !== null) return;
+    _domDrivenRedispatchDebounceTimer = window.setTimeout(
+      fire,
+      KC_DOM_DRIVEN_REDISPATCH_DEBOUNCE_MS
+    );
+  };
+
+  const obs = new MutationObserver(() => {
+    // Any DOM mutation is a candidate trigger. The guard chain in
+    // fire() filters down to genuine target changes. We intentionally
+    // do NOT filter mutations here (e.g. by type or target subtree)
+    // because the canonical case — preview <video> mounting outside
+    // the active card's subtree — would otherwise be missed.
+    schedule();
+  });
+
+  obs.observe(targetNode, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['src', 'style', 'class'],
+  });
+}
+// === END PHASE_DOM_DRIVEN_REDISPATCH ===
+
 /**
  * Extracts a lightweight visual context object from a CoreItem element.
  * Used to help AI infer the content type based on what the element contains.
@@ -3847,6 +3945,9 @@ function mountLifecycle() {
 
   mountWindowListeners();
   mountObservers();
+  // === PHASE_DOM_DRIVEN_REDISPATCH ===
+  mountDomDrivenRedispatch();
+  // === END PHASE_DOM_DRIVEN_REDISPATCH ===
   mountSaveMessageListener();
   mountInstagramShortcodeObserver();
   // Top-frame-only initialization. iframe contexts still run CoreItem
