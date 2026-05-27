@@ -116,7 +116,7 @@ const DESTINATION_KEY = 'kc_upload_destination';
 
 /**
  * Get current upload destination preference.
- * @returns {Promise<{type:'local'}|{type:'drive', driveFolderId:string, driveFolderName:string, driveParentFolderId:string, driveParentFolderName:string}|null>}
+ * @returns {Promise<{type:'downloads'}|{type:'local'}|{type:'drive', driveFolderId:string, driveFolderName:string, driveParentFolderId:string, driveParentFolderName:string}|null>}
  */
 export async function getDestination() {
   try {
@@ -130,14 +130,27 @@ export async function getDestination() {
 
 /**
  * Set upload destination preference.
- * @param {{type:'local'}|{type:'drive', driveFolderId:string, driveFolderName:string, driveParentFolderId:string, driveParentFolderName:string}} dest
+ * @param {{type:'downloads'}|{type:'local'}|{type:'drive', driveFolderId:string, driveFolderName:string, driveParentFolderId:string, driveParentFolderName:string}} dest
  * @returns {Promise<boolean>} true on success
  */
 export async function setDestination(dest) {
   try {
-    if (!dest || !dest.type || (dest.type !== 'local' && dest.type !== 'drive')) {
+    // === PHASE_DOWNLOADS_SUBFOLDER ===
+    // Accepted destination shapes:
+    //   { type: 'downloads' }                           — chrome.downloads to <Downloads>/KickClip
+    //   { type: 'local' }                               — IndexedDB FileSystemDirectoryHandle (existing flow)
+    //   { type: 'drive', driveFolderId, driveFolderName,
+    //                    driveParentFolderId, driveParentFolderName }
+    //                                                   — Google Drive (existing flow)
+    //
+    // 'downloads' type has no extra required fields. Subfolder name is
+    // fixed in upload.js's saveItemToDownloadsSubfolder default arg
+    // (currently 'KickClip').
+    if (!dest || !dest.type ||
+        (dest.type !== 'local' && dest.type !== 'drive' && dest.type !== 'downloads')) {
       throw new Error('Invalid destination shape');
     }
+    // === END PHASE_DOWNLOADS_SUBFOLDER ===
     if (dest.type === 'drive') {
       if (!dest.driveFolderId || !dest.driveParentFolderId) {
         throw new Error('Drive destination missing required IDs');

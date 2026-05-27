@@ -642,3 +642,109 @@ export async function buildDriveUploadPayload(item) {
     return { ok: false, reason: 'generic', message: e?.message || String(e) };
   }
 }
+
+// === PHASE_DOWNLOADS_SUBFOLDER ===
+// saveItemToDownloads — silent save to the user's Downloads folder root.
+//
+// Routes a DataCard item to chrome.downloads.download with a relative
+// filename like 'my-image.jpg'. Chrome's downloads API:
+//   - resolves the path relative to the user's default Downloads dir,
+//   - applies conflictAction='uniquify' so repeated saves get (1)/(2)/...
+// No OS save dialog (saveAs: false) and no user gesture required.
+// Bypasses showDirectoryPicker's sensitive-directory blocklist.
+//
+// This is the path for destination.type === 'downloads' AND for the
+// null/unconfigured default state (treated as 'downloads' implicitly
+// by the caller in sidepanel.js — U4).
+//
+// Differs from saveItemViaDownloads (saveAs: true) which is the
+// popover's "내 컴퓨터 폴더" option and prompts the user every time.
+//
+// @param {object} item — DataCard item shape (url, title, category,
+//                        img_url, img_thumbnail_b64, createdAt, ...)
+// @returns {Promise<{ ok: true, filename: string } |
+//                   { ok: false, reason: 'cancelled' | 'generic',
+//                                message?: string }>}
+export async function saveItemToDownloads(item) {
+  try {
+    const category = (item.category || '').trim();
+    let blob;
+    let ext;
+    let usedFallback = false;
+
+    if (category === 'Image') {
+      const imgUrl = (item.img_url || '').trim();
+      if (!imgUrl) {
+        return { ok: false, reason: 'generic', message: 'No image URL' };
+      }
+      const imgResult = await fetchImageAsBlob(
+        imgUrl,
+        (item.img_thumbnail_b64 || '').trim()
+      );
+      blob = imgResult.blob;
+      usedFallback = imgResult.usedFallback;
+      ext = inferImageExtension(imgUrl, blob);
+    } else {
+      const md = formatItemAsMarkdown(item);
+      blob = new Blob([md], { type: 'text/markdown' });
+      ext = 'md';
+    }
+
+    const rawTitle = (item.title || '').trim();
+    let base = rawTitle ? rawTitle : fallbackFilenameBase(item);
+    base = sanitizeFilename(truncateFilenameBase(base));
+    if (!base) base = sanitizeFilename(fallbackFilenameBase(item));
+
+    const filename = `${base}.${ext}`;
+
+    const url = URL.createObjectURL(blob);
+
+    return await new Promise((resolve) => {
+      let settled = false;
+      const cleanup = () => {
+        if (settled) return;
+        settled = true;
+        try {
+          URL.revokeObjectURL(url);
+        } catch (_) {}
+      };
+
+      chrome.downloads.download(
+        {
+          url,
+          filename,
+          saveAs: false,
+          conflictAction: 'uniquify',
+        },
+        (downloadId) => {
+          const lastErr = chrome.runtime.lastError;
+          if (lastErr) {
+            cleanup();
+            resolve({
+              ok: false,
+              reason: 'generic',
+              message: lastErr.message || 'Unknown download error',
+            });
+            return;
+          }
+          if (downloadId == null) {
+            cleanup();
+            resolve({
+              ok: false,
+              reason: 'generic',
+              message: 'No downloadId returned',
+            });
+            return;
+          }
+          // Fire-and-forget. chrome.downloads handles the actual write;
+          // the URL object can be revoked once the download is queued.
+          cleanup();
+          resolve({ ok: true, filename, usedFallback });
+        }
+      );
+    });
+  } catch (e) {
+    return { ok: false, reason: 'generic', message: e?.message || String(e) };
+  }
+}
+// === END PHASE_DOWNLOADS_SUBFOLDER ===
