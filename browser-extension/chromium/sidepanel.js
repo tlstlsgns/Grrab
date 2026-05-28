@@ -200,14 +200,6 @@ function _markDirFolderMissing(folderName) {
 }
 
 async function handleOpenFolderSettings() {
-  // Pre-warning toast: showDirectoryPicker rejects sensitive directories
-  // (Desktop, Downloads, Documents, etc.) silently via AbortError. The
-  // toast warns the user before the picker steals focus.
-  //
-  // Slightly longer duration (3500ms vs default 2500ms) so user has
-  // time to read it before the picker dialog opens.
-  showKcToast('시스템 폴더는 선택 불가. 별도 폴더를 만들어 선택하세요.', 'error', 3500);
-
   // Re-click: close any existing picker window first
   if (_kcPickerWindowId != null) {
     try {

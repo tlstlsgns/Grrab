@@ -135,7 +135,8 @@ btn.addEventListener('click', async () => {
   } catch (e) {
     notifyBusy(false);
     if (e && (e.name === 'AbortError' || e.code === 20)) {
-      setStatus('취소되었습니다. 다시 시도하려면 버튼을 누르세요.', '');
+      // User cancelled (or cancelled Chrome's sensitive-folder dialog).
+      // Not an error: silently re-enable buttons so the user can retry.
       btn.disabled = false;
       if (driveBtn) driveBtn.disabled = false;
       return;
