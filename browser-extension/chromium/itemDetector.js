@@ -3695,6 +3695,72 @@ function hasClipStyle(el) {
 }
 // === END PHASE_OVERLAY_ON_IMAGE ===
 
+// === PHASE_TYPE_E_CLIP_BOUNDARY ===
+// Finds the clip boundary for a dominant-media element (Type E).
+//
+// Type E items (e.g. YouTube preview <video>) are themselves the
+// dominant media: coreItem === the <video>/<img>. The media's layout
+// box is often LARGER than its visible region — YouTube uses
+// object-fit: cover with a video sized beyond the player and an
+// intermediate overflow:hidden ancestor clipping it (the video may sit
+// at top:-29px inside a 302px-tall player, so ~57px is clipped).
+//
+// This cannot be solved with the anchor-comparator rule
+// (applyOverlayCaseRule), because:
+//   (1) the wrapping <a href> (e.g. a#media-container-link) can have
+//       height:0 — its children are position:absolute — so it is
+//       rejected as a zero-size comparator; and
+//   (2) the anchor is not the real clip boundary; the
+//       overflow:hidden player wrapper between video and anchor is.
+//
+// Strategy: walk from mediaEl.parentElement upward toward stopAncestor.
+// Return the FIRST ancestor that BOTH has a clip style (hasClipStyle —
+// overflow/clip-path/contain) AND whose rect actually cuts the media
+// rect on some edge (ancestor smaller than media). That element's box
+// is the visible region. Return null if none qualifies (caller keeps
+// the media element as the overlay — never worse than before).
+//
+// Start at parentElement, not mediaEl itself: overflow on a replaced
+// element (<video>/<img>) clips its own raster content, not the box's
+// extent relative to ancestors (same rationale as
+// isImgClippedAlongAnchorPath).
+//
+// @param {Element} mediaEl   the dominant media element (Type E coreItem)
+// @param {Element|null} stopAncestor  walk stops here (inclusive check);
+//                                     typically the wrapping <a href>
+// @returns {Element|null} the clip boundary element, or null
+export function findClipBoundaryForMedia(mediaEl, stopAncestor) {
+  try {
+    const mr = mediaEl?.getBoundingClientRect?.();
+    if (!mr || mr.width <= 0 || mr.height <= 0) return null;
+
+    const CUT_TOLERANCE_PX = 1;
+    let cur = mediaEl.parentElement || null;
+    let depth = 0;
+    while (cur && depth < 30) {
+      if (hasClipStyle(cur)) {
+        const cr = cur.getBoundingClientRect?.();
+        if (cr && cr.width > 0 && cr.height > 0) {
+          const cutsTop = cr.top > mr.top + CUT_TOLERANCE_PX;
+          const cutsBottom = cr.bottom < mr.bottom - CUT_TOLERANCE_PX;
+          const cutsLeft = cr.left > mr.left + CUT_TOLERANCE_PX;
+          const cutsRight = cr.right < mr.right - CUT_TOLERANCE_PX;
+          if (cutsTop || cutsBottom || cutsLeft || cutsRight) {
+            return cur;
+          }
+        }
+      }
+      if (cur === stopAncestor) break;
+      cur = cur.parentElement;
+      depth++;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+// === END PHASE_TYPE_E_CLIP_BOUNDARY ===
+
 // Aliases
 export const findItemsOnPage = detectItemMaps;
 export const buildItemMap = detectItemMaps;
