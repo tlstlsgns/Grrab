@@ -3379,36 +3379,6 @@ if (chrome?.runtime?.onMessage) {
       return false;
     }
 
-    // === PHASE_AUTO_UPLOAD_ON_CLIP ===
-    // Auto-upload trigger: when Auto is ON, route the saved item
-    // through handleUploadToDestination without requiring the user to
-    // click the card upload button. Fired from coreEntry.js after
-    // save-url success (relayed by background.js).
-    //
-    // anchorBtn is null — the card may not yet be in the DOM (snapshot
-    // hasn't arrived) and the upload is automatic, so no flashUploadMark
-    // is appropriate. Toasts (success/error) still fire normally.
-    //
-    // The dedup case (server merged into existing doc) still triggers
-    // here because the broadcast is response-status-based, not
-    // doc-creation-based — the second clip of the same image saves a
-    // second file, matching user intent.
-    if (message.action === 'clip-saved') {
-      (async () => {
-        try {
-          const autoEnabled = await getAutoEnabled();
-          if (!autoEnabled) return;
-          const item = message.item;
-          if (!item || !item.url) return;
-          await handleUploadToDestination(item, null);
-        } catch (e) {
-          console.log('[KICKCLIP-LOG] clip-saved auto-upload error:', e);
-        }
-      })();
-      return;
-    }
-    // === END PHASE_AUTO_UPLOAD_ON_CLIP ===
-
     return false;
   });
 }

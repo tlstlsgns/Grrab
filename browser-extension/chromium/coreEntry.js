@@ -2272,40 +2272,6 @@ async function saveActiveCoreItem(request = {}) {
         throw new Error(`save failed: ${response.status}`);
       }
 
-      // === PHASE_AUTO_UPLOAD_ON_CLIP ===
-      // Broadcast 'clip-saved' so the sidepanel can auto-upload when
-      // Auto is ON. Fires AFTER server confirms save-url success — this
-      // means dedup cases (server merged into existing doc) and new-doc
-      // cases produce identical client behavior, which matches the
-      // user intent: "save this again" should still produce a file.
-      //
-      // We map payload.timestamp → item.createdAt so the receiver
-      // (handleUploadToDestination) sees the item shape it expects
-      // without further adaptation. Failed saves do not reach this
-      // line (the throw above short-circuits).
-      //
-      // Top-frame only — iframes do not own the sidepanel relationship.
-      // Receiver absence (sidepanel closed) is a silent no-op per
-      // chrome.runtime.sendMessage semantics.
-      if (window.self === window.top) {
-        try {
-          chrome.runtime.sendMessage({
-            action: 'clip-saved',
-            item: {
-              url: payload.url,
-              title: payload.title,
-              category: payload.category || '',
-              img_url: payload.img_url || '',
-              img_thumbnail_b64: payload.img_thumbnail_b64 || '',
-              createdAt: payload.timestamp,
-              ...(payload.platform ? { platform: payload.platform } : {}),
-              ...(payload.origin_source ? { origin_source: payload.origin_source } : {}),
-            },
-          });
-        } catch { /* Side Panel may not be open — silently ignore */ }
-      }
-      // === END PHASE_AUTO_UPLOAD_ON_CLIP ===
-
       return { success: true, payload };
     }
 

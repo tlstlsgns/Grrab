@@ -222,31 +222,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // === PHASE_AUTO_UPLOAD_ON_CLIP ===
-  // Relay 'clip-saved' broadcast from coreEntry.js to the active tab
-  // (where the sidepanel lives, if open). Mirrors the saved-urls-updated
-  // relay pattern. Used by sidepanel.js to auto-upload when Auto is ON.
-  if (request.action === 'clip-saved') {
-    try {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (!tabs || !tabs[0]?.id) return;
-        const tabId = tabs[0].id;
-        const tabUrl = tabs[0].url || '';
-        if (
-          tabUrl.startsWith('chrome://') ||
-          tabUrl.startsWith('chrome-extension://') ||
-          tabUrl.startsWith('edge://') ||
-          tabUrl.startsWith('arc://')
-        ) return;
-        chrome.tabs.sendMessage(tabId, { action: 'clip-saved', item: request.item }, () => {
-          if (chrome.runtime.lastError) { /* tab may not have content script */ }
-        });
-      });
-    } catch (e) {}
-    return false;
-  }
-  // === END PHASE_AUTO_UPLOAD_ON_CLIP ===
-
   if (request.action === 'get-saved-urls') {
     sendResponse({ urls: _savedUrlsCache });
     return true;
