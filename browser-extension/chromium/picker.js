@@ -5,6 +5,7 @@ import { setPrimaryHandle, setDestination } from './uploadStorage.js';
 
 const btn = document.getElementById('pick');
 const driveBtn = document.getElementById('pick-drive');
+const downloadsBtn = document.getElementById('pick-downloads');
 const statusEl = document.getElementById('status');
 
 function setStatus(msg, kind) {
@@ -204,6 +205,48 @@ if (driveBtn) {
     } finally {
       btn.disabled = false;
       driveBtn.disabled = false;
+    }
+  });
+}
+
+// Wire Default (Downloads) button — sets destination to {type:'downloads'}.
+// No system dialog or OAuth: chrome.downloads writes to the Downloads root.
+async function handleDownloadsButtonClick() {
+  setStatus('Downloads 폴더로 설정 중...', '');
+  notifyBusy(true);
+  try {
+    const saved = await setDestination({ type: 'downloads' });
+    if (!saved) {
+      setStatus('저장 실패. 다시 시도해주세요.', 'error');
+      notifyBusy(false);
+      return;
+    }
+    notifyBusy(false);
+    setStatus('✓ Downloads 폴더로 설정되었습니다. 창을 닫습니다...', 'success');
+    try {
+      chrome.runtime.sendMessage({ action: 'kc-picker-downloads-ready' });
+    } catch (e) {
+      console.log('[KICKCLIP-LOG] picker downloads-ready sendMessage error:', e);
+    }
+    setTimeout(closeSelfTab, 800);
+  } catch (e) {
+    console.log('[KICKCLIP-LOG] handleDownloadsButtonClick error:', e);
+    setStatus(`오류: ${e?.message || String(e)}`, 'error');
+    notifyBusy(false);
+  }
+}
+
+if (downloadsBtn) {
+  downloadsBtn.addEventListener('click', async () => {
+    btn.disabled = true;
+    driveBtn.disabled = true;
+    downloadsBtn.disabled = true;
+    try {
+      await handleDownloadsButtonClick();
+    } finally {
+      btn.disabled = false;
+      driveBtn.disabled = false;
+      downloadsBtn.disabled = false;
     }
   });
 }
