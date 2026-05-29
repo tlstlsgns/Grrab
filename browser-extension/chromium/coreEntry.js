@@ -1527,6 +1527,47 @@ function schedulePreScan(scope = document, force = false, trigger = 'unknown') {
     lastRenderedElementSet = currentElementSet;
     renderItemMapCandidates(candidates);
 
+    // === PHASE_POST_PRESCAN_REDISPATCH ===
+    // Race fix: PHASE_DOM_DRIVEN_REDISPATCH fires on DOM mutation and uses
+    // findItemByImage to confirm the new elementFromPoint hit is in the
+    // ItemMap. If the mutation that injects a new candidate runs FIRST,
+    // PHASE_DOM_DRIVEN_REDISPATCH fires with the new node not yet
+    // registered (findItemByImage returns null) and bails. Pre-scan
+    // registers the new node moments later, but by then no event will
+    // re-trigger redispatch — the pointer is parked, no mouseover fires,
+    // and the user has to move out and back to activate it.
+    //
+    // We close that gap here: at the end of a pre-scan that actually
+    // changed state.itemMap (the fp/element-set gate above filters
+    // no-op pre-scans), re-run the same guard chain against the current
+    // pointer. If the pointer is now over an ItemMap entry that differs
+    // from state.activeCoreItem, dispatch.
+    //
+    // This is general — it handles "no active → new Type E", "Type D →
+    // new Type E", "Type E → new Type E", etc. The trigger is "ItemMap
+    // registration completed for something under the pointer", not the
+    // specific transition kind.
+    //
+    // Top-frame only — matches PHASE_DOM_DRIVEN_REDISPATCH's restriction.
+    if (window.self === window.top && _mouseInsideDocument) {
+      try {
+        const x = Number(lastPointerX);
+        const y = Number(lastPointerY);
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          const hit = document.elementFromPoint(x, y);
+          if (hit && hit.nodeType === 1) {
+            const entry = findItemByImage(hit);
+            if (entry && entry.element && entry.element !== state.activeCoreItem) {
+              updateCoreSelectionFromTarget(hit, x, y);
+            }
+          }
+        }
+      } catch (_) {
+        // Defensive: never let the post-pre-scan hook throw.
+      }
+    }
+    // === END PHASE_POST_PRESCAN_REDISPATCH ===
+
     // Retry logic: when a forced full-document scan finds no candidates,
     // schedule another forced scan after 500ms (up to 3 retries).
     // This handles SPA frameworks (e.g. Vue keep-alive) that restore DOM
