@@ -832,6 +832,20 @@ function mountActiveOverlayRectWatcher(overlayElement) {
         const rect = el.getBoundingClientRect?.();
         if (!rect || rect.width <= 0 || rect.height <= 0) return;
 
+        // === PHASE_RECT_WATCHER_POINTER_GATE ===
+        // Mirror of PHASE_SCROLL_POINTER_GATE in the scroll handler.
+        // ResizeObserver fires only on size changes (not pure scroll),
+        // but scroll-with-layout-change scenarios reach this callback
+        // and would re-display the overlay+badge unconditionally
+        // without the gate. Apply the same lifecycle-decoupling check:
+        // if the overlay element is decoupled from the active core
+        // item (Type D), skip the re-show when the pointer is not
+        // inside the overlay's current rect.
+        if (el !== active &&
+            !isPointerInsideOverlay(el, lastPointerX, lastPointerY, null)) {
+          return;
+        }
+        // === END PHASE_RECT_WATCHER_POINTER_GATE ===
         // Rect-only refresh: treat as a scroll-style update (isScrollUpdate
         // semantics) by passing the fresh rect as rectOverride.
         showCoreHighlight(active, false, rect);
@@ -3386,6 +3400,27 @@ function schedulePreScanScrollDebounced() {
     const rectOverride = scrollRect && scrollRect.width > 0 && scrollRect.height > 0
       ? { top: scrollRect.top, left: scrollRect.left, width: scrollRect.width, height: scrollRect.height, right: scrollRect.right }
       : null;
+    // === PHASE_SCROLL_POINTER_GATE ===
+    // Respect PHASE_OVERLAY_LIFECYCLE_DECOUPLING from the mouseover
+    // handler: when the active overlay element differs from the
+    // active core item (Type D / decoupled overlay case), the
+    // mouseover hover-gate hides the overlay if the pointer leaves
+    // the dominant image but stays in the active core item. Without
+    // this scroll-side gate, the unconditional showCoreHighlight call
+    // here would re-display the overlay+badge on every scroll even
+    // when the pointer is no longer over the dominant image —
+    // producing a stale activation visual that re-appears after
+    // each small scroll.
+    //
+    // Type B / E (overlayElement === active): the mouseover gate
+    // short-circuits via `overlayEl !== active`, so the overlay
+    // was never hidden in this scenario. Re-showing on scroll is
+    // benign — preserve current follow-on-scroll behavior.
+    if (overlayElement !== active &&
+        !isPointerInsideOverlay(overlayElement, lastPointerX, lastPointerY, null)) {
+      return;
+    }
+    // === END PHASE_SCROLL_POINTER_GATE ===
     // Keep highlight stable while scrolling, even before next hover event.
     showCoreHighlight(
       active,
