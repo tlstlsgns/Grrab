@@ -2678,7 +2678,7 @@ export function extractMetadataForCoreItem(coreItem, closestAtag = null, hovered
       // (findDominantImagesInElement → isImageDominantInCoreItem) used
       // for seedImages and overlay. seedImages is typically 1 element
       // (center-X tolerance is tight). Empty set → image: null.
-      const dominantImgs = findDominantImagesInElement(coreItem);
+      const dominantImgs = findDominantImagesInElement(coreItem, evidenceType);
       const dominantImg = dominantImgs.values().next().value || null;
       if (dominantImg) {
         // === PHASE_VIDEO_CLIP_TYPE_BD ===

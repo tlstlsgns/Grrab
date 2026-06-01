@@ -539,7 +539,7 @@ function refreshCoreItemMetadata(coreItem) {
       const itemEntry = getItemMapEntryByElement(coreItem);
       const evType = itemEntry?.evidenceType || '';
       if (itemEntry && (evType === 'B' || evType === EVIDENCE_TYPE_IMAGE_ANCHOR)) {
-        const newSeedImages = findDominantImagesInElement(coreItem);
+        const newSeedImages = findDominantImagesInElement(coreItem, evType);
 
         const newHoverCompanions = new Set();
         for (const seedImg of newSeedImages) {
@@ -1936,7 +1936,7 @@ async function saveActiveCoreItem(request = {}) {
         const itemEntry = getItemMapEntryByElement(activeCoreEl);
         const evType = itemEntry?.evidenceType || '';
         if (evType === 'B' || evType === 'D') {
-          const dominantImgs = findDominantImagesInElement(activeCoreEl);
+          const dominantImgs = findDominantImagesInElement(activeCoreEl, evType);
           const dominantImg = dominantImgs.values().next().value || null;
           if (dominantImg) {
             const dominantTag = String(dominantImg.tagName || '').toUpperCase();
@@ -2297,7 +2297,19 @@ function pickDominantImageElement(rootElement) {
     // silent clipboard failure.
     if (isMediaElement(rootElement)) return rootElement;
     // === END PHASE_TYPE_E_DOMINANT_SELF ===
-    const imgs = findDominantImagesInElement(rootElement);
+    // === PHASE_PICK_DOMINANT_TYPE_AWARE ===
+    // Look up the itemMap entry for this root to determine evidence
+    // type, so Type B uses relaxed axial + best-match instead of the
+    // absolute Type D thresholds. Callers don't need to thread
+    // evidenceType themselves — pickDominantImageElement keeps its
+    // single-argument signature.
+    let pickEvidenceType = '';
+    try {
+      const itemEntry = getItemMapEntryByElement(rootElement);
+      pickEvidenceType = itemEntry?.evidenceType || '';
+    } catch (_) { /* defensive */ }
+    // === END PHASE_PICK_DOMINANT_TYPE_AWARE ===
+    const imgs = findDominantImagesInElement(rootElement, pickEvidenceType);
     return imgs.values().next().value || null;
   } catch (_) {
     return null;

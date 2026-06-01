@@ -797,42 +797,76 @@ export function findHoverCompanions(img, scopeElement = null) {
   return companions;
 }
 
+// === PHASE_AXIAL_RATIO_HELPERS ===
+// Two thresholds for axial dominance, applied by evidence type.
+//
+// passesAxialRatio (standard, Type D / default): image must fill
+// one axis ≥75% AND the other axis ≥40%. Suitable for image-anchor
+// cards where the dominant image typically fills most of the
+// container.
+//
+// passesAxialRatioRelaxed (Type B): image must fill BOTH axes ≥40%.
+// Suitable for interaction-evidenced cards (Instagram posts, Reddit
+// gallery, X video tweets) where the dominant media may legitimately
+// occupy a smaller fraction of the surrounding card (which also
+// contains text, action bar, translation widgets, etc.). The 0.4/0.4
+// gate is symmetric (both axes equal weight) since Type B containers
+// vary widely in aspect ratio.
+function passesAxialRatio(imageRect, coreRect) {
+  const coreWidth = Number(coreRect?.width) || 0;
+  const coreHeight = Number(coreRect?.height) || 0;
+  if (coreWidth <= 0 || coreHeight <= 0) return false;
+  const mw = Number(imageRect?.width) || 0;
+  const mh = Number(imageRect?.height) || 0;
+  if (mw <= 0 || mh <= 0) return false;
+  const widthRatio = mw / coreWidth;
+  const heightRatio = mh / coreHeight;
+  return (
+    (widthRatio >= 0.75 && heightRatio >= 0.4) ||
+    (heightRatio >= 0.75 && widthRatio >= 0.4)
+  );
+}
+
+function passesAxialRatioRelaxed(imageRect, coreRect) {
+  const coreWidth = Number(coreRect?.width) || 0;
+  const coreHeight = Number(coreRect?.height) || 0;
+  if (coreWidth <= 0 || coreHeight <= 0) return false;
+  const mw = Number(imageRect?.width) || 0;
+  const mh = Number(imageRect?.height) || 0;
+  if (mw <= 0 || mh <= 0) return false;
+  const widthRatio = mw / coreWidth;
+  const heightRatio = mh / coreHeight;
+  return widthRatio >= 0.4 && heightRatio >= 0.4;
+}
+// === END PHASE_AXIAL_RATIO_HELPERS ===
+
 /**
  * Returns true if the image's bounding rect is "dominant" within
- * the coreItem's bounding rect:
- *   1. Axial ratio: (widthRatio >= 0.75 && heightRatio >= 0.4) ||
- *      (heightRatio >= 0.75 && widthRatio >= 0.4)
+ * the coreItem's bounding rect (Type D / default semantics):
+ *   1. Axial ratio (via passesAxialRatio): one axis ≥75%, other ≥40%.
  *   2. Center-X alignment: image center X within ±10% of container
- *      width from the container's center X
+ *      width from container center X.
  *
- * The center-X gate selects the visible carousel slide and excludes
- * off-axis thumbnails in horizontally-laid cards.
+ * For Type B, both gates are replaced inside
+ * findDominantImagesInElement:
+ *   - Axial: relaxed to 0.4 / 0.4 on both axes
+ *     (via passesAxialRatioRelaxed)
+ *   - Center-X: relative best-match
+ *     (smallest |imgCenterX − coreCenterX|), no absolute threshold
+ * This function is bypassed for Type B candidate filtering.
  *
- * Used by Type B/D seedImages (findDominantImagesInElement) and
- * Type D card detection (detectTypeDItemMaps).
+ * Used by Type D card detection and the Type D default path of
+ * findDominantImagesInElement.
  */
 function isImageDominantInCoreItem(imageRect, coreRect) {
   try {
+    if (!passesAxialRatio(imageRect, coreRect)) return false;
+    // Center-X alignment (Type D / default path): image center X
+    // must be within ±10% of container width from container center X.
+    // Type B paths in findDominantImagesInElement bypass this gate
+    // entirely and use relative best-match instead (see that function).
     const coreWidth = Number(coreRect?.width) || 0;
-    const coreHeight = Number(coreRect?.height) || 0;
-    if (coreWidth <= 0 || coreHeight <= 0) return false;
     const mw = Number(imageRect?.width) || 0;
-    const mh = Number(imageRect?.height) || 0;
-    if (mw <= 0 || mh <= 0) return false;
-    const widthRatio = mw / coreWidth;
-    const heightRatio = mh / coreHeight;
-    // Axial dominance: image must fully fill one axis (>=75%) and at
-    // least partially fill the other (>=40%).
-    const passesAxialRatio =
-      (widthRatio >= 0.75 && heightRatio >= 0.4) ||
-      (heightRatio >= 0.75 && widthRatio >= 0.4);
-    if (!passesAxialRatio) return false;
-    // Center-X alignment: image rect's center X must be within ±10% of
-    // the container's width from the container's center X. This replaces
-    // the earlier area-50% guard. The new gate naturally selects the
-    // visible slide in carousels (where multiple sibling <img> may pass
-    // axial dominance but only the centered one is what the user sees)
-    // and excludes off-axis thumbnails in horizontally-laid cards.
     const coreCenterX = (Number(coreRect?.left) || 0) + coreWidth / 2;
     const imgCenterX = (Number(imageRect?.left) || 0) + mw / 2;
     const tolerance = coreWidth * 0.1;
@@ -1262,7 +1296,31 @@ function isInsideMapContainer(el) {
 //
 // Both behaviors apply uniformly to Type B and Type D since both share
 // this seed producer.
-export function findDominantImagesInElement(container) {
+//
+// findDominantImagesInElement(container, evidenceType = '')
+//
+// Returns a Set containing the dominant media element(s) within
+// container, scoped by evidence type:
+//
+// Type D / default ('' or 'D'): candidates must pass full
+// isImageDominantInCoreItem (axial 0.75/0.4 + center-X within ±10%
+// container width). Winner selection: IMG-over-VIDEO same-rect dedup,
+// elementFromPoint visibility filter, largest area.
+//
+// Type B ('B'): candidates must pass passesAxialRatioRelaxed (0.4
+// on both axes). No absolute center-X tolerance. Winner is the
+// candidate with smallest |imgCenterX − coreCenterX|. If only one
+// passes axial, it's the trivial winner. If none pass, returns
+// empty Set.
+//
+// Rationale: Type B interaction-evidenced cards (Instagram, Reddit,
+// X(Twitter)) often have dominant media that occupies a smaller
+// fraction of the card vs Type D image-anchor cards (which typically
+// have the dominant image filling most of the card area). The
+// stricter Type D gate is preserved where it works; Type B uses
+// the relaxed gate + best-match to handle cases like X video tweets
+// where the video is ~50% of the article rect.
+export function findDominantImagesInElement(container, evidenceType = '') {
   const out = new Set();
   try {
     if (!container || container.nodeType !== 1) return out;
@@ -1274,6 +1332,19 @@ export function findDominantImagesInElement(container) {
 
     // Collect Gate 1 & 2 passing candidates.
     const passing = [];
+    // === PHASE_TYPE_B_RELAXED_AXIAL_BEST_MATCH ===
+    // Type B: collect candidates passing relaxed axial (0.4/0.4)
+    // and track each candidate's center-X distance from the
+    // container center. Winner is min-distance (no absolute
+    // tolerance gate). Handles X(Twitter) video tweets where the
+    // video is ~50% of the article rect (would fail standard 0.75
+    // axial) and instances where no candidate is perfectly centered.
+    //
+    // Type D / default: unchanged — full isImageDominantInCoreItem
+    // (axial 0.75/0.4 + center-X tolerance), then largest-area
+    // winner downstream.
+    const isTypeB = evidenceType === 'B';
+    const passingDistances = isTypeB ? [] : null;
     for (const innerImg of innerImgs) {
       // Hidden video guard (Fix 1): skip videos with zero layout rect.
       // Image lazy-load fallback path is preserved (images may have
@@ -1288,16 +1359,46 @@ export function findDominantImagesInElement(container) {
       }
       const innerRect = getEffectiveImageRectForImageGate(innerImg);
       if (!innerRect) continue;
-      if (isImageDominantInCoreItem(innerRect, rect)) {
+      if (isTypeB) {
+        // Type B: relaxed axial only; rank by center-X distance.
+        if (!passesAxialRatioRelaxed(innerRect, rect)) continue;
+        const coreCenterX = (Number(rect?.left) || 0) + (Number(rect?.width) || 0) / 2;
+        const imgCenterX = (Number(innerRect?.left) || 0) + (Number(innerRect?.width) || 0) / 2;
+        const distance = Math.abs(imgCenterX - coreCenterX);
         passing.push(innerImg);
+        passingDistances.push(distance);
+      } else {
+        // Type D / default: existing absolute-tolerance gate.
+        if (isImageDominantInCoreItem(innerRect, rect)) {
+          passing.push(innerImg);
+        }
       }
     }
+    // === END PHASE_TYPE_B_RELAXED_AXIAL_BEST_MATCH ===
 
     if (passing.length === 0) return out;
     if (passing.length === 1) {
       out.add(passing[0]);
       return out;
     }
+
+    // === PHASE_TYPE_B_BEST_MATCH_WINNER ===
+    // Type B: min center-X distance wins (skip IMG-over-VIDEO
+    // dedup, elementFromPoint filter, and area tie-break — those
+    // are Type D / default semantics).
+    if (isTypeB) {
+      let winnerIdx = 0;
+      let winnerDist = passingDistances[0];
+      for (let i = 1; i < passing.length; i++) {
+        if (passingDistances[i] < winnerDist) {
+          winnerIdx = i;
+          winnerDist = passingDistances[i];
+        }
+      }
+      out.add(passing[winnerIdx]);
+      return out;
+    }
+    // === END PHASE_TYPE_B_BEST_MATCH_WINNER ===
 
     // === PHASE_IMG_PRIORITY_OVER_SAME_RECT_VIDEO ===
     // When an IMG and a VIDEO share approximately the same rect (e.g., a
@@ -2659,7 +2760,17 @@ const { candidates: typeDCandidatesRaw, rejectedImages } = await detectTypeDItem
             // center-X equality), this means seedImages contains only the
             // <img>(s) centered in the post container — which for carousels
             // is the currently visible slide. Empty Set for text-only posts.
-            seedImages = findDominantImagesInElement(el);
+            // === PHASE_TYPE_B_DETECTION_RELAXED_AXIAL ===
+            // Detection-time Type B uses 'B' so the relaxed axial
+            // (0.4/0.4) + best-match path applies during initial
+            // seed selection — not just at runtime sites. Without
+            // this, X(Twitter) portrait video tweets fail to seed
+            // (video widthRatio ≈ 0.48 < strict 0.75), preventing
+            // companion registration and blocking activation
+            // entirely (runtime re-eval can't help since it only
+            // fires AFTER activation).
+            seedImages = findDominantImagesInElement(el, 'B');
+            // === END PHASE_TYPE_B_DETECTION_RELAXED_AXIAL ===
             // === END PHASE_TYPE_B_DOMINANT_UNIFICATION ===
           }
           // === END PHASE_TYPE_B_DROP_DOMINANT_IMAGE ===
@@ -2835,7 +2946,12 @@ const { candidates: typeDCandidatesRaw, rejectedImages } = await detectTypeDItem
             // Dominant image no longer gates Type B sibling recovery; seedImages
             // may be empty for text-only posts (same policy as main loop).
             // === PHASE_TYPE_B_DOMINANT_UNIFICATION ===
-            const seedImages = findDominantImagesInElement(cand);
+            // === PHASE_TYPE_B_SIBLING_RECOVERY_RELAXED_AXIAL ===
+            // Same rationale as Site A: Type B sibling recovery must
+            // also use the relaxed axial / best-match path so recovered
+            // siblings can register seeds for activation.
+            const seedImages = findDominantImagesInElement(cand, 'B');
+            // === END PHASE_TYPE_B_SIBLING_RECOVERY_RELAXED_AXIAL ===
             // === END PHASE_TYPE_B_DOMINANT_UNIFICATION ===
             // === END PHASE_TYPE_B_DROP_DOMINANT_IMAGE ===
             // === PHASE27E_HOVER_COMPANIONS (Type B sibling recovery) ===
