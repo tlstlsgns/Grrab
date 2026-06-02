@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Privacy Policy | KickClip</title>
+<title>Privacy Policy | SeaClip</title>
 <style>
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -56,7 +56,7 @@
 <body>
 <a href="privacy-policy.html" class="lang-switch">🌐 한국어</a>
 
-<h1>KickClip Privacy Policy</h1>
+<h1>SeaClip Privacy Policy</h1>
 
 <p class="meta">
   <strong>Effective Date:</strong> May 11, 2026<br>
@@ -70,18 +70,18 @@
   including the Limited Use requirements.
 </div>
 
-<h2>1. What KickClip Does (Single Purpose)</h2>
-<p>KickClip is a Chrome extension with a single purpose: to enable users to save images and social media posts from any webpage with a keyboard shortcut (Cmd+Shift+S on Mac, Ctrl+Shift+S on Windows/Linux), and to automatically organize saved items by content type (Img or SNS).</p>
+<h2>1. What SeaClip Does (Single Purpose)</h2>
+<p>SeaClip is a Chrome extension with a single purpose: to enable users to save images and social media posts from any webpage with a keyboard shortcut (Cmd+Shift+S on Mac, Ctrl+Shift+S on Windows/Linux), and to automatically organize saved items by content type (Img or SNS).</p>
 
 <h2>2. What We Collect, How, and Why</h2>
 
-<p>KickClip only collects data when you take a deliberate action (pressing the save shortcut, clicking the context menu item, or explicitly signing in). KickClip does not monitor your browsing activity, track pages you do not save, or run analytics in the background.</p>
+<p>SeaClip only collects data when you take a deliberate action (pressing the save shortcut, clicking the context menu item, or explicitly signing in). SeaClip does not monitor your browsing activity, track pages you do not save, or run analytics in the background.</p>
 
 <h3>2.1 Account Information</h3>
 <ul>
   <li><strong>What:</strong> Your Google account's unique identifier (UID), email address, display name, and profile picture URL.</li>
-  <li><strong>When collected:</strong> When you sign in via the KickClip side panel.</li>
-  <li><strong>How collected:</strong> Through Chrome's <code>chrome.identity</code> API using OAuth 2.0 with PKCE. KickClip does not store passwords.</li>
+  <li><strong>When collected:</strong> When you sign in via the SeaClip side panel.</li>
+  <li><strong>How collected:</strong> Through Chrome's <code>chrome.identity</code> API using OAuth 2.0 with PKCE. SeaClip does not store passwords.</li>
   <li><strong>OAuth scopes requested:</strong> <code>openid</code>, <code>email</code>, <code>profile</code>, and <code>https://www.googleapis.com/auth/drive.file</code>.</li>
   <li><strong>Why:</strong> To identify you as the owner of your saved items and to sync items across devices.</li>
   <li><strong>Where stored:</strong> Firebase Authentication (Google Cloud).</li>
@@ -89,10 +89,10 @@
 
 <h3>2.2 Saved Item Metadata</h3>
 <ul>
-  <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so KickClip can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, and the organizational folder you assigned (if any) for items you explicitly save.</li>
+  <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so SeaClip can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, and the organizational folder you assigned (if any) for items you explicitly save.</li>
   <li><strong>When collected:</strong> Only when you press the save shortcut or click the context menu item on a page.</li>
   <li><strong>How collected:</strong> Via a content script that runs only at the moment of save, reading the active page's URL, title, and (if you saved an image) the image URL.</li>
-  <li><strong>Why:</strong> To store and organize your clips so you can find them later in the KickClip side panel.</li>
+  <li><strong>Why:</strong> To store and organize your clips so you can find them later in the SeaClip side panel.</li>
   <li><strong>Where stored:</strong> Firebase Firestore (Google Cloud, Asia Northeast region), under your user account.</li>
 </ul>
 
@@ -100,12 +100,12 @@
 <ul>
   <li><strong>What:</strong> The actual image or content files you explicitly save.</li>
   <li><strong>When collected:</strong> Only when you press the save shortcut.</li>
-  <li><strong>How collected:</strong> Downloaded from the source URL by KickClip.</li>
+  <li><strong>How collected:</strong> Downloaded from the source URL by SeaClip.</li>
   <li><strong>Why:</strong> To preserve the saved content for your later access.</li>
   <li><strong>Where stored</strong> (you choose per save destination setting):
     <ul>
-      <li><strong>Local folder:</strong> A folder on your computer that you select using Chrome's File System Access API. KickClip writes saved files directly to this folder and cannot access other folders.</li>
-      <li><strong>Google Drive:</strong> A folder named <code>kickclip_files</code> automatically created in your Google Drive root. KickClip uses the <code>drive.file</code> OAuth scope, which means KickClip can only access files KickClip itself creates — not your other Drive files.</li>
+      <li><strong>Local folder:</strong> A folder on your computer that you select using Chrome's File System Access API. SeaClip writes saved files directly to this folder and cannot access other folders.</li>
+      <li><strong>Google Drive:</strong> A folder named <code>kickclip_files</code> automatically created in your Google Drive root. SeaClip uses the <code>drive.file</code> OAuth scope, which means SeaClip can only access files SeaClip itself creates — not your other Drive files.</li>
     </ul>
   </li>
 </ul>
@@ -126,39 +126,39 @@
   <li>We do <strong>NOT</strong> sell or share your data with advertisers.</li>
   <li>We do <strong>NOT</strong> use AI services to process your data or pages.</li>
   <li>We do <strong>NOT</strong> collect sensitive content (e.g., email contents, passwords, financial data, health data).</li>
-  <li>The image preview data we store is only the thumbnail your browser already rendered for you on the source page. KickClip does <strong>NOT</strong> separately fetch higher-resolution versions or any data your browser has not already accessed.</li>
+  <li>The image preview data we store is only the thumbnail your browser already rendered for you on the source page. SeaClip does <strong>NOT</strong> separately fetch higher-resolution versions or any data your browser has not already accessed.</li>
 </ul>
 
 <h2>4. Permission Justifications</h2>
 
-<p>KickClip requests the following Chrome permissions and uses them as follows:</p>
+<p>SeaClip requests the following Chrome permissions and uses them as follows:</p>
 <ul>
   <li><code>storage</code> — To store your preferences (save destination, UI settings) via <code>chrome.storage.local</code> on your device only.</li>
   <li><code>downloads</code> — When you choose a local folder as your save destination, to download saved files to that folder.</li>
   <li><code>scripting</code> — To inject the metadata-extraction content script into the active tab at the moment you press the save shortcut. Not used to monitor pages otherwise.</li>
   <li><code>tabs</code> — To read the active tab's URL and title at the moment you save, and to coordinate messages between the side panel UI and content scripts.</li>
-  <li><code>contextMenus</code> — To add a "Save with KickClip" entry to Chrome's right-click menu as an alternative to the keyboard shortcut.</li>
-  <li><code>windows</code> — To manage the lifecycle of KickClip's auxiliary windows (folder picker, popup notifications).</li>
-  <li><code>sidePanel</code> — To display KickClip's main UI in Chrome's side panel, where you browse saved items by category.</li>
+  <li><code>contextMenus</code> — To add a "Save with SeaClip" entry to Chrome's right-click menu as an alternative to the keyboard shortcut.</li>
+  <li><code>windows</code> — To manage the lifecycle of SeaClip's auxiliary windows (folder picker, popup notifications).</li>
+  <li><code>sidePanel</code> — To display SeaClip's main UI in Chrome's side panel, where you browse saved items by category.</li>
   <li><code>identity</code> — For Google sign-in via OAuth 2.0 to identify your account and request access to your Drive (only with <code>drive.file</code> scope).</li>
   <li><code>clipboardWrite</code> — To automatically copy the saved item's URL to your clipboard after saving, so you can immediately paste it elsewhere.</li>
 </ul>
 
 <h3>Host Permissions (<code>&lt;all_urls&gt;</code>)</h3>
-<p>KickClip requests permission to run on any URL because it is a universal save tool that must work on any website you choose to save from. Restricting to specific sites would defeat the core purpose.</p>
+<p>SeaClip requests permission to run on any URL because it is a universal save tool that must work on any website you choose to save from. Restricting to specific sites would defeat the core purpose.</p>
 <p>Despite the broad URL pattern:</p>
 <ul>
-  <li>KickClip only acts in response to your explicit save shortcut press or context menu click.</li>
-  <li>KickClip reads only the metadata necessary for saving (URL, title, primary image, hovered element).</li>
-  <li>KickClip does not monitor your browsing activity in the background.</li>
-  <li>KickClip does not collect personal data from pages you do not save.</li>
-  <li>KickClip does not run continuous content analysis on visited pages.</li>
+  <li>SeaClip only acts in response to your explicit save shortcut press or context menu click.</li>
+  <li>SeaClip reads only the metadata necessary for saving (URL, title, primary image, hovered element).</li>
+  <li>SeaClip does not monitor your browsing activity in the background.</li>
+  <li>SeaClip does not collect personal data from pages you do not save.</li>
+  <li>SeaClip does not run continuous content analysis on visited pages.</li>
 </ul>
 <p>The extension is functionally inert until you take a deliberate save action.</p>
 
 <h2>5. Data Sharing</h2>
 
-<p>KickClip shares your data only with the following service providers, strictly to operate the extension's documented functionality:</p>
+<p>SeaClip shares your data only with the following service providers, strictly to operate the extension's documented functionality:</p>
 
 <h3>5.1 Google (Firebase — Authentication and Firestore)</h3>
 <ul>
@@ -171,26 +171,26 @@
 <ul>
   <li><strong>What is shared:</strong> The files you explicitly save.</li>
   <li><strong>Purpose:</strong> Storage of your saved files in your own Google Drive.</li>
-  <li><strong>Access scope:</strong> <code>drive.file</code> only — KickClip can only see and modify files KickClip itself created. KickClip cannot see your other Drive files.</li>
+  <li><strong>Access scope:</strong> <code>drive.file</code> only — SeaClip can only see and modify files SeaClip itself created. SeaClip cannot see your other Drive files.</li>
 </ul>
 
-<p>KickClip does <strong>NOT</strong> share your data with any other third party. We do not sell, rent, or transfer your data to advertisers, data brokers, or analytics providers.</p>
+<p>SeaClip does <strong>NOT</strong> share your data with any other third party. We do not sell, rent, or transfer your data to advertisers, data brokers, or analytics providers.</p>
 
 <h2>6. Data Retention and Deletion</h2>
 <ul>
   <li><strong>Saved items:</strong> Retained until you delete them individually (using the delete button on each item in the side panel) or delete your account.</li>
   <li><strong>Account data:</strong> Retained until you request account deletion.</li>
-  <li><strong>Local data</strong> (chrome.storage.local): Cleared when you uninstall KickClip or use Chrome's extension settings to clear extension data.</li>
+  <li><strong>Local data</strong> (chrome.storage.local): Cleared when you uninstall SeaClip or use Chrome's extension settings to clear extension data.</li>
 </ul>
 <p>To request account deletion, email <a href="mailto:tlstlsgns@gmail.com">tlstlsgns@gmail.com</a>.</p>
 
 <h2>7. Your Rights</h2>
 <ul>
-  <li><strong>Access:</strong> View all your saved items via the KickClip side panel.</li>
+  <li><strong>Access:</strong> View all your saved items via the SeaClip side panel.</li>
   <li><strong>Delete individual items:</strong> Use the delete button on each item card.</li>
   <li><strong>Delete account:</strong> Email <a href="mailto:tlstlsgns@gmail.com">tlstlsgns@gmail.com</a> requesting account deletion.</li>
-  <li><strong>Revoke OAuth access:</strong> Remove KickClip's permissions at any time via <a href="https://myaccount.google.com/permissions">Google Account Security Settings</a>.</li>
-  <li><strong>Local data:</strong> Use <code>chrome://extensions</code> to remove KickClip and clear local data.</li>
+  <li><strong>Revoke OAuth access:</strong> Remove SeaClip's permissions at any time via <a href="https://myaccount.google.com/permissions">Google Account Security Settings</a>.</li>
+  <li><strong>Local data:</strong> Use <code>chrome://extensions</code> to remove SeaClip and clear local data.</li>
 </ul>
 
 <h2>8. Security</h2>
@@ -199,17 +199,17 @@
   <li>OAuth tokens are managed via Chrome's secure <code>chrome.identity</code> API.</li>
   <li>Backend infrastructure (Firebase) uses Google Cloud Platform's industry-standard security practices.</li>
   <li>Firebase Security Rules enforce per-user data isolation; one user cannot access another user's data.</li>
-  <li>KickClip itself does not store passwords. Authentication is delegated entirely to Google's OAuth flow.</li>
+  <li>SeaClip itself does not store passwords. Authentication is delegated entirely to Google's OAuth flow.</li>
 </ul>
 
 <h2>9. Children's Privacy</h2>
-<p>KickClip is not directed at children under 13 and does not knowingly collect data from children under 13. If we become aware of such collection, we will delete the data immediately.</p>
+<p>SeaClip is not directed at children under 13 and does not knowingly collect data from children under 13. If we become aware of such collection, we will delete the data immediately.</p>
 
 <h2>10. Changes to This Policy</h2>
 <p>We may update this policy from time to time. Material changes will be reflected in the "Last Updated" date at the top of this page. We will not retroactively change the policy to expand data collection beyond what was disclosed at the time of your saves.</p>
 
 <h2>11. Open Source</h2>
-<p>KickClip is open source. You can review the entire codebase at <a href="https://github.com/tlstlsgns/KickClip">github.com/tlstlsgns/KickClip</a> to verify the data handling described in this policy.</p>
+<p>SeaClip is open source. You can review the entire codebase at <a href="https://github.com/tlstlsgns/KickClip">github.com/tlstlsgns/KickClip</a> to verify the data handling described in this policy.</p>
 
 <h2>12. Contact</h2>
 <ul>
