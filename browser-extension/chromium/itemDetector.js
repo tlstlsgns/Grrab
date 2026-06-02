@@ -3778,30 +3778,21 @@ function findFirstOverflowHiddenAncestor(dominantImg, anchor) {
 // === END PHASE_CLIP_AWARE_COMPARATOR_HELPER ===
 
 /**
- * Determines the overlay element for Type B/D activation given the
- * resolved coreItem, dominantImg, and wrapping anchor.
+ * Determines the overlay element for Type D activation from the resolved
+ * coreItem and dominantImg. Overlay sizing is independent of any navigable
+ * anchor.
  *
- * Branch A (anchor wraps dominantImg):
- *   1. Find first overflow:hidden ancestor walking from dominantImg
- *      up to anchor (inclusive). This is the actual clip boundary
- *      per CSS spec.
- *   2. Comparator = clip ancestor (if found) or anchor (fallback).
- *   3. Compare comparator rect to imgRect via size-based resolution
- *      (see applyOverlayCaseRule):
- *      - rects equal → comparator
- *      - imgRect inside comparator → dominantImg
- *      - imgRect overflows comparator:
- *        - if comparator clips → comparator
- *        - else (anchor fallback, no clip) → dominantImg
+ * Rule: walk from dominantImg up to and INCLUDING the card (coreItem) for
+ * the first overflow:hidden ancestor.
+ *   - clip ancestor found → it is the clip boundary; size-based resolution
+ *     against it (see applyOverlayCaseRule):
+ *       - rects equal          → clip ancestor
+ *       - imgRect inside it     → dominantImg
+ *       - imgRect overflows it  → clip ancestor (image is clipped)
+ *   - none on the path → image is painted unclipped → dominantImg.
  *
- * Branch B (no anchor wraps dominantImg):
- *   - Walk dominantImg ancestors looking for one with a sibling
- *     containing an anchor-like element. That container substitutes
- *     for the anchor. Same size-based resolution applies; the
- *     branch container's overflow:hidden (if any) determines
- *     isComparatorClipping.
- *
- * Returns null when neither branch resolves an overlay element.
+ * `anchor` is retained in the signature for caller compatibility (URL /
+ * metadata extraction) but does not affect overlay sizing.
  */
 export function determineTypeDOverlayElement(coreItem, dominantImg, anchor) {
   if (!dominantImg) return null;
@@ -3809,62 +3800,29 @@ export function determineTypeDOverlayElement(coreItem, dominantImg, anchor) {
   if (!imgRect) return null;
   if (imgRect.width <= 0 || imgRect.height <= 0) return null;
 
-  // === PHASE_CLIP_AWARE_COMPARATOR_SELECTION ===
-  // Branch A: image-wrapping anchor is present (anchor is an ancestor of img).
-  // Comparator is the actual clip container (first overflow:hidden ancestor
-  // walking from dominantImg up to anchor inclusive), not necessarily the
-  // anchor itself. Per CSS spec, the visible bounds of the image are
-  // determined by the FIRST clip ancestor; once clipped, further ancestors
-  // only contain the already-clipped image. The clip-aware comparator
-  // ensures size-based resolution operates on the correct rect.
+  // === PHASE_OVERLAY_ALWAYS_CLIP_AWARE ===
+  // Overlay element resolution is independent of any navigable anchor.
+  // Removed: former Branch A anchor-wrap gate (PHASE_CLIP_AWARE_COMPARATOR_
+  // SELECTION) and Branch B sibling-anchor heuristic (PHASE_OVERLAY_BRANCH_
+  // CONTAINER, which returned null when no anchor relationship was found).
   //
-  // Fallback: when no overflow:hidden exists on the path, comparator is
-  // the anchor and isComparatorClipping=false. In that case, image-
-  // overflows-anchor returns dominantImg (Old Case 3 preservation —
-  // image is visually painted without clipping).
-  if (anchor && anchor.contains?.(dominantImg)) {
-    const clipAncestor = findFirstOverflowHiddenAncestor(dominantImg, anchor);
-    const comparator = clipAncestor || anchor;
-    const isComparatorClipping = clipAncestor !== null;
-    return applyOverlayCaseRule(coreItem, dominantImg, comparator, imgRect, isComparatorClipping);
+  // Rule: ALWAYS walk from the dominant image up to and INCLUDING the card
+  // (coreItem) for the first overflow:hidden ancestor.
+  //   - clip ancestor found  → it is the clip container; apply size-based
+  //     resolution against it (isComparatorClipping = true).
+  //   - none on the path     → image is painted unclipped; the overlay
+  //     element is the dominant image itself.
+  //
+  // `anchor` is retained in the signature (callers still use it for URL /
+  // metadata extraction) but no longer participates in overlay sizing.
+  // findFirstOverflowHiddenAncestor's 2nd argument is the WALK ENDPOINT
+  // (here the card, inclusive) — not an anchor; the helper is reused as-is.
+  const clipAncestor = findFirstOverflowHiddenAncestor(dominantImg, coreItem);
+  if (clipAncestor) {
+    return applyOverlayCaseRule(coreItem, dominantImg, clipAncestor, imgRect, true);
   }
-  // === END PHASE_CLIP_AWARE_COMPARATOR_SELECTION ===
-
-  // === PHASE_OVERLAY_BRANCH_CONTAINER ===
-  // No image-wrapping anchor: the Type D anchor lives in a sibling subtree
-  // of the image (e.g. <figure> with image and caption-credit anchor as
-  // separate children). Find the dominantImg's ancestor whose immediate
-  // parent has a sibling containing an anchor-like element. That ancestor —
-  // the last common-image-side container before the image and anchor diverge —
-  // substitutes for the anchor. Size-based resolution applies via
-  // applyOverlayCaseRule; isComparatorClipping reflects whether `cur`
-  // has overflow:hidden (no clip walk in Branch B per maintainer #13).
-  let cur = dominantImg.parentElement || null;
-  while (cur && cur !== coreItem) {
-    const parent = cur.parentElement;
-    if (!parent) break;
-    let matched = false;
-    for (const sibling of parent.children) {
-      if (sibling === cur) continue;
-      // === PHASE_OVERLAY_ANCHOR_LIKE ===
-      const isAnchorSibling = isAnchorLike(sibling)
-        || !!sibling.querySelector?.('a[href]')
-        || Array.from(sibling.querySelectorAll?.('[role="link"]') || [])
-          .some((el) => isAnchorLike(el));
-      // === END PHASE_OVERLAY_ANCHOR_LIKE ===
-      if (isAnchorSibling) {
-        matched = true;
-        break;
-      }
-    }
-    if (matched) {
-      const isComparatorClipping = hasOverflowHidden(cur);
-      return applyOverlayCaseRule(coreItem, dominantImg, cur, imgRect, isComparatorClipping);
-    }
-    cur = cur.parentElement;
-  }
-  return null;
-  // === END PHASE_OVERLAY_BRANCH_CONTAINER ===
+  return dominantImg;
+  // === END PHASE_OVERLAY_ALWAYS_CLIP_AWARE ===
 }
 
 // === PHASE_OVERLAY_SIZE_BASED_RESOLUTION ===
