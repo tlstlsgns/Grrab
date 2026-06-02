@@ -820,6 +820,23 @@ function rectsApproxEqual(a, b, tolerance = 4) {
          Math.abs(ah - bh) < tolerance;
 }
 
+// === PHASE_TYPE_D_OVERLAY_ANCHOR_REGISTER ===
+// True when `outer` fully covers `inner` (inner lies within outer, small
+// tolerance). Detects a card-level anchor that paints over the dominant
+// image (a stretched empty <a> sibling) so it can be registered as an
+// imageToItem dispatch key.
+function rectCoversRect(outer, inner, tol = 2) {
+  if (!outer || !inner) return false;
+  const ow = Number(outer.width) || 0, oh = Number(outer.height) || 0;
+  const iw = Number(inner.width) || 0, ih = Number(inner.height) || 0;
+  if (ow <= 0 || oh <= 0 || iw <= 0 || ih <= 0) return false;
+  return inner.left  >= outer.left  - tol &&
+         inner.top   >= outer.top   - tol &&
+         inner.right <= outer.right + tol &&
+         inner.bottom<= outer.bottom+ tol;
+}
+// === END PHASE_TYPE_D_OVERLAY_ANCHOR_REGISTER ===
+
 /**
  * Phase 27d/27e: Identifies DOM elements that visually occupy
  * the same area as a given <img>, used as hover-target
@@ -3556,6 +3573,50 @@ function buildImageToItem(items) {
               // defensive: closest can throw on disconnected nodes
             }
           }
+        // === PHASE_TYPE_D_OVERLAY_ANCHOR_REGISTER ===
+        // A card may contain a navigable anchor that is NOT an ancestor of
+        // any seed image but instead overlays the whole card (an empty
+        // position:absolute <a> stretched to inset:0 that intercepts pointer
+        // events over the dominant image). The seed-ancestor walk above never
+        // reaches such a sibling, so findItemByImage(overlayAnchor) misses and
+        // activation never fires. Register card-level navigable anchors whose
+        // rect COVERS a seed image (they paint over the image), so dispatch
+        // resolves the card on hover.
+        //
+        // Scope guard (decision #5): only anchors covering a seed image are
+        // registered — ordinary in-card text links (rect does not cover the
+        // image) are excluded, and thumbnail-wrapping anchors are skipped
+        // (already keyed by the seed-ancestor walk; !map.has dedups).
+        // Safe re: clipping (decision #3) — clip stays gated on overlay
+        // visibility (isCoreHighlightShown), so a card-wide anchor key does
+        // NOT enable clipping outside the dominant-image region.
+        // NOTE: buildImageToItem runs only on itemMap rebuild (see
+        // PHASE_CLUSTER_CACHE_REF), not per hover; getBoundingClientRect here
+        // is scan-time, not hot-path.
+        try {
+          const navAnchors = [];
+          for (const a of item.element.querySelectorAll?.('a[href]') || []) navAnchors.push(a);
+          for (const rl of item.element.querySelectorAll?.('[role="link"]') || []) {
+            if (isAnchorLike(rl)) navAnchors.push(rl);
+          }
+          for (const a of navAnchors) {
+            if (!a || map.has(a)) continue;
+            let wrapsSeed = false;
+            for (const img of seeds) { if (img && a.contains?.(img)) { wrapsSeed = true; break; } }
+            if (wrapsSeed) continue; // already handled by seed-ancestor walk
+            const aRect = a.getBoundingClientRect?.();
+            if (!aRect) continue;
+            let coversSeed = false;
+            for (const img of seeds) {
+              const ir = img && img.getBoundingClientRect?.();
+              if (ir && rectCoversRect(aRect, ir)) { coversSeed = true; break; }
+            }
+            if (coversSeed) map.set(a, item);
+          }
+        } catch (e) {
+          // defensive: querySelectorAll / getBoundingClientRect on exotic nodes
+        }
+        // === END PHASE_TYPE_D_OVERLAY_ANCHOR_REGISTER ===
         }
         // === END PHASE_TYPE_D_ANCHOR_REGISTER ===
         // === PHASE27D_HOVER_COMPANIONS_REGISTER (Type B / D) ===

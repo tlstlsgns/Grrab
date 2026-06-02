@@ -77,6 +77,21 @@ let _retryScanCount  = 0;   // number of retries attempted for current navigatio
 let _forceFullScanOnMutation = false; // true after navigation: next MutationObserver trigger uses full document scan
 let lastPointerX = null;
 let lastPointerY = null;
+// === PHASE_OVERLAY_MOUSEMOVE_GATE ===
+// State for the mousemove-driven decoupled-overlay show/hide gate.
+// _overlayGateRect is a cached rect of the active decoupled overlay,
+// recomputed only when marked dirty (scroll / ResizeObserver) — NOT per
+// mousemove — so the hot path is point-in-rect arithmetic with no forced
+// layout. _overlayGateLastInside guards transition-only show/hide.
+let _overlayGateRect = null;
+let _overlayGateRectDirty = true;
+let _overlayGateLastInside = null;
+function _resetOverlayGate() {
+  _overlayGateRect = null;
+  _overlayGateRectDirty = true;
+  _overlayGateLastInside = null;
+}
+// === END PHASE_OVERLAY_MOUSEMOVE_GATE ===
 let _lastMouseoverTarget = null;
 // === PHASE_COREITEM_LIVE_METADATA ===
 // MutationObserver for live refresh of state.lastExtractedMetadata when the
@@ -574,6 +589,7 @@ function refreshCoreItemMetadata(coreItem) {
           : null;
 
         state.activeOverlayElement = newOverlay;
+        _resetOverlayGate(); // PHASE_OVERLAY_MOUSEMOVE_GATE
 
         // === PHASE_OVERLAY_RECT_WATCHER_REPOINT ===
         // Re-point the ResizeObserver to the new overlay element so its
@@ -843,6 +859,8 @@ function mountActiveOverlayRectWatcher(overlayElement) {
         const rect = el.getBoundingClientRect?.();
         if (!rect || rect.width <= 0 || rect.height <= 0) return;
 
+        _overlayGateRectDirty = true; // PHASE_OVERLAY_MOUSEMOVE_GATE: overlay rect resized
+
         // === PHASE_RECT_WATCHER_POINTER_GATE ===
         // Mirror of PHASE_SCROLL_POINTER_GATE in the scroll handler.
         // ResizeObserver fires only on size changes (not pure scroll),
@@ -894,6 +912,7 @@ function unmountActiveOverlayRectWatcher() {
 function coreClear() {
   // === PHASE_OVERLAY_ON_IMAGE ===
   state.activeOverlayElement = null;
+  _resetOverlayGate(); // PHASE_OVERLAY_MOUSEMOVE_GATE
   // === END PHASE_OVERLAY_ON_IMAGE ===
   // === PHASE_ACTIVE_OVERLAY_RECT_WATCH ===
   unmountActiveOverlayRectWatcher();
@@ -1327,6 +1346,7 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   // naturally gated by isCoreHighlightShown from the prior commit.
   // === END PHASE_OVERLAY_HOVER_GATE ===
   state.activeOverlayElement = overlayElement;
+  _resetOverlayGate(); // PHASE_OVERLAY_MOUSEMOVE_GATE
   if (overlayElement === null) {
     hideCoreHighlight();
     // === PHASE_ACTIVE_OVERLAY_RECT_WATCH ===
@@ -3417,6 +3437,8 @@ function schedulePreScanScrollDebounced() {
     schedulePreScanScrollDebounced();
     // === END PHASE_SCROLL_PRESCAN_TRIGGER_INTEGRATION ===
 
+    _overlayGateRectDirty = true; // PHASE_OVERLAY_MOUSEMOVE_GATE: overlay rect moved on scroll
+
     const active = state.activeCoreItem;
 
     if (!active) return;
@@ -3668,6 +3690,49 @@ function schedulePreScanScrollDebounced() {
     // Page badge stays fixed — no repositioning needed
 
     // positionMetadataTooltip disabled — CoreItem hover uses status badge only
+
+    // === PHASE_OVERLAY_MOUSEMOVE_GATE ===
+    // The mouseover decoupling gate (PHASE_OVERLAY_HOVER_GATE) re-evaluates
+    // only on target change. When a single stretched element (empty <a>
+    // overlaying a whole card) covers BOTH the dominant image and the card
+    // chrome, moving across the image boundary does not change event.target,
+    // so mouseover never re-fires and the overlay (clip gate via
+    // isCoreHighlightShown) goes stale. Re-evaluate here so the overlay —
+    // and clip-ability — tracks the dominant-image region inside the
+    // stretched element. Scoped to decoupled Type D overlays
+    // (activeOverlayElement !== activeCoreItem); Type B/E no-op. Perf:
+    // cached rect (dirty-flagged), transition-only show/hide, no
+    // elementFromPoint.
+    try {
+      const activeC = state.activeCoreItem;
+      const overlayEl = state.activeOverlayElement;
+      if (
+        activeC && overlayEl && overlayEl !== activeC &&
+        overlayEl.nodeType === 1 &&
+        Number.isFinite(lastPointerX) && Number.isFinite(lastPointerY)
+      ) {
+        if (_overlayGateRectDirty || !_overlayGateRect) {
+          const r = overlayEl.getBoundingClientRect?.();
+          _overlayGateRect = (r && r.width > 0 && r.height > 0) ? r : null;
+          _overlayGateRectDirty = false;
+        }
+        if (_overlayGateRect) {
+          const gr = _overlayGateRect;
+          const inside =
+            lastPointerX >= gr.left && lastPointerX <= gr.right &&
+            lastPointerY >= gr.top  && lastPointerY <= gr.bottom;
+          if (inside !== _overlayGateLastInside) {
+            _overlayGateLastInside = inside;
+            if (inside) {
+              showCoreHighlight(activeC, false, gr);
+            } else {
+              hideCoreHighlight();
+            }
+          }
+        }
+      }
+    } catch (_) { /* never let the hover gate throw */ }
+    // === END PHASE_OVERLAY_MOUSEMOVE_GATE ===
   }, { passive: true, capture: true });
 
   // mouseout with null relatedTarget means the pointer truly left the document
