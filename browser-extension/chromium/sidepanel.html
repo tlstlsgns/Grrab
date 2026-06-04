@@ -275,20 +275,6 @@
       flex: 1 1 auto;
       max-width: calc(100% - 24px);
     }
-    .kc-dir-auto-wrap {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-      user-select: none;
-      flex: 0 0 auto;
-      font-size: 12px;
-      color: #6b7280;
-    }
-    .kc-dir-auto-checkbox {
-      cursor: pointer;
-      accent-color: #BC13FE;
-    }
     @media (prefers-color-scheme: dark) {
       .kc-dir-container {
         border-bottom-color: rgba(255, 255, 255, 0.06);
@@ -296,9 +282,6 @@
       }
       .kc-dir-folder-btn {
         border-color: rgba(255, 255, 255, 0.12);
-        color: #9ca3af;
-      }
-      .kc-dir-auto-wrap {
         color: #9ca3af;
       }
     }
@@ -1146,10 +1129,6 @@
           </svg>
           <span class="kc-dir-folder-label" id="kc-dir-folder-label">저장 위치 선택</span>
         </button>
-        <label class="kc-dir-auto-wrap" for="kc-dir-auto-checkbox">
-          <input type="checkbox" id="kc-dir-auto-checkbox" class="kc-dir-auto-checkbox" />
-          <span class="kc-dir-auto-label">Auto</span>
-        </label>
       </div>
 
       <!-- Directory list -->

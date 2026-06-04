@@ -59,7 +59,11 @@ import {
 } from './shortcutStore.js';
 // === END PHASE_SHORTCUT_RECORDER ===
 
-const KC_AUTO_STORAGE_KEY = 'kc_upload_auto_enabled';
+// PHASE_UPLOAD_ALWAYS_AUTO: the Auto checkbox is removed — uploads
+// always route directly to the configured destination
+// (handleUploadToDestination). The legacy 'kc_upload_auto_enabled'
+// storage key is abandoned in place. The upload popover remains only
+// as the catch-path fallback in handleUploadButtonClick.
 
 // Picker popup window tracking for auto-close + re-click handling.
 let _kcPickerWindowId = null;
@@ -86,34 +90,13 @@ chrome.windows.onRemoved.addListener((closedWindowId) => {
   }
 });
 
-/** @returns {Promise<boolean>} */
-async function getAutoEnabled() {
-  try {
-    const result = await chrome.storage.local.get(KC_AUTO_STORAGE_KEY);
-    return Boolean(result[KC_AUTO_STORAGE_KEY]);
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] getAutoEnabled error:', e);
-    return false;
-  }
-}
-
-/** @param {boolean} value */
-async function setAutoEnabled(value) {
-  try {
-    await chrome.storage.local.set({ [KC_AUTO_STORAGE_KEY]: Boolean(value) });
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] setAutoEnabled error:', e);
-  }
-}
-
 /**
  * Updates the Dir container UI to reflect destination preference.
  */
-async function _refreshDirContainer(autoEnabled) {
+async function _refreshDirContainer() {
   const btn = document.getElementById('kc-dir-folder-btn');
   const label = document.getElementById('kc-dir-folder-label');
-  const autoBox = document.getElementById('kc-dir-auto-checkbox');
-  if (!btn || !label || !autoBox) return;
+  if (!btn || !label) return;
 
   try {
     const destination = await getDestination();
@@ -182,8 +165,6 @@ async function _refreshDirContainer(autoEnabled) {
         btn.classList.add('kc-dir-unconfigured');
       }
     }
-
-    autoBox.checked = Boolean(autoEnabled);
   } catch (e) {
     console.log('[KICKCLIP-LOG] _refreshDirContainer error:', e);
   }
@@ -225,11 +206,6 @@ async function handleOpenFolderSettings() {
   }
 }
 
-async function handleAutoCheckboxChange(e) {
-  const checked = Boolean(e.target.checked);
-  await setAutoEnabled(checked);
-}
-
 (async () => {
   try {
     await preloadPrimaryHandle();
@@ -245,8 +221,7 @@ async function handleAutoCheckboxChange(e) {
   } catch (e) {
     console.log('[KICKCLIP-LOG] destination backfill failed:', e);
   }
-  const auto = await getAutoEnabled();
-  await _refreshDirContainer(auto);
+  await _refreshDirContainer();
 })();
 
 // ── Firebase config ───────────────────────────────────────────────────────────
@@ -424,7 +399,6 @@ const dashboardScreen = document.getElementById('dashboard-screen');
 const btnSignin       = document.getElementById('btn-signin');
 const btnSignout      = document.getElementById('btn-signout');
 const dirFolderBtn    = document.getElementById('kc-dir-folder-btn');
-const dirAutoBox      = document.getElementById('kc-dir-auto-checkbox');
 const loginError      = document.getElementById('login-error');
 const spUserAvatar    = document.getElementById('sp-user-avatar');
 const spDirectoryList = document.getElementById('sp-directory-list');
@@ -1774,9 +1748,6 @@ btnSignout.addEventListener('click', signOut);
 if (dirFolderBtn) {
   dirFolderBtn.addEventListener('click', () => { handleOpenFolderSettings(); });
 }
-if (dirAutoBox) {
-  dirAutoBox.addEventListener('change', handleAutoCheckboxChange);
-}
 
 // AI board disabled
 // spAiBoardClose.addEventListener('click', () => {
@@ -2047,7 +2018,7 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
       if (uploadResp?.reason === 'folder-missing') {
         console.log('[KICKCLIP-LOG] Drive folder missing, clearing destination');
         await clearDestination();
-        await _refreshDirContainer(await getAutoEnabled());
+        await _refreshDirContainer();
         showKcToast('Drive 폴더를 찾을 수 없습니다. 다시 설정해주세요.', 'error');
         return;
       }
@@ -2077,21 +2048,12 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
 // === PHASE_UPLOAD_AUTO_ROUTING ===
 // handleUploadButtonClick — card upload button entry point.
 //
-// Auto policy (per decision 2/Y):
-//   Auto ON  → route immediately via handleUploadToDestination (no popover)
-//   Auto OFF → show card popover (now 2 options: 내 컴퓨터 폴더 / 지정 디렉토리로 업로드)
-//
-// "지정 디렉토리로 업로드" in the popover calls the same
-// handleUploadToDestination dispatcher, so Auto ON and "popover →
-// 지정 디렉토리로 업로드" produce identical outcomes.
+// Always-auto routing (PHASE_UPLOAD_ALWAYS_AUTO): route immediately via
+// handleUploadToDestination. The upload popover (openKcUploadPopover) is
+// reachable only via the catch-path fallback when routing throws.
 async function handleUploadButtonClick(item, anchorBtn) {
   try {
-    const autoEnabled = await getAutoEnabled();
-    if (autoEnabled) {
-      await handleUploadToDestination(item, anchorBtn);
-      return;
-    }
-    openKcUploadPopover(anchorBtn, item);
+    await handleUploadToDestination(item, anchorBtn);
   } catch (e) {
     console.log('[KICKCLIP-LOG] handleUploadButtonClick error:', e);
     openKcUploadPopover(anchorBtn, item);
@@ -2101,8 +2063,8 @@ async function handleUploadButtonClick(item, anchorBtn) {
 // handleUploadToDestination — destination-driven upload dispatcher.
 //
 // Called from two paths:
-//   1. handleUploadButtonClick when Auto is ON.
-//   2. Card popover's "지정 디렉토리로 업로드" item.
+//   1. handleUploadButtonClick (always-auto primary path).
+//   2. Card popover's "지정 디렉토리로 업로드" item (error fallback or manual).
 //
 // Destination mapping:
 //   null                            → saveItemToDownloads (implicit default)
@@ -3350,8 +3312,7 @@ if (chrome?.runtime?.onMessage) {
         try {
           await refreshPrimaryHandleCache();
           await setDestination({ type: 'local' });
-          await setAutoEnabled(true);
-          await _refreshDirContainer(true);
+          await _refreshDirContainer();
           showKcToast(`저장 폴더 설정 완료: ${message.folderName || ''}`, 'success');
         } catch (e) {
           console.log('[KICKCLIP-LOG] picker handle ready processing failed:', e);
@@ -3364,12 +3325,7 @@ if (chrome?.runtime?.onMessage) {
     if (message.action === 'kc-picker-drive-ready') {
       (async () => {
         try {
-          await _refreshDirContainer(await getAutoEnabled());
-          const autoCheckbox = document.getElementById('kc-dir-auto-checkbox');
-          if (autoCheckbox && !autoCheckbox.checked) {
-            autoCheckbox.checked = true;
-            await setAutoEnabled(true);
-          }
+          await _refreshDirContainer();
           showKcToast('✓ Google Drive 폴더가 설정되었습니다.');
         } catch (e) {
           console.log('[KICKCLIP-LOG] kc-picker-drive-ready handler error:', e);
@@ -3381,12 +3337,7 @@ if (chrome?.runtime?.onMessage) {
     if (message.action === 'kc-picker-downloads-ready') {
       (async () => {
         try {
-          await _refreshDirContainer(await getAutoEnabled());
-          const autoCheckbox = document.getElementById('kc-dir-auto-checkbox');
-          if (autoCheckbox && !autoCheckbox.checked) {
-            autoCheckbox.checked = true;
-            await setAutoEnabled(true);
-          }
+          await _refreshDirContainer();
           showKcToast('✓ Downloads 폴더로 설정되었습니다.');
         } catch (e) {
           console.log('[KICKCLIP-LOG] kc-picker-downloads-ready handler error:', e);
