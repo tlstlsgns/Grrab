@@ -2056,7 +2056,17 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
     }
 
     flashUploadMark(anchorBtn, true);
-    showKcToast(`✓ "${formatToastFileName(payload.desiredName)}" 업로드 완료`, 'success');
+    // PHASE_UPLOAD_TOAST_FILENAME: unify the Drive success toast with the
+    // non-Drive folder-upload style — width-budgeted filename owns line 1
+    // (formatToastFileName's budget assumes a dedicated line; the old
+    // single-line ✓/quotes/suffix form exceeded the toast width and
+    // wrapped mid-name), 'saved to {folder}' on line 2 like the local
+    // directory-handle path. driveFolderName fallback mirrors the
+    // destination display fallback elsewhere in this file.
+    showKcToast(
+      `${formatToastFileName(payload.desiredName)}\nsaved to ${destination.driveFolderName || 'SeaClip_files'}`,
+      'success'
+    );
   } catch (e) {
     flashUploadMark(anchorBtn, false);
     console.log('[KICKCLIP-LOG] handleAutoDriveUpload error:', e);
