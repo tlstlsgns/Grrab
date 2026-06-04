@@ -1909,6 +1909,48 @@ function showKcToast(message, kind = 'success', duration = 2500) {
   }, duration);
 }
 
+// === PHASE_UPLOAD_TOAST_FILENAME ===
+// One-line filename for upload toasts. Truncation is by VISUAL width
+// (CJK/fullwidth = 2 units, others = 1) because the toast box is fixed
+// width and Korean titles render ~2x wider per character than latin.
+// Budget below is derived from .kc-toast's CSS width at its font-size.
+const KC_TOAST_NAME_BUDGET = 26; // visual units incl. '…' + extension
+function charWidthUnits(ch) {
+  const c = ch.codePointAt(0);
+  // CJK Unified, Hangul syllables/jamo, fullwidth forms, CJK punct, Kana
+  return (
+    (c >= 0x1100 && c <= 0x11ff) || (c >= 0x2e80 && c <= 0x303e) ||
+    (c >= 0x3041 && c <= 0x33ff) || (c >= 0x3400 && c <= 0x4dbf) ||
+    (c >= 0x4e00 && c <= 0x9fff) || (c >= 0xa960 && c <= 0xa97f) ||
+    (c >= 0xac00 && c <= 0xd7a3) || (c >= 0xf900 && c <= 0xfaff) ||
+    (c >= 0xfe30 && c <= 0xfe4f) || (c >= 0xff00 && c <= 0xff60) ||
+    (c >= 0xffe0 && c <= 0xffe6)
+  ) ? 2 : 1;
+}
+function truncateToWidth(s, budget) {
+  let used = 0;
+  let out = '';
+  for (const ch of s) {
+    const w = charWidthUnits(ch);
+    if (used + w > budget) return { text: out.trimEnd() + '…', truncated: true };
+    out += ch;
+    used += w;
+  }
+  return { text: out, truncated: false };
+}
+function formatToastFileName(name) {
+  const raw = String(name || '').replace(/\s*\r?\n\s*/g, ' ').trim() || '(untitled)';
+  const dot = raw.lastIndexOf('.');
+  const hasExt = dot > 0 && dot >= raw.length - 6;
+  const base = hasExt ? raw.slice(0, dot) : raw;
+  const ext = hasExt ? raw.slice(dot) : '';
+  const extUnits = Array.from(ext).reduce((a, ch) => a + charWidthUnits(ch), 0);
+  const baseBudget = Math.max(4, KC_TOAST_NAME_BUDGET - extUnits - 1); // 1 for '…'
+  const t = truncateToWidth(base, baseBudget);
+  return t.text + ext;
+}
+// === END PHASE_UPLOAD_TOAST_FILENAME ===
+
 function flashUploadMark(btnEl, success) {
   if (!btnEl) return;
   const cls = success ? 'kc-upload--success' : 'kc-upload--error';
@@ -1923,14 +1965,7 @@ function handleLocalUpload(item, anchorBtn) {
     .then((result) => {
       if (result.ok) {
         flashUploadMark(anchorBtn, true);
-        const safeTitle = (item.title || '').trim() || '(untitled)';
-        // === PHASE27G_FALLBACK_TOAST ===
-        if (result.usedFallback) {
-          showKcToast(`${safeTitle}\n원본 다운로드 실패, 표시 이미지를 저장했습니다`, 'success');
-        } else {
-          showKcToast(`${safeTitle}\n저장 완료`, 'success');
-        }
-        // === END PHASE27G_FALLBACK_TOAST ===
+        showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
       } else if (result.reason === 'cancelled') {
         flashUploadMark(anchorBtn, false);
       } else {
@@ -1950,14 +1985,10 @@ function handleAutoPathUpload(item, anchorBtn, handle) {
     .then((result) => {
       if (result.ok) {
         flashUploadMark(anchorBtn, true);
-        const safeTitle = (item.title || '').trim() || '(untitled)';
-        // === PHASE27G_FALLBACK_TOAST ===
-        if (result.usedFallback) {
-          showKcToast(`${safeTitle}\n원본 다운로드 실패, 표시 이미지를 저장했습니다`, 'success');
-        } else {
-          showKcToast(`${safeTitle}\nsaved to ${result.primaryFolderName}`, 'success');
-        }
-        // === END PHASE27G_FALLBACK_TOAST ===
+        showKcToast(
+          `${formatToastFileName(result.filename)}\nsaved to ${result.primaryFolderName}`,
+          'success'
+        );
       } else {
         flashUploadMark(anchorBtn, false);
         let msg;
@@ -2025,7 +2056,7 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
     }
 
     flashUploadMark(anchorBtn, true);
-    showKcToast(`✓ "${payload.desiredName}" 업로드 완료`, 'success');
+    showKcToast(`✓ "${formatToastFileName(payload.desiredName)}" 업로드 완료`, 'success');
   } catch (e) {
     flashUploadMark(anchorBtn, false);
     console.log('[KICKCLIP-LOG] handleAutoDriveUpload error:', e);
@@ -2082,12 +2113,7 @@ async function handleUploadToDestination(item, anchorBtn) {
       const result = await saveItemToDownloads(item);
       if (result && result.ok) {
         flashUploadMark(anchorBtn, true);
-        const safeTitle = (item.title || '').trim() || '(untitled)';
-        if (result.usedFallback) {
-          showKcToast(`${safeTitle}\n원본 다운로드 실패, 표시 이미지를 저장했습니다`, 'success');
-        } else {
-          showKcToast(`${safeTitle}\n저장 완료`, 'success');
-        }
+        showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
       } else {
         flashUploadMark(anchorBtn, false);
         showKcToast(`저장 실패: ${result?.message || 'Unknown error'}`, 'error');
@@ -2117,7 +2143,7 @@ async function handleUploadToDestination(item, anchorBtn) {
     const result = await saveItemToDownloads(item);
     if (result && result.ok) {
       flashUploadMark(anchorBtn, true);
-      showKcToast('저장 완료', 'success');
+      showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
     } else {
       flashUploadMark(anchorBtn, false);
       showKcToast(`저장 실패: ${result?.message || 'Unknown error'}`, 'error');
