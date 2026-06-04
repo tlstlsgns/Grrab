@@ -6,10 +6,10 @@
  *
  *   kickclip-v1.0.0-prod.zip/
  *   ├── README.md            (Korean install + usage guide, built from template)
- *   └── kickclip-prod.zip    (the actual Chrome extension to load)
+ *   └── seaclip-prod.zip    (the actual Chrome extension to load)
  *
  * Steps:
- *   1. Run `npm run build:prod` to refresh dist/kickclip-prod.zip.
+ *   1. Run `npm run build:prod` to refresh dist/seaclip-prod.zip.
  *   2. Read docs/user-install-guide.md template and substitute {{BUILD_DATE}}.
  *   3. Create a wrapper zip containing the rendered README.md + the extension zip.
  *
@@ -29,7 +29,7 @@ const archiver = require('archiver');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const DIST_DIR = path.join(REPO_ROOT, 'dist');
 const GUIDE_TEMPLATE = path.join(REPO_ROOT, 'docs', 'user-install-guide.md');
-const EXTENSION_ZIP = path.join(DIST_DIR, 'kickclip-prod.zip');
+const EXTENSION_ZIP = path.join(DIST_DIR, 'seaclip-prod.zip');
 
 // ---------- derive version + output name ----------
 function readExtensionVersion() {
@@ -45,7 +45,7 @@ const VERSION = readExtensionVersion();
 const WRAPPER_BASENAME = `kickclip-v${VERSION}-prod`;
 const WRAPPER_ZIP = path.join(DIST_DIR, `${WRAPPER_BASENAME}.zip`);
 
-// ---------- step 1: refresh kickclip-prod.zip ----------
+// ---------- step 1: refresh seaclip-prod.zip ----------
 console.log('Step 1/3: running `npm run build:prod` to refresh extension zip...');
 execSync('npm run build:prod', {
   cwd: REPO_ROOT,
@@ -107,7 +107,7 @@ output.on('close', () => {
   console.log(`Size: ${sizeKB} KB`);
   console.log(`Contains:`);
   console.log(`  - README.md (built ${buildDate})`);
-  console.log(`  - kickclip-prod.zip (the extension)`);
+  console.log(`  - seaclip-prod.zip (the extension)`);
 });
 
 output.on('error', (err) => {
@@ -131,7 +131,7 @@ archive.on('error', (err) => {
 archive.pipe(output);
 
 archive.append(rendered, { name: 'README.md' });
-archive.file(EXTENSION_ZIP, { name: 'kickclip-prod.zip' });
+archive.file(EXTENSION_ZIP, { name: 'seaclip-prod.zip' });
 
 archive.finalize();
 

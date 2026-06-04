@@ -14,7 +14,7 @@ KickClip operates in two parallel environments. Every environment has its own Fi
 | Env | Purpose | Who loads it | Source |
 |---|---|---|---|
 | **DEV** | Local development & testing | Developer only | `browser-extension/chromium/` (unpacked) |
-| **PROD** | Customer distribution | Customers | `browser-extension/dist/kickclip-prod.zip` |
+| **PROD** | Customer distribution | Customers | `browser-extension/dist/seaclip-prod.zip` |
 
 ---
 
@@ -140,7 +140,7 @@ DEV artifacts (`chromium/manifest.json`, `chromium/config.js`) are generated on-
 ```bash
 cd browser-extension
 npm run build:prod
-# Output: browser-extension/dist/kickclip-prod.zip
+# Output: browser-extension/dist/seaclip-prod.zip
 ```
 
 Distribute the zip to customers. **Always verify zip contents by extracting locally first.** Look for:
@@ -345,7 +345,7 @@ Copied from DEV to PROD verbatim. See Firebase Console for current content.
     - `.gitignore` pattern updated `service-account.json` → `service-account*.json` to cover both files.
     - Bitwarden backups added for both DEV and PROD service account keys.
   - **PROD release:**
-    - New `dist/kickclip-prod.zip` rebuilt (324.98 KB, 23 files).
+    - New `dist/seaclip-prod.zip` rebuilt (324.98 KB, 23 files).
     - Verified: PROD public key + PROD OAuth client_id + YouTube host_permissions all present.
     - **Existing customers must reinstall** — old zip does not understand new schema.
   - Commit: `6df7b9f`

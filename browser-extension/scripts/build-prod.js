@@ -8,7 +8,7 @@ const extensionRoot = path.join(repoRoot, 'browser-extension');
 const srcDir = path.join(extensionRoot, 'chromium');
 const distDir = path.join(extensionRoot, 'dist');
 const outDir = path.join(distDir, 'prod');
-const zipPath = path.join(distDir, 'kickclip-prod.zip');
+const zipPath = path.join(distDir, 'seaclip-prod.zip');
 
 const excludedBasenames = new Set([
   'manifest.json',
