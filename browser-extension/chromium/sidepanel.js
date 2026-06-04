@@ -141,7 +141,7 @@ async function _refreshDirContainer(autoEnabled) {
     // saveItemToDownloads for the 'downloads' / null cases.
     if (destination && destination.type === 'drive') {
       const parent = destination.driveParentFolderName || '';
-      const child = destination.driveFolderName || 'kickclip_files';
+      const child = destination.driveFolderName || 'SeaClip_files';
       const fullPath = parent ? `${parent}/${child}` : child;
       label.textContent = fullPath;
       btn.title = `Google Drive: ${fullPath}`;
@@ -2019,7 +2019,7 @@ function openUploadPopover(item, anchorBtn) {
 }
 
 /**
- * Upload an item directly to the configured Drive kickclip_files folder.
+ * Upload an item directly to the configured Drive SeaClip_files folder.
  * Called when destination.type === 'drive' and Auto is ON.
  */
 async function handleAutoDriveUpload(item, destination, anchorBtn) {

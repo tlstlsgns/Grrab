@@ -181,7 +181,7 @@ KickClip/
 3. **Choose a save destination** when prompted:
    - **Local folder**: select a folder on your computer (via File
      System Access API)
-   - **Google Drive**: automatically creates a `kickclip_files`
+   - **Google Drive**: automatically creates a `SeaClip_files`
      folder in your Drive root
 
 ### Saving Content

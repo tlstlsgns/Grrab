@@ -43,7 +43,7 @@ function notifyBusy(isBusy) {
 /**
  * Drive button handler (Phase U3.3c).
  * Skips Google Picker (incompatible with MV3 CSP) and directly creates/
- * reuses kickclip_files in user's My Drive root. Picker API reintroduction
+ * reuses SeaClip_files in user's My Drive root. Picker API reintroduction
  * (folder selection UI) is deferred to Phase U4 with a custom tree view.
  */
 async function handleDriveButtonClick() {
@@ -66,7 +66,7 @@ async function handleDriveButtonClick() {
       return;
     }
 
-    setStatus('내 드라이브에 kickclip_files 폴더 준비 중...', '');
+    setStatus('내 드라이브에 SeaClip_files 폴더 준비 중...', '');
     const ensureResp = await chrome.runtime.sendMessage({
       action: 'drive-ensure-folder',
       parentFolderId: 'root',
@@ -93,7 +93,7 @@ async function handleDriveButtonClick() {
 
     notifyBusy(false);
     setStatus(
-      `✓ 내 드라이브의 "kickclip_files" 폴더가 설정되었습니다. 창을 닫습니다...`,
+      `✓ 내 드라이브의 "SeaClip_files" 폴더가 설정되었습니다. 창을 닫습니다...`,
       'success'
     );
     try {

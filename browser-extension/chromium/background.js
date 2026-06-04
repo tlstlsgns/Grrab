@@ -278,8 +278,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   }
 
-  // Phase U3.3: ensure kickclip_files subfolder exists in selected parent
-  // on Google Drive. Searches for app-owned 'kickclip_files' within parent;
+  // Phase U3.3: ensure SeaClip_files subfolder exists in selected parent
+  // on Google Drive. Searches for app-owned 'SeaClip_files' within parent;
   // reuses if found (drive.file scope lets app see only folders it created),
   // creates new otherwise.
   //
@@ -320,7 +320,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         const query = [
-          "name='kickclip_files'",
+          "name='SeaClip_files'",
           `'${parentFolderId}' in parents`,
           "mimeType='application/vnd.google-apps.folder'",
           'trashed=false',
@@ -363,7 +363,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            name: 'kickclip_files',
+            name: 'SeaClip_files',
             mimeType: 'application/vnd.google-apps.folder',
             parents: [parentFolderId],
           }),
@@ -397,7 +397,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // async response
   }
 
-  // Phase U3.3: upload a DataCard item to Drive's kickclip_files folder
+  // Phase U3.3: upload a DataCard item to Drive's SeaClip_files folder
   // as a markdown (or image for Image category) file via multipart upload.
   //
   // Request: { action: 'drive-upload-file', item, folderId, desiredName, mimeType, contentBase64 }

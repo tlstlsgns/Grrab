@@ -102,8 +102,8 @@ export async function clearPrimaryHandle() {
 //   { type: 'local' }       — use IndexedDB primary handle (existing flow)
 //   {
 //     type: 'drive',
-//     driveFolderId: string,         // kickclip_files folder ID
-//     driveFolderName: string,       // 'kickclip_files'
+//     driveFolderId: string,         // SeaClip_files folder ID
+//     driveFolderName: string,       // 'SeaClip_files'
 //     driveParentFolderId: string,   // picker-selected parent
 //     driveParentFolderName: string  // parent name (for UI display)
 //   }
