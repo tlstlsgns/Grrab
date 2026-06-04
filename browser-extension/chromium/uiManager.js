@@ -171,13 +171,13 @@ function buildOverlayStyleElement() {
               width 0.05s ease, height 0.05s ease;
 }
 #kickclip-highlight-overlay.kickclip-default {
-  box-shadow: 0 2px 12px 2px rgba(188, 19, 254, 0.40);
+  box-shadow: 0 2px 16px 4px rgba(188, 19, 254, 0.65);
 }
 #kickclip-highlight-overlay.kickclip-default.kickclip-size-medium {
-  box-shadow: 0 4px 24px 3px rgba(188, 19, 254, 0.50);
+  box-shadow: 0 4px 30px 5px rgba(188, 19, 254, 0.75);
 }
 #kickclip-highlight-overlay.kickclip-default.kickclip-size-large {
-  box-shadow: 0 6px 36px 5px rgba(188, 19, 254, 0.60);
+  box-shadow: 0 6px 44px 7px rgba(188, 19, 254, 0.85);
 }
 #kickclip-highlight-overlay.kickclip-default.kickclip-clipped {
   box-shadow: 0 0 0 2px rgba(188, 19, 254, 1);
@@ -657,6 +657,26 @@ export function hideMetadataTooltip() {
   if (el) el.style.display = 'none';
 }
 
+// === PHASE_OVERLAY_RADIUS_MIRROR ===
+// The overlay visually wraps a specific element (the decoupled overlay
+// element when rectOverride is supplied, else the coreItem). Mirroring
+// that element's computed border-radius makes the highlight hug rounded
+// cards/thumbnails exactly instead of applying a uniform 8px. Strict
+// mirror: '0px' elements get square highlights. '8px' is only a
+// fallback for unreadable computed styles.
+function computeOverlayBorderRadius(sourceEl) {
+  try {
+    if (sourceEl && sourceEl.nodeType === 1) {
+      const v = getComputedStyle(sourceEl).borderRadius;
+      if (v && typeof v === 'string' && v.trim() !== '') return v;
+    }
+  } catch (e) {
+    // defensive: detached elements / cross-origin oddities
+  }
+  return '8px';
+}
+// === END PHASE_OVERLAY_RADIUS_MIRROR ===
+
 /**
  * Show CoreHighlight overlay on a CoreItem.
  * Handles position, opacity, class, and border animation.
@@ -665,6 +685,10 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
   try {
     const r = rectOverride ?? (coreItem?.getBoundingClientRect?.());
     if (!r || r.width <= 0 || r.height <= 0) return false;
+    // PHASE_OVERLAY_RADIUS_MIRROR: rectOverride implies the rect came from
+    // the decoupled overlay element; otherwise the overlay tracks coreItem.
+    const radiusSourceEl = (rectOverride !== null ? state.activeOverlayElement : null) || coreItem;
+    const overlayRadius = computeOverlayBorderRadius(radiusSourceEl);
     // === PHASE_OVERLAY_STACKING_ZINDEX ===
     // Sync the shadow host's z-index to coreItem's effective stacking
     // context (max positive z-index in its ancestor chain, or 0 if none).
@@ -692,7 +716,7 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
       overlay.style.left = `${r.left}px`;
       overlay.style.width = `${r.width}px`;
       overlay.style.height = `${r.height}px`;
-      overlay.style.borderRadius = '8px';
+      overlay.style.borderRadius = overlayRadius;
       void overlay.offsetHeight;
       overlay.style.transition = '';
     } else {
@@ -700,7 +724,7 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
       overlay.style.left = `${r.left}px`;
       overlay.style.width = `${r.width}px`;
       overlay.style.height = `${r.height}px`;
-      overlay.style.borderRadius = '8px';
+      overlay.style.borderRadius = overlayRadius;
     }
 
     overlay.style.opacity = '1';
