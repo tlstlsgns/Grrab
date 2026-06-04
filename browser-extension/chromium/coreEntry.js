@@ -1047,6 +1047,45 @@ function isPointerInsideOverlay(overlayEl, x, y, fallbackTarget) {
 }
 // === END PHASE_OVERLAY_HOVER_GATE (helper) ===
 
+// === PHASE_POINTER_STACK_ITEM_LOOKUP ===
+// Fallback lookup for visually-intercepting elements that are not
+// registered in imageToItem and have no <a href> ancestor — e.g.
+// Pinterest's absolutely-positioned shuffle-renderer <canvas> stacked
+// over a Type E <img>. The canvas is a sibling of the img's 5th-level
+// ancestor (outside findHoverCompanions' Type E walk), so the direct
+// and anchor tiers both miss. document.elementsFromPoint(x, y) returns
+// the visual stack topmost-first; the registered <img> sits beneath
+// the interceptor, so probing the next few stack elements resolves it.
+// Guards: runs ONLY on miss (hit path untouched); requires finite
+// coords; skips the stack up to and including the original target;
+// capped at KC_POINTER_STACK_LOOKUP_MAX probes; never throws. KC
+// overlay/badge hosts are pointer-events:none and never appear in the
+// stack.
+function findItemByImageWithPointerStack(target, x, y) {
+  try {
+    const direct = findItemByImage(target);
+    if (direct) return direct;
+    const px = Number(x);
+    const py = Number(y);
+    if (!Number.isFinite(px) || !Number.isFinite(py)) return null;
+    const stack = document.elementsFromPoint?.(px, py);
+    if (!Array.isArray(stack) || stack.length === 0) return null;
+    const targetIdx = target ? stack.indexOf(target) : -1;
+    const start = targetIdx >= 0 ? targetIdx + 1 : 0;
+    const end = Math.min(start + KC_POINTER_STACK_LOOKUP_MAX, stack.length);
+    for (let i = start; i < end; i++) {
+      const el = stack[i];
+      if (!el || el.nodeType !== 1 || el === target) continue;
+      const entry = findItemByImage(el);
+      if (entry) return entry;
+    }
+  } catch (_) {
+    // defensive: elementsFromPoint can throw in detached contexts
+  }
+  return null;
+}
+// === END PHASE_POINTER_STACK_ITEM_LOOKUP ===
+
 async function updateCoreSelectionFromTarget(target, clientX = null, clientY = null) {
   // === PHASE27B_HOVER_DISPATCH ===
   // Phase 27 image-keyed activation:
@@ -1072,7 +1111,7 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   // both clusterLookup and imageToItem from state.itemMap on
   // every dispatch, so the lookup is always fresh.
   ensureClusterCacheFromState();
-  const itemEntry = findItemByImage(target);
+  const itemEntry = findItemByImageWithPointerStack(target, clientX, clientY);
   const active = state.activeCoreItem;
   if (!itemEntry || !itemEntry.element) {
     if (state.activeCoreItem) coreClear();
@@ -1557,7 +1596,7 @@ function schedulePreScan(scope = document, force = false, trigger = 'unknown') {
         if (Number.isFinite(x) && Number.isFinite(y)) {
           const hit = document.elementFromPoint(x, y);
           if (hit && hit.nodeType === 1) {
-            const entry = findItemByImage(hit);
+            const entry = findItemByImageWithPointerStack(hit, x, y);
             if (entry && entry.element && entry.element !== state.activeCoreItem) {
               updateCoreSelectionFromTarget(hit, x, y);
             }
@@ -1771,6 +1810,9 @@ let _domDrivenRedispatchDebounceTimer = null;
 // perception threshold for hover transitions while substantially
 // reducing main-thread contention with video decoder/compositor.
 const KC_DOM_DRIVEN_REDISPATCH_DEBOUNCE_MS = 100;
+// Max number of elements BELOW the original target probed in the
+// document.elementsFromPoint stack when the direct/anchor lookup misses.
+const KC_POINTER_STACK_LOOKUP_MAX = 8;
 // === END PHASE_PERF_REDISPATCH_DEBOUNCE_RAISE ===
 
 function mountDomDrivenRedispatch() {
@@ -1811,7 +1853,7 @@ function mountDomDrivenRedispatch() {
       // changes the element under the pointer to an unregistered
       // node (page chrome, sidebar, etc.) would cause the dispatcher
       // to call coreClear() and silently drop the active item.
-      const entry = findItemByImage(hit);
+      const entry = findItemByImageWithPointerStack(hit, x, y);
       if (!entry || !entry.element) return;
       if (entry.element === state.activeCoreItem) return;
 
