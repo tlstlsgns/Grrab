@@ -2202,7 +2202,7 @@ async function saveActiveCoreItem(request = {}) {
             if (clipboardResult?.success) {
               markCoreHighlightClipped();
               const successText = 'Image clipped';
-              setCoreStatusBadgeText(successText);
+              setCoreStatusBadgeText(successText, { icon: 'clip' }); // PHASE_BADGE_CLIP_ICON
             } else {
               setCoreStatusBadgeText('Clip failed');
             }
@@ -3383,7 +3383,7 @@ function mountSaveMessageListener() {
               if (e.data.success === true) {
                 markCoreHighlightClipped();
                 if (e.data.successText) {
-                  setCoreStatusBadgeText(String(e.data.successText));
+                  setCoreStatusBadgeText(String(e.data.successText), { icon: 'clip' }); // PHASE_BADGE_CLIP_ICON
                 }
               } else {
                 setCoreStatusBadgeText('Clip failed');

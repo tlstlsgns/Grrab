@@ -379,11 +379,58 @@ export function setCoreBadgeTexts({ defaultText, failedText } = {}) {
  * "URL clipped"). Does not change overlay visual state — the thick
  * clipped ring is applied via markCoreHighlightClipped().
  */
-export function setCoreStatusBadgeText(text) {
+// === PHASE_BADGE_CLIP_ICON ===
+// Builds the small white clip/copy icon (two overlapping rounded
+// squares) as an inline SVG. DOM-built because the badge lives in a
+// closed shadow root; stroke uses currentColor so it inherits the
+// badge's white text color.
+function _buildBadgeClipIcon() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '12');
+  svg.setAttribute('height', '12');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2.4');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.style.flexShrink = '0';
+  const rect = document.createElementNS(NS, 'rect');
+  rect.setAttribute('x', '9');
+  rect.setAttribute('y', '9');
+  rect.setAttribute('width', '11');
+  rect.setAttribute('height', '11');
+  rect.setAttribute('rx', '2');
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', 'M5 15V5a2 2 0 0 1 2-2h10');
+  svg.appendChild(rect);
+  svg.appendChild(path);
+  return svg;
+}
+// === END PHASE_BADGE_CLIP_ICON ===
+
+export function setCoreStatusBadgeText(text, opts = {}) {
   try {
     const el = getKCBadgeShadowElement(CORE_BADGE_ID);
     if (!el) return;
-    el.textContent = String(text || '');
+    // PHASE_BADGE_CLIP_ICON: success messages opt into an inline icon
+    // via opts.icon === 'clip'; all other callers keep plain text.
+    if (opts && opts.icon === 'clip') {
+      el.textContent = '';
+      el.style.display = 'inline-flex';
+      el.style.alignItems = 'center';
+      el.style.gap = '5px';
+      el.appendChild(_buildBadgeClipIcon());
+      const span = document.createElement('span');
+      span.textContent = String(text || '');
+      el.appendChild(span);
+    } else {
+      el.style.display = '';
+      el.style.alignItems = '';
+      el.style.gap = '';
+      el.textContent = String(text || '');
+    }
     // === PHASE_BADGE_ANCHOR_OVERLAY ===
     // Width changed -> re-pin right edge (viewport left coord; no innerWidth /
     // containing-block dependency).
@@ -396,6 +443,10 @@ export function showCoreStatusBadge(badgeState = 'default') {
   try {
     const el = ensureCoreBadge();
     el.textContent = _coreBadgeDefaultText;
+    // PHASE_BADGE_CLIP_ICON: reset icon-row layout from a prior success render
+    el.style.display = '';
+    el.style.alignItems = '';
+    el.style.gap = '';
     el.style.opacity = '1';
   } catch (e) {}
 }
