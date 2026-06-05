@@ -406,11 +406,24 @@ function getServiceName(baseDomain) {
   }
 }
 
-function queryAllInOpenShadow(root, selector) {
+// === PHASE_SHADOW_MUTATION_RESCAN (collection side) ===
+// Open shadow roots seen during traversal, drained by coreEntry to
+// attach mutation observation. Plain array (drained per scan);
+// coreEntry dedups with a WeakSet so repeats are harmless.
+let _kcSeenOpenShadowRoots = [];
+export function drainSeenOpenShadowRoots() {
+  const out = _kcSeenOpenShadowRoots;
+  _kcSeenOpenShadowRoots = [];
+  return out;
+}
+// === END PHASE_SHADOW_MUTATION_RESCAN (collection side) ===
+
+export function queryAllInOpenShadow(root, selector) {
   try {
     if (!root || !selector) return [];
     const out = [];
     const seen = new Set();
+    const seenShadowRoots = new Set();
     const visit = (node) => {
       if (!node || seen.has(node)) return;
       seen.add(node);
@@ -428,9 +441,21 @@ function queryAllInOpenShadow(root, selector) {
       for (const d of descendants) {
         if (!d || d.nodeType !== 1) continue;
         const sr = d.shadowRoot;
-        if (sr && sr.mode === 'open') visit(sr);
+        if (sr && sr.mode === 'open') {
+          if (!seenShadowRoots.has(sr)) {
+            seenShadowRoots.add(sr);
+            _kcSeenOpenShadowRoots.push(sr); // PHASE_SHADOW_MUTATION_RESCAN
+          }
+          visit(sr);
+        }
       }
-      if (node.shadowRoot && node.shadowRoot.mode === 'open') visit(node.shadowRoot);
+      if (node.shadowRoot && node.shadowRoot.mode === 'open') {
+        if (!seenShadowRoots.has(node.shadowRoot)) {
+          seenShadowRoots.add(node.shadowRoot);
+          _kcSeenOpenShadowRoots.push(node.shadowRoot); // PHASE_SHADOW_MUTATION_RESCAN
+        }
+        visit(node.shadowRoot);
+      }
     };
     visit(root);
     return out;
@@ -1729,8 +1754,16 @@ function filterSignificantImages(root = document) {
   const cappedRootFontSize = Math.min(rootFontSizeRaw, 16);
   const minContentSize = Math.max(80, cappedRootFontSize * 2);
 
+  // === PHASE_SHADOW_MEDIA_COLLECTION ===
+  // querySelectorAll does not pierce shadow roots; media inside OPEN
+  // shadow DOM (e.g. Firefly's triple-nested gallery cards — 98 media
+  // nodes measured vs 0 collected) was invisible to the D/E pipeline.
+  // Reuses the share-evidence shadow util. Closed roots stay invisible
+  // by design. Walk-failed shadow imgs (no light-DOM card wrapper)
+  // flow into the Type E pool via the Phase 21 shared-pool handoff.
+  // === END PHASE_SHADOW_MEDIA_COLLECTION ===
   const allImgs = resolveMediaSelectorResults(
-    root.querySelectorAll(MEDIA_SELECTOR) || []
+    queryAllInOpenShadow(root, MEDIA_SELECTOR)
   );
   for (const img of allImgs) {
     if (img.getAttribute?.('aria-hidden') === 'true') {

@@ -50,6 +50,8 @@ import {
   // === PHASE_TYPE_E_OVERLAY_ALWAYS_CLIP_AWARE ===
   determineTypeEOverlayElement,
   // === END PHASE_TYPE_E_OVERLAY_ALWAYS_CLIP_AWARE ===
+  drainSeenOpenShadowRoots,
+  queryAllInOpenShadow,
 } from './itemDetector.js';
 import { getShortcut, onShortcutChange, matchesShortcut, formatShortcut } from './shortcutStore.js';
 
@@ -74,6 +76,37 @@ let lastRenderedElementSet = null;
 let _retryScanTimer = 0;    // setTimeout handle for pending retry scan
 let _retryScanCount  = 0;   // number of retries attempted for current navigation
 let _forceFullScanOnMutation = false; // true after navigation: next MutationObserver trigger uses full document scan
+// === PHASE_SHADOW_MUTATION_RESCAN ===
+// Document-level MutationObservers cannot see inside shadow roots,
+// and img 'load' events are non-composed — so shadow-heavy pages
+// (Firefly's lit gallery re-renders constantly) replace registered
+// media without ever triggering a re-scan, leaving state.itemMap
+// stale (disconnected elements) until unrelated light-DOM activity
+// fires one. One shared observer watches every open root seen by
+// the collection traversal; its callback funnels into the existing
+// debounced pre-scan (scanTimer coalesces bursts).
+const _kcObservedShadowRoots = (typeof WeakSet !== 'undefined') ? new WeakSet() : null;
+let _kcShadowRootObserver = null;
+function observeSeenShadowRoots() {
+  try {
+    if (!_kcObservedShadowRoots || typeof MutationObserver === 'undefined') return;
+    const roots = drainSeenOpenShadowRoots();
+    if (!Array.isArray(roots) || roots.length === 0) return;
+    if (!_kcShadowRootObserver) {
+      _kcShadowRootObserver = new MutationObserver(() => {
+        schedulePreScan(document, false, 'shadow-mutation');
+      });
+    }
+    for (const r of roots) {
+      if (!r || _kcObservedShadowRoots.has(r)) continue;
+      try {
+        _kcShadowRootObserver.observe(r, { childList: true, subtree: true });
+        _kcObservedShadowRoots.add(r);
+      } catch (_) {}
+    }
+  } catch (_) {}
+}
+// === END PHASE_SHADOW_MUTATION_RESCAN ===
 let lastPointerX = null;
 let lastPointerY = null;
 // === PHASE_OVERLAY_MOUSEMOVE_GATE ===
@@ -1064,7 +1097,10 @@ function isPointerInsideOverlay(overlayEl, x, y, fallbackTarget) {
 function findItemByImageWithPointerStack(target, x, y) {
   try {
     const direct = findItemByImage(target);
-    if (direct) return direct;
+    if (direct) {
+      if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=direct');
+      return direct;
+    }
     const px = Number(x);
     const py = Number(y);
     if (!Number.isFinite(px) || !Number.isFinite(py)) return null;
@@ -1077,8 +1113,244 @@ function findItemByImageWithPointerStack(target, x, y) {
       const el = stack[i];
       if (!el || el.nodeType !== 1 || el === target) continue;
       const entry = findItemByImage(el);
-      if (entry) return entry;
+      if (entry) {
+        if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=flat');
+        return entry;
+      }
     }
+    // === PHASE_POINTER_STACK_SHADOW_PIERCE ===
+    // The flat stack stops at shadow hosts. When the registered media
+    // lives inside OPEN shadow roots (e.g. Firefly's triple-nested
+    // gallery cards) and an in-card overlay with a different rect takes
+    // the hit, neither companions (rectsApproxEqual) nor the flat stack
+    // resolve. Per-root elementsFromPoint includes covered elements, so
+    // descending open hosts exposes the registered <img> beneath the
+    // overlay. Guards: visited-root Set (theme-wrapper hosts slotting
+    // document-tree content return the same stack and would loop),
+    // depth cap, per-level probe cap, never throws.
+    const _visitedRoots = new Set([document]);
+    let _host = stack.find(
+      (n) => n && n.nodeType === 1 && n.shadowRoot && n.shadowRoot.mode === 'open'
+    ) || null;
+    const _sawOpenShadowHost = !!_host; // PHASE_DISPATCH_MISS_RESCAN: shadow content under the pointer
+    const _firstOpenHost = _host; // PHASE_TYPE_E_JIT_GEO_DISCOVERY: anchor for geometric candidate discovery
+    let _jitCandidate = null; // PHASE_TYPE_E_JIT_SHADOW: first live media under the pointer inside open shadow
+    let _depth = 0;
+    while (_host && _depth < KC_SHADOW_PIERCE_MAX_DEPTH) {
+      const _sr = _host.shadowRoot;
+      if (!_sr || _visitedRoots.has(_sr)) break;
+      _visitedRoots.add(_sr);
+      let _els = null;
+      try {
+        _els = _sr.elementsFromPoint ? _sr.elementsFromPoint(px, py) : null;
+      } catch (_) {
+        break;
+      }
+      if (!Array.isArray(_els) || _els.length === 0) break;
+      const _lim = Math.min(_els.length, KC_SHADOW_PIERCE_PROBE_MAX);
+      for (let i = 0; i < _lim; i++) {
+        const el = _els[i];
+        if (!el || el.nodeType !== 1 || el === target) continue;
+        const entry = findItemByImage(el);
+        if (entry) {
+          if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=pierce depth=' + _depth);
+          return entry;
+        }
+        if (!_jitCandidate && (el.tagName === 'IMG' || el.tagName === 'VIDEO')) {
+          _jitCandidate = el; // validated by the JIT tier below
+        }
+      }
+      _host = _els.find(
+        (n) => n && n.nodeType === 1 && n.shadowRoot && n.shadowRoot.mode === 'open' && !_visitedRoots.has(n.shadowRoot)
+      ) || null;
+      _depth += 1;
+    }
+    // === END PHASE_POINTER_STACK_SHADOW_PIERCE ===
+    // === PHASE_TYPE_E_GEOMETRIC_FALLBACK ===
+    // Identity-based tiers (direct/companion/flat stack/shadow pierce)
+    // depend on which nodes happen to appear in hit stacks — inside deep
+    // web-component cards this varies by pointer position and render
+    // timing, and ShadowRoot.elementsFromPoint can return host-level
+    // stacks (observed), starving the pierce tier. Final fallback:
+    // pointer-in-rect match against Type E items. Scoped to elements
+    // living inside an open shadow root (light-DOM Type E keeps
+    // identity-only dispatch), runs only when every identity tier
+    // missed, smallest-area match wins. Accepted limitation:
+    // unregistered UI floating above a shadow card can geometrically
+    // activate the card beneath it.
+    try {
+      const _items = Array.isArray(state.itemMap) ? state.itemMap : [];
+      let _best = null;
+      let _bestArea = Infinity;
+      let _dbgTotal = 0;
+      let _dbgE = 0;
+      let _dbgShadow = 0;
+      let _dbgConn = 0;
+      let _dbgRect = 0;
+      for (const it of _items) {
+        if (!it || !it.element) continue;
+        if (KC_DISPATCH_DEBUG) _dbgTotal += 1;
+        if (it.evidenceType !== 'E') continue;
+        if (KC_DISPATCH_DEBUG) _dbgE += 1;
+        const el = it.element;
+        if (el.nodeType !== 1 || !el.isConnected) continue;
+        if (KC_DISPATCH_DEBUG) _dbgConn += 1;
+        const rn = el.getRootNode ? el.getRootNode() : document;
+        if (!rn || rn === document) continue; // shadow-internal items only
+        if (KC_DISPATCH_DEBUG) _dbgShadow += 1;
+        const r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+        if (!r || r.width <= 0 || r.height <= 0) continue;
+        if (px < r.left || px > r.right || py < r.top || py > r.bottom) continue;
+        if (KC_DISPATCH_DEBUG) _dbgRect += 1;
+        const _area = r.width * r.height;
+        if (_area < _bestArea) { _best = it; _bestArea = _area; }
+      }
+      if (_best) {
+        if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=geo');
+        return _best;
+      }
+      if (KC_DISPATCH_DEBUG) {
+        console.log('[KICKCLIP-LOG] dispatch geo MISS', {
+          total: _dbgTotal,
+          typeE: _dbgE,
+          connected: _dbgConn,
+          inShadow: _dbgShadow,
+          rectHit: _dbgRect,
+          px,
+          py,
+        });
+      }
+    } catch (_) {}
+    // === END PHASE_TYPE_E_GEOMETRIC_FALLBACK ===
+    // === PHASE_TYPE_E_JIT_GEO_DISCOVERY ===
+    // R42 runtime logs: light-DOM cover divs above the gallery host keep
+    // shadow content out of composedPath entirely, and per-root
+    // elementsFromPoint returns host/virtualizer-level stacks, so the
+    // pierce loop never exposes an IMG and the JIT tier below starves.
+    // The open host itself IS reliably present in the flat document
+    // stack, so when pierce produced no candidate, discover one
+    // geometrically: collect imgs under the outermost open host's
+    // subtree (bounded) and take the smallest-area img whose rect
+    // contains the pointer. Independent of composedPath quality,
+    // elementsFromPoint behavior, and itemMap freshness. The unchanged
+    // JIT validation below applies the significance gates.
+    if (!_jitCandidate && _firstOpenHost) {
+      try {
+        const _shadowImgs = queryAllInOpenShadow(_firstOpenHost, 'img, video') || [];
+        let _bestImg = null;
+        let _bestImgArea = Infinity;
+        const _imgLim = Math.min(_shadowImgs.length, 500);
+        for (let i = 0; i < _imgLim; i++) {
+          const im = _shadowImgs[i];
+          if (!im || im.nodeType !== 1 || !im.isConnected) continue;
+          const ir = im.getBoundingClientRect ? im.getBoundingClientRect() : null;
+          if (!ir || ir.width <= 0 || ir.height <= 0) continue;
+          if (px < ir.left || px > ir.right || py < ir.top || py > ir.bottom) continue;
+          const ia = ir.width * ir.height;
+          if (ia < _bestImgArea) { _bestImg = im; _bestImgArea = ia; }
+        }
+        if (_bestImg) _jitCandidate = _bestImg;
+        if (KC_DISPATCH_DEBUG && !_jitCandidate) {
+          try {
+            let _near = null;
+            let _nearD = Infinity;
+            for (let i = 0; i < _imgLim; i++) {
+              const im = _shadowImgs[i];
+              if (!im || !im.isConnected || !im.getBoundingClientRect) continue;
+              const r = im.getBoundingClientRect();
+              if (!r || r.width <= 0 || r.height <= 0) continue;
+              const dx = px - (r.left + r.width / 2);
+              const dy = py - (r.top + r.height / 2);
+              const d = Math.hypot(dx, dy);
+              if (d < _nearD) { _nearD = d; _near = { tag: im.tagName, l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }
+            }
+            console.log('[KICKCLIP-LOG] dispatch jit no-candidate ' + JSON.stringify({
+              host: _firstOpenHost.tagName,
+              media: _shadowImgs.length,
+              px: Math.round(px),
+              py: Math.round(py),
+              nearest: _near,
+              dist: Number.isFinite(_nearD) ? Math.round(_nearD) : null,
+            }));
+          } catch (_) {
+            console.log('[KICKCLIP-LOG] dispatch jit no-candidate');
+          }
+        }
+      } catch (_) {}
+    }
+    // === END PHASE_TYPE_E_JIT_GEO_DISCOVERY ===
+    // === PHASE_TYPE_E_JIT_SHADOW ===
+    // All map tiers missed. On continuously re-rendering shadow pages the
+    // map can never stay fresh (stale generations: connected items whose
+    // rects no longer match the visible cards), so instead of waiting for
+    // a rescan, synthesize a Type E entry from the live media the pierce
+    // stacks exposed under the pointer. detectTypeEItemMaps admits every
+    // significant rejected image with no quorum, so this mirrors exactly
+    // what a scan running this instant would produce. Shadow-internal
+    // media only; gates approximate the significant-image core (size,
+    // aspect, aria-hidden).
+    try {
+      const _jc = _jitCandidate;
+      if (_jc && _jc.isConnected && _jc.nodeType === 1) {
+        const _rn = _jc.getRootNode ? _jc.getRootNode() : document;
+        if (_rn && _rn !== document) {
+          const _r = _jc.getBoundingClientRect ? _jc.getBoundingClientRect() : null;
+          const _ratio = _r && _r.height > 0 ? _r.width / _r.height : 0;
+          const _hidden = !!(_jc.closest && _jc.closest('[aria-hidden="true"]'));
+          if (_r && _r.width >= 80 && _r.height >= 80 && _ratio >= 0.2 && _ratio <= 5.0 && !_hidden) {
+            let _companions = new Set();
+            try {
+              for (const c of findHoverCompanions(_jc)) _companions.add(c);
+              if (_jc.parentElement) {
+                for (const c of findHoverCompanions(_jc, _jc.parentElement)) _companions.add(c);
+              }
+            } catch (_) { _companions = new Set(); }
+            const _jitKey = `typeE-jit::${Date.now()}::${Math.floor(_r.left)}x${Math.floor(_r.top)}`;
+            const _jitEntry = {
+              key: _jitKey,
+              signature: _jitKey,
+              itemMapSignature: _jitKey,
+              identitySignature: '',
+              structureSignature: 'typeE',
+              evidenceType: 'E',
+              element: _jc,
+              hoverCompanions: _companions,
+              similarityType: 'typeE-jit-shadow',
+              classPattern: '',
+              attrKey: '',
+              attrValue: '',
+            };
+            try {
+              if (Array.isArray(state.itemMap) && !state.itemMap.some((x) => x && x.element === _jc)) {
+                state.itemMap.push(_jitEntry); // subsequent dispatches resolve via the direct tier
+              }
+            } catch (_) {}
+            if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=jit');
+            return _jitEntry;
+          }
+        }
+      }
+    } catch (_) {}
+    // === END PHASE_TYPE_E_JIT_SHADOW ===
+    // === PHASE_DISPATCH_MISS_RESCAN ===
+    // Every tier missed while OPEN shadow content sits under the pointer:
+    // on shadow-heavy pages (Firefly) the visible cards frequently render
+    // AFTER the last completed scan, so state.itemMap holds a stale
+    // generation (triage: 31 connected shadow items, rectHit 0). A user
+    // scroll "fixed" it only because the scroll-triggered pre-scan
+    // registered the current nodes and PHASE_POST_PRESCAN_REDISPATCH
+    // re-dispatched at the parked pointer. Close that loop here: a miss
+    // schedules the same debounced pre-scan; the post-prescan redispatch
+    // then auto-activates without user interaction. Gated on the
+    // shadow-host signal (no-op on normal pages) and a cooldown.
+    if (_sawOpenShadowHost) {
+      const _now = Date.now();
+      if (_now - _kcLastDispatchMissRescanTs >= KC_DISPATCH_MISS_RESCAN_COOLDOWN_MS) {
+        _kcLastDispatchMissRescanTs = _now;
+        try { schedulePreScan(document, false, 'dispatch-miss'); } catch (_) {}
+      }
+    }
+    // === END PHASE_DISPATCH_MISS_RESCAN ===
   } catch (_) {
     // defensive: elementsFromPoint can throw in detached contexts
   }
@@ -1530,6 +1802,7 @@ function schedulePreScan(scope = document, force = false, trigger = 'unknown') {
       candidates = [...outsideScope, ...newCandidates];
       state.itemMap = candidates;
     }
+    observeSeenShadowRoots(); // PHASE_SHADOW_MUTATION_RESCAN — after detectItemMaps (incl. fp-short-circuit path)
     const attrAwarePart = Array.isArray(candidates)
       ? candidates
           .map((c) => `${c.signature || c.key || ''}`)
@@ -1813,6 +2086,19 @@ const KC_DOM_DRIVEN_REDISPATCH_DEBOUNCE_MS = 100;
 // Max number of elements BELOW the original target probed in the
 // document.elementsFromPoint stack when the direct/anchor lookup misses.
 const KC_POINTER_STACK_LOOKUP_MAX = 8;
+const KC_SHADOW_PIERCE_MAX_DEPTH = 6; // PHASE_POINTER_STACK_SHADOW_PIERCE: max nested open-shadow levels to descend
+const KC_SHADOW_PIERCE_PROBE_MAX = 24; // PHASE_POINTER_STACK_SHADOW_PIERCE: per-level probe cap — card-root stacks are deep (overlay slots above the img); probes are O(1) map lookups
+const KC_DISPATCH_MISS_RESCAN_COOLDOWN_MS = 1000; // PHASE_DISPATCH_MISS_RESCAN
+let _kcLastDispatchMissRescanTs = 0; // PHASE_DISPATCH_MISS_RESCAN
+// === PHASE_POINTERMOVE_DISPATCH_FALLBACK ===
+const KC_MOVE_DISPATCH_THROTTLE_MS = 150;
+const KC_MOVE_DISPATCH_RETRY_MS = 600; // same hit re-evaluated after this (itemMap may have refreshed)
+let _kcLastMoveDispatchTs = 0;
+let _kcLastMoveDispatchHit = null;
+let _kcLastMoveDispatchHitTs = 0;
+// === END PHASE_POINTERMOVE_DISPATCH_FALLBACK ===
+const KC_DISPATCH_DEBUG = false; // temporary triage: logs which lookup tier resolved (direct/flat/pierce/geo); keep false in commits
+
 // === END PHASE_PERF_REDISPATCH_DEBOUNCE_RAISE ===
 
 function mountDomDrivenRedispatch() {
@@ -3694,8 +3980,32 @@ function schedulePreScanScrollDebounced() {
     if (!_windowFocused) return;
     lastPointerX = e?.clientX ?? lastPointerX;
     lastPointerY = e?.clientY ?? lastPointerY;
-    const target = e?.target && e.target.nodeType === 1 ? e.target : null;
-    if (target === _lastMouseoverTarget) return;
+    // === PHASE_SHADOW_COMPOSED_TARGET ===
+    // Document-level mouseover retargets shadow-internal hits to the
+    // outermost host. composedPath()[0] restores the true inner target
+    // for open roots. In-card overlay layers (scrim/actions) often take
+    // the hit while the media is a sibling subtree — those overlays are
+    // registered hoverCompanions, so prefer the first path node that
+    // resolves to an item; fall back to the innermost node. On pages
+    // without shadow DOM path[0] === e.target, so this is a no-op.
+    let target = e?.target && e.target.nodeType === 1 ? e.target : null;
+    try {
+      const _path = typeof e?.composedPath === 'function' ? e.composedPath() : null;
+      const _inner = _path && _path.length ? _path[0] : null;
+      if (_inner && _inner.nodeType === 1 && _inner !== target) {
+        let _resolved = null;
+        const _lim = Math.min(_path.length, 20); // deep in-card controls sit >12 nodes from the registered ancestor
+        for (let i = 0; i < _lim; i++) {
+          const n = _path[i];
+          if (n && n.nodeType === 1 && findItemByImage(n)) { _resolved = n; break; }
+        }
+        target = _resolved || _inner;
+      }
+    } catch (_) {}
+    // === END PHASE_SHADOW_COMPOSED_TARGET ===
+    if (target === _lastMouseoverTarget) {
+      return;
+    }
     _lastMouseoverTarget = target;
     // Already on the active CoreItem? Nothing to do.
     const active = state.activeCoreItem;
@@ -3748,6 +4058,56 @@ function schedulePreScanScrollDebounced() {
   window.addEventListener('mousemove', (e) => {
     lastPointerX = e?.clientX ?? lastPointerX;
     lastPointerY = e?.clientY ?? lastPointerY;
+
+    // === PHASE_POINTERMOVE_DISPATCH_FALLBACK ===
+    // R45 proved that on some shadow-component pages (Firefly gallery)
+    // the page suppresses mouseover at source (all three R45 counters
+    // freeze while trusted mousemove keeps flowing), so mouseover-driven
+    // dispatch can never run there — while the coordinate-driven
+    // redispatch path activates the same cards fine. Mirror that path
+    // here on a throttled mousemove stream. ACTIVATE-ONLY semantics:
+    // a lookup miss never clears while the pointer is inside the active
+    // item, so mouseover-driven pages keep identical behavior.
+    try {
+      if (_windowFocused) {
+        const _mvNow = Date.now();
+        if (_mvNow - _kcLastMoveDispatchTs >= KC_MOVE_DISPATCH_THROTTLE_MS) {
+          _kcLastMoveDispatchTs = _mvNow;
+          const _mx = e?.clientX;
+          const _my = e?.clientY;
+          if (Number.isFinite(_mx) && Number.isFinite(_my)) {
+            const _active = state.activeCoreItem;
+            let _insideActive = false;
+            if (_active && _active.getBoundingClientRect) {
+              const ar = _active.getBoundingClientRect();
+              _insideActive = !!ar && _mx >= ar.left && _mx <= ar.right && _my >= ar.top && _my <= ar.bottom;
+            }
+            if (!_insideActive) {
+              const _hit = document.elementFromPoint(_mx, _my);
+              if (_hit && _hit.nodeType === 1) {
+                const _sameHit = _hit === _kcLastMoveDispatchHit;
+                if (!_sameHit || _mvNow - _kcLastMoveDispatchHitTs >= KC_MOVE_DISPATCH_RETRY_MS) {
+                  if (!_sameHit) _kcLastMoveDispatchHit = _hit;
+                  _kcLastMoveDispatchHitTs = _mvNow;
+                  const _entry = findItemByImageWithPointerStack(_hit, _mx, _my);
+                  if (_entry && _entry.element && _entry.element !== _active) {
+                    _lastMouseoverTarget = _entry.element; // keep the mouseover guard coherent
+                    Promise.resolve(updateCoreSelectionFromTarget(_entry.element, _mx, _my)).catch(() => {});
+                  } else if (!_entry && _active && !_insideActive) {
+                    // pointer left the active item and nothing is under it:
+                    // mirror hover-off semantics (only reachable when the
+                    // pointer is OUTSIDE the active rect, so no flicker on
+                    // mouseover-driven pages).
+                    coreClear();
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    // === END PHASE_POINTERMOVE_DISPATCH_FALLBACK ===
 
     // StatusBadge: show on first mousemove (top frame only)
     if (!_mouseHasMovedOnPage) {
