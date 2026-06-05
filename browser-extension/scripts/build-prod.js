@@ -18,6 +18,8 @@ const excludedBasenames = new Set([
   'config.dev.js',
   'config.prod.js',
   '.DS_Store',
+  'logo_source.svg',
+  'debug-translation.js',
 ]);
 
 function shouldExclude(entryName) {
