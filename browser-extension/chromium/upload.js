@@ -226,6 +226,73 @@ async function fetchImageAsBlob(imgUrl, fallbackUrl = '') {
 }
 // === END PHASE27G_SAVE_FALLBACK ===
 
+// === PHASE_UPLOAD_FORMAT ===
+const KC_UPLOAD_FORMAT_KEY = 'kc_upload_format';
+
+async function getUploadFormatSetting() {
+  try {
+    const r = await chrome.storage.local.get(KC_UPLOAD_FORMAT_KEY);
+    const v = String(r?.[KC_UPLOAD_FORMAT_KEY] || '').trim().toLowerCase();
+    if (v === 'jpg' || v === 'jpeg' || v === 'png' || v === 'webp') return v;
+    return 'original';
+  } catch (_) {
+    return 'original';
+  }
+}
+
+async function transcodeBlobToFormat(blob, fmt) {
+  const f = String(fmt || '').trim().toLowerCase();
+  if (!blob || !f || f === 'original') return { blob, forcedExt: null };
+  const targetMime = (f === 'jpg' || f === 'jpeg')
+    ? 'image/jpeg'
+    : f === 'png'
+      ? 'image/png'
+      : f === 'webp'
+        ? 'image/webp'
+        : null;
+  if (!targetMime) return { blob, forcedExt: null };
+  const forcedExt = f === 'jpeg' ? 'jpeg' : f;
+  try {
+    if (String(blob.type || '').toLowerCase() === targetMime) {
+      return { blob, forcedExt };
+    }
+    const bitmap = await createImageBitmap(blob);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return { blob, forcedExt: null };
+      if (targetMime === 'image/jpeg') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      ctx.drawImage(bitmap, 0, 0);
+      const out = await new Promise((resolve) => {
+        canvas.toBlob(
+          (b) => resolve(b || null),
+          targetMime,
+          (targetMime === 'image/jpeg' || targetMime === 'image/webp') ? 0.92 : undefined
+        );
+      });
+      if (!out) return { blob, forcedExt: null };
+      return { blob: out, forcedExt };
+    } finally {
+      bitmap.close?.();
+    }
+  } catch (_) {
+    return { blob, forcedExt: null };
+  }
+}
+
+function resolveUploadExtension(resolved, blob) {
+  if (resolved?.forcedExt) return resolved.forcedExt;
+  return resolved?.srcUrl
+    ? inferImageExtension(resolved.srcUrl, blob)
+    : extensionFromBlobType(blob);
+}
+// === END PHASE_UPLOAD_FORMAT ===
+
 // === PHASE_UPLOAD_IMAGE_ONLY ===
 // Every upload artifact is an image. Resolution order:
 //   1) img_url via background fetch-image (img_thumbnail_b64 as fetch
@@ -238,13 +305,23 @@ async function fetchImageAsBlob(imgUrl, fallbackUrl = '') {
 async function resolveItemImageBlob(item) {
   const imgUrl = String(item?.img_url || '').trim();
   const b64 = String(item?.img_thumbnail_b64 || '').trim();
+  const applyFormat = async (base) => {
+    const _fmt = await getUploadFormatSetting();
+    const _t = await transcodeBlobToFormat(base.blob, _fmt);
+    return {
+      blob: _t.blob,
+      usedFallback: base.usedFallback,
+      srcUrl: base.srcUrl,
+      forcedExt: _t.forcedExt,
+    };
+  };
   if (imgUrl) {
     const r = await fetchImageAsBlob(imgUrl, b64);
-    return { blob: r.blob, usedFallback: r.usedFallback, srcUrl: imgUrl };
+    return applyFormat({ blob: r.blob, usedFallback: r.usedFallback, srcUrl: imgUrl });
   }
   if (b64.startsWith('data:')) {
     const resp = await fetch(b64);
-    return { blob: await resp.blob(), usedFallback: true, srcUrl: '' };
+    return applyFormat({ blob: await resp.blob(), usedFallback: true, srcUrl: '' });
   }
   return null;
 }
@@ -356,9 +433,7 @@ export async function saveItemViaDownloads(item) {
     }
     blob = resolved.blob;
     usedFallback = resolved.usedFallback;
-    ext = resolved.srcUrl
-      ? inferImageExtension(resolved.srcUrl, blob)
-      : extensionFromBlobType(blob);
+    ext = resolveUploadExtension(resolved, blob);
 
     const rawTitle = (item.title || '').trim();
     let base = rawTitle ? rawTitle : fallbackFilenameBase(item);
@@ -483,9 +558,7 @@ export async function writeItemToHandle(handle, item) {
     }
     blob = resolved.blob;
     usedFallback = resolved.usedFallback;
-    ext = resolved.srcUrl
-      ? inferImageExtension(resolved.srcUrl, blob)
-      : extensionFromBlobType(blob);
+    ext = resolveUploadExtension(resolved, blob);
 
     const rawTitle = (item.title || '').trim();
     let base = rawTitle ? rawTitle : fallbackFilenameBase(item);
@@ -570,10 +643,8 @@ export async function buildDriveUploadPayload(item) {
       return { ok: false, reason: 'generic', message: 'No image URL' };
     }
     blob = resolved.blob;
-    ext = resolved.srcUrl
-      ? inferImageExtension(resolved.srcUrl, blob)
-      : extensionFromBlobType(blob);
-    mimeType = blob.type || (ext === 'jpg' ? 'image/jpeg' : `image/${ext}`);
+    ext = resolveUploadExtension(resolved, blob);
+    mimeType = blob.type || (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`);
 
     const rawTitle = (item.title || '').trim();
     let base = rawTitle ? rawTitle : fallbackFilenameBase(item);
@@ -622,9 +693,7 @@ export async function saveItemToDownloads(item) {
     }
     blob = resolved.blob;
     usedFallback = resolved.usedFallback;
-    ext = resolved.srcUrl
-      ? inferImageExtension(resolved.srcUrl, blob)
-      : extensionFromBlobType(blob);
+    ext = resolveUploadExtension(resolved, blob);
 
     const rawTitle = (item.title || '').trim();
     let base = rawTitle ? rawTitle : fallbackFilenameBase(item);

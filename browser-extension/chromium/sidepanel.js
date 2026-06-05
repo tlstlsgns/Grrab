@@ -65,6 +65,128 @@ import {
 // storage key is abandoned in place. The upload popover remains only
 // as the catch-path fallback in handleUploadButtonClick.
 
+// === PHASE_UPLOAD_FORMAT ===
+const KC_UPLOAD_FORMAT_KEY = 'kc_upload_format';
+const KC_UPLOAD_FORMAT_PRESETS = ['original', 'jpg', 'jpeg', 'png', 'webp'];
+const KC_UPLOAD_FORMAT_LABELS = {
+  original: 'Original',
+  jpg: 'JPG',
+  jpeg: 'JPEG',
+  png: 'PNG',
+  webp: 'WEBP',
+};
+
+let _kcUploadFormatMenuOpen = false;
+let _kcUploadFormatOutsideClick = null;
+let _kcUploadFormatEscKey = null;
+
+function _normalizeUploadFormat(fmt) {
+  const v = String(fmt || '').trim().toLowerCase();
+  return KC_UPLOAD_FORMAT_PRESETS.includes(v) ? v : 'original';
+}
+
+function _renderUploadFormatUI(fmt) {
+  const key = _normalizeUploadFormat(fmt);
+  const btn = document.getElementById('kc-upload-format-btn');
+  const menu = document.getElementById('kc-upload-format-menu');
+  if (!btn || !menu) return;
+  btn.textContent = `${KC_UPLOAD_FORMAT_LABELS[key] || 'Original'} ▾`;
+  btn.dataset.format = key;
+  btn.setAttribute('aria-expanded', _kcUploadFormatMenuOpen ? 'true' : 'false');
+  menu.innerHTML = '';
+  for (const preset of KC_UPLOAD_FORMAT_PRESETS) {
+    const li = document.createElement('li');
+    li.className = 'kc-upload-format-menu-item';
+    if (preset === key) li.classList.add('kc-upload-format-menu-item-selected');
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', preset === key ? 'true' : 'false');
+    li.dataset.format = preset;
+    li.textContent = preset === key
+      ? `✓ ${KC_UPLOAD_FORMAT_LABELS[preset]}`
+      : KC_UPLOAD_FORMAT_LABELS[preset];
+    li.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _selectUploadFormat(preset);
+    });
+    menu.appendChild(li);
+  }
+}
+
+function _detachUploadFormatMenuListeners() {
+  if (_kcUploadFormatOutsideClick) {
+    document.removeEventListener('click', _kcUploadFormatOutsideClick, true);
+    _kcUploadFormatOutsideClick = null;
+  }
+  if (_kcUploadFormatEscKey) {
+    document.removeEventListener('keydown', _kcUploadFormatEscKey);
+    _kcUploadFormatEscKey = null;
+  }
+}
+
+function _closeUploadFormatMenu() {
+  if (!_kcUploadFormatMenuOpen) return;
+  _kcUploadFormatMenuOpen = false;
+  const menu = document.getElementById('kc-upload-format-menu');
+  const btn = document.getElementById('kc-upload-format-btn');
+  if (menu) menu.hidden = true;
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  _detachUploadFormatMenuListeners();
+}
+
+function _openUploadFormatMenu() {
+  const menu = document.getElementById('kc-upload-format-menu');
+  const btn = document.getElementById('kc-upload-format-btn');
+  if (!menu || !btn) return;
+  _kcUploadFormatMenuOpen = true;
+  menu.hidden = false;
+  btn.setAttribute('aria-expanded', 'true');
+  _renderUploadFormatUI(btn.dataset.format || 'original');
+  _kcUploadFormatOutsideClick = (e) => {
+    const wrap = document.getElementById('kc-upload-format-wrap');
+    if (wrap && !wrap.contains(e.target)) _closeUploadFormatMenu();
+  };
+  _kcUploadFormatEscKey = (e) => {
+    if (e.key === 'Escape') _closeUploadFormatMenu();
+  };
+  setTimeout(() => {
+    if (_kcUploadFormatMenuOpen && _kcUploadFormatOutsideClick) {
+      document.addEventListener('click', _kcUploadFormatOutsideClick, true);
+    }
+  }, 0);
+  document.addEventListener('keydown', _kcUploadFormatEscKey);
+}
+
+function _toggleUploadFormatMenu() {
+  if (_kcUploadFormatMenuOpen) _closeUploadFormatMenu();
+  else _openUploadFormatMenu();
+}
+
+async function _selectUploadFormat(value) {
+  const next = _normalizeUploadFormat(value);
+  try {
+    await chrome.storage.local.set({ [KC_UPLOAD_FORMAT_KEY]: next });
+  } catch (_) {}
+  _renderUploadFormatUI(next);
+  _closeUploadFormatMenu();
+}
+
+async function _loadUploadFormatSetting() {
+  try {
+    const r = await chrome.storage.local.get(KC_UPLOAD_FORMAT_KEY);
+    const v = String(r?.[KC_UPLOAD_FORMAT_KEY] || '').trim().toLowerCase();
+    _renderUploadFormatUI(KC_UPLOAD_FORMAT_PRESETS.includes(v) ? v : 'original');
+  } catch (_) {
+    _renderUploadFormatUI('original');
+  }
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes[KC_UPLOAD_FORMAT_KEY]) return;
+  const v = String(changes[KC_UPLOAD_FORMAT_KEY].newValue || '').trim().toLowerCase();
+  _renderUploadFormatUI(KC_UPLOAD_FORMAT_PRESETS.includes(v) ? v : 'original');
+});
+// === END PHASE_UPLOAD_FORMAT ===
+
 // Picker popup window tracking for auto-close + re-click handling.
 let _kcPickerWindowId = null;
 let _kcPickerBusy = false;
@@ -222,7 +344,13 @@ async function handleOpenFolderSettings() {
     console.log('[KICKCLIP-LOG] destination backfill failed:', e);
   }
   await _refreshDirContainer();
+  await _loadUploadFormatSetting();
 })();
+
+document.getElementById('kc-upload-format-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  _toggleUploadFormatMenu();
+});
 
 // ── Firebase config ───────────────────────────────────────────────────────────
 const DEV_FIREBASE_CONFIG = {
