@@ -1782,7 +1782,6 @@ function schedulePreScan(scope = document, force = false, trigger = 'unknown') {
   // timeout: 2000 ensures it still runs within 2 seconds even if the browser
   // stays busy (e.g. on heavy pages like YouTube).
   const idleCallback = async () => {
-    console.log(`[KC:preScan] trigger="${trigger}" scope=${scope === document ? 'document' : 'scoped'} force=${force}`);
     scanTimer = 0;
     // Clear navigation flag — this scan is now running, so the next
     // MutationObserver trigger should use scoped scan again.
@@ -3547,7 +3546,7 @@ async function performClipboardCopy(category, url, rootElementForDominant, optio
     }
     return { success: false };
   } catch (err) {
-    console.warn('[KickClip] Clipboard copy failed:', err);
+    if (KC_DISPATCH_DEBUG) console.warn('[KickClip] Clipboard copy failed:', err);
     return { success: false };
   }
 }

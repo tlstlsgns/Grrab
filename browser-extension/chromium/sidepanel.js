@@ -200,9 +200,7 @@ chrome.windows.onFocusChanged.addListener((focusedWindowId) => {
   const idToClose = _kcPickerWindowId;
   _kcPickerWindowId = null;
   _kcPickerBusy = false;
-  chrome.windows.remove(idToClose).catch((e) => {
-    console.log('[KICKCLIP-LOG] auto-close picker error:', e);
-  });
+  chrome.windows.remove(idToClose).catch(() => {});
 });
 
 chrome.windows.onRemoved.addListener((closedWindowId) => {
@@ -287,9 +285,7 @@ async function _refreshDirContainer() {
         btn.classList.add('kc-dir-unconfigured');
       }
     }
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] _refreshDirContainer error:', e);
-  }
+  } catch (_) {}
 }
 
 function _markDirFolderMissing(folderName) {
@@ -307,9 +303,7 @@ async function handleOpenFolderSettings() {
   if (_kcPickerWindowId != null) {
     try {
       await chrome.windows.remove(_kcPickerWindowId);
-    } catch (e) {
-      console.log('[KICKCLIP-LOG] handleOpenFolderSettings close prev error:', e);
-    }
+    } catch (_) {}
     _kcPickerWindowId = null;
     _kcPickerBusy = false;
   }
@@ -323,7 +317,6 @@ async function handleOpenFolderSettings() {
     _kcPickerWindowId = winId;
     _kcPickerBusy = false;
   } catch (e) {
-    console.log('[KICKCLIP-LOG] openPickerWindow error:', e);
     showKcToast(`폴더 설정 창 오류: ${e?.message || String(e)}`, 'error');
   }
 }
@@ -331,18 +324,14 @@ async function handleOpenFolderSettings() {
 (async () => {
   try {
     await preloadPrimaryHandle();
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] preloadPrimaryHandle failed:', e);
-  }
+  } catch (_) {}
   try {
     const existingDest = await getDestination();
     const cachedHandle = getPrimaryHandleForGesture();
     if (!existingDest && cachedHandle) {
       await setDestination({ type: 'local' });
     }
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] destination backfill failed:', e);
-  }
+  } catch (_) {}
   await _refreshDirContainer();
   await _loadUploadFormatSetting();
 })();
@@ -482,7 +471,6 @@ async function upsertUserProfile(user) {
     await _kcFirestoreCommitUserProfile(projectId, idToken, documentName, baseFields, transforms);
   } catch (e) {
     // Do not break sign-in flow on upsert failure
-    console.log('[KICKCLIP-LOG] upsertUserProfile error:', e);
   }
 }
 
@@ -907,7 +895,6 @@ async function signInWithGoogle() {
     const userCredential = await signInWithCredential(auth, credential);
     await upsertUserProfile(userCredential.user);
   } catch (err) {
-    console.error('[Auth] Sign-in error:', err);
     showLoginError(err.message || 'Sign-in failed. Please try again.');
   }
 }
@@ -930,7 +917,6 @@ async function signOut() {
     await firebaseSignOut(auth);
   } catch (err) {
     _isExplicitSignOut = false;
-    console.error('[Auth] Sign-out error:', err);
   }
 }
 
@@ -972,8 +958,7 @@ function startListeners(userId) {
   unsubscribeDirs = onSnapshot(dirsQ, (snap) => {
     currentDirectories = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
     renderDirectories();
-  }, (err) => {
-    console.error('[Firestore] dirs error:', err);
+  }, () => {
     currentDirectories = [];
     renderDirectories();
   });
@@ -1002,9 +987,7 @@ function startListeners(userId) {
     // reopened (multi-device concurrent use is currently out of scope).
     if (isSyncing) return;
     reconcileSnapshotSilently(snap);
-  }, (err) => {
-    console.error('[Firestore] items error:', err);
-  });
+  }, () => {});
 }
 
 function stopListeners() {
@@ -1756,10 +1739,10 @@ async function executeClear(list, btn, exitConfirmPending) {
     })
     .filter((id) => !!id);
 
-  // Fire all deletes in parallel. Failures are logged but otherwise
-  // ignored — sidepanel reopen will reload the actual Firestore state
-  // if anything went wrong.
-  const results = await Promise.allSettled(
+  // Fire all deletes in parallel. Failures are otherwise ignored —
+  // sidepanel reopen will reload the actual Firestore state if anything
+  // went wrong.
+  await Promise.allSettled(
     docIds.map((docId) =>
       fetch(
         `${KC_SERVER_URL}/api/v1/items/${encodeURIComponent(docId)}?userId=${encodeURIComponent(currentUser.uid)}`,
@@ -1767,14 +1750,6 @@ async function executeClear(list, btn, exitConfirmPending) {
       )
     )
   );
-
-  results.forEach((r, i) => {
-    if (r.status === 'rejected') {
-      console.error('[Clear] delete failed for', docIds[i], r.reason);
-    } else if (r.value && !r.value.ok) {
-      console.error('[Clear] delete non-ok for', docIds[i], r.value.status);
-    }
-  });
 
   // Remove all card containers from this list's DOM.
   cardContainers.forEach((c) => c.remove());
@@ -2075,7 +2050,6 @@ function handleLocalUpload(item, anchorBtn) {
     .catch((e) => {
       flashUploadMark(anchorBtn, false);
       showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
-      console.log('[KICKCLIP-LOG] handleLocalUpload saveItemViaDownloads error:', e);
     });
 }
 
@@ -2109,7 +2083,6 @@ function handleAutoPathUpload(item, anchorBtn, handle) {
     .catch((e) => {
       flashUploadMark(anchorBtn, false);
       showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
-      console.log('[KICKCLIP-LOG] handleAutoPathUpload error:', e);
     });
 }
 
@@ -2127,7 +2100,6 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
 
     const payload = await buildDriveUploadPayload(item);
     if (!payload.ok) {
-      console.log('[KICKCLIP-LOG] handleAutoDriveUpload build error:', payload);
       flashUploadMark(anchorBtn, false);
       showKcToast(`업로드 준비 실패: ${payload.message || 'Unknown'}`, 'error');
       return;
@@ -2144,7 +2116,6 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
     if (!uploadResp?.ok) {
       flashUploadMark(anchorBtn, false);
       if (uploadResp?.reason === 'folder-missing') {
-        console.log('[KICKCLIP-LOG] Drive folder missing, clearing destination');
         await clearDestination();
         await _refreshDirContainer();
         showKcToast('Drive 폴더를 찾을 수 없습니다. 다시 설정해주세요.', 'error');
@@ -2168,7 +2139,6 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
     );
   } catch (e) {
     flashUploadMark(anchorBtn, false);
-    console.log('[KICKCLIP-LOG] handleAutoDriveUpload error:', e);
     showKcToast(`업로드 실패: ${e?.message || String(e)}`, 'error');
   }
 }
@@ -2183,7 +2153,6 @@ async function handleUploadButtonClick(item, anchorBtn) {
   try {
     await handleUploadToDestination(item, anchorBtn);
   } catch (e) {
-    console.log('[KICKCLIP-LOG] handleUploadButtonClick error:', e);
     openKcUploadPopover(anchorBtn, item);
   }
 }
@@ -2249,7 +2218,6 @@ async function handleUploadToDestination(item, anchorBtn) {
       showKcToast(`저장 실패: ${result?.message || 'Unknown error'}`, 'error');
     }
   } catch (e) {
-    console.log('[KICKCLIP-LOG] handleUploadToDestination error:', e);
     flashUploadMark(anchorBtn, false);
     showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
   }
@@ -2512,7 +2480,7 @@ function attachDeleteHandlers(container) {
             fetch(
               `${KC_SERVER_URL}/api/v1/items/${encodeURIComponent(docId)}?userId=${encodeURIComponent(currentUser.uid)}`,
               { method: 'DELETE' }
-            ).catch((err) => console.error('[Delete]', err));
+            ).catch(() => {});
             cardContainer.remove();
             ensureEmptyState(parentList);
             syncTimelineDividers(parentList);
@@ -2864,8 +2832,7 @@ function setupContainerDropHandlers(container, directoryId) {
         newIndex,
         normalizedSource
       );
-    } catch (err) {
-      console.error('[DnD] move-item error:', err);
+    } catch (_) {
       loadData();
     } finally {
       setTimeout(() => { isSyncing = false; }, 100);
@@ -2910,8 +2877,7 @@ function setupDirectoryHeaderDropHandlers() {
           0,
           srcDirectoryId || null
         );
-      } catch (err) {
-        console.error('[DnD] directory header drop error:', err);
+      } catch (_) {
         loadData();
       } finally {
         setTimeout(() => { isSyncing = false; }, 100);
@@ -2972,8 +2938,7 @@ function setupDirectoryListDropHandlers() {
     isSyncing = true;
     try {
       await moveDirectoryToPosition(currentUser.uid, draggedDirId, newIndex);
-    } catch (err) {
-      console.error('[DnD] move-directory error:', err);
+    } catch (_) {
     } finally {
       setTimeout(() => { isSyncing = false; }, 100);
     }
@@ -3443,7 +3408,6 @@ if (chrome?.runtime?.onMessage) {
           await _refreshDirContainer();
           showKcToast(`저장 폴더 설정 완료: ${message.folderName || ''}`, 'success');
         } catch (e) {
-          console.log('[KICKCLIP-LOG] picker handle ready processing failed:', e);
           showKcToast('폴더 설정을 저장하지 못했습니다.', 'error');
         }
       })();
@@ -3455,9 +3419,7 @@ if (chrome?.runtime?.onMessage) {
         try {
           await _refreshDirContainer();
           showKcToast('✓ Google Drive 폴더가 설정되었습니다.');
-        } catch (e) {
-          console.log('[KICKCLIP-LOG] kc-picker-drive-ready handler error:', e);
-        }
+        } catch (_) {}
       })();
       return;
     }
@@ -3467,9 +3429,7 @@ if (chrome?.runtime?.onMessage) {
         try {
           await _refreshDirContainer();
           showKcToast('✓ Downloads 폴더로 설정되었습니다.');
-        } catch (e) {
-          console.log('[KICKCLIP-LOG] kc-picker-downloads-ready handler error:', e);
-        }
+        } catch (_) {}
       })();
       return;
     }

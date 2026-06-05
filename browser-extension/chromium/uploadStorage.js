@@ -16,12 +16,9 @@ function openDB() {
   return new Promise((resolve) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onerror = () => {
-      console.log('[KICKCLIP-LOG] uploadStorage openDB error:', req.error);
       resolve(null);
     };
-    req.onblocked = () => {
-      console.log('[KICKCLIP-LOG] uploadStorage openDB blocked');
-    };
+    req.onblocked = () => {};
     req.onupgradeneeded = (ev) => {
       const db = ev.target.result;
       if (!db.objectStoreNames.contains(STORE)) {
@@ -36,7 +33,6 @@ function openDB() {
 function promisifyRequest(req) {
   return new Promise((resolve) => {
     req.onerror = () => {
-      console.log('[KICKCLIP-LOG] uploadStorage request error:', req.error);
       resolve(undefined);
     };
     req.onsuccess = () => resolve(req.result);
@@ -52,8 +48,7 @@ export async function getPrimaryHandle() {
     const handle = await promisifyRequest(store.get(PRIMARY_KEY));
     db.close();
     return handle && typeof handle === 'object' ? /** @type {FileSystemDirectoryHandle} */ (handle) : null;
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] getPrimaryHandle error:', e);
+  } catch (_) {
     try {
       db.close();
     } catch (_) {}
@@ -69,8 +64,7 @@ export async function setPrimaryHandle(handle) {
     const store = tx.objectStore(STORE);
     await promisifyRequest(store.put(handle, PRIMARY_KEY));
     db.close();
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] setPrimaryHandle error:', e);
+  } catch (_) {
     try {
       db.close();
     } catch (_) {}
@@ -85,8 +79,7 @@ export async function clearPrimaryHandle() {
     const store = tx.objectStore(STORE);
     await promisifyRequest(store.delete(PRIMARY_KEY));
     db.close();
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] clearPrimaryHandle error:', e);
+  } catch (_) {
     try {
       db.close();
     } catch (_) {}
@@ -122,8 +115,7 @@ export async function getDestination() {
   try {
     const result = await chrome.storage.local.get(DESTINATION_KEY);
     return result[DESTINATION_KEY] || null;
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] getDestination error:', e);
+  } catch (_) {
     return null;
   }
 }
@@ -158,8 +150,7 @@ export async function setDestination(dest) {
     }
     await chrome.storage.local.set({ [DESTINATION_KEY]: dest });
     return true;
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] setDestination error:', e);
+  } catch (_) {
     return false;
   }
 }
@@ -171,8 +162,7 @@ export async function clearDestination() {
   try {
     await chrome.storage.local.remove(DESTINATION_KEY);
     return true;
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] clearDestination error:', e);
+  } catch (_) {
     return false;
   }
 }

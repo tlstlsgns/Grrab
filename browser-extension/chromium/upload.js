@@ -336,8 +336,7 @@ async function ensureWritableHandle(handle) {
     if (perm === 'granted') return handle;
     perm = await handle.requestPermission(opts);
     return perm === 'granted' ? handle : null;
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] ensureWritableHandle error:', e);
+  } catch (_) {
     return null;
   }
 }
@@ -396,8 +395,7 @@ export async function openPickerWindow() {
       focused: true,
     });
     return win?.id ?? null;
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] openPickerWindow error:', e);
+  } catch (_) {
     return null;
   }
 }
@@ -575,7 +573,6 @@ export async function writeItemToHandle(handle, item) {
     try {
       await writeBlobToDir(writable, finalName, blob);
     } catch (e) {
-      console.log('[KICKCLIP-LOG] writeItemToHandle write error:', e);
       await clearPrimaryHandle();
       _setCachedPrimaryHandle(null);
       return { ok: false, reason: 'folder-missing', message: e?.message || String(e) };

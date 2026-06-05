@@ -10,7 +10,7 @@ let _cachedUserId = null; // cached login state for synchronous access in onComm
 // Chrome 116+ automatically opens/closes the side panel on action click.
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) => console.error('Failed to set side panel behavior:', error));
+  .catch(() => {});
 
 // Restore persisted saved-URLs cache so the first get-saved-urls call
 // after a Service Worker restart returns real data instead of [].
@@ -235,11 +235,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle userId request from content script
   if (request.action === 'get-cached-user-id') {
     getCachedUserId().then((userId) => {
-      if (userId) {
-        console.log('[BG] get-cached-user-id: found', userId.substring(0, 8) + '...');
-      } else {
-        console.warn('[BG] get-cached-user-id: no userId in storage');
-      }
       sendResponse({ userId: userId || null });
     });
     return true; // async response
@@ -256,8 +251,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     try {
       chrome.identity.getAuthToken(options, (token) => {
         if (chrome.runtime.lastError) {
-          console.log('[KICKCLIP-LOG] get-google-oauth-token error:',
-            chrome.runtime.lastError.message);
           sendResponse({
             token: null,
             error: chrome.runtime.lastError.message || 'getAuthToken failed',
@@ -272,7 +265,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true; // async response
     } catch (e) {
-      console.log('[KICKCLIP-LOG] get-google-oauth-token exception:', e);
       sendResponse({ token: null, error: e?.message || String(e) });
       return true;
     }
@@ -330,8 +322,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           headers: { Authorization: `Bearer ${tokenResp.token}` },
         });
         if (!searchResp.ok) {
-          const errText = await searchResp.text();
-          console.log('[KICKCLIP-LOG] drive-ensure-folder search error:', searchResp.status, errText);
+          await searchResp.text();
           sendResponse({
             ok: false,
             reason: 'api-error',
@@ -344,7 +335,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         if (Array.isArray(searchData.files) && searchData.files.length > 0) {
           const found = searchData.files[0];
-          console.log('[KICKCLIP-LOG] drive-ensure-folder reused:', found.id);
           sendResponse({
             ok: true,
             folderId: found.id,
@@ -369,8 +359,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }),
         });
         if (!createResp.ok) {
-          const errText = await createResp.text();
-          console.log('[KICKCLIP-LOG] drive-ensure-folder create error:', createResp.status, errText);
+          await createResp.text();
           sendResponse({
             ok: false,
             reason: 'api-error',
@@ -380,7 +369,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
         const created = await createResp.json();
-        console.log('[KICKCLIP-LOG] drive-ensure-folder created:', created.id);
         sendResponse({
           ok: true,
           folderId: created.id,
@@ -390,7 +378,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           reused: false,
         });
       } catch (e) {
-        console.log('[KICKCLIP-LOG] drive-ensure-folder exception:', e);
         sendResponse({ ok: false, reason: 'api-error', message: e?.message || String(e) });
       }
     })();
@@ -484,8 +471,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
         );
         if (!uploadResp.ok) {
-          const errText = await uploadResp.text();
-          console.log('[KICKCLIP-LOG] drive-upload-file error:', uploadResp.status, errText);
+          await uploadResp.text();
           const reason = (uploadResp.status === 404 || uploadResp.status === 403)
             ? 'folder-missing'
             : 'api-error';
@@ -498,7 +484,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
         const uploaded = await uploadResp.json();
-        console.log('[KICKCLIP-LOG] drive-upload-file success:', uploaded.id);
         sendResponse({
           ok: true,
           fileId: uploaded.id,
@@ -506,7 +491,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           webViewLink: uploaded.webViewLink || null,
         });
       } catch (e) {
-        console.log('[KICKCLIP-LOG] drive-upload-file exception:', e);
         sendResponse({ ok: false, reason: 'api-error', message: e?.message || String(e) });
       }
     })();

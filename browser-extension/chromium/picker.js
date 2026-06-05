@@ -23,9 +23,7 @@ async function closeSelfTab() {
     if (tab?.id) {
       await chrome.tabs.remove(tab.id);
     }
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] picker closeSelfTab error:', e);
-  }
+  } catch (_) {}
 }
 
 /** Helper to notify side panel of busy state; safe if side panel is closed */
@@ -35,9 +33,7 @@ function notifyBusy(isBusy) {
       action: 'kc-picker-busy',
       busy: Boolean(isBusy),
     });
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] picker notifyBusy error:', e);
-  }
+  } catch (_) {}
 }
 
 /**
@@ -107,12 +103,9 @@ async function handleDriveButtonClick() {
           driveParentFolderName: ensureResp.parentFolderName,
         },
       });
-    } catch (e) {
-      console.log('[KICKCLIP-LOG] picker drive-ready sendMessage error:', e);
-    }
+    } catch (_) {}
     setTimeout(closeSelfTab, 1200);
   } catch (e) {
-    console.log('[KICKCLIP-LOG] handleDriveButtonClick error:', e);
     setStatus(`오류: ${e?.message || String(e)}`, 'error');
     notifyBusy(false);
   }
@@ -141,7 +134,6 @@ btn.addEventListener('click', async () => {
       if (driveBtn) driveBtn.disabled = false;
       return;
     }
-    console.log('[KICKCLIP-LOG] picker showDirectoryPicker error:', e);
     setStatus(`오류: ${e?.message || e}`, 'error');
     btn.disabled = false;
     if (driveBtn) driveBtn.disabled = false;
@@ -164,7 +156,6 @@ btn.addEventListener('click', async () => {
       }
     }
   } catch (e) {
-    console.log('[KICKCLIP-LOG] picker permission error:', e);
     setStatus(`권한 확인 실패: ${e?.message || e}`, 'error');
     btn.disabled = false;
     if (driveBtn) driveBtn.disabled = false;
@@ -175,7 +166,6 @@ btn.addEventListener('click', async () => {
   try {
     await setPrimaryHandle(handle);
   } catch (e) {
-    console.log('[KICKCLIP-LOG] picker setPrimaryHandle error:', e);
     setStatus(`저장 실패: ${e?.message || e}`, 'error');
     btn.disabled = false;
     if (driveBtn) driveBtn.disabled = false;
@@ -189,9 +179,7 @@ btn.addEventListener('click', async () => {
       action: 'kc-picker-handle-ready',
       folderName: handle.name,
     });
-  } catch (e) {
-    console.log('[KICKCLIP-LOG] picker sendMessage error:', e);
-  }
+  } catch (_) {}
 
   setTimeout(closeSelfTab, 800);
 });
@@ -226,12 +214,9 @@ async function handleDownloadsButtonClick() {
     setStatus('✓ Downloads 폴더로 설정되었습니다. 창을 닫습니다...', 'success');
     try {
       chrome.runtime.sendMessage({ action: 'kc-picker-downloads-ready' });
-    } catch (e) {
-      console.log('[KICKCLIP-LOG] picker downloads-ready sendMessage error:', e);
-    }
+    } catch (_) {}
     setTimeout(closeSelfTab, 800);
   } catch (e) {
-    console.log('[KICKCLIP-LOG] handleDownloadsButtonClick error:', e);
     setStatus(`오류: ${e?.message || String(e)}`, 'error');
     notifyBusy(false);
   }
