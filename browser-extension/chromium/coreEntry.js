@@ -2574,9 +2574,6 @@ async function saveActiveCoreItem(request = {}) {
       userId = null;
     }
 
-    // Extract HTML context from the active CoreItem for AI type inference
-    const htmlContext = extractCoreItemHtmlContext(activeItem);
-
     // === PHASE_IMAGE_URL_PIPELINE ===
     let imgThumbnailB64 = null;
     // === PHASE_VIDEO_CANVAS_FRAME_AS_IMGURL ===
@@ -2664,10 +2661,14 @@ async function saveActiveCoreItem(request = {}) {
       url,
       title: title || url,
       timestamp: Date.now(),
-      userLanguage: navigator.language || 'en',
-      pageUrl: meta?._pageUrl || window.location.href,
+      // === PHASE_SAVEURL_MINIMIZE ===
+      // Privacy minimization: userLanguage, pageUrl, and htmlContext used to be
+      // sent here but the server never reads or stores them. Dropped so the
+      // save-url payload carries only fields the server persists. The now-dead
+      // save-path htmlContext computation was also removed; htmlContext is
+      // still computed elsewhere solely for local category detection.
+      // === END PHASE_SAVEURL_MINIMIZE ===
       ...(tempId ? { temp_id: tempId } : {}),
-      ...(htmlContext ? { htmlContext } : {}),
       ...(imgUrl ? { img_url: imgUrl } : {}),
       ...(originSource ? { origin_source: originSource } : {}),
       // === PHASE_IMAGE_URL_PIPELINE ===
