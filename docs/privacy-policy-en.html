@@ -60,7 +60,7 @@
 
 <p class="meta">
   <strong>Effective Date:</strong> May 11, 2026<br>
-  <strong>Last Updated:</strong> May 13, 2026
+  <strong>Last Updated:</strong> June 8, 2026
 </p>
 
 <div class="disclosure-box">
@@ -75,7 +75,7 @@
 
 <h2>2. What We Collect, How, and Why</h2>
 
-<p>SeaClip only collects data when you take a deliberate action (pressing the save shortcut, clicking the context menu item, or explicitly signing in). SeaClip does not monitor your browsing activity, track pages you do not save, or run analytics in the background.</p>
+<p>SeaClip collects data only in response to your interaction with it — pressing the save shortcut, clicking the context menu item, signing in, or pointing at (hovering) clippable content on the tab you are actively using. SeaClip does not run background analytics across your browsing and does not collect or transmit data from pages you never interact with. Two narrow, feature-essential exceptions are described explicitly below: an anonymous, identifier-free clip count (Section 2.5) and on-demand fetching of images and link destinations to make clipping instant (Section 2.6).</p>
 
 <h3>2.1 Account Information</h3>
 <ul>
@@ -89,7 +89,7 @@
 
 <h3>2.2 Saved Item Metadata</h3>
 <ul>
-  <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so SeaClip can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, and the organizational folder you assigned (if any) for items you explicitly save.</li>
+  <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so SeaClip can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, a content de-duplication identifier (a stable reference such as a video source URL or a post ID, used to avoid saving the same item twice), the detected platform label (e.g. the social network a saved item came from), an internal correlation ID (a short random string that matches an optimistically-shown card to its stored record), and the organizational folder you assigned (if any) for items you explicitly save.</li>
   <li><strong>When collected:</strong> Only when you press the save shortcut or click the context menu item on a page.</li>
   <li><strong>How collected:</strong> Via a content script that runs only at the moment of save, reading the active page's URL, title, and (if you saved an image) the image URL.</li>
   <li><strong>Why:</strong> To store and organize your clips so you can find them later in the SeaClip side panel.</li>
@@ -118,15 +118,33 @@
   <li><strong>Where stored:</strong> Locally on your device only. Not transmitted anywhere.</li>
 </ul>
 
+<h3>2.5 Anonymous Usage Count (when signed out)</h3>
+<ul>
+  <li><strong>What:</strong> An anonymous signal that one clip occurred. The request body is empty — no URL, site, page, image, account, or device identifier is sent or stored. On the server it only increments aggregate counters (a running total and a per-day total).</li>
+  <li><strong>When collected:</strong> Only when you perform a clip while you are <strong>not</strong> signed in. Signed-in saves do not send this.</li>
+  <li><strong>How collected:</strong> A single fire-and-forget request to SeaClip's server. It cannot be tied to you because no identifier is included.</li>
+  <li><strong>Why:</strong> To understand overall usage volume (how many clips happen) without identifying anyone or recording where clips occur.</li>
+  <li><strong>Where stored:</strong> As aggregate counters only, in Firebase Firestore (Google Cloud). No per-event or per-user records are created.</li>
+</ul>
+
+<h3>2.6 Image and Link Fetching (to make clipping instant)</h3>
+<ul>
+  <li><strong>What:</strong> An image URL or a link URL on the tab you are actively using.</li>
+  <li><strong>When:</strong> (a) When the SeaClip side panel displays previews of items <em>you have already saved</em>, the saved item's image URL may be routed through SeaClip's image-proxy server so the preview can render even when the original host blocks direct loading. (b) When you point at (hover) or save a clippable item on the active tab, SeaClip may resolve the item's final link (following redirects) and pre-fetch its image so that saving is instant.</li>
+  <li><strong>How:</strong> These fetches are performed by SeaClip's own backend on your behalf (to bypass cross-origin/hotlink restrictions). They run on the active tab in response to your interaction with clippable content — not as background monitoring of pages you do not interact with.</li>
+  <li><strong>Why:</strong> To render previews reliably and to make the save action instantaneous.</li>
+  <li><strong>Retention:</strong> These fetches are transient — the URL is used to retrieve the image or follow the redirect and is <strong>not</strong> stored as a separate record. (URLs of items you explicitly save are stored as described in Section 2.2.)</li>
+</ul>
+
 <h2>3. What We Don't Collect</h2>
 <ul>
-  <li>We do <strong>NOT</strong> track your browsing history.</li>
-  <li>We do <strong>NOT</strong> collect data from pages you do not explicitly save.</li>
-  <li>We do <strong>NOT</strong> use third-party analytics or trackers.</li>
-  <li>We do <strong>NOT</strong> sell or share your data with advertisers.</li>
-  <li>We do <strong>NOT</strong> use AI services to process your data or pages.</li>
+  <li>We do <strong>NOT</strong> keep a log of your browsing history or build a record of the pages you visit.</li>
+  <li>We do <strong>NOT</strong> collect or store data from pages you never interact with, and we do not save items you did not choose to save.</li>
+  <li>We do <strong>NOT</strong> use third-party analytics, advertising SDKs, or trackers. The only usage signal SeaClip collects is the anonymous, identifier-free clip count described in Section 2.5.</li>
+  <li>We do <strong>NOT</strong> sell or share your data with advertisers or data brokers.</li>
+  <li>We do <strong>NOT</strong> send your saved items or page content to any AI service for processing.</li>
   <li>We do <strong>NOT</strong> collect sensitive content (e.g., email contents, passwords, financial data, health data).</li>
-  <li>The image preview data we store is only the thumbnail your browser already rendered for you on the source page. SeaClip does <strong>NOT</strong> separately fetch higher-resolution versions or any data your browser has not already accessed.</li>
+  <li>The thumbnail stored with a saved item is the preview your browser already rendered on the source page. To <em>display</em> previews reliably, SeaClip may additionally fetch a saved item's image through its own image proxy (see Section 2.6); such fetches are transient and are not retained beyond the saved item's stored fields.</li>
 </ul>
 
 <h2>4. Permission Justifications</h2>
@@ -141,20 +159,20 @@
   <li><code>windows</code> — To manage the lifecycle of SeaClip's auxiliary windows (folder picker, popup notifications).</li>
   <li><code>sidePanel</code> — To display SeaClip's main UI in Chrome's side panel, where you browse saved items by category.</li>
   <li><code>identity</code> — For Google sign-in via OAuth 2.0 to identify your account and request access to your Drive (only with <code>drive.file</code> scope).</li>
-  <li><code>clipboardWrite</code> — To automatically copy the saved item's URL to your clipboard after saving, so you can immediately paste it elsewhere.</li>
+  <li><code>clipboardWrite</code> — To copy a clipped image to your clipboard: the save shortcut copies the image you clip, and the side panel's Copy button copies a saved item's image, so you can paste it directly into another app. SeaClip writes only image data to the clipboard; the copy happens locally and is not transmitted.</li>
 </ul>
 
 <h3>Host Permissions (<code>&lt;all_urls&gt;</code>)</h3>
 <p>SeaClip requests permission to run on any URL because it is a universal save tool that must work on any website you choose to save from. Restricting to specific sites would defeat the core purpose.</p>
 <p>Despite the broad URL pattern:</p>
 <ul>
-  <li>SeaClip only acts in response to your explicit save shortcut press or context menu click.</li>
-  <li>SeaClip reads only the metadata necessary for saving (URL, title, primary image, hovered element).</li>
-  <li>SeaClip does not monitor your browsing activity in the background.</li>
-  <li>SeaClip does not collect personal data from pages you do not save.</li>
-  <li>SeaClip does not run continuous content analysis on visited pages.</li>
+  <li>SeaClip acts only on the tab you are actively using, in response to your interaction — pressing the save shortcut, clicking the context menu item, or pointing at (hovering) clippable content. It highlights clippable items as you hover and, to make saving instant, may pre-resolve a hovered item's link and image (see Section 2.6).</li>
+  <li>SeaClip reads only the metadata necessary for clipping (URL, title, primary image, the element you point at).</li>
+  <li>SeaClip does not run background monitoring of your browsing and does not act on tabs you are not interacting with.</li>
+  <li>SeaClip does not collect or store data from pages you never interact with.</li>
+  <li>SeaClip does not run continuous or AI-based content analysis on the pages you visit.</li>
 </ul>
-<p>The extension is functionally inert until you take a deliberate save action.</p>
+<p>SeaClip's clipping machinery stays dormant until you interact with clippable content on the active tab.</p>
 
 <h2>5. Data Sharing</h2>
 
@@ -164,6 +182,7 @@
 <ul>
   <li><strong>What is shared:</strong> Your account information and saved item metadata.</li>
   <li><strong>Purpose:</strong> Backend infrastructure that hosts your account and saved items.</li>
+  <li><strong>Also processed here:</strong> The anonymous clip count (Section 2.5) and the on-demand image/link fetches (Section 2.6) are handled by SeaClip's own backend running on Google Cloud. The image/link fetches are transient and are not stored; the clip count is stored only as aggregate totals with no identifier.</li>
   <li><strong>Subject to:</strong> <a href="https://policies.google.com/privacy">Google's privacy policy</a> and Google Cloud Platform Terms of Service.</li>
 </ul>
 
@@ -209,13 +228,13 @@
 <p>We may update this policy from time to time. Material changes will be reflected in the "Last Updated" date at the top of this page. We will not retroactively change the policy to expand data collection beyond what was disclosed at the time of your saves.</p>
 
 <h2>11. Open Source</h2>
-<p>SeaClip is open source. You can review the entire codebase at <a href="https://github.com/tlstlsgns/KickClip">github.com/tlstlsgns/KickClip</a> to verify the data handling described in this policy.</p>
+<p>SeaClip is open source. You can review the entire codebase at <a href="https://github.com/tlstlsgns/SeaClip">github.com/tlstlsgns/SeaClip</a> to verify the data handling described in this policy.</p>
 
 <h2>12. Contact</h2>
 <ul>
   <li><strong>Email:</strong> <a href="mailto:tlstlsgns@gmail.com">tlstlsgns@gmail.com</a></li>
-  <li><strong>GitHub:</strong> <a href="https://github.com/tlstlsgns/KickClip">https://github.com/tlstlsgns/KickClip</a></li>
-  <li><strong>Issues:</strong> <a href="https://github.com/tlstlsgns/KickClip/issues">https://github.com/tlstlsgns/KickClip/issues</a></li>
+  <li><strong>GitHub:</strong> <a href="https://github.com/tlstlsgns/SeaClip">https://github.com/tlstlsgns/SeaClip</a></li>
+  <li><strong>Issues:</strong> <a href="https://github.com/tlstlsgns/SeaClip/issues">https://github.com/tlstlsgns/SeaClip/issues</a></li>
 </ul>
 
 <hr>
