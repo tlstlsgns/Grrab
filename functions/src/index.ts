@@ -757,6 +757,39 @@ Write all text fields in ${outputLanguage}.`;
 // ═══════════════════════════════════════════════════════════════════════════════
 // Cloud Functions 진입점
 // ═══════════════════════════════════════════════════════════════════════════════
+// === PHASE_ANON_CLIP_TELEMETRY ===
+// POST /api/v1/telemetry/anonymous-clip
+// Aggregate-only counter for clips performed while logged out. The request
+// body is intentionally ignored: no URL, site, page, or user identifier is
+// ever read or stored. This keeps the data outside CWS "web browsing
+// activity" scope. Unauthenticated by design (mirrors image-proxy).
+app.post(
+  "/api/v1/telemetry/anonymous-clip",
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const db = getFirestore();
+      const day = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+      await db
+        .collection("stats")
+        .doc("anonymous_clips")
+        .set(
+          {
+            total: admin.firestore.FieldValue.increment(1),
+            [`days.${day}`]: admin.firestore.FieldValue.increment(1),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          {merge: true}
+        );
+      res.status(204).send("");
+    } catch (err) {
+      // Telemetry must never affect the user; swallow and 204.
+      console.error("anonymous-clip telemetry failed", err);
+      res.status(204).send("");
+    }
+  }
+);
+// === END PHASE_ANON_CLIP_TELEMETRY ===
+
 export const api = onRequest(
   {
     memory: "512MiB",
