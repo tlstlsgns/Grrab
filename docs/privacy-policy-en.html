@@ -75,7 +75,7 @@
 
 <h2>2. What We Collect, How, and Why</h2>
 
-<p>SeaClip collects data only in response to your interaction with it — pressing the save shortcut, clicking the context menu item, signing in, or pointing at (hovering) clippable content on the tab you are actively using. SeaClip does not run background analytics across your browsing and does not collect or transmit data from pages you never interact with. Two narrow, feature-essential exceptions are described explicitly below: an anonymous, identifier-free clip count (Section 2.5) and on-demand fetching of images and link destinations to make clipping instant (Section 2.6).</p>
+<p>SeaClip collects data only in response to your interaction with it — pressing the save shortcut, signing in, or pointing at (hovering) clippable content on the tab you are actively using. SeaClip does not run background analytics across your browsing and does not collect or transmit data from pages you never interact with. Two narrow, feature-essential exceptions are described explicitly below: an anonymous, identifier-free clip count (Section 2.5) and on-demand fetching of images and link destinations to make clipping instant (Section 2.6).</p>
 
 <h3>2.1 Account Information</h3>
 <ul>
@@ -90,7 +90,7 @@
 <h3>2.2 Saved Item Metadata</h3>
 <ul>
   <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so SeaClip can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, a content de-duplication identifier (a stable reference such as a video source URL or a post ID, used to avoid saving the same item twice), the detected platform label (e.g. the social network a saved item came from), an internal correlation ID (a short random string that matches an optimistically-shown card to its stored record), and the organizational folder you assigned (if any) for items you explicitly save.</li>
-  <li><strong>When collected:</strong> Only when you press the save shortcut or click the context menu item on a page.</li>
+  <li><strong>When collected:</strong> Only when you press the save shortcut on a page.</li>
   <li><strong>How collected:</strong> Via a content script that runs only at the moment of save, reading the active page's URL, title, and (if you saved an image) the image URL.</li>
   <li><strong>Why:</strong> To store and organize your clips so you can find them later in the SeaClip side panel.</li>
   <li><strong>Where stored:</strong> Firebase Firestore (Google Cloud, Asia Northeast region), under your user account.</li>
@@ -133,6 +133,7 @@
   <li><strong>When:</strong> (a) When the SeaClip side panel displays previews of items <em>you have already saved</em>, the saved item's image URL may be routed through SeaClip's image-proxy server so the preview can render even when the original host blocks direct loading. (b) When you point at (hover) or save a clippable item on the active tab, SeaClip may resolve the item's final link (following redirects) and pre-fetch its image so that saving is instant.</li>
   <li><strong>How:</strong> These fetches are performed by SeaClip's own backend on your behalf (to bypass cross-origin/hotlink restrictions). They run on the active tab in response to your interaction with clippable content — not as background monitoring of pages you do not interact with.</li>
   <li><strong>Why:</strong> To render previews reliably and to make the save action instantaneous.</li>
+  <li><strong>Video frames:</strong> When you clip a video whose frame cannot be read directly because the site serves it from another origin, SeaClip briefly captures the current visible tab to obtain the frame you are clipping. This capture is used only to produce that clip image and is not stored separately.</li>
   <li><strong>Retention:</strong> These fetches are transient — the URL is used to retrieve the image or follow the redirect and is <strong>not</strong> stored as a separate record. (URLs of items you explicitly save are stored as described in Section 2.2.)</li>
 </ul>
 
@@ -166,7 +167,7 @@
 <p>SeaClip requests permission to run on any URL because it is a universal save tool that must work on any website you choose to save from. Restricting to specific sites would defeat the core purpose.</p>
 <p>Despite the broad URL pattern:</p>
 <ul>
-  <li>SeaClip acts only on the tab you are actively using, in response to your interaction — pressing the save shortcut, clicking the context menu item, or pointing at (hovering) clippable content. It highlights clippable items as you hover and, to make saving instant, may pre-resolve a hovered item's link and image (see Section 2.6).</li>
+  <li>SeaClip acts only on the tab you are actively using, in response to your interaction — pressing the save shortcut or pointing at (hovering) clippable content. It highlights clippable items as you hover and, to make saving instant, may pre-resolve a hovered item's link and image (see Section 2.6).</li>
   <li>SeaClip reads only the metadata necessary for clipping (URL, title, primary image, the element you point at).</li>
   <li>SeaClip does not run background monitoring of your browsing and does not act on tabs you are not interacting with.</li>
   <li>SeaClip does not collect or store data from pages you never interact with.</li>
