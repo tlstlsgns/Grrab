@@ -60,8 +60,8 @@ import {
 } from './shortcutStore.js';
 // === END PHASE_SHORTCUT_RECORDER ===
 
-// TEMP_BGR_SMOKE
-import { bgRemovalSelfTest } from './bgRemoval.js';
+// TEMP_BGR_TEST
+import { removeBackgroundPngBlob } from './bgRemoval.js';
 
 // PHASE_UPLOAD_ALWAYS_AUTO: the Auto checkbox is removed — uploads
 // always route directly to the configured destination
@@ -375,16 +375,6 @@ const firebaseApp = getApps().length === 0
 const auth = getAuth(firebaseApp);
 const db   = getFirestore(firebaseApp);
 
-// TEMP_BGR_SMOKE — dev-only onnxruntime-web self-test (remove in Step 2)
-if (typeof KC_IS_DEV !== 'undefined' && KC_IS_DEV) {
-  bgRemovalSelfTest()
-    .then((result) => {
-      console.log('[SEACLIP-BGR] TEMP_BGR_SMOKE result:', result);
-    })
-    .catch((err) => {
-      console.error('[SEACLIP-BGR] TEMP_BGR_SMOKE failed:', err);
-    });
-}
 
 /** @param {unknown} v */
 function _kcFirestorePrimitiveField(v) {
@@ -540,6 +530,41 @@ const spAiBoardLoading = document.getElementById('sp-ai-board-loading');
 const spAiBoardTitle   = document.getElementById('sp-ai-board-title');
 const spAiBoardBody    = document.getElementById('sp-ai-board-body');
 const spAiBoardClose   = document.getElementById('sp-ai-board-close');
+
+// TEMP_BGR_TEST — dev-only cutout test button (remove in Step 3)
+function _tempBgrTestInit() {
+  if (typeof KC_IS_DEV === 'undefined' || !KC_IS_DEV) return;
+  const header = document.getElementById('sp-header');
+  if (!header) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'temp-bgr-test-btn';
+  btn.type = 'button';
+  btn.textContent = 'BGR test';
+  btn.style.cssText = 'font-size:11px;padding:2px 6px;margin-left:4px;';
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.hidden = true;
+
+  btn.addEventListener('click', () => input.click());
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      const out = await removeBackgroundPngBlob(file, (s) => console.log('[SEACLIP-BGR]', s));
+      window.open(URL.createObjectURL(out), '_blank');
+    } catch (err) {
+      console.error('[SEACLIP-BGR] TEMP_BGR_TEST failed:', err);
+    }
+  });
+
+  header.appendChild(btn);
+  document.body.appendChild(input);
+}
+_tempBgrTestInit();
 
 // === PHASE_SHORTCUT_RECORDER ===
 // Inline shortcut recorder for #sp-shortcut-btn.

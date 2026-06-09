@@ -10,8 +10,10 @@ const distDir = path.join(extensionRoot, 'dist');
 const outDir = path.join(distDir, 'prod');
 const zipPath = path.join(distDir, 'seaclip-prod.zip');
 const prodVendorDir = path.join(outDir, 'vendor');
+const modelsDir = path.join(srcDir, 'vendor', 'models');
 
-const { copyOrtVendor } = require('./copy-ort-vendor');
+const { fetchModel } = require('./fetch-model');
+const { copyOrtVendor, copyVendorModels } = require('./copy-ort-vendor');
 
 const excludedBasenames = new Set([
   'manifest.json',
@@ -134,9 +136,11 @@ function createZip() {
 }
 
 async function main() {
+  await fetchModel(modelsDir);
   removePreviousOutputs();
   copySource();
   copyOrtVendor(prodVendorDir);
+  copyVendorModels(prodVendorDir);
   writeProdManifest();
   writeProdConfig();
   warnIfPlaceholdersRemain();
