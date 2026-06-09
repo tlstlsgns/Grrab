@@ -60,7 +60,6 @@ import {
 } from './shortcutStore.js';
 // === END PHASE_SHORTCUT_RECORDER ===
 
-// TEMP_BGR_TEST
 import { removeBackgroundPngBlob } from './bgRemoval.js';
 
 // PHASE_UPLOAD_ALWAYS_AUTO: the Auto checkbox is removed — uploads
@@ -190,6 +189,45 @@ chrome.storage.onChanged.addListener((changes, area) => {
   _renderUploadFormatUI(KC_UPLOAD_FORMAT_PRESETS.includes(v) ? v : 'original');
 });
 // === END PHASE_UPLOAD_FORMAT ===
+
+const KC_BGR_ENABLED_KEY = 'kc_bgr_enabled';
+let _bgrEnabled = false;
+
+function _renderBgrToggleUI() {
+  const btn = document.getElementById('sp-bgr-toggle');
+  if (!btn) return;
+  btn.classList.toggle('sp-bgr-toggle--on', _bgrEnabled);
+  btn.classList.toggle('sp-bgr-toggle--off', !_bgrEnabled);
+  btn.setAttribute('aria-pressed', _bgrEnabled ? 'true' : 'false');
+}
+
+async function _setBgrEnabled(next) {
+  _bgrEnabled = !!next;
+  try {
+    await chrome.storage.local.set({ [KC_BGR_ENABLED_KEY]: _bgrEnabled });
+  } catch (_) {}
+  _renderBgrToggleUI();
+}
+
+async function _loadBgrEnabledSetting() {
+  try {
+    const r = await chrome.storage.local.get(KC_BGR_ENABLED_KEY);
+    _bgrEnabled = !!r?.[KC_BGR_ENABLED_KEY];
+  } catch (_) {
+    _bgrEnabled = false;
+  }
+  _renderBgrToggleUI();
+}
+
+function _initBgrToggle() {
+  const btn = document.getElementById('sp-bgr-toggle');
+  if (!btn || btn.dataset.bgrToggleBound === 'true') return;
+  btn.dataset.bgrToggleBound = 'true';
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    _setBgrEnabled(!_bgrEnabled);
+  });
+}
 
 // Picker popup window tracking for auto-close + re-click handling.
 let _kcPickerWindowId = null;
@@ -338,6 +376,8 @@ async function handleOpenFolderSettings() {
   } catch (_) {}
   await _refreshDirContainer();
   await _loadUploadFormatSetting();
+  await _loadBgrEnabledSetting();
+  _initBgrToggle();
 })();
 
 document.getElementById('kc-upload-format-btn')?.addEventListener('click', (e) => {
@@ -670,41 +710,6 @@ const spAiBoardBody    = document.getElementById('sp-ai-board-body');
 const spAiBoardClose   = document.getElementById('sp-ai-board-close');
 
 _initBgrPreview();
-
-// TEMP_BGR_TEST — dev-only cutout test button (remove in Step 3)
-function _tempBgrTestInit() {
-  if (typeof KC_IS_DEV === 'undefined' || !KC_IS_DEV) return;
-  const header = document.getElementById('sp-header');
-  if (!header) return;
-
-  const btn = document.createElement('button');
-  btn.id = 'temp-bgr-test-btn';
-  btn.type = 'button';
-  btn.textContent = 'BGR test';
-  btn.style.cssText = 'font-size:11px;padding:2px 6px;margin-left:4px;';
-
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.hidden = true;
-
-  btn.addEventListener('click', () => input.click());
-  input.addEventListener('change', async () => {
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    try {
-      const out = await removeBackgroundPngBlob(file, (s) => console.log('[SEACLIP-BGR]', s));
-      window.open(URL.createObjectURL(out), '_blank');
-    } catch (err) {
-      console.error('[SEACLIP-BGR] TEMP_BGR_TEST failed:', err);
-    }
-  });
-
-  header.appendChild(btn);
-  document.body.appendChild(input);
-}
-_tempBgrTestInit();
 
 // === PHASE_SHORTCUT_RECORDER ===
 // Inline shortcut recorder for #sp-shortcut-btn.
@@ -2350,26 +2355,32 @@ function flashUploadMark(btnEl, success) {
 }
 
 // === PHASE_CARD_CLIPBOARD_COPY ===
-function handleClipButtonClick(item, anchorBtn) {
-  const imgUrl = String(item?.img_url || '').trim();
-  const proxied = getProxiedImageUrl(imgUrl);
-  const pngPromise = resolveItemClipboardPngBlob(
-    item,
-    proxied && proxied !== imgUrl ? proxied : ''
-  ).then((png) => {
+async function handleClipButtonClick(item, anchorBtn) {
+  if (anchorBtn) anchorBtn.disabled = true;
+  try {
+    const imgUrl = String(item?.img_url || '').trim();
+    const proxied = getProxiedImageUrl(imgUrl);
+    let png = await resolveItemClipboardPngBlob(
+      item,
+      proxied && proxied !== imgUrl ? proxied : ''
+    );
     if (!png) throw new Error('clipboard image resolve failed');
-    return png;
-  });
-  navigator.clipboard
-    .write([new ClipboardItem({ 'image/png': pngPromise })])
-    .then(() => {
-      flashUploadMark(anchorBtn, true);
-      showKcToast('클립보드에 복사 완료', 'success');
-    })
-    .catch(() => {
-      flashUploadMark(anchorBtn, false);
-      showKcToast('이미지 복사에 실패했습니다', 'error');
-    });
+    if (_bgrEnabled) {
+      try {
+        png = await removeBackgroundPngBlob(png, (s) => console.log('[SEACLIP-BGR]', s));
+      } catch (e) {
+        console.error('[SEACLIP-BGR] clip cutout failed, using original', e);
+      }
+    }
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    flashUploadMark(anchorBtn, true);
+    showKcToast('클립보드에 복사 완료', 'success');
+  } catch (_) {
+    flashUploadMark(anchorBtn, false);
+    showKcToast('이미지 복사에 실패했습니다', 'error');
+  } finally {
+    if (anchorBtn) anchorBtn.disabled = false;
+  }
 }
 // === END PHASE_CARD_CLIPBOARD_COPY ===
 
