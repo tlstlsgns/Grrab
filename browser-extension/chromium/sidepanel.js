@@ -60,6 +60,9 @@ import {
 } from './shortcutStore.js';
 // === END PHASE_SHORTCUT_RECORDER ===
 
+// TEMP_BGR_SMOKE
+import { bgRemovalSelfTest } from './bgRemoval.js';
+
 // PHASE_UPLOAD_ALWAYS_AUTO: the Auto checkbox is removed — uploads
 // always route directly to the configured destination
 // (handleUploadToDestination). The legacy 'kc_upload_auto_enabled'
@@ -371,6 +374,17 @@ const firebaseApp = getApps().length === 0
 
 const auth = getAuth(firebaseApp);
 const db   = getFirestore(firebaseApp);
+
+// TEMP_BGR_SMOKE — dev-only onnxruntime-web self-test (remove in Step 2)
+if (typeof KC_IS_DEV !== 'undefined' && KC_IS_DEV) {
+  bgRemovalSelfTest()
+    .then((result) => {
+      console.log('[SEACLIP-BGR] TEMP_BGR_SMOKE result:', result);
+    })
+    .catch((err) => {
+      console.error('[SEACLIP-BGR] TEMP_BGR_SMOKE failed:', err);
+    });
+}
 
 /** @param {unknown} v */
 function _kcFirestorePrimitiveField(v) {

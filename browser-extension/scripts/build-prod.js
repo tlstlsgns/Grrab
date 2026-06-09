@@ -9,6 +9,9 @@ const srcDir = path.join(extensionRoot, 'chromium');
 const distDir = path.join(extensionRoot, 'dist');
 const outDir = path.join(distDir, 'prod');
 const zipPath = path.join(distDir, 'seaclip-prod.zip');
+const prodVendorDir = path.join(outDir, 'vendor');
+
+const { copyOrtVendor } = require('./copy-ort-vendor');
 
 const excludedBasenames = new Set([
   'manifest.json',
@@ -133,6 +136,7 @@ function createZip() {
 async function main() {
   removePreviousOutputs();
   copySource();
+  copyOrtVendor(prodVendorDir);
   writeProdManifest();
   writeProdConfig();
   warnIfPlaceholdersRemain();

@@ -10,10 +10,14 @@ const srcManifest = path.join(chromiumDir, 'manifest.dev.json');
 const srcConfig = path.join(chromiumDir, 'config.dev.js');
 const outManifest = path.join(chromiumDir, 'manifest.json');
 const outConfig = path.join(chromiumDir, 'config.js');
+const vendorDir = path.join(chromiumDir, 'vendor');
+
+const { copyOrtVendor } = require('./copy-ort-vendor');
 
 function main() {
   fs.copyFileSync(srcManifest, outManifest);
   fs.copyFileSync(srcConfig, outConfig);
+  copyOrtVendor(vendorDir);
 
   const configText = fs.readFileSync(outConfig, 'utf8');
   if (!configText.includes('const KC_IS_DEV = true;')) {
