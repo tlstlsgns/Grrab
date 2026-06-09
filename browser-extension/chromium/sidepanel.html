@@ -459,6 +459,22 @@
       stroke-width: 2;
       fill: none;
     }
+    .sp-bgr-btn .kc-upload-mark {
+      display: none;
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+    .sp-bgr-btn.kc-upload--success .kc-upload-mark.kc-upload-mark--check,
+    .sp-bgr-btn.kc-upload--error .kc-upload-mark.kc-upload-mark--x {
+      display: block;
+    }
+    .sp-bgr-btn.kc-upload--success svg:not(.kc-upload-mark),
+    .sp-bgr-btn.kc-upload--error svg:not(.kc-upload-mark) {
+      opacity: 0;
+    }
 
     /* ── Directory list ── */
     #sp-directory-list {

@@ -507,6 +507,30 @@ const kcCardItemByEl = new WeakMap();
 let _bgrItem = null;
 let _bgrObjectUrl = null;
 let _bgrBusy = false;
+let _bgrCutoutBlob = null;
+
+const BGR_SCISSORS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+  <circle cx="6" cy="6" r="3"></circle>
+  <circle cx="6" cy="18" r="3"></circle>
+  <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+  <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+  <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+</svg>`;
+
+const BGR_CLIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+</svg>
+<svg class="kc-upload-mark kc-upload-mark--check" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+<svg class="kc-upload-mark kc-upload-mark--x" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+function setBgrBtnMode(mode) {
+  const els = getBgrEls();
+  const btn = els?.btn;
+  if (!btn) return;
+  btn.dataset.mode = mode;
+  btn.innerHTML = mode === 'clip' ? BGR_CLIP_SVG : BGR_SCISSORS_SVG;
+  btn.title = mode === 'clip' ? '클립보드 복사' : '배경 제거 (누끼)';
+}
 
 function getBgrEls() {
   const root = document.getElementById('sp-bgr-preview');
@@ -537,6 +561,8 @@ function showBgrPreview(item) {
   if (els.spinner) els.spinner.hidden = true;
   if (els.btn) els.btn.disabled = false;
   _bgrBusy = false;
+  _bgrCutoutBlob = null;
+  setBgrBtnMode('cutout');
   els.root.style.display = '';
 }
 
@@ -549,32 +575,59 @@ function hideBgrPreview() {
   }
   _bgrItem = null;
   _bgrBusy = false;
+  _bgrCutoutBlob = null;
 }
 
-async function onBgrCutoutClick() {
+async function onBgrButtonClick() {
   const els = getBgrEls();
-  if (_bgrBusy || !_bgrItem || !els?.img) return;
-  _bgrBusy = true;
-  if (els.btn) els.btn.disabled = true;
-  if (els.spinner) els.spinner.hidden = false;
+  if (_bgrBusy || !els?.btn) return;
+  const mode = els.btn.dataset.mode || 'cutout';
+
+  if (mode === 'cutout') {
+    if (!_bgrItem || !els.img) return;
+    _bgrBusy = true;
+    els.btn.disabled = true;
+    if (els.spinner) els.spinner.hidden = false;
+    try {
+      const imgUrl = String(_bgrItem?.img_url || '').trim();
+      const proxied = getProxiedImageUrl(imgUrl);
+      const blob = await resolveItemClipboardPngBlob(
+        _bgrItem,
+        proxied && proxied !== imgUrl ? proxied : ''
+      );
+      if (!blob) throw new Error('clipboard image resolve failed');
+      const cutout = await removeBackgroundPngBlob(blob, (s) => console.log('[SEACLIP-BGR]', s));
+      _bgrCutoutBlob = cutout;
+      if (_bgrObjectUrl) URL.revokeObjectURL(_bgrObjectUrl);
+      _bgrObjectUrl = URL.createObjectURL(cutout);
+      els.img.src = _bgrObjectUrl;
+      setBgrBtnMode('clip');
+    } catch (e) {
+      console.error('[SEACLIP-BGR] cutout failed', e);
+      setBgrBtnMode('cutout');
+    } finally {
+      if (els.spinner) els.spinner.hidden = true;
+      els.btn.disabled = false;
+      _bgrBusy = false;
+    }
+    return;
+  }
+
+  if (!_bgrCutoutBlob) {
+    console.error('[SEACLIP-BGR] cutout copy failed: no cutout blob');
+    flashUploadMark(els.btn, false);
+    return;
+  }
   try {
-    const imgUrl = String(_bgrItem?.img_url || '').trim();
-    const proxied = getProxiedImageUrl(imgUrl);
-    const blob = await resolveItemClipboardPngBlob(
-      _bgrItem,
-      proxied && proxied !== imgUrl ? proxied : ''
-    );
-    if (!blob) throw new Error('clipboard image resolve failed');
-    const cutout = await removeBackgroundPngBlob(blob, (s) => console.log('[SEACLIP-BGR]', s));
-    if (_bgrObjectUrl) URL.revokeObjectURL(_bgrObjectUrl);
-    _bgrObjectUrl = URL.createObjectURL(cutout);
-    els.img.src = _bgrObjectUrl;
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': _bgrCutoutBlob }),
+    ]);
+    flashUploadMark(els.btn, true);
+    showKcToast('클립보드에 복사 완료', 'success');
   } catch (e) {
-    console.error('[SEACLIP-BGR] cutout failed', e);
-  } finally {
-    if (els.spinner) els.spinner.hidden = true;
-    if (els.btn) els.btn.disabled = false;
-    _bgrBusy = false;
+    console.error('[SEACLIP-BGR] cutout copy failed', e);
+    flashUploadMark(els.btn, false);
+    showKcToast('이미지 복사에 실패했습니다', 'error');
   }
 }
 
@@ -582,9 +635,10 @@ function _initBgrPreview() {
   const els = getBgrEls();
   if (!els?.btn || els.btn.dataset.bgrBound === 'true') return;
   els.btn.dataset.bgrBound = 'true';
+  setBgrBtnMode('cutout');
   els.btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    onBgrCutoutClick();
+    onBgrButtonClick();
   });
 }
 
