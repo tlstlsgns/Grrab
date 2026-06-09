@@ -2,25 +2,36 @@
 const fs = require('fs');
 const path = require('path');
 
-const WEBGPU_BUNDLE = 'ort.webgpu.bundle.min.mjs';
-const ORT_WASM_RE = /^ort-wasm-.*\.(mjs|wasm)$/;
+const ORT_VENDOR_FILES = [
+  'ort.webgpu.bundle.min.mjs',
+  'ort-wasm-simd-threaded.asyncify.mjs',
+  'ort-wasm-simd-threaded.asyncify.wasm',
+  'ort-wasm-simd-threaded.mjs',
+  'ort-wasm-simd-threaded.wasm',
+];
+
+const STALE_ORT_WASM_RE = /^ort-wasm-.*\.(mjs|wasm)$/;
 
 const srcModelsDir = path.join(__dirname, '..', 'chromium', 'vendor', 'models');
 
-function resolveOrtDistFiles(ortDistDir) {
-  const entries = fs.readdirSync(ortDistDir, { withFileTypes: true });
-  const wasmFiles = entries
-    .filter((e) => e.isFile() && ORT_WASM_RE.test(e.name))
-    .map((e) => e.name)
-    .sort();
-  return [WEBGPU_BUNDLE, ...wasmFiles];
+function removeStaleOrtWasm(destDir) {
+  if (!fs.existsSync(destDir)) return;
+  const whitelist = new Set(ORT_VENDOR_FILES);
+  for (const entry of fs.readdirSync(destDir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    if (!STALE_ORT_WASM_RE.test(entry.name)) continue;
+    if (whitelist.has(entry.name)) continue;
+    const stale = path.join(destDir, entry.name);
+    fs.unlinkSync(stale);
+    console.log(`[copy-ort-vendor] removed stale ${entry.name}`);
+  }
 }
 
 function copyOrtVendor(destDir) {
   const ortDistDir = path.join(__dirname, '..', 'node_modules', 'onnxruntime-web', 'dist');
-  const files = resolveOrtDistFiles(ortDistDir);
   fs.mkdirSync(destDir, { recursive: true });
-  for (const name of files) {
+  removeStaleOrtWasm(destDir);
+  for (const name of ORT_VENDOR_FILES) {
     const src = path.join(ortDistDir, name);
     if (!fs.existsSync(src)) {
       console.error(`ERROR: missing onnxruntime-web dist file: ${src}`);
@@ -28,9 +39,9 @@ function copyOrtVendor(destDir) {
     }
     fs.copyFileSync(src, path.join(destDir, name));
   }
-  console.log(`[copy-ort-vendor] ${files.length} file(s) → ${destDir}`);
-  console.log(`[copy-ort-vendor] ${files.join(', ')}`);
-  return files;
+  console.log(`[copy-ort-vendor] ${ORT_VENDOR_FILES.length} file(s) → ${destDir}`);
+  console.log(`[copy-ort-vendor] ${ORT_VENDOR_FILES.join(', ')}`);
+  return ORT_VENDOR_FILES;
 }
 
 function copyVendorModels(destVendorDir) {
@@ -57,4 +68,4 @@ function copyVendorModels(destVendorDir) {
   console.log(`[copy-ort-vendor] models (${copied} file(s)) → ${destModelsDir}`);
 }
 
-module.exports = { copyOrtVendor, copyVendorModels, resolveOrtDistFiles, WEBGPU_BUNDLE, ORT_WASM_RE };
+module.exports = { copyOrtVendor, copyVendorModels, ORT_VENDOR_FILES };
