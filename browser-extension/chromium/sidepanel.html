@@ -218,6 +218,18 @@
       cursor: pointer;
     }
     #btn-signout:hover { color: #111; border-color: #aaa; }
+
+    .sp-clip {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 8px;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+      flex-shrink: 0;
+    }
+
     .kc-dir-container {
       display: flex;
       align-items: center;
@@ -1394,8 +1406,6 @@
           <img id="sp-user-avatar" src="" alt="avatar" />
           <button id="btn-signout">Sign out</button>
         </div>
-        <button type="button" id="sp-bgr-toggle" class="sp-bgr-toggle sp-bgr-toggle--off"
-                aria-pressed="false" title="Remove background">RemoveBg</button>
         <!-- === PHASE_SHORTCUT_RECORDER === -->
         <div id="sp-shortcut-container">
           <button id="sp-shortcut-btn" title="Click to record a new shortcut">⌘C</button>
@@ -1403,6 +1413,11 @@
           <span id="sp-shortcut-error" aria-live="polite" hidden></span>
         </div>
         <!-- === END PHASE_SHORTCUT_RECORDER === -->
+      </div>
+
+      <div id="sp-clip" class="sp-clip">
+        <button type="button" id="sp-bgr-toggle" class="sp-bgr-toggle sp-bgr-toggle--off"
+                aria-pressed="false" title="Remove background">RemoveBg</button>
       </div>
 
       <div class="kc-dir-container" id="kc-dir-container">
