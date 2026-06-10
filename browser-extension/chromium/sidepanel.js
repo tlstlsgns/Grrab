@@ -2384,76 +2384,56 @@ async function handleClipButtonClick(item, anchorBtn) {
 }
 // === END PHASE_CARD_CLIPBOARD_COPY ===
 
-async function resolveBgrUploadOpts(item) {
-  if (!_bgrEnabled) return {};
-  try {
-    const imgUrl = String(item?.img_url || '').trim();
-    const proxied = getProxiedImageUrl(imgUrl);
-    const base = await resolveItemClipboardPngBlob(
-      item,
-      proxied && proxied !== imgUrl ? proxied : ''
-    );
-    if (!base) return {};
-    const cutout = await removeBackgroundPngBlob(base, (s) => console.log('[SEACLIP-BGR]', s));
-    return { blobOverride: cutout };
-  } catch (e) {
-    console.error('[SEACLIP-BGR] save cutout failed, using original', e);
-    return {};
-  }
-}
-
-async function handleLocalUpload(item, anchorBtn) {
-  if (anchorBtn) anchorBtn.disabled = true;
-  try {
-    const opts = await resolveBgrUploadOpts(item);
-    const result = await saveItemViaDownloads(item, opts);
-    if (result.ok) {
-      flashUploadMark(anchorBtn, true);
-      showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
-    } else if (result.reason === 'cancelled') {
-      flashUploadMark(anchorBtn, false);
-    } else {
-      flashUploadMark(anchorBtn, false);
-      showKcToast(`저장 실패: ${result.message || 'Unknown error'}`, 'error');
-    }
-  } catch (e) {
-    flashUploadMark(anchorBtn, false);
-    showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
-  } finally {
-    if (anchorBtn) anchorBtn.disabled = false;
-  }
-}
-
-async function handleAutoPathUpload(item, anchorBtn, handle, opts = {}) {
-  try {
-    const result = await writeItemToHandle(handle, item, opts);
-    if (result.ok) {
-      flashUploadMark(anchorBtn, true);
-      showKcToast(
-        `${formatToastFileName(result.filename)}\nsaved to ${result.primaryFolderName}`,
-        'success'
-      );
-    } else {
-      flashUploadMark(anchorBtn, false);
-      let msg;
-      switch (result.reason) {
-        case 'permission':
-          msg = '폴더 접근 권한이 거부되었습니다. 저장 폴더를 다시 선택하세요.';
-          _markDirFolderMissing(handle?.name);
-          break;
-        case 'folder-missing':
-          msg = '폴더를 찾을 수 없습니다. 저장 폴더를 다시 선택하세요.';
-          _markDirFolderMissing(handle?.name);
-          break;
-        default:
-          msg = `저장 실패: ${result.message || 'Unknown error'}`;
+function handleLocalUpload(item, anchorBtn) {
+  saveItemViaDownloads(item)
+    .then((result) => {
+      if (result.ok) {
+        flashUploadMark(anchorBtn, true);
+        showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
+      } else if (result.reason === 'cancelled') {
+        flashUploadMark(anchorBtn, false);
+      } else {
+        flashUploadMark(anchorBtn, false);
+        showKcToast(`저장 실패: ${result.message || 'Unknown error'}`, 'error');
       }
-      showKcToast(msg, 'error');
-    }
-  } catch (e) {
-    flashUploadMark(anchorBtn, false);
-    showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
-  }
+    })
+    .catch((e) => {
+      flashUploadMark(anchorBtn, false);
+      showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
+    });
+}
+
+function handleAutoPathUpload(item, anchorBtn, handle) {
+    writeItemToHandle(handle, item)
+    .then((result) => {
+      if (result.ok) {
+        flashUploadMark(anchorBtn, true);
+        showKcToast(
+          `${formatToastFileName(result.filename)}\nsaved to ${result.primaryFolderName}`,
+          'success'
+        );
+      } else {
+        flashUploadMark(anchorBtn, false);
+        let msg;
+        switch (result.reason) {
+          case 'permission':
+            msg = '폴더 접근 권한이 거부되었습니다. 저장 폴더를 다시 선택하세요.';
+            _markDirFolderMissing(handle?.name);
+            break;
+          case 'folder-missing':
+            msg = '폴더를 찾을 수 없습니다. 저장 폴더를 다시 선택하세요.';
+            _markDirFolderMissing(handle?.name);
+            break;
+          default:
+            msg = `저장 실패: ${result.message || 'Unknown error'}`;
+        }
+        showKcToast(msg, 'error');
+      }
+    })
+    .catch((e) => {
+      flashUploadMark(anchorBtn, false);
+      showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
+    });
 }
 
 function openUploadPopover(item, anchorBtn) {
@@ -2464,11 +2444,11 @@ function openUploadPopover(item, anchorBtn) {
  * Upload an item directly to the configured Drive SeaClip_files folder.
  * Called when destination.type === 'drive' and Auto is ON.
  */
-async function handleAutoDriveUpload(item, destination, anchorBtn, opts = {}) {
+async function handleAutoDriveUpload(item, destination, anchorBtn) {
   try {
     showKcToast('Google Drive에 업로드 중...');
 
-    const payload = await buildDriveUploadPayload(item, opts);
+    const payload = await buildDriveUploadPayload(item);
     if (!payload.ok) {
       flashUploadMark(anchorBtn, false);
       showKcToast(`업로드 준비 실패: ${payload.message || 'Unknown'}`, 'error');
@@ -2544,14 +2524,12 @@ async function handleUploadButtonClick(item, anchorBtn) {
 // with filename '<sanitized>.<ext>' in the Downloads root and saveAs: false. No OS
 // dialog, no user gesture required.
 async function handleUploadToDestination(item, anchorBtn) {
-  if (anchorBtn) anchorBtn.disabled = true;
   try {
-    const opts = await resolveBgrUploadOpts(item);
     const destination = await getDestination();
 
     // Downloads: null fallthrough and explicit type both route here.
     if (!destination || destination.type === 'downloads') {
-      const result = await saveItemToDownloads(item, opts);
+      const result = await saveItemToDownloads(item);
       if (result && result.ok) {
         flashUploadMark(anchorBtn, true);
         showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
@@ -2571,17 +2549,17 @@ async function handleUploadToDestination(item, anchorBtn) {
         await handleOpenFolderSettings();
         return;
       }
-      await handleAutoPathUpload(item, anchorBtn, handle, opts);
+      handleAutoPathUpload(item, anchorBtn, handle);
       return;
     }
 
     if (destination.type === 'drive') {
-      await handleAutoDriveUpload(item, destination, anchorBtn, opts);
+      await handleAutoDriveUpload(item, destination, anchorBtn);
       return;
     }
 
     // Defensive fallback: unknown destination shape → treat as Downloads.
-    const result = await saveItemToDownloads(item, opts);
+    const result = await saveItemToDownloads(item);
     if (result && result.ok) {
       flashUploadMark(anchorBtn, true);
       showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
@@ -2592,8 +2570,6 @@ async function handleUploadToDestination(item, anchorBtn) {
   } catch (e) {
     flashUploadMark(anchorBtn, false);
     showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
-  } finally {
-    if (anchorBtn) anchorBtn.disabled = false;
   }
 }
 // === END PHASE_UPLOAD_AUTO_ROUTING ===
@@ -2652,7 +2628,7 @@ function ensureKcUploadPopover() {
       closeKcUploadPopover();
       if (!item) return;
       if (dest === 'local') {
-        await handleLocalUpload(item, anchorBtn);
+        handleLocalUpload(item, anchorBtn);
       } else if (dest === 'destination') {
         await handleUploadToDestination(item, anchorBtn);
       }
