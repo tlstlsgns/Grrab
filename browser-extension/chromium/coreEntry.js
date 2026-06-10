@@ -253,6 +253,31 @@ function syncCoreBadgeTexts() {
 
 initShortcutSync();
 
+// === PHASE_BGR_CLIPBOARD_BRIDGE ===
+// Cache kc_bgr_enabled for ⌘C clipboard cutout (content script → side panel).
+const KC_BGR_ENABLED_KEY = 'kc_bgr_enabled';
+let _bgrCutoutEnabled = false;
+
+function initBgrCutoutSync() {
+  (async () => {
+    try {
+      const r = await chrome.storage.local.get(KC_BGR_ENABLED_KEY);
+      _bgrCutoutEnabled = !!r?.[KC_BGR_ENABLED_KEY];
+    } catch (_) {
+      _bgrCutoutEnabled = false;
+    }
+  })();
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes[KC_BGR_ENABLED_KEY]) return;
+      _bgrCutoutEnabled = !!changes[KC_BGR_ENABLED_KEY].newValue;
+    });
+  } catch (_) {}
+}
+
+initBgrCutoutSync();
+// === END PHASE_BGR_CLIPBOARD_BRIDGE ===
+
 // Waits for the browser to complete two paint frames.
 // Used to ensure DOM visibility changes are reflected on screen.
 function waitForRepaint() {
@@ -2835,6 +2860,31 @@ async function blobToThumbnailDataUrl(blob) {
   }
 }
 
+function _ceBlobToDataURL(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+async function maybeBgrCutout(blob) {
+  try {
+    if (!_bgrCutoutEnabled || !blob) return blob;
+    const dataUrl = await _ceBlobToDataURL(blob);
+    const ask = chrome.runtime.sendMessage({ action: 'bgr-cutout', dataUrl });
+    const timeout = new Promise((r) => setTimeout(() => r(null), 5000));
+    const res = await Promise.race([ask.catch(() => null), timeout]);
+    if (res && res.ok && res.dataUrl) {
+      return await (await fetch(res.dataUrl)).blob();
+    }
+    return blob;
+  } catch {
+    return blob;
+  }
+}
+
 function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = null) {
   // dataUrlPromise is the optional video img_url path: when the dominant
   // element is <video>, the same canvas drawImage produces both the
@@ -2844,8 +2894,9 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
   const thumbnailPromise = Promise.resolve(blobPromise)
     .then((blob) => blobToThumbnailDataUrl(blob))
     .catch(() => null);
+  const finalPromise = Promise.resolve(blobPromise).then((b) => (b ? maybeBgrCutout(b) : b));
   return navigator.clipboard
-    .write([new ClipboardItem({ 'image/png': blobPromise })])
+    .write([new ClipboardItem({ 'image/png': finalPromise })])
     .then(() => ({ success: true, thumbnailPromise, dataUrlPromise }))
     .catch(() => ({ success: false, thumbnailPromise, dataUrlPromise }));
 }

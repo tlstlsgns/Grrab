@@ -60,7 +60,7 @@ import {
 } from './shortcutStore.js';
 // === END PHASE_SHORTCUT_RECORDER ===
 
-import { removeBackgroundPngBlob } from './bgRemoval.js';
+import { removeBackgroundPngBlob, warmUpBgr } from './bgRemoval.js';
 
 // PHASE_UPLOAD_ALWAYS_AUTO: the Auto checkbox is removed — uploads
 // always route directly to the configured destination
@@ -207,6 +207,7 @@ async function _setBgrEnabled(next) {
     await chrome.storage.local.set({ [KC_BGR_ENABLED_KEY]: _bgrEnabled });
   } catch (_) {}
   _renderBgrToggleUI();
+  if (_bgrEnabled) warmUpBgr();
 }
 
 async function _loadBgrEnabledSetting() {
@@ -217,6 +218,7 @@ async function _loadBgrEnabledSetting() {
     _bgrEnabled = false;
   }
   _renderBgrToggleUI();
+  if (_bgrEnabled) warmUpBgr();
 }
 
 function _initBgrToggle() {
@@ -228,6 +230,30 @@ function _initBgrToggle() {
     _setBgrEnabled(!_bgrEnabled);
   });
 }
+
+function _bgrBlobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ''));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.action !== 'bgr-cutout') return;
+  (async () => {
+    try {
+      const blob = await (await fetch(msg.dataUrl)).blob();
+      const cut = await removeBackgroundPngBlob(blob, (s) => console.log('[SEACLIP-BGR]', s));
+      const outUrl = await _bgrBlobToDataURL(cut);
+      sendResponse({ ok: true, dataUrl: outUrl });
+    } catch (e) {
+      sendResponse({ ok: false, error: String(e) });
+    }
+  })();
+  return true;
+});
 
 // Picker popup window tracking for auto-close + re-click handling.
 let _kcPickerWindowId = null;

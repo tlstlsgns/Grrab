@@ -69,6 +69,14 @@ async function getSession(onProgress) {
   return cachedSession;
 }
 
+export async function warmUpBgr() {
+  try {
+    await getSession();
+  } catch (e) {
+    console.warn('[SEACLIP-BGR] warmup', e);
+  }
+}
+
 async function recreateWasmSession() {
   const buf = await loadModelBuffer();
   cachedSession = await ort.InferenceSession.create(buf, {
