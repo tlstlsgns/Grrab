@@ -164,6 +164,64 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 // Sub-phase 4b of the custom-shortcut feature.
 // === END REMOVED ===
 
+// === PHASE_BGR_OFFSCREEN ===
+let _offscreenCreating = null;
+
+async function hasOffscreen() {
+  try {
+    if (chrome.offscreen.hasDocument) return await chrome.offscreen.hasDocument();
+  } catch (_) {}
+  try {
+    const c = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
+    return c.length > 0;
+  } catch (_) {}
+  return false;
+}
+
+async function ensureOffscreen() {
+  if (await hasOffscreen()) return;
+  if (_offscreenCreating) return _offscreenCreating;
+  _offscreenCreating = chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['BLOBS'],
+    justification: 'On-device background removal on image blobs for clipboard.',
+  }).catch((e) => {
+    if (!String(e).includes('single offscreen')) throw e;
+  }).finally(() => {
+    _offscreenCreating = null;
+  });
+  return _offscreenCreating;
+}
+
+async function closeOffscreen() {
+  try {
+    if (await hasOffscreen()) await chrome.offscreen.closeDocument();
+  } catch (_) {}
+}
+
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== 'local' || !changes.kc_bgr_enabled) return;
+  if (changes.kc_bgr_enabled.newValue) {
+    try {
+      await ensureOffscreen();
+      chrome.runtime.sendMessage({ target: 'offscreen', action: 'bgr-warm' }).catch(() => {});
+    } catch (_) {}
+  } else {
+    closeOffscreen();
+  }
+});
+
+(async () => {
+  try {
+    const r = await chrome.storage.local.get('kc_bgr_enabled');
+    if (r.kc_bgr_enabled) {
+      await ensureOffscreen();
+      chrome.runtime.sendMessage({ target: 'offscreen', action: 'bgr-warm' }).catch(() => {});
+    }
+  } catch (_) {}
+})();
+// === END PHASE_BGR_OFFSCREEN ===
+
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'open-sidepanel') {
@@ -577,6 +635,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;  // async response
   }
   // === END PHASE_TAB_SCREENSHOT_HANDLER ===
+
+  if (request.action === 'bgr-cutout') {
+    (async () => {
+      try {
+        await ensureOffscreen();
+        const res = await chrome.runtime.sendMessage({
+          target: 'offscreen',
+          action: 'bgr-cutout-run',
+          dataUrl: request.dataUrl,
+        });
+        sendResponse(res || { ok: false });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
   
   if (request.action === 'sidepanel-focused' || request.action === 'sidepanel-blurred') {
     // Forward to the active tab's content script so it can track

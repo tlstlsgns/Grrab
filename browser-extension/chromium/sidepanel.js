@@ -231,30 +231,6 @@ function _initBgrToggle() {
   });
 }
 
-function _bgrBlobToDataURL(blob) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result || ''));
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(blob);
-  });
-}
-
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.action !== 'bgr-cutout') return;
-  (async () => {
-    try {
-      const blob = await (await fetch(msg.dataUrl)).blob();
-      const cut = await removeBackgroundPngBlob(blob, (s) => console.log('[SEACLIP-BGR]', s));
-      const outUrl = await _bgrBlobToDataURL(cut);
-      sendResponse({ ok: true, dataUrl: outUrl });
-    } catch (e) {
-      sendResponse({ ok: false, error: String(e) });
-    }
-  })();
-  return true;
-});
-
 // Picker popup window tracking for auto-close + re-click handling.
 let _kcPickerWindowId = null;
 let _kcPickerBusy = false;

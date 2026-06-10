@@ -2874,7 +2874,7 @@ async function maybeBgrCutout(blob) {
     if (!_bgrCutoutEnabled || !blob) return blob;
     const dataUrl = await _ceBlobToDataURL(blob);
     const ask = chrome.runtime.sendMessage({ action: 'bgr-cutout', dataUrl });
-    const timeout = new Promise((r) => setTimeout(() => r(null), 5000));
+    const timeout = new Promise((r) => setTimeout(() => r(null), 8000));
     const res = await Promise.race([ask.catch(() => null), timeout]);
     if (res && res.ok && res.dataUrl) {
       return await (await fetch(res.dataUrl)).blob();

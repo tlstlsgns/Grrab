@@ -18,7 +18,8 @@
     "windows",
     "sidePanel",
     "identity",
-    "clipboardWrite"
+    "clipboardWrite",
+    "offscreen"
   ],
   "host_permissions": [
     "https://api-gstf2hxbiq-du.a.run.app/*",
