@@ -3010,6 +3010,42 @@ export function extractMetadataForCoreItem(coreItem, closestAtag = null, hovered
     }
 // === END PHASE_PLACEHOLDER_HREF_PAGE_URL_FALLBACK ===
 
+    // === PHASE_TYPE_D_IMAGE_URL_FALLBACK ===
+    // Fancybox / lightbox galleries: anchors may have no navigable page URL
+    // (data-fancybox, missing href) while href or the thumbnail still points
+    // at an image file. Use that image URL as activeHoverUrl so Type D
+    // activates and the clip path has a source. Scoped to Type D only.
+    if (!activeHoverUrl && evidenceType === 'D') {
+      const _typeDImageHrefRe = /\.(jpe?g|png|webp|gif|avif|bmp)(\?|#|$)/i;
+      let _fallbackImageUrl = '';
+      try {
+        for (const a of coreItem.querySelectorAll?.('a[href]') || []) {
+          const raw = String(a.getAttribute?.('href') || '').trim();
+          if (!raw || !_typeDImageHrefRe.test(raw)) continue;
+          const abs = resolveAbsoluteImageUrl(raw);
+          if (abs) {
+            _fallbackImageUrl = abs;
+            break;
+          }
+        }
+        if (!_fallbackImageUrl) {
+          const dominantImg =
+            findDominantImagesInElement(coreItem, 'D').values().next().value ||
+            coreItem.querySelector?.('img') ||
+            null;
+          if (dominantImg) {
+            _fallbackImageUrl = resolveAbsoluteImageUrl(
+              String(dominantImg.currentSrc || dominantImg.src || '').trim()
+            );
+          }
+        }
+      } catch (_) {}
+      if (_fallbackImageUrl) {
+        activeHoverUrl = _fallbackImageUrl;
+      }
+    }
+    // === END PHASE_TYPE_D_IMAGE_URL_FALLBACK ===
+
     if (!activeHoverUrl) return null;
 
     let image;
