@@ -2849,7 +2849,29 @@ const { candidates: typeDCandidatesRaw, rejectedImages } = await detectTypeDItem
                 const ancestorAreaRatio = r ? (Math.max(0, r.width) * Math.max(0, r.height)) / (vw * vh) : 0;
                 pageLevel = isNearFullscreenCandidate(cur) || ancestorAreaRatio > 0.85;
               } catch (_) { pageLevel = false; }
-              if (!pageLevel) return false; // drop — a post-sized Type B owns this
+              // === PHASE_TYPE_D_GRID_ANCESTOR_RELAX ===
+              // A share-evidence ancestor that contains a GRID of distinctly-linked Type D cards
+              // (>=2 different navigable hrefs) is a grid CONTAINER, not a single Type B post — its
+              // share evidence comes from elsewhere in the subtree (header / a different post), so it
+              // must not "own" / drop this candidate. Viewport-independent, unlike the areaRatio
+              // page-level test which flips with width for a fixed-size container (IG reel grid at
+              // large viewport: ancAreaRatio 0.741 <= 0.85 wrongly dropped all 6 cards).
+              let ownsGrid = false;
+              if (!pageLevel) {
+                try {
+                  const _gridHrefs = new Set();
+                  for (const c2 of typeDCandidatesRaw) {
+                    const e2 = c2?.element;
+                    if (e2 && typeof cur.contains === 'function' && cur.contains(e2)) {
+                      const h2 = e2.querySelector?.('a[href]')?.getAttribute('href') || '';
+                      if (h2) _gridHrefs.add(h2);
+                      if (_gridHrefs.size >= 2) { ownsGrid = true; break; }
+                    }
+                  }
+                } catch (_) { ownsGrid = false; }
+              }
+              if (!pageLevel && !ownsGrid) return false; // drop — a post-sized Type B owns this
+              // === END PHASE_TYPE_D_GRID_ANCESTOR_RELAX ===
               // page-level: ignore this ancestor's evidence, keep walking
               // === END PHASE_TYPE_D_PAGE_LEVEL_ANCESTOR_RELAX ===
             }
