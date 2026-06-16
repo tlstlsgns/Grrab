@@ -81,7 +81,7 @@
 <ul>
   <li><strong>무엇을:</strong> Google 계정의 고유 식별자(UID), 이메일 주소, 표시 이름, 프로필 사진 URL.</li>
   <li><strong>언제 수집:</strong> SeaClip 사이드 패널에서 로그인할 때.</li>
-  <li><strong>방법:</strong> Chrome의 <code>chrome.identity</code> API를 통한 OAuth 2.0 + PKCE. 비밀번호는 저장하지 않습니다.</li>
+  <li><strong>방법:</strong> Chrome의 <code>chrome.identity</code> API를 통한 OAuth 2.0. 비밀번호는 저장하지 않습니다.</li>
   <li><strong>요청하는 OAuth scope:</strong> <code>openid</code>, <code>email</code>, <code>profile</code>, <code>https://www.googleapis.com/auth/drive.file</code>.</li>
   <li><strong>목적:</strong> 저장 항목의 소유자 식별 및 기기 간 동기화.</li>
   <li><strong>저장 위치:</strong> Firebase Authentication (Google Cloud).</li>
@@ -154,7 +154,6 @@
 <ul>
   <li><code>storage</code> — 사용자 환경 설정(저장 대상, UI 설정)을 <code>chrome.storage.local</code>로 기기 로컬에만 저장.</li>
   <li><code>downloads</code> — Downloads 폴더에 저장할 때, 클립한 이미지 파일을 그 폴더에 기록하기 위함.</li>
-  <li><code>scripting</code> — 저장 단축키를 누른 순간에 활성 탭에 메타데이터 추출 content script 주입. 페이지 모니터링에는 사용하지 않습니다.</li>
   <li><code>tabs</code> — 저장 순간에 활성 탭의 URL과 제목을 읽고, 사이드 패널 UI와 content script 간 메시지 전달.</li>
   <li><code>windows</code> — 로컬 저장 폴더를 고를 때 사용하는 SeaClip 폴더 선택 팝업 창을 열고 닫기 위함.</li>
   <li><code>sidePanel</code> — Chrome 사이드 패널에 SeaClip 메인 UI 표시. 사용자가 저장 항목을 카테고리별로 탐색하는 곳입니다.</li>

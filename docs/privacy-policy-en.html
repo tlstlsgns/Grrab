@@ -81,7 +81,7 @@
 <ul>
   <li><strong>What:</strong> Your Google account's unique identifier (UID), email address, display name, and profile picture URL.</li>
   <li><strong>When collected:</strong> When you sign in via the SeaClip side panel.</li>
-  <li><strong>How collected:</strong> Through Chrome's <code>chrome.identity</code> API using OAuth 2.0 with PKCE. SeaClip does not store passwords.</li>
+  <li><strong>How collected:</strong> Through Chrome's <code>chrome.identity</code> API using OAuth 2.0. SeaClip does not store passwords.</li>
   <li><strong>OAuth scopes requested:</strong> <code>openid</code>, <code>email</code>, <code>profile</code>, and <code>https://www.googleapis.com/auth/drive.file</code>.</li>
   <li><strong>Why:</strong> To identify you as the owner of your saved items and to sync items across devices.</li>
   <li><strong>Where stored:</strong> Firebase Authentication (Google Cloud).</li>
@@ -154,7 +154,6 @@
 <ul>
   <li><code>storage</code> — To store your preferences (save destination, UI settings) via <code>chrome.storage.local</code> on your device only.</li>
   <li><code>downloads</code> — When you save to your Downloads folder, to write the clipped image file there.</li>
-  <li><code>scripting</code> — To inject the metadata-extraction content script into the active tab at the moment you press the save shortcut. Not used to monitor pages otherwise.</li>
   <li><code>tabs</code> — To read the active tab's URL and title at the moment you save, and to coordinate messages between the side panel UI and content scripts.</li>
   <li><code>windows</code> — To open and close SeaClip's folder-picker popup window, used when you choose a local save folder.</li>
   <li><code>sidePanel</code> — To display SeaClip's main UI in Chrome's side panel, where you browse saved items by category.</li>
