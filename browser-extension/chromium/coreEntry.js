@@ -21,7 +21,7 @@ import {
   positionMetadataTooltip,
   showCoreStatusBadge,
   setCoreBadgeTexts,
-  setCoreStatusBadgeText,
+  showCoreClipToast,
   hideCoreStatusBadge,
   renderItemMapCandidates,
   hideMetadataTooltip,
@@ -2545,13 +2545,17 @@ async function saveActiveCoreItem(request = {}) {
         (async () => {
           try {
             const clipboardResult = await coreClipboardPromise;
+            // === PHASE_CLIP_TOAST ===
+            // Clip outcome now surfaces as a top-center toast; the
+            // status_badge stays on its default "Press X to clip" text.
             if (clipboardResult?.success) {
               markCoreHighlightClipped();
               const successText = 'Image clipped';
-              setCoreStatusBadgeText(successText, { icon: 'clip' }); // PHASE_BADGE_CLIP_ICON
+              showCoreClipToast({ kind: 'success', text: successText });
             } else {
-              setCoreStatusBadgeText('Clip failed');
+              showCoreClipToast({ kind: 'error', text: 'Clip failed' });
             }
+            // === END PHASE_CLIP_TOAST ===
           } catch (_) { /* silent */ }
         })();
       // === PHASE_IFRAME_HOVER_PROPAGATION ===
@@ -3780,14 +3784,16 @@ function mountSaveMessageListener() {
           // === PHASE_IFRAME_HOVER_PROPAGATION ===
           if (e.data[KC_IFRAME_CLIPBOARD_RESULT] === true) {
             try {
+              // === PHASE_CLIP_TOAST ===
               if (e.data.success === true) {
                 markCoreHighlightClipped();
                 if (e.data.successText) {
-                  setCoreStatusBadgeText(String(e.data.successText), { icon: 'clip' }); // PHASE_BADGE_CLIP_ICON
+                  showCoreClipToast({ kind: 'success', text: String(e.data.successText) });
                 }
               } else {
-                setCoreStatusBadgeText('Clip failed');
+                showCoreClipToast({ kind: 'error', text: 'Clip failed' });
               }
+              // === END PHASE_CLIP_TOAST ===
             } catch (_) { /* defensive */ }
             return;
           }

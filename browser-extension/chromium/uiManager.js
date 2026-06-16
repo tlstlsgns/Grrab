@@ -466,6 +466,121 @@ export function hideCoreStatusBadge() {
   } catch (e) {}
 }
 
+// === PHASE_CLIP_TOAST ===
+// Top-RIGHT stacked clip-result toasts. The status_badge always shows its
+// default "Press X to clip" text (the imperative setCoreStatusBadgeText clip
+// calls in coreEntry were removed); each clip outcome is announced by its own
+// toast in a fixed top-right column. Newest toast is appended at the BOTTOM
+// (older toasts sit above). Each toast self-dismisses after
+// CORE_CLIP_TOAST_DURATION_MS; the stack is capped at CORE_CLIP_TOAST_MAX and
+// the oldest (top) toast is dropped IMMEDIATELY on overflow (FIFO).
+//
+// Lives in the SEPARATE badge shadow host (kickclip-badge-shadow-host):
+// already isolated from page CSS, pinned at max z-index, and reattach-healed
+// (PHASE_BADGE_SHADOW_SEPARATE / PHASE_SHADOW_HOST_REATTACH), so the toasts
+// inherit that robustness without a third shadow host.
+const CORE_CLIP_TOAST_STACK_ID = 'kickclip-clip-toast-stack';
+const CORE_CLIP_TOAST_DURATION_MS = 1800;
+const CORE_CLIP_TOAST_EXIT_MS = 200; // matches the toast opacity/transform transition
+const CORE_CLIP_TOAST_ERROR_BG = '#e5484d';
+const CORE_CLIP_TOAST_MAX = 4;
+
+function ensureCoreClipToastStack() {
+  let stack = getKCBadgeShadowElement(CORE_CLIP_TOAST_STACK_ID);
+  if (stack) return stack;
+  stack = document.createElement('div');
+  stack.id = CORE_CLIP_TOAST_STACK_ID;
+  stack.style.cssText = `
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 2147483647;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    `;
+  getKCBadgeShadowRoot().appendChild(stack);
+  return stack;
+}
+
+// Clear a toast's pending timers and detach it from the stack.
+function _removeCoreClipToast(el) {
+  if (!el) return;
+  try { if (el._kcDismissTimer) clearTimeout(el._kcDismissTimer); } catch (_) {}
+  try { if (el._kcRemoveTimer) clearTimeout(el._kcRemoveTimer); } catch (_) {}
+  try { el.remove(); } catch (_) {}
+}
+
+/**
+ * Show a clip-result toast in the top-right stack.
+ *   kind 'success' -> brand-color background + inline clip icon.
+ *   kind 'error'   -> red background, text only.
+ * Each call creates its own toast (newest at the bottom). The stack is capped
+ * at CORE_CLIP_TOAST_MAX; the oldest is dropped immediately on overflow. Each
+ * toast self-dismisses after CORE_CLIP_TOAST_DURATION_MS.
+ */
+export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
+  try {
+    const stack = ensureCoreClipToastStack();
+    const isError = kind === 'error';
+    const el = document.createElement('div');
+    el.style.cssText = `
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 80vw;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        letter-spacing: 0.02em;
+        padding: 9px 16px;
+        border-radius: 9999px;
+        color: #fff;
+        background: ${isError ? CORE_CLIP_TOAST_ERROR_BG : BRAND.KEY_COLOR_HEX};
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+        white-space: nowrap;
+        opacity: 0;
+        transform: translateX(8px);
+        transition: opacity 0.18s ease, transform 0.18s ease;
+      `;
+    if (!isError) {
+      // Reuse the success clip glyph (PHASE_BADGE_CLIP_ICON), sized for the toast.
+      const icon = _buildBadgeClipIcon();
+      icon.setAttribute('width', '14');
+      icon.setAttribute('height', '14');
+      el.appendChild(icon);
+    }
+    const span = document.createElement('span');
+    span.textContent = String(text || '');
+    el.appendChild(span);
+
+    // Newest at the bottom of the stack.
+    stack.appendChild(el);
+
+    // FIFO cap: drop oldest (top) toasts immediately on overflow.
+    while (stack.children.length > CORE_CLIP_TOAST_MAX) {
+      _removeCoreClipToast(stack.firstElementChild);
+    }
+
+    // Enter animation: reflow from the hidden state, then settle.
+    void el.offsetWidth;
+    el.style.opacity = '1';
+    el.style.transform = 'translateX(0)';
+
+    // Self-dismiss: fade/slide out, then detach after the transition.
+    el._kcDismissTimer = setTimeout(() => {
+      try {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(8px)';
+        el._kcRemoveTimer = setTimeout(() => _removeCoreClipToast(el), CORE_CLIP_TOAST_EXIT_MS);
+      } catch (_) {}
+    }, CORE_CLIP_TOAST_DURATION_MS);
+  } catch (_) {}
+}
+// === END PHASE_CLIP_TOAST ===
+
 // === PHASE_BADGE_ANCHOR_OVERLAY ===
 // Bottom (viewport y) of the lowest TOP-ANCHORED fixed/sticky page chrome
 // (e.g. a site header, possibly multi-row) covering column `x`, or 0 if none.
