@@ -168,6 +168,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 let _offscreenCreating = null;
 
 async function hasOffscreen() {
+  if (!KC_IS_DEV) return false; // PHASE_BGR_PROD_GATE: RemoveBg is dev-only (no offscreen permission in prod)
   try {
     if (chrome.offscreen.hasDocument) return await chrome.offscreen.hasDocument();
   } catch (_) {}
@@ -179,6 +180,7 @@ async function hasOffscreen() {
 }
 
 async function ensureOffscreen() {
+  if (!KC_IS_DEV) return; // PHASE_BGR_PROD_GATE: RemoveBg is dev-only (no offscreen permission in prod)
   if (await hasOffscreen()) return;
   if (_offscreenCreating) return _offscreenCreating;
   _offscreenCreating = chrome.offscreen.createDocument({
@@ -194,6 +196,7 @@ async function ensureOffscreen() {
 }
 
 async function closeOffscreen() {
+  if (!KC_IS_DEV) return; // PHASE_BGR_PROD_GATE: RemoveBg is dev-only (no offscreen permission in prod)
   try {
     if (await hasOffscreen()) await chrome.offscreen.closeDocument();
   } catch (_) {}

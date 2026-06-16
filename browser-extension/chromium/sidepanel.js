@@ -192,6 +192,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 const KC_BGR_ENABLED_KEY = 'kc_bgr_enabled';
 let _bgrEnabled = false;
+// PHASE_BGR_PROD_GATE: RemoveBg ships dev-only. In prod (no offscreen permission /
+// wasm CSP) its UI must not appear and its entry points must not run.
+const _bgrFeatureAvailable = (typeof KC_IS_DEV !== 'undefined') && !!KC_IS_DEV;
 
 function _renderBgrToggleUI() {
   const btn = document.getElementById('sp-bgr-toggle');
@@ -378,8 +381,14 @@ async function handleOpenFolderSettings() {
   } catch (_) {}
   await _refreshDirContainer();
   await _loadUploadFormatSetting();
-  await _loadBgrEnabledSetting();
-  _initBgrToggle();
+  // PHASE_BGR_PROD_GATE: only wire RemoveBg in dev; hide the toggle in prod.
+  if (_bgrFeatureAvailable) {
+    await _loadBgrEnabledSetting();
+    _initBgrToggle();
+  } else {
+    const _bgrToggleBtn = document.getElementById('sp-bgr-toggle');
+    if (_bgrToggleBtn) _bgrToggleBtn.style.display = 'none';
+  }
 })();
 
 document.getElementById('kc-upload-format-btn')?.addEventListener('click', (e) => {
@@ -586,6 +595,7 @@ function getBgrEls() {
 }
 
 function showBgrPreview(item) {
+  if (!_bgrFeatureAvailable) return; // PHASE_BGR_PROD_GATE: no RemoveBg preview in prod
   const els = getBgrEls();
   if (!els?.root || !els.img) return;
   if (!item) {
