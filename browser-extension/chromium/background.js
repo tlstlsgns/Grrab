@@ -164,11 +164,14 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 // Sub-phase 4b of the custom-shortcut feature.
 // === END REMOVED ===
 
-// === PHASE_BGR_OFFSCREEN ===
+// === PHASE_OFFSCREEN ===
+// Shared offscreen-document infrastructure. Currently used by SR (clip-size
+// ML upscaling); kept dev-only because offscreen + wasm-unsafe-eval require
+// permissions absent from the prod build.
 let _offscreenCreating = null;
 
 async function hasOffscreen() {
-  if (!KC_IS_DEV) return false; // PHASE_BGR_PROD_GATE: RemoveBg is dev-only (no offscreen permission in prod)
+  if (!KC_IS_DEV) return false;
   try {
     if (chrome.offscreen.hasDocument) return await chrome.offscreen.hasDocument();
   } catch (_) {}
@@ -180,13 +183,13 @@ async function hasOffscreen() {
 }
 
 async function ensureOffscreen() {
-  if (!KC_IS_DEV) return; // PHASE_BGR_PROD_GATE: RemoveBg is dev-only (no offscreen permission in prod)
+  if (!KC_IS_DEV) return;
   if (await hasOffscreen()) return;
   if (_offscreenCreating) return _offscreenCreating;
   _offscreenCreating = chrome.offscreen.createDocument({
     url: 'offscreen.html',
     reasons: ['BLOBS'],
-    justification: 'On-device background removal on image blobs for clipboard.',
+    justification: 'On-device ML inference on image blobs for clipboard.',
   }).catch((e) => {
     if (!String(e).includes('single offscreen')) throw e;
   }).finally(() => {
@@ -194,36 +197,7 @@ async function ensureOffscreen() {
   });
   return _offscreenCreating;
 }
-
-async function closeOffscreen() {
-  if (!KC_IS_DEV) return; // PHASE_BGR_PROD_GATE: RemoveBg is dev-only (no offscreen permission in prod)
-  try {
-    if (await hasOffscreen()) await chrome.offscreen.closeDocument();
-  } catch (_) {}
-}
-
-chrome.storage.onChanged.addListener(async (changes, area) => {
-  if (area !== 'local' || !changes.kc_bgr_enabled) return;
-  if (changes.kc_bgr_enabled.newValue) {
-    try {
-      await ensureOffscreen();
-      chrome.runtime.sendMessage({ target: 'offscreen', action: 'bgr-warm' }).catch(() => {});
-    } catch (_) {}
-  } else {
-    closeOffscreen();
-  }
-});
-
-(async () => {
-  try {
-    const r = await chrome.storage.local.get('kc_bgr_enabled');
-    if (r.kc_bgr_enabled) {
-      await ensureOffscreen();
-      chrome.runtime.sendMessage({ target: 'offscreen', action: 'bgr-warm' }).catch(() => {});
-    }
-  } catch (_) {}
-})();
-// === END PHASE_BGR_OFFSCREEN ===
+// === END PHASE_OFFSCREEN ===
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -638,23 +612,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;  // async response
   }
   // === END PHASE_TAB_SCREENSHOT_HANDLER ===
-
-  if (request.action === 'bgr-cutout') {
-    (async () => {
-      try {
-        await ensureOffscreen();
-        const res = await chrome.runtime.sendMessage({
-          target: 'offscreen',
-          action: 'bgr-cutout-run',
-          dataUrl: request.dataUrl,
-        });
-        sendResponse(res || { ok: false });
-      } catch (e) {
-        sendResponse({ ok: false, error: String(e) });
-      }
-    })();
-    return true;
-  }
 
   // === PHASE_CLIP_SIZE ===
   if (request.action === 'sr-upscale') {

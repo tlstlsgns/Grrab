@@ -253,31 +253,6 @@ function syncCoreBadgeTexts() {
 
 initShortcutSync();
 
-// === PHASE_BGR_CLIPBOARD_BRIDGE ===
-// Cache kc_bgr_enabled for ⌘C clipboard cutout (content script → side panel).
-const KC_BGR_ENABLED_KEY = 'kc_bgr_enabled';
-let _bgrCutoutEnabled = false;
-
-function initBgrCutoutSync() {
-  (async () => {
-    try {
-      const r = await chrome.storage.local.get(KC_BGR_ENABLED_KEY);
-      _bgrCutoutEnabled = !!r?.[KC_BGR_ENABLED_KEY];
-    } catch (_) {
-      _bgrCutoutEnabled = false;
-    }
-  })();
-  try {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local' || !changes[KC_BGR_ENABLED_KEY]) return;
-      _bgrCutoutEnabled = !!changes[KC_BGR_ENABLED_KEY].newValue;
-    });
-  } catch (_) {}
-}
-
-initBgrCutoutSync();
-// === END PHASE_BGR_CLIPBOARD_BRIDGE ===
-
 // === PHASE_CLIP_SIZE ===
 // Cache kc_clip_max_dim: target longest-edge (px) for clipped images.
 // 0 = original (no resize). Presets: 512 / 1024 / 1600. Upscaling allowed
@@ -311,7 +286,7 @@ initClipSizeSync();
 // captured. We surface progress as a single morphing top-right toast
 // (loading -> success/error via the handle returned by showCoreClipToast) plus
 // a cursor: wait toggle on <body>. The toast is deferred KC_CLIP_LOADING_THRESHOLD_MS
-// to avoid flashing for instant clips (clip-size 원본 + RemoveBg off). A
+// to avoid flashing for instant clips (clip-size 원본). A
 // KC_CLIP_LOADING_FAILSAFE_MS failsafe force-resolves to error if no terminal
 // message ever arrives, so a loading toast can never get stuck.
 const KC_CLIP_LOADING_THRESHOLD_MS = 150;
@@ -3031,22 +3006,6 @@ function _ceBlobToDataURL(blob) {
   });
 }
 
-async function maybeBgrCutout(blob) {
-  try {
-    if (!_bgrCutoutEnabled || !blob) return blob;
-    const dataUrl = await _ceBlobToDataURL(blob);
-    const ask = chrome.runtime.sendMessage({ action: 'bgr-cutout', dataUrl });
-    const timeout = new Promise((r) => setTimeout(() => r(null), 8000));
-    const res = await Promise.race([ask.catch(() => null), timeout]);
-    if (res && res.ok && res.dataUrl) {
-      return await (await fetch(res.dataUrl)).blob();
-    }
-    return blob;
-  } catch {
-    return blob;
-  }
-}
-
 // === PHASE_CLIP_SIZE ===
 // Clip-size = target WIDTH (kc_clip_max_dim). EXACT-SIZE semantics: the output
 // width always equals _clipMaxDim, regardless of source.
@@ -3123,7 +3082,6 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
     .then((blob) => blobToThumbnailDataUrl(blob))
     .catch(() => null);
   const finalPromise = Promise.resolve(blobPromise)
-    .then((b) => (b ? maybeBgrCutout(b) : b))
     .then((b) => (b ? maybeUpscaleClip(b) : b)); // PHASE_CLIP_SIZE
   return navigator.clipboard
     .write([new ClipboardItem({ 'image/png': finalPromise })])
@@ -3795,7 +3753,7 @@ function performSyncClipboardWrite(state) {
     // as a low-res img_url) but the dominant <img> still carries usable pixels. Without this,
     // the flow bails ('no imageUrl and no video dominant') and shows "Clip failed" though the
     // image is right there. Clip the dominant image element directly. SAVE/img_url path is
-    // unchanged; RemoveBg routing preserved via attachThumbnailPromiseToClipboardWrite.
+    // unchanged; clip-size routing preserved via attachThumbnailPromiseToClipboardWrite.
     if (dominantEl && dominantEl.src) {
       const blobPromise = imgElementToBlob(dominantEl).catch(() => null);
       return attachThumbnailPromiseToClipboardWrite(blobPromise);
