@@ -655,6 +655,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })();
     return true;
   }
+
+  // === PHASE_CLIP_SIZE ===
+  if (request.action === 'sr-upscale') {
+    (async () => {
+      try {
+        await ensureOffscreen();
+        const res = await chrome.runtime.sendMessage({
+          target: 'offscreen',
+          action: 'sr-upscale-run',
+          dataUrl: request.dataUrl,
+          targetWidth: request.targetWidth,
+        });
+        sendResponse(res || { ok: false });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+  // === END PHASE_CLIP_SIZE ===
   
   if (request.action === 'sidepanel-focused' || request.action === 'sidepanel-blurred') {
     // Forward to the active tab's content script so it can track

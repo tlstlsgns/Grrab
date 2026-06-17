@@ -513,18 +513,46 @@ function _removeCoreClipToast(el) {
   try { el.remove(); } catch (_) {}
 }
 
+// Inline SVG spinner for the 'loading' kind. Uses <animateTransform> so it
+// works inside the shadow root without injecting @keyframes.
+function _buildClipToastSpinner() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  const ring = document.createElementNS(NS, 'circle');
+  ring.setAttribute('cx', '12'); ring.setAttribute('cy', '12'); ring.setAttribute('r', '10');
+  ring.setAttribute('stroke', '#fff'); ring.setAttribute('stroke-width', '3');
+  ring.setAttribute('fill', 'none'); ring.setAttribute('stroke-opacity', '0.3');
+  svg.appendChild(ring);
+  const arc = document.createElementNS(NS, 'path');
+  arc.setAttribute('d', 'M 12 2 A 10 10 0 0 1 22 12');
+  arc.setAttribute('stroke', '#fff'); arc.setAttribute('stroke-width', '3');
+  arc.setAttribute('fill', 'none'); arc.setAttribute('stroke-linecap', 'round');
+  const anim = document.createElementNS(NS, 'animateTransform');
+  anim.setAttribute('attributeName', 'transform'); anim.setAttribute('type', 'rotate');
+  anim.setAttribute('from', '0 12 12'); anim.setAttribute('to', '360 12 12');
+  anim.setAttribute('dur', '0.9s'); anim.setAttribute('repeatCount', 'indefinite');
+  arc.appendChild(anim);
+  svg.appendChild(arc);
+  return svg;
+}
+
 /**
  * Show a clip-result toast in the top-right stack.
- *   kind 'success' -> brand-color background + inline clip icon.
- *   kind 'error'   -> red background, text only.
+ *   kind 'loading' -> brand-color background + spinner; NEVER auto-dismisses.
+ *   kind 'success' -> brand-color background + inline clip icon; auto-dismisses.
+ *   kind 'error'   -> red background, text only; auto-dismisses.
+ * Returns a handle { update({kind,text}), dismiss() } so callers can morph an
+ * existing toast in place (loading -> success/error) instead of stacking a new
+ * one. Existing call sites that ignore the return value behave as before.
  * Each call creates its own toast (newest at the bottom). The stack is capped
- * at CORE_CLIP_TOAST_MAX; the oldest is dropped immediately on overflow. Each
- * toast self-dismisses after CORE_CLIP_TOAST_DURATION_MS.
+ * at CORE_CLIP_TOAST_MAX; the oldest is dropped immediately on overflow.
  */
 export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
   try {
     const stack = ensureCoreClipToastStack();
-    const isError = kind === 'error';
     const el = document.createElement('div');
     el.style.cssText = `
         display: inline-flex;
@@ -538,23 +566,37 @@ export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
         padding: 9px 16px;
         border-radius: 9999px;
         color: #fff;
-        background: ${isError ? CORE_CLIP_TOAST_ERROR_BG : BRAND.KEY_COLOR_HEX};
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
         white-space: nowrap;
         opacity: 0;
         transform: translateX(8px);
-        transition: opacity 0.18s ease, transform 0.18s ease;
+        transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
       `;
-    if (!isError) {
-      // Reuse the success clip glyph (PHASE_BADGE_CLIP_ICON), sized for the toast.
-      const icon = _buildBadgeClipIcon();
-      icon.setAttribute('width', '14');
-      icon.setAttribute('height', '14');
-      el.appendChild(icon);
-    }
+
+    // Fixed slots: icon (variable), text (variable). Update mutates these in place.
+    const iconSlot = document.createElement('span');
+    iconSlot.style.cssText = 'display:inline-flex;align-items:center;line-height:0;';
+    el.appendChild(iconSlot);
     const span = document.createElement('span');
-    span.textContent = String(text || '');
     el.appendChild(span);
+
+    const applyKind = (k, t) => {
+      el.style.background = (k === 'error') ? CORE_CLIP_TOAST_ERROR_BG : BRAND.KEY_COLOR_HEX;
+      while (iconSlot.firstChild) iconSlot.removeChild(iconSlot.firstChild);
+      if (k === 'loading') {
+        iconSlot.appendChild(_buildClipToastSpinner());
+      } else if (k !== 'error') {
+        // success: reuse the badge clip glyph (PHASE_BADGE_CLIP_ICON), sized for the toast.
+        const icon = _buildBadgeClipIcon();
+        icon.setAttribute('width', '14');
+        icon.setAttribute('height', '14');
+        iconSlot.appendChild(icon);
+      } // error: text only
+      span.textContent = String(t == null ? '' : t);
+    };
+
+    let currentKind = kind;
+    applyKind(currentKind, text);
 
     // Newest at the bottom of the stack.
     stack.appendChild(el);
@@ -569,15 +611,38 @@ export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
     el.style.opacity = '1';
     el.style.transform = 'translateX(0)';
 
-    // Self-dismiss: fade/slide out, then detach after the transition.
-    el._kcDismissTimer = setTimeout(() => {
-      try {
-        el.style.opacity = '0';
-        el.style.transform = 'translateX(8px)';
-        el._kcRemoveTimer = setTimeout(() => _removeCoreClipToast(el), CORE_CLIP_TOAST_EXIT_MS);
-      } catch (_) {}
-    }, CORE_CLIP_TOAST_DURATION_MS);
-  } catch (_) {}
+    // (Re)arm the self-dismiss timer. Loading kind does NOT arm.
+    const armDismiss = () => {
+      try { if (el._kcDismissTimer) clearTimeout(el._kcDismissTimer); } catch (_) {}
+      try { if (el._kcRemoveTimer) clearTimeout(el._kcRemoveTimer); } catch (_) {}
+      el._kcDismissTimer = setTimeout(() => {
+        try {
+          el.style.opacity = '0';
+          el.style.transform = 'translateX(8px)';
+          el._kcRemoveTimer = setTimeout(() => _removeCoreClipToast(el), CORE_CLIP_TOAST_EXIT_MS);
+        } catch (_) {}
+      }, CORE_CLIP_TOAST_DURATION_MS);
+    };
+    if (currentKind !== 'loading') armDismiss();
+
+    return {
+      update(next = {}) {
+        try {
+          const k = next.kind || currentKind;
+          const t = (next.text == null) ? span.textContent : next.text;
+          currentKind = k;
+          applyKind(k, t);
+          if (k !== 'loading') armDismiss();
+        } catch (_) {}
+      },
+      dismiss() {
+        try { _removeCoreClipToast(el); } catch (_) {}
+      },
+    };
+  } catch (_) {
+    // Always return a no-op handle so callers can chain safely.
+    return { update() {}, dismiss() {} };
+  }
 }
 // === END PHASE_CLIP_TOAST ===
 

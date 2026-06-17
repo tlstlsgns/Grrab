@@ -342,6 +342,36 @@
       color: var(--accent);
     }
     /* === END PHASE_UPLOAD_FORMAT === */
+
+    /* === PHASE_CLIP_SIZE === */
+    .sp-clip-size-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: 100%;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .sp-clip-size-label {
+      margin-right: auto;
+      font-size: 12px;
+      font-weight: 500;
+      color: #6b7280;
+    }
+    .kc-clip-size-select {
+      padding: 6px 8px;
+      background: transparent;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: #6b7280;
+    }
+    /* === END PHASE_CLIP_SIZE === */
     @media (prefers-color-scheme: dark) {
       .kc-dir-container {
         border-bottom-color: rgba(255, 255, 255, 0.06);
@@ -1419,6 +1449,19 @@
         <button type="button" id="sp-bgr-toggle" class="sp-bgr-toggle sp-bgr-toggle--off"
                 aria-pressed="false" title="Remove background">RemoveBg</button>
       </div>
+
+      <!-- === PHASE_CLIP_SIZE === -->
+      <div id="sp-clip-size-row" class="sp-clip-size-row">
+        <span class="sp-clip-size-label">클립 크기</span>
+        <select id="kc-clip-size-select" class="kc-clip-size-select"
+                title="클립 이미지 크기" aria-label="클립 이미지 크기 선택">
+          <option value="0">원본</option>
+          <option value="512">512px</option>
+          <option value="1024">1024px</option>
+          <option value="1600">1600px</option>
+        </select>
+      </div>
+      <!-- === END PHASE_CLIP_SIZE === -->
 
       <div class="kc-dir-container" id="kc-dir-container">
         <button

@@ -190,6 +190,41 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 // === END PHASE_UPLOAD_FORMAT ===
 
+// === PHASE_CLIP_SIZE ===
+// Clip image size: target longest-edge (px) written to kc_clip_max_dim.
+// 0 = original (no resize). Read by coreEntry (clipboard) and later the save path.
+const KC_CLIP_SIZE_KEY = 'kc_clip_max_dim';
+const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600'];
+
+function _renderClipSizeUI(value) {
+  const sel = document.getElementById('kc-clip-size-select');
+  if (!sel) return;
+  sel.value = KC_CLIP_SIZE_VALUES.includes(String(value)) ? String(value) : '0';
+}
+
+async function _selectClipSize(value) {
+  const next = KC_CLIP_SIZE_VALUES.includes(String(value)) ? Number(value) : 0;
+  try {
+    await chrome.storage.local.set({ [KC_CLIP_SIZE_KEY]: next });
+  } catch (_) {}
+  _renderClipSizeUI(next);
+}
+
+async function _loadClipSizeSetting() {
+  try {
+    const r = await chrome.storage.local.get(KC_CLIP_SIZE_KEY);
+    _renderClipSizeUI(Number(r?.[KC_CLIP_SIZE_KEY]) || 0);
+  } catch (_) {
+    _renderClipSizeUI(0);
+  }
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes[KC_CLIP_SIZE_KEY]) return;
+  _renderClipSizeUI(Number(changes[KC_CLIP_SIZE_KEY].newValue) || 0);
+});
+// === END PHASE_CLIP_SIZE ===
+
 const KC_BGR_ENABLED_KEY = 'kc_bgr_enabled';
 let _bgrEnabled = false;
 // PHASE_BGR_PROD_GATE: RemoveBg ships dev-only. In prod (no offscreen permission /
@@ -381,6 +416,7 @@ async function handleOpenFolderSettings() {
   } catch (_) {}
   await _refreshDirContainer();
   await _loadUploadFormatSetting();
+  await _loadClipSizeSetting(); // PHASE_CLIP_SIZE
   // PHASE_BGR_PROD_GATE: only wire RemoveBg in dev; hide the toggle in prod.
   if (_bgrFeatureAvailable) {
     await _loadBgrEnabledSetting();
@@ -395,6 +431,12 @@ document.getElementById('kc-upload-format-btn')?.addEventListener('click', (e) =
   e.stopPropagation();
   _toggleUploadFormatMenu();
 });
+
+// === PHASE_CLIP_SIZE ===
+document.getElementById('kc-clip-size-select')?.addEventListener('change', (e) => {
+  _selectClipSize(e.target.value);
+});
+// === END PHASE_CLIP_SIZE ===
 
 // ── Firebase config ───────────────────────────────────────────────────────────
 const DEV_FIREBASE_CONFIG = {

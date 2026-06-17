@@ -278,6 +278,115 @@ function initBgrCutoutSync() {
 initBgrCutoutSync();
 // === END PHASE_BGR_CLIPBOARD_BRIDGE ===
 
+// === PHASE_CLIP_SIZE ===
+// Cache kc_clip_max_dim: target longest-edge (px) for clipped images.
+// 0 = original (no resize). Presets: 512 / 1024 / 1600. Upscaling allowed
+// (presets are targets, not caps) per product decision.
+const KC_CLIP_MAXDIM_KEY = 'kc_clip_max_dim';
+let _clipMaxDim = 0;
+
+function initClipSizeSync() {
+  (async () => {
+    try {
+      const r = await chrome.storage.local.get(KC_CLIP_MAXDIM_KEY);
+      _clipMaxDim = Number(r?.[KC_CLIP_MAXDIM_KEY]) || 0;
+    } catch (_) {
+      _clipMaxDim = 0;
+    }
+  })();
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes[KC_CLIP_MAXDIM_KEY]) return;
+      _clipMaxDim = Number(changes[KC_CLIP_MAXDIM_KEY].newValue) || 0;
+    });
+  } catch (_) {}
+}
+
+initClipSizeSync();
+// === END PHASE_CLIP_SIZE ===
+
+// === PHASE_CLIP_LOADING_UI ===
+// Loading UX between ⌘C press and clip completion. SR upscaling adds ~1.2s of
+// clipboard latency; without feedback users can't tell the shortcut was even
+// captured. We surface progress as a single morphing top-right toast
+// (loading -> success/error via the handle returned by showCoreClipToast) plus
+// a cursor: wait toggle on <body>. The toast is deferred KC_CLIP_LOADING_THRESHOLD_MS
+// to avoid flashing for instant clips (clip-size 원본 + RemoveBg off). A
+// KC_CLIP_LOADING_FAILSAFE_MS failsafe force-resolves to error if no terminal
+// message ever arrives, so a loading toast can never get stuck.
+const KC_CLIP_LOADING_THRESHOLD_MS = 150;
+const KC_CLIP_LOADING_FAILSAFE_MS = 15000;
+const KC_CLIP_LOADING_TEXT = 'Clipping…';
+const KC_CLIP_DEFAULT_SUCCESS_TEXT = 'Image clipped';
+const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
+let _kcClipLoadingToast = null;
+let _kcClipLoadingDeferTimer = null;
+let _kcClipLoadingFailsafeTimer = null;
+let _kcClipLoadingCursorActive = false;
+
+function _kcClipLoadingClearTimers() {
+  try { if (_kcClipLoadingDeferTimer) clearTimeout(_kcClipLoadingDeferTimer); } catch (_) {}
+  _kcClipLoadingDeferTimer = null;
+  try { if (_kcClipLoadingFailsafeTimer) clearTimeout(_kcClipLoadingFailsafeTimer); } catch (_) {}
+  _kcClipLoadingFailsafeTimer = null;
+}
+
+function _kcClipLoadingClearCursor() {
+  try {
+    if (_kcClipLoadingCursorActive && document.body) {
+      document.body.style.cursor = '';
+    }
+  } catch (_) {}
+  _kcClipLoadingCursorActive = false;
+}
+
+function _kcStartClipLoadingUI() {
+  // Cursor wait: immediate, no threshold (cheap, no flash concern).
+  try {
+    if (!_kcClipLoadingCursorActive && document.body) {
+      document.body.style.cursor = 'wait';
+      _kcClipLoadingCursorActive = true;
+    }
+  } catch (_) {}
+  // Drop any in-flight loading state from a prior (still-unresolved) clip.
+  _kcClipLoadingClearTimers();
+  try { if (_kcClipLoadingToast) _kcClipLoadingToast.dismiss(); } catch (_) {}
+  _kcClipLoadingToast = null;
+  // Deferred toast: only appears if op hasn't resolved within threshold.
+  _kcClipLoadingDeferTimer = setTimeout(() => {
+    _kcClipLoadingDeferTimer = null;
+    try {
+      _kcClipLoadingToast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT });
+    } catch (_) { _kcClipLoadingToast = null; }
+  }, KC_CLIP_LOADING_THRESHOLD_MS);
+  // Failsafe: if no terminal call arrives, force-resolve to error so the loading
+  // toast cannot persist indefinitely.
+  _kcClipLoadingFailsafeTimer = setTimeout(() => {
+    _kcClipLoadingFailsafeTimer = null;
+    if (_kcClipLoadingToast || _kcClipLoadingCursorActive || _kcClipLoadingDeferTimer) {
+      _kcResolveClipLoadingUI({ kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
+    }
+  }, KC_CLIP_LOADING_FAILSAFE_MS);
+}
+
+// Resolve the loading UI with a terminal toast. If the loading toast was already
+// shown, morph it in place; otherwise (op finished within threshold) show a
+// fresh terminal toast. Always clears the cursor and any pending timers.
+function _kcResolveClipLoadingUI({ kind = 'success', text = '' } = {}) {
+  _kcClipLoadingClearTimers();
+  _kcClipLoadingClearCursor();
+  const finalText = text || (kind === 'success' ? KC_CLIP_DEFAULT_SUCCESS_TEXT : KC_CLIP_DEFAULT_ERROR_TEXT);
+  try {
+    if (_kcClipLoadingToast) {
+      _kcClipLoadingToast.update({ kind, text: finalText });
+    } else {
+      showCoreClipToast({ kind, text: finalText });
+    }
+  } catch (_) {}
+  _kcClipLoadingToast = null;
+}
+// === END PHASE_CLIP_LOADING_UI ===
+
 // Waits for the browser to complete two paint frames.
 // Used to ensure DOM visibility changes are reflected on screen.
 function waitForRepaint() {
@@ -2551,9 +2660,9 @@ async function saveActiveCoreItem(request = {}) {
             if (clipboardResult?.success) {
               markCoreHighlightClipped();
               const successText = 'Image clipped';
-              showCoreClipToast({ kind: 'success', text: successText });
+              _kcResolveClipLoadingUI({ kind: 'success', text: successText }); // PHASE_CLIP_LOADING_UI
             } else {
-              showCoreClipToast({ kind: 'error', text: 'Clip failed' });
+              _kcResolveClipLoadingUI({ kind: 'error', text: 'Clip failed' }); // PHASE_CLIP_LOADING_UI
             }
             // === END PHASE_CLIP_TOAST ===
           } catch (_) { /* silent */ }
@@ -2889,6 +2998,72 @@ async function maybeBgrCutout(blob) {
   }
 }
 
+// === PHASE_CLIP_SIZE ===
+// Clip-size = target WIDTH (kc_clip_max_dim). EXACT-SIZE semantics: the output
+// width always equals _clipMaxDim, regardless of source.
+//   srcW === target → no-op (return original).
+//   srcW  >  target → local canvas downscale (fast, content-script side, no SR).
+//   srcW  <  target → SR upscale via offscreen ORT (4x model + fit to target).
+// SR is dev-only (offscreen+wasm); in prod the round-trip fails and we keep
+// the original. Every failure/timeout path returns the original blob (no blur).
+// The prior srcW > SR_INPUT_MAX_WIDTH gate is removed: superResolve's own capW
+// (max(target/4*1.5, 384)) bounds the actual SR inference input, so sources
+// between capW and target are downscaled inside SR before inference and finish
+// in reasonable time even at the 1600px target.
+
+// Fast local downscale (canvas, high-quality smoothing). No SR / no offscreen.
+// Used on the srcW > target path for the exact-size semantics.
+async function _kcDownscaleClipBlobToWidth(blob, targetWidth) {
+  try {
+    const bmp = await createImageBitmap(blob);
+    const sw = bmp.width || 1, sh = bmp.height || 1;
+    if (sw <= targetWidth) { bmp.close?.(); return blob; }
+    const dw = targetWidth;
+    const dh = Math.max(1, Math.round(sh * (targetWidth / sw)));
+    const canvas = (typeof OffscreenCanvas !== 'undefined')
+      ? new OffscreenCanvas(dw, dh)
+      : Object.assign(document.createElement('canvas'), { width: dw, height: dh });
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bmp, 0, 0, dw, dh);
+    bmp.close?.();
+    if (canvas.convertToBlob) return await canvas.convertToBlob({ type: 'image/png' });
+    return await new Promise((res, rej) =>
+      canvas.toBlob((b) => b ? res(b) : rej(new Error('toBlob null')), 'image/png')
+    );
+  } catch (_) {
+    return blob; // any failure: keep original (no blur risk)
+  }
+}
+
+async function maybeUpscaleClip(blob) {
+  try {
+    if (!blob || !_clipMaxDim || _clipMaxDim <= 0) return blob;
+    const bitmap = await createImageBitmap(blob);
+    const srcW = bitmap.width || 1;
+    bitmap.close?.();
+    if (srcW === _clipMaxDim) return blob;
+    if (srcW > _clipMaxDim) {
+      return await _kcDownscaleClipBlobToWidth(blob, _clipMaxDim);
+    }
+    // srcW < target: SR upscale path (offscreen). Timeout sized for the worst
+    // observed case (cold start + 600px input on multi-thread wasm ≈ 5–6s)
+    // with margin. On failure or timeout we return the original blob (no blur).
+    const dataUrl = await _ceBlobToDataURL(blob);
+    const ask = chrome.runtime.sendMessage({ action: 'sr-upscale', dataUrl, targetWidth: _clipMaxDim });
+    const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), 10000));
+    const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
+    if (res && res.ok && res.dataUrl) {
+      return await (await fetch(res.dataUrl)).blob();
+    }
+    return blob;
+  } catch (_) {
+    return blob;
+  }
+}
+// === END PHASE_CLIP_SIZE ===
+
 function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = null) {
   // dataUrlPromise is the optional video img_url path: when the dominant
   // element is <video>, the same canvas drawImage produces both the
@@ -2898,7 +3073,9 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
   const thumbnailPromise = Promise.resolve(blobPromise)
     .then((blob) => blobToThumbnailDataUrl(blob))
     .catch(() => null);
-  const finalPromise = Promise.resolve(blobPromise).then((b) => (b ? maybeBgrCutout(b) : b));
+  const finalPromise = Promise.resolve(blobPromise)
+    .then((b) => (b ? maybeBgrCutout(b) : b))
+    .then((b) => (b ? maybeUpscaleClip(b) : b)); // PHASE_CLIP_SIZE
   return navigator.clipboard
     .write([new ClipboardItem({ 'image/png': finalPromise })])
     .then(() => ({ success: true, thumbnailPromise, dataUrlPromise }))
@@ -3787,11 +3964,16 @@ function mountSaveMessageListener() {
               // === PHASE_CLIP_TOAST ===
               if (e.data.success === true) {
                 markCoreHighlightClipped();
-                if (e.data.successText) {
-                  showCoreClipToast({ kind: 'success', text: String(e.data.successText) });
-                }
+                // PHASE_CLIP_LOADING_UI: previously only showed toast when successText
+                // was present; now always resolve the loading UI (with default text
+                // fallback) so the loading toast cannot get stuck on the rare
+                // success-without-successText branch.
+                _kcResolveClipLoadingUI({
+                  kind: 'success',
+                  text: e.data.successText ? String(e.data.successText) : '',
+                });
               } else {
-                showCoreClipToast({ kind: 'error', text: 'Clip failed' });
+                _kcResolveClipLoadingUI({ kind: 'error', text: 'Clip failed' }); // PHASE_CLIP_LOADING_UI
               }
               // === END PHASE_CLIP_TOAST ===
             } catch (_) { /* defensive */ }
@@ -4027,6 +4209,7 @@ function schedulePreScanScrollDebounced() {
     // Active — claim the event and trigger clip.
     event.preventDefault();
     event.stopPropagation();
+    _kcStartClipLoadingUI(); // PHASE_CLIP_LOADING_UI
     // === PHASE_CLIPBOARD_SYNC_WRITE ===
     // Call clipboard write in the sync turn (before any await) to
     // preserve user activation. Blob fetch/encode runs async via
