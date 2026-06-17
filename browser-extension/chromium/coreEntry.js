@@ -1236,9 +1236,19 @@ function isPointerInsideOverlay(overlayEl, x, y, fallbackTarget) {
 // overlay/badge hosts are pointer-events:none and never appear in the
 // stack.
 function findItemByImageWithPointerStack(target, x, y) {
+  // PHASE_HOVER_ZERO_RECT_GUARD: itemMap entries can include 0×0 hidden IMGs
+  // (e.g. Papago's preload___ SVG). They can never be a real hover target —
+  // they'd ride elementsFromPoint into activeCoreItem and trigger ghost
+  // selections. The geo / JIT tiers below already guard against this; apply
+  // the same guard to the direct / flat / pierce tiers here.
+  const _kcEntryHasRenderedRect = (e) => {
+    const r = e && e.element && e.element.getBoundingClientRect
+      ? e.element.getBoundingClientRect() : null;
+    return !!(r && r.width > 0 && r.height > 0);
+  };
   try {
     const direct = findItemByImage(target);
-    if (direct) {
+    if (direct && _kcEntryHasRenderedRect(direct)) {
       if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=direct');
       return direct;
     }
@@ -1254,7 +1264,7 @@ function findItemByImageWithPointerStack(target, x, y) {
       const el = stack[i];
       if (!el || el.nodeType !== 1 || el === target) continue;
       const entry = findItemByImage(el);
-      if (entry) {
+      if (entry && _kcEntryHasRenderedRect(entry)) {
         if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=flat');
         return entry;
       }
@@ -1293,7 +1303,7 @@ function findItemByImageWithPointerStack(target, x, y) {
         const el = _els[i];
         if (!el || el.nodeType !== 1 || el === target) continue;
         const entry = findItemByImage(el);
-        if (entry) {
+        if (entry && _kcEntryHasRenderedRect(entry)) {
           if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=pierce depth=' + _depth);
           return entry;
         }
@@ -1500,6 +1510,26 @@ function findItemByImageWithPointerStack(target, x, y) {
 // === END PHASE_POINTER_STACK_ITEM_LOOKUP ===
 
 async function updateCoreSelectionFromTarget(target, clientX = null, clientY = null) {
+  if (KC_DISPATCH_DEBUG) {
+    // every call: caller = stack line 2 (immediate caller), src truncated for
+    // IMG/VIDEO, cls truncated. Useful for diagnosing ghost activations (e.g.
+    // 0×0 preload IMGs registered by some sites).
+    try {
+      const _t = (target && target.nodeType === 1) ? target : null;
+      const _r = _t && _t.getBoundingClientRect ? _t.getBoundingClientRect() : null;
+      const _tag = _t ? _t.tagName : null;
+      const _src = (_tag === 'IMG' || _tag === 'VIDEO') ? String(_t.src || _t.currentSrc || '').slice(0, 80) : '';
+      const _cls = _t && _t.className ? String(_t.className).slice(0, 60) : '';
+      const _caller = ((new Error()).stack || '').split('\n')[2]?.trim() || '?';
+      console.log('[KICKCLIP-LOG] hover-update-enter', {
+        tag: _tag, src: _src, cls: _cls,
+        w: _r ? Math.round(_r.width) : 0,
+        h: _r ? Math.round(_r.height) : 0,
+        cx: clientX, cy: clientY,
+        caller: _caller,
+      });
+    } catch (_) {}
+  }
   // === PHASE27B_HOVER_DISPATCH ===
   // Phase 27 image-keyed activation:
   // - Hover guard upstream already filtered to <img> targets.
@@ -1516,6 +1546,7 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   // - Type B keeps its existing cache + platform enrichment.
 
   if (!target || target.nodeType !== 1) {
+    if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] hover-update-clear', { reason: 'no-target' });
     if (state.activeCoreItem) coreClear();
     return false;
   }
@@ -1527,6 +1558,7 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   const itemEntry = findItemByImageWithPointerStack(target, clientX, clientY);
   const active = state.activeCoreItem;
   if (!itemEntry || !itemEntry.element) {
+    if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] hover-update-clear', { reason: 'no-entry', cx: clientX, cy: clientY });
     if (state.activeCoreItem) coreClear();
     return false;
   }
@@ -1534,6 +1566,23 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   const evidenceType = itemEntry.evidenceType;
   const coreItem = itemEntry.element;
   const closestAtag = null;
+  if (KC_DISPATCH_DEBUG) {
+    try {
+      const _mr = coreItem && coreItem.getBoundingClientRect ? coreItem.getBoundingClientRect() : null;
+      const _msrc = (coreItem && (coreItem.tagName === 'IMG' || coreItem.tagName === 'VIDEO'))
+        ? String(coreItem.src || coreItem.currentSrc || '').slice(0, 80) : '';
+      console.log('[KICKCLIP-LOG] hover-update-matched', {
+        evidence: evidenceType,
+        tag: coreItem ? coreItem.tagName : null,
+        src: _msrc,
+        cls: coreItem && coreItem.className ? String(coreItem.className).slice(0, 60) : '',
+        w: _mr ? Math.round(_mr.width) : 0,
+        h: _mr ? Math.round(_mr.height) : 0,
+        left: _mr ? Math.round(_mr.left) : 0,
+        top: _mr ? Math.round(_mr.top) : 0,
+      });
+    } catch (_) {}
+  }
 
   const platformForB = evidenceType === 'B' ? getCurrentPlatform() : '';
 
@@ -2237,7 +2286,7 @@ let _kcLastMoveDispatchTs = 0;
 let _kcLastMoveDispatchHit = null;
 let _kcLastMoveDispatchHitTs = 0;
 // === END PHASE_POINTERMOVE_DISPATCH_FALLBACK ===
-const KC_DISPATCH_DEBUG = false; // temporary triage: logs which lookup tier resolved (direct/flat/pierce/geo); keep false in commits
+const KC_DISPATCH_DEBUG = false; // dev-only triage: logs dispatch tier (direct/flat/pierce/geo/jit) + hover update entry/clear/match. Keep false in commits.
 
 // === END PHASE_PERF_REDISPATCH_DEBOUNCE_RAISE ===
 
