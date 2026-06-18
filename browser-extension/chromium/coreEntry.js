@@ -2773,10 +2773,16 @@ async function saveActiveCoreItem(request = {}) {
     //      this is the canvas frame captured at clip-time keystroke,
     //      matching the clipboard PNG and img_thumbnail_b64 exactly.
     //   2. Existing fallback: request.img_url, freshImage.url, or ''.
+    // PHASE_ORIGIN_SOURCE_DECOUPLE: capture the resolved remote image URL
+    // independently of the final imgUrl. imgUrl may be overridden now (video
+    // canvas data URL) or in future (a server-stored adjusted-clip URL), but
+    // origin_source for IMG dominants must stay keyed to this stable resolved
+    // URL so dedup is unaffected by whatever img_url ends up holding.
+    const resolvedImageUrl = String(request?.img_url || freshImage?.url || '').trim();
     if (videoFrameDataUrl) {
       imgUrl = videoFrameDataUrl;
     } else {
-      imgUrl = String(request?.img_url || freshImage?.url || '').trim();
+      imgUrl = resolvedImageUrl;
     }
     // === END PHASE_VIDEO_CANVAS_FRAME_AS_IMGURL ===
     // === END PHASE_IMAGE_URL_PIPELINE ===
@@ -2807,11 +2813,13 @@ async function saveActiveCoreItem(request = {}) {
             // dedup key.
             originSource = String(dominantEl.getAttribute?.('post-id') || '').trim();
           } else {
-            // IMG dominant — origin_source mirrors img_url (a resolved
-            // high-res URL via resolveClipImageUrl)
-            originSource = String(imgUrl || '').trim();
-            // If imgUrl is a data URL (rare for image case but defensive),
-            // skip — data URLs are not stable dedup keys.
+            // IMG dominant — origin_source uses the resolved remote image URL,
+            // decoupled from the final imgUrl field (PHASE_ORIGIN_SOURCE_DECOUPLE)
+            // so a future change to what img_url stores does not alter the dedup
+            // key. resolvedImageUrl equals today's imgUrl for IMG, so existing
+            // dedup values are preserved.
+            originSource = resolvedImageUrl;
+            // If it's a data URL (rare/defensive), skip — not a stable key.
             if (originSource.startsWith('data:')) originSource = '';
           }
         }
