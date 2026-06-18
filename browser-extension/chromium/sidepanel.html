@@ -701,14 +701,17 @@
     .card-wrapper {
       position: relative;
       background: white;
-      border: 1px solid var(--border-default);
+      /* Constant 2px border in every state → no layout shift when it becomes
+         the accent ring on active/selected. Renders evenly on all four sides
+         (unlike the inset box-shadow / outline approaches, which clipped on the
+         top/left of grid items). */
+      border: 2px solid var(--border-default);
       border-radius: var(--corner-extra-small);
       margin: 0;
       width: 100%;
       cursor: pointer;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       transition: border-color 0.15s ease,
-                  border-width 0.15s ease,
                   box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1.0),
                   height 0.3s cubic-bezier(0.2, 0, 0, 1),
                   opacity 0.3s ease;
@@ -719,13 +722,13 @@
       border-color: var(--border-secondary);
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    /* Active emphasis without layout shift: keep the base 1px border width and
-       add an inset ring instead of widening the border (border-width changes
-       grew the card by ~2px). Visual accent thickness stays ~2px. */
-    .card-wrapper.active {
+    /* Active (single-click) and selected (multiselect): the constant 2px border
+       simply turns accent-colored. Even on all four sides, no clipping, no
+       layout shift. */
+    .card-wrapper.active,
+    .card-wrapper.kc-wrapper-selected {
       border-color: var(--kc-accent);
-      box-shadow: 0 4px 16px rgba(var(--kc-accent-rgb), 0.2),
-                  inset 0 0 0 1px var(--kc-accent);
+      box-shadow: 0 4px 16px rgba(var(--kc-accent-rgb), 0.2);
     }
     .card-wrapper.is-dragging-source .data-card { opacity: 0.3; }
 
@@ -748,18 +751,10 @@
       height: 130px;
     }
     /* === PHASE_CARD_MULTISELECT === */
+    /* Selection tint stays on the inner card; the accent RING is drawn on the
+       wrapper (.kc-wrapper-selected, see above) so it can't be clipped. */
     .data-card.kc-card-selected {
-      outline: 2px solid var(--accent, #BC13FE);
-      outline-offset: -2px;
       background: var(--accent-10, rgba(188, 19, 254, 0.10));
-      border-radius: 4px;
-      position: relative;
-    }
-    /* When the card is also activated, the wrapper already draws the accent
-       ring; suppress the inner selection outline to avoid a doubled border.
-       The selected background tint keeps selection visible. */
-    .card-wrapper.active .data-card.kc-card-selected {
-      outline: none;
     }
     /* === END PHASE_CARD_MULTISELECT === */
     .data-card * { pointer-events: none !important; }

@@ -781,7 +781,11 @@ function _kcApplyCardSelectionClasses() {
     const id = _kcGetCardSelectId(card);
     if (!id) return;
     liveIds.add(id);
-    card.classList.toggle('kc-card-selected', _kcSelectedCardIds.has(id));
+    const selected = _kcSelectedCardIds.has(id);
+    card.classList.toggle('kc-card-selected', selected);
+    // Mirror onto the wrapper so the (un-clipped) accent ring CSS applies there.
+    const wrapper = card.closest('.card-wrapper');
+    if (wrapper) wrapper.classList.toggle('kc-wrapper-selected', selected);
   });
   for (const id of _kcSelectedCardIds) {
     if (!liveIds.has(id)) _kcSelectedCardIds.delete(id);
