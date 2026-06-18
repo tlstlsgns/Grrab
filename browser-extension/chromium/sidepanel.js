@@ -903,6 +903,36 @@ function _kcHandleCardSelectionClick(card, isShift) {
   _kcApplyCardSelectionClasses();
 }
 
+// Collapse a .card-container to zero size + fade, then remove it from the DOM.
+// Returns a Promise that resolves once the element is removed. Shared by all
+// delete paths so per-card ✕ and the trash (clear-all / delete-selected) behave
+// identically. DELETE network calls are the caller's responsibility.
+function _kcCollapseAndRemoveCard(cardContainer) {
+  return new Promise((resolve) => {
+    if (!cardContainer || !cardContainer.isConnected) {
+      if (cardContainer) cardContainer.remove();
+      resolve();
+      return;
+    }
+    cardContainer.style.transition =
+      'height 0.25s ease, width 0.25s ease, opacity 0.2s ease, margin 0.25s ease, padding 0.25s ease';
+    cardContainer.style.overflow = 'hidden';
+    cardContainer.style.opacity  = '0';
+    cardContainer.style.height   = cardContainer.offsetHeight + 'px';
+    cardContainer.style.width    = cardContainer.offsetWidth  + 'px';
+    requestAnimationFrame(() => {
+      cardContainer.style.height  = '0px';
+      cardContainer.style.width   = '0px';
+      cardContainer.style.margin  = '0';
+      cardContainer.style.padding = '0';
+    });
+    setTimeout(() => {
+      cardContainer.remove();
+      resolve();
+    }, 250);
+  });
+}
+
 async function executeDeleteSelected() {
   if (!currentUser || _kcSelectedCardIds.size === 0) return;
   const ids = Array.from(_kcSelectedCardIds);
@@ -916,16 +946,20 @@ async function executeDeleteSelected() {
     }
   });
 
-  await Promise.allSettled(
-    ids.map((docId) =>
-      fetch(
-        `${KC_SERVER_URL}/api/v1/items/${encodeURIComponent(docId)}?userId=${encodeURIComponent(currentUser.uid)}`,
-        { method: 'DELETE' }
+  // Fire deletes and collapse the cards in parallel; wait for both so the
+  // list cleanup runs after the animation completes (matches per-card ✕).
+  await Promise.all([
+    Promise.allSettled(
+      ids.map((docId) =>
+        fetch(
+          `${KC_SERVER_URL}/api/v1/items/${encodeURIComponent(docId)}?userId=${encodeURIComponent(currentUser.uid)}`,
+          { method: 'DELETE' }
+        )
       )
-    )
-  );
+    ),
+    Promise.all(cardsToRemove.map(({ container }) => _kcCollapseAndRemoveCard(container))),
+  ]);
 
-  cardsToRemove.forEach(({ container }) => container.remove());
   _kcSelectedCardIds.clear();
   _kcApplyCardSelectionClasses();
   if (list) {
@@ -1683,6 +1717,18 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
       matchedDataCard = targetList.querySelector(
         `[data-doc-id="${matchingItem.id}"]`
       );
+      // PHASE_RECLIP_TIMELINE: a re-clip is a fresh "now" action. The list is
+      // ordered by updatedAt (desc) and the timeline labels via getItemDate
+      // (updatedAt), so bump the matched item's updatedAt to now and refresh
+      // the card→item mapping. Otherwise syncTimelineDividers reads the stale
+      // updatedAt still mapped to the card and stamps the old date (e.g.
+      // "2026년 6월 16일") above the card that just moved to the top.
+      // Mutating matchingItem also updates its currentItems entry (same ref);
+      // server-side dedup persists the real updatedAt, but the snapshot's
+      // 'modified' change is intentionally skipped, so this client bump keeps
+      // mid-session ordering/labels correct until the next full render.
+      matchingItem.updatedAt = Date.now();
+      if (matchedDataCard) kcCardItemByEl.set(matchedDataCard, matchingItem);
       // Phase 18b.1: data-doc-id lives on the inner data-card element,
       // but the actual list child is the wrapping .card-container
       // (which carries layout, animation, and image-container CSS).
@@ -1735,6 +1781,11 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
     category:        category      || '',
     platform:        platform      || '',
     createdAt: typeof createdAt === 'number' ? createdAt : Date.now(),
+    // PHASE_OPTIMISTIC_TIMELINE: a fresh clip is "now". The timeline labels via
+    // getItemDate(updatedAt); without updatedAt here, getItemDate returns null
+    // and syncTimelineDividers bails, so the card shows no "Today" divider until
+    // the sidepanel is reopened. Mirror the createdAt value as updatedAt.
+    updatedAt: typeof createdAt === 'number' ? createdAt : Date.now(),
   };
 
   // Create the card element
@@ -1937,15 +1988,45 @@ function syncTimelineDividers(list) {
     return;
   }
 
-  const firstCard = cards[0];
-  const prev = firstCard.previousElementSibling;
-  const isPrevTodayDivider = prev?.classList?.contains('sp-timeline-divider')
-    && prev?.dataset?.timelineLabel === 'Today';
+  // Remove stranded dividers: a divider whose section (the run of siblings
+  // up to the next divider) contains no .card-container heads an empty group
+  // and must go. Deleting the last card under e.g. "Yesterday" otherwise
+  // leaves that label behind, stacked above the next section's divider.
+  list.querySelectorAll('.sp-timeline-divider').forEach((divider) => {
+    let sib = divider.nextElementSibling;
+    let hasCard = false;
+    while (sib && !sib.classList.contains('sp-timeline-divider')) {
+      if (sib.classList.contains('card-container')) { hasCard = true; break; }
+      sib = sib.nextElementSibling;
+    }
+    if (!hasCard) divider.remove();
+  });
 
-  if (!isPrevTodayDivider) {
-    const divider = createTimelineDivider('Today');
-    list.insertBefore(divider, firstCard);
-  }
+  const firstCard = cards[0];
+
+  // Determine the first card's REAL timeline label from its item date.
+  // Never assume "Today": when the list holds only older cards, the first
+  // card may legitimately be Yesterday or an older date, and stamping "Today"
+  // here is exactly the bug this guards against.
+  const firstDataCard = firstCard.querySelector('.data-card');
+  const firstItem = firstDataCard ? kcCardItemByEl.get(firstDataCard) : null;
+  const firstDate = firstItem ? getItemDate(firstItem) : null;
+  const firstLabel = firstDate ? formatTimelineLabel(firstDate) : '';
+
+  // If we can't resolve a label, don't guess — leave dividers as-is and let
+  // loadData()'s full grouping pass correct things on the next render.
+  if (!firstLabel) return;
+
+  const prev = firstCard.previousElementSibling;
+  const prevIsDivider = prev?.classList?.contains('sp-timeline-divider');
+  const prevLabel = prevIsDivider ? prev.dataset.timelineLabel : null;
+
+  if (prevLabel === firstLabel) return; // correct divider already in place
+
+  // Wrong label directly above the first card → remove it, then insert right.
+  if (prevIsDivider) prev.remove();
+  const divider = createTimelineDivider(firstLabel);
+  list.insertBefore(divider, firstCard);
 }
 
 // === PHASE_SIDEPANEL_UNIFIED_LIST ===
@@ -1980,8 +2061,8 @@ async function executeClear(list, btn, exitConfirmPending) {
     )
   );
 
-  // Remove all card containers from this list's DOM.
-  cardContainers.forEach((c) => c.remove());
+  // Collapse-and-remove all card containers (matches per-card ✕ / delete-selected).
+  await Promise.all(cardContainers.map((c) => _kcCollapseAndRemoveCard(c)));
 
   // Also clean up matching entries from the local optimisticCards
   // map (if any tempIds happened to be in this category — unlikely
@@ -2003,7 +2084,7 @@ async function executeClear(list, btn, exitConfirmPending) {
   updateClearButtonState();
 
   // Toast.
-  showKcToast(`${docIds.length} clips cleared`, 'success');
+  showKcToast(`${docIds.length} clip${docIds.length === 1 ? '' : 's'} deleted`, 'success');
   // === PHASE_CARD_MULTISELECT ===
   _kcClearCardSelection();
   // === END PHASE_CARD_MULTISELECT ===
@@ -2782,28 +2863,17 @@ function attachDeleteHandlers(container) {
         const docId = card.dataset.docId || card.dataset.itemId;
         if (docId && currentUser) {
           const cardContainer = wrapper.closest('.card-container') || wrapper;
-          cardContainer.style.transition = 'height 0.25s ease, width 0.25s ease, opacity 0.2s ease, margin 0.25s ease, padding 0.25s ease';
-          cardContainer.style.overflow   = 'hidden';
-          cardContainer.style.opacity    = '0';
-          cardContainer.style.height     = cardContainer.offsetHeight + 'px';
-          cardContainer.style.width      = cardContainer.offsetWidth  + 'px';
-          requestAnimationFrame(() => {
-            cardContainer.style.height  = '0px';
-            cardContainer.style.width   = '0px';
-            cardContainer.style.margin  = '0';
-            cardContainer.style.padding = '0';
-          });
-          setTimeout(() => {
-            const parentList = cardContainer.parentNode;
-            fetch(
-              `${KC_SERVER_URL}/api/v1/items/${encodeURIComponent(docId)}?userId=${encodeURIComponent(currentUser.uid)}`,
-              { method: 'DELETE' }
-            ).catch(() => {});
-            cardContainer.remove();
+          const parentList = cardContainer.parentNode;
+          fetch(
+            `${KC_SERVER_URL}/api/v1/items/${encodeURIComponent(docId)}?userId=${encodeURIComponent(currentUser.uid)}`,
+            { method: 'DELETE' }
+          ).catch(() => {});
+          _kcCollapseAndRemoveCard(cardContainer).then(() => {
             ensureEmptyState(parentList);
             syncTimelineDividers(parentList);
             updateClearButtonState();
-          }, 250);
+          });
+          showKcToast('1 clip deleted', 'success');
         }
       }
     });
