@@ -790,7 +790,97 @@ function _kcApplyCardSelectionClasses() {
   for (const id of _kcSelectedCardIds) {
     if (!liveIds.has(id)) _kcSelectedCardIds.delete(id);
   }
+  // PHASE_BULK_UPLOAD: reflect selection count on the bulk-upload button.
+  _kcUpdateBulkUploadButton();
 }
+
+// === PHASE_BULK_UPLOAD ===
+// Show the bulk-upload button only when ≥1 card is selected; otherwise hide it.
+// Never override the hidden state while an upload is in flight.
+function _kcUpdateBulkUploadButton() {
+  const btn = document.querySelector('.sp-bulk-upload-btn');
+  if (!btn) return;
+  if (btn.dataset.uploading === 'true') return;
+  btn.style.display = _kcSelectedCardIds.size >= 1 ? 'inline-flex' : 'none';
+}
+
+// Upload every currently-selected card to the active destination. Immediate
+// (no confirm). Spinner on the button while running; summary toast at the end.
+async function executeUploadSelected() {
+  const btn = document.querySelector('.sp-bulk-upload-btn');
+  if (!btn || btn.dataset.uploading === 'true') return;
+  if (_kcSelectedCardIds.size === 0) return;
+
+  // Resolve selected cards → items (skip any card without a mapped item).
+  const items = [];
+  document.querySelectorAll('.data-card').forEach((card) => {
+    const id = _kcGetCardSelectId(card);
+    if (id && _kcSelectedCardIds.has(id)) {
+      const item = kcCardItemByEl.get(card);
+      if (item) items.push(item);
+    }
+  });
+  if (items.length === 0) return;
+
+  // Enter uploading state: spinner on, icon hidden, keep button visible.
+  btn.dataset.uploading = 'true';
+  btn.disabled = true;
+  btn.classList.add('is-uploading');
+  btn.style.display = 'inline-flex';
+  const spinner = btn.querySelector('.sp-bulk-upload-spinner');
+  if (spinner) spinner.hidden = false;
+
+  let ok = 0;
+  let fail = 0;
+  try {
+    const results = await Promise.allSettled(
+      // anchorBtn = null: per-card flash is replaced by the button spinner +
+      // summary toast. handleUploadToDestination shows its own per-item toasts;
+      // those are acceptable as progress feedback.
+      items.map((item) => handleUploadToDestination(item, null))
+    );
+    // handleUploadToDestination resolves (doesn't reject) on handled failures,
+    // so treat fulfilled as success and rejected as failure. This is a coarse
+    // count; the per-item toasts carry the detail.
+    for (const r of results) {
+      if (r.status === 'fulfilled') ok += 1;
+      else fail += 1;
+    }
+  } finally {
+    // Exit uploading state.
+    if (spinner) spinner.hidden = true;
+    btn.classList.remove('is-uploading');
+    btn.disabled = false;
+    delete btn.dataset.uploading;
+    // Clear selection after a bulk action (mirrors delete-selected behavior).
+    // Also drop .active: a single (non-shift) click marks the first card both
+    // selected AND active, and the accent ring fires on either class — so the
+    // selection clear alone would leave the first-clicked card ringed.
+    deactivateAllCards();
+    _kcClearCardSelection(); // also hides the button via _kcUpdateBulkUploadButton
+  }
+
+  // Summary toast.
+  if (fail === 0) {
+    showKcToast(`${ok} clip${ok === 1 ? '' : 's'} uploaded`, 'success');
+  } else if (ok === 0) {
+    showKcToast(`Upload failed for ${fail} clip${fail === 1 ? '' : 's'}`, 'error');
+  } else {
+    showKcToast(`${ok} uploaded, ${fail} failed`, 'error');
+  }
+}
+
+function attachBulkUploadHandler() {
+  const btn = document.querySelector('.sp-bulk-upload-btn');
+  if (!btn || btn.dataset.handlerAttached === 'true') return;
+  btn.dataset.handlerAttached = 'true';
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (btn.disabled) return;
+    executeUploadSelected();
+  });
+}
+// === END PHASE_BULK_UPLOAD ===
 
 function _kcClearCardSelection() {
   if (_kcSelectedCardIds.size === 0) return;
@@ -1060,6 +1150,7 @@ function showDashboardScreen(user) {
   loginScreen.style.display     = 'none';
   dashboardScreen.style.display = 'flex';
   attachClearButtonHandlers();
+  attachBulkUploadHandler(); // PHASE_BULK_UPLOAD
 
   // Update avatar
   if (user.photoURL) {

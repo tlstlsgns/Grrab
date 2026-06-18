@@ -1246,6 +1246,49 @@
     }
     /* === END PHASE_CARD_MULTISELECT === */
 
+    /* === PHASE_BULK_UPLOAD === */
+    .sp-bulk-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 4px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: #A9A9AD;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    }
+    .sp-bulk-upload-btn:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--kc-accent, #BC13FE);
+    }
+    .sp-bulk-upload-btn:disabled {
+      cursor: default;
+    }
+    .sp-bulk-upload-icon {
+      width: 18px;
+      height: 18px;
+    }
+    .sp-bulk-upload-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 0, 0, 0.12);
+      border-top-color: var(--kc-accent, #BC13FE);
+      border-radius: 50%;
+      animation: data-card-spin 0.7s linear infinite;
+    }
+    .sp-bulk-upload-spinner[hidden] {
+      display: none;
+    }
+    /* While uploading, the icon is swapped for the spinner. */
+    .sp-bulk-upload-btn.is-uploading .sp-bulk-upload-icon {
+      display: none;
+    }
+    /* === END PHASE_BULK_UPLOAD === */
+
     /* ── Loading state ── */
     .sp-loading {
       display: flex;
@@ -1369,6 +1412,21 @@
       <div id="sp-itemlist-clip">
         <div class="sp-clear-bar">
           <span class="sp-clear-confirm-text" style="display:none;"></span>
+          <!-- === PHASE_BULK_UPLOAD === Bulk-upload selected cards. Hidden until
+               ≥1 card is selected (see _kcUpdateBulkUploadButton). === -->
+          <button type="button" class="sp-bulk-upload-btn" style="display:none;"
+                  aria-label="Upload selected clips to folder">
+            <svg class="sp-bulk-upload-icon" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span class="sp-bulk-upload-spinner" hidden></span>
+          </button>
+          <!-- === END PHASE_BULK_UPLOAD === -->
           <button type="button" class="sp-clear-btn" disabled
                   aria-label="Clear all clips in dock list">
             <svg class="sp-clear-icon-trash" viewBox="0 0 24 24"
