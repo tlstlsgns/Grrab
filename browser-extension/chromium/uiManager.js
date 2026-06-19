@@ -483,6 +483,7 @@ const CORE_CLIP_TOAST_STACK_ID = 'kickclip-clip-toast-stack';
 const CORE_CLIP_TOAST_DURATION_MS = 1800;
 const CORE_CLIP_TOAST_EXIT_MS = 200; // matches the toast opacity/transform transition
 const CORE_CLIP_TOAST_ERROR_BG = '#e5484d';
+const CORE_CLIP_TOAST_CANCELED_BG = '#6b7280'; // neutral gray for canceled clips
 const CORE_CLIP_TOAST_MAX = 4;
 
 function ensureCoreClipToastStack() {
@@ -581,17 +582,20 @@ export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
     el.appendChild(span);
 
     const applyKind = (k, t) => {
-      el.style.background = (k === 'error') ? CORE_CLIP_TOAST_ERROR_BG : BRAND.KEY_COLOR_HEX;
+      el.style.background =
+        (k === 'error') ? CORE_CLIP_TOAST_ERROR_BG :
+          (k === 'canceled') ? CORE_CLIP_TOAST_CANCELED_BG :
+            BRAND.KEY_COLOR_HEX;
       while (iconSlot.firstChild) iconSlot.removeChild(iconSlot.firstChild);
       if (k === 'loading') {
         iconSlot.appendChild(_buildClipToastSpinner());
-      } else if (k !== 'error') {
+      } else if (k !== 'error' && k !== 'canceled') {
         // success: reuse the badge clip glyph (PHASE_BADGE_CLIP_ICON), sized for the toast.
         const icon = _buildBadgeClipIcon();
         icon.setAttribute('width', '14');
         icon.setAttribute('height', '14');
         iconSlot.appendChild(icon);
-      } // error: text only
+      } // error / canceled: text only
       span.textContent = String(t == null ? '' : t);
     };
 
