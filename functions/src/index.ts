@@ -557,15 +557,24 @@ app.delete("/api/v1/items/:itemId", async (req: Request, res: Response): Promise
 
     await db.doc(docPath).delete();
 
-    if (imgUrl.includes("/screenshots/") || imgUrl.includes("/clips/")) {
-      try {
-        const bucket = getStorage();
-        const bucketPrefix = `https://storage.googleapis.com/${bucket.name}/`;
-        if (imgUrl.startsWith(bucketPrefix)) {
-          await bucket.file(imgUrl.slice(bucketPrefix.length)).delete();
-        }
-      } catch {/* ignore */}
-    }
+    // Reclaim this item's Storage objects.
+    try {
+      const bucket = getStorage();
+      const bucketPrefix = `https://storage.googleapis.com/${bucket.name}/`;
+      // Screenshot object: the extension picks png/jpg, so derive the exact
+      // path from img_url (only when img_url currently points at a screenshot).
+      if (imgUrl.includes("/screenshots/") && imgUrl.startsWith(bucketPrefix)) {
+        await bucket.file(imgUrl.slice(bucketPrefix.length))
+          .delete().catch(() => { /* missing/already gone — ignore */ });
+      }
+      // Clip image: always at the deterministic clips/{uid}/{docId}.png. Delete
+      // it unconditionally so an object orphaned by a later img_url change
+      // (e.g. re-clipping the same item at 'origin', which reverts img_url to
+      // the remote URL) is still reclaimed. Missing object → ignored. Object
+      // deletes are free, so the no-op call for origin-only items is harmless.
+      await bucket.file(`clips/${uid}/${docId}.png`)
+        .delete().catch(() => { /* missing/already gone — ignore */ });
+    } catch {/* ignore */}
 
     res.status(200).json({success: true});
   } catch {
