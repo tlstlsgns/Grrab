@@ -2745,6 +2745,9 @@ async function saveActiveCoreItem(request = {}) {
     // the imgUrl variable (computed below) for the video case.
     let videoFrameDataUrl = null;
     // === END PHASE_VIDEO_CANVAS_FRAME_AS_IMGURL ===
+    // PHASE_CLIP_IMAGE_STORAGE: the size-adjusted clipboard blob (post
+    // downscale/SR), captured from the clipboard pipeline for server upload.
+    let clipAdjustedBlob = null;
     if (request?.clipboardPromise) {
       try {
         const clipResult = await Promise.resolve(request.clipboardPromise);
@@ -2762,9 +2765,20 @@ async function saveActiveCoreItem(request = {}) {
           ]);
         }
         // === END PHASE_VIDEO_CANVAS_FRAME_AS_IMGURL ===
+        // PHASE_CLIP_IMAGE_STORAGE: capture the size-adjusted clipboard blob.
+        // clipResult is only available after the clipboard write completes
+        // (which already awaits this same blob, incl. SR), so it is normally
+        // already settled; the race is a defensive cap for the SR worst case.
+        if (clipResult?.adjustedBlobPromise) {
+          clipAdjustedBlob = await Promise.race([
+            clipResult.adjustedBlobPromise,
+            new Promise((resolve) => setTimeout(() => resolve(null), 12000)),
+          ]);
+        }
       } catch (_) {
         imgThumbnailB64 = null;
         videoFrameDataUrl = null;
+        clipAdjustedBlob = null;
       }
     }
     // === PHASE_VIDEO_CANVAS_FRAME_AS_IMGURL ===
@@ -2797,35 +2811,46 @@ async function saveActiveCoreItem(request = {}) {
     // mirrors img_url for image dominants (already a stable URL).
     let originSource = '';
     try {
-      const activeCoreEl = state.activeCoreItem;
+      // PHASE_ORIGIN_SOURCE_STABLE: use the activeItem reference captured at
+      // function entry, NOT a re-read of state.activeCoreItem. Awaits run before
+      // this point (userId fetch, clipboard result); state can clear in between,
+      // which would drop origin_source and break dedup. The captured reference
+      // stays valid regardless.
+      const activeCoreEl = activeItem;
       if (activeCoreEl && typeof activeCoreEl.nodeType === 'number') {
         const dominantEl = pickDominantImageElement(activeCoreEl);
-        if (dominantEl) {
-          const tag = String(dominantEl.tagName || '').toUpperCase();
-          if (tag === 'VIDEO') {
-            // resolved URL (blob:, https:, etc.); ignores <source> children
-            originSource = String(dominantEl.src || '').trim();
-          } else if (tag === 'SHREDDIT-PLAYER') {
-            // Use Reddit's stable post-id attribute (e.g. "t3_1tmhhvg")
-            // as dedup key. The host's .src is an HLS playlist URL with
-            // unstable per-session tokens, and the shadow <video>'s src
-            // is a per-session blob: URL — neither suitable as a stable
-            // dedup key.
-            originSource = String(dominantEl.getAttribute?.('post-id') || '').trim();
-          } else {
-            // IMG dominant — origin_source uses the resolved remote image URL,
-            // decoupled from the final imgUrl field (PHASE_ORIGIN_SOURCE_DECOUPLE)
-            // so a future change to what img_url stores does not alter the dedup
-            // key. resolvedImageUrl equals today's imgUrl for IMG, so existing
-            // dedup values are preserved.
-            originSource = resolvedImageUrl;
-            // If it's a data URL (rare/defensive), skip — not a stable key.
-            if (originSource.startsWith('data:')) originSource = '';
-          }
+        const tag = dominantEl ? String(dominantEl.tagName || '').toUpperCase() : '';
+        if (tag === 'VIDEO') {
+          // resolved URL (blob:, https:, etc.); ignores <source> children
+          originSource = String(dominantEl.src || '').trim();
+        } else if (tag === 'SHREDDIT-PLAYER') {
+          // Reddit's stable post-id attribute (e.g. "t3_1tmhhvg") as dedup key.
+          originSource = String(dominantEl.getAttribute?.('post-id') || '').trim();
+        } else {
+          // IMG / image case (incl. a standalone IMG where pickDominantImage
+          // returns null) — origin_source uses the resolved remote image URL,
+          // decoupled from the final imgUrl field (PHASE_ORIGIN_SOURCE_DECOUPLE),
+          // preserving existing dedup values.
+          originSource = resolvedImageUrl;
+          if (originSource.startsWith('data:')) originSource = '';
         }
       }
     } catch (_) { /* defensive — leave originSource empty */ }
     // === END PHASE_ORIGIN_SOURCE ===
+
+    // === PHASE_CLIP_IMAGE_STORAGE ===
+    // Freeze the clip size per item and, when a size was applied, send the
+    // exact size-adjusted clip image so the server stores it and overrides
+    // img_url with a stable storage URL (re-clip/upload then reproduce it).
+    // For 'origin' nothing is uploaded and img_url stays the remote URL.
+    const clipSize = _clipMaxDim > 0 ? `${_clipMaxDim}px` : 'origin';
+    let clipImageBase64 = '';
+    if (_clipMaxDim > 0 && clipAdjustedBlob) {
+      try {
+        clipImageBase64 = await _ceBlobToDataURL(clipAdjustedBlob);
+      } catch (_) { clipImageBase64 = ''; }
+    }
+    // === END PHASE_CLIP_IMAGE_STORAGE ===
 
     const payload = {
       url,
@@ -2844,6 +2869,10 @@ async function saveActiveCoreItem(request = {}) {
       // === PHASE_IMAGE_URL_PIPELINE ===
       ...(imgThumbnailB64 ? { img_thumbnail_b64: imgThumbnailB64 } : {}),
       // === END PHASE_IMAGE_URL_PIPELINE ===
+      // === PHASE_CLIP_IMAGE_STORAGE ===
+      ...(clipSize ? { clip_size: clipSize } : {}),
+      ...(clipImageBase64 ? { clip_image_base64: clipImageBase64 } : {}),
+      // === END PHASE_CLIP_IMAGE_STORAGE ===
       ...(userId ? { userId } : {}),
       ...(meta?.category      ? { category:       meta.category }      : {}),
       ...(meta?.platform      ? { platform:        meta.platform }      : {}),
@@ -3093,8 +3122,10 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
     .then((b) => (b ? maybeUpscaleClip(b) : b)); // PHASE_CLIP_SIZE
   return navigator.clipboard
     .write([new ClipboardItem({ 'image/png': finalPromise })])
-    .then(() => ({ success: true, thumbnailPromise, dataUrlPromise }))
-    .catch(() => ({ success: false, thumbnailPromise, dataUrlPromise }));
+    // PHASE_CLIP_IMAGE_STORAGE: expose the adjusted blob so the save path can
+    // upload it. Awaiting finalPromise again is safe (same resolved value).
+    .then(() => ({ success: true, thumbnailPromise, dataUrlPromise, adjustedBlobPromise: finalPromise }))
+    .catch(() => ({ success: false, thumbnailPromise, dataUrlPromise, adjustedBlobPromise: finalPromise }));
 }
 // === END PHASE_IMAGE_URL_PIPELINE ===
 
