@@ -3734,6 +3734,27 @@ function reconcileSnapshotSilently(snap) {
   if (!currentUser) return;
 
   snap.docChanges().forEach((change) => {
+    // PHASE_RECLIP_IMGURL_SYNC: a dedup re-clip updates the existing doc
+    // (change.type 'modified'), changing img_url (and clip_size) — e.g. a
+    // 1600px card re-clipped at origin reverts img_url to the remote URL, or a
+    // re-clip at a new size points img_url at a newly stored clip image.
+    // Refresh the rendered card's canonical references so the top-right
+    // re-copy and upload buttons (which read kcCardItemByEl.get(card) at click
+    // time) target the new image. The visible <img> src is left alone to avoid
+    // a reload flash — the 400px thumbnail is visually equivalent. ('added' is
+    // the optimistic-promotion path below; 'removed' waits for sidepanel reopen.)
+    if (change.type === 'modified') {
+      const mItem = { ...change.doc.data(), id: change.doc.id };
+      const mCard = dashboardScreen?.querySelector(
+        `.data-card[data-doc-id="${mItem.id}"]`
+      );
+      if (mCard) {
+        if (mItem.img_url) mCard.dataset.imgUrl = mItem.img_url;
+        kcCardItemByEl.set(mCard, mItem);
+      }
+      return;
+    }
+
     if (change.type !== 'added') return;
 
     const item = { ...change.doc.data(), id: change.doc.id };
