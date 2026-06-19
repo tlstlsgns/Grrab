@@ -69,11 +69,12 @@ const extractSource = (url: string): string => {
   }
 };
 
-// ─── 헬퍼: uploadScreenshotToStorage ─────────────────────────────────────────
-async function uploadScreenshotToStorage(
+// ─── 헬퍼: uploadBase64ImageToStorage (screenshots + clips) ───────────────────
+async function uploadBase64ImageToStorage(
   base64DataUrl: string,
   userId: string,
-  itemId: string
+  itemId: string,
+  prefix: string
 ): Promise<{ publicUrl: string } | null> {
   try {
     const matches = base64DataUrl.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
@@ -82,7 +83,7 @@ async function uploadScreenshotToStorage(
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, "base64");
     const ext = mimeType.includes("png") ? "png" : "jpg";
-    const filePath = `screenshots/${userId}/${itemId}.${ext}`;
+    const filePath = `${prefix}/${userId}/${itemId}.${ext}`;
     const bucket = getStorage();
     const file = bucket.file(filePath);
     await file.save(buffer, {metadata: {contentType: mimeType}});
@@ -94,6 +95,22 @@ async function uploadScreenshotToStorage(
   } catch {
     return null;
   }
+}
+
+async function uploadScreenshotToStorage(
+  base64DataUrl: string,
+  userId: string,
+  itemId: string
+): Promise<{ publicUrl: string } | null> {
+  return uploadBase64ImageToStorage(base64DataUrl, userId, itemId, "screenshots");
+}
+
+async function uploadClipImageToStorage(
+  base64DataUrl: string,
+  userId: string,
+  itemId: string
+): Promise<{ publicUrl: string } | null> {
+  return uploadBase64ImageToStorage(base64DataUrl, userId, itemId, "clips");
 }
 
 // ─── 헬퍼: Logo cache ─────────────────────────────────────────────────────────
@@ -226,6 +243,7 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     screenshot_base64, screenshot_bg_color, category,
     img_thumbnail_b64,
     origin_source,
+    clip_image_base64, clip_size,
   } = req.body;
 
   const isValidString = (v: unknown) => typeof v === "string" && (v as string).trim().length > 0;
@@ -255,6 +273,15 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     req.body.screenshot_padding : 0;
   const clientTempIdRaw = typeof req.body.temp_id === "string" ?
     req.body.temp_id.trim() : "";
+
+  // === PHASE_CLIP_IMAGE_STORAGE ===
+  const resolvedClipImageB64 =
+    typeof clip_image_base64 === "string" &&
+    clip_image_base64.trim().startsWith("data:image/") ?
+      clip_image_base64.trim() : "";
+  const resolvedClipSize = typeof clip_size === "string" ?
+    clip_size.trim() : "";
+  // === END PHASE_CLIP_IMAGE_STORAGE ===
 
   const userId = typeof req.body.userId === "string" ? req.body.userId.trim() : "";
   if (!userId) {
@@ -350,27 +377,38 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     if (clientScreenshotPaddingRaw > 0) baseFields.screenshot_padding = clientScreenshotPaddingRaw;
     if (clientTempIdRaw) baseFields.temp_id = clientTempIdRaw;
 
-    let docId: string;
-    let isUpdate: boolean;
+    // Determine the target doc up front so the clip-image Storage upload can
+    // use its id for the object path, and the resulting storage URL is written
+    // in the SAME create/update (no async patch window).
+    const docRef = dedupHitDocId ? itemsRef.doc(dedupHitDocId) : itemsRef.doc();
+    const docId = docRef.id;
+    const isUpdate = !!dedupHitDocId;
 
-    if (dedupHitDocId) {
-      // Dedup hit: update existing doc. createdAt and directoryId
-      // are NOT in baseFields, so they stay as-is.
-      docId = dedupHitDocId;
-      isUpdate = true;
-      await itemsRef.doc(docId).update(baseFields);
+    // === PHASE_CLIP_IMAGE_STORAGE ===
+    // When the client sends the size-adjusted clip image (clip_size != origin),
+    // upload it synchronously and override img_url with the stable storage URL,
+    // so re-clip / upload reproduce the exact clipped image. On upload failure,
+    // baseFields keeps the resolvedImgUrl fallback (the remote URL). dedup is
+    // unaffected: origin_source remains the resolved remote URL from the client.
+    if (resolvedClipImageB64) {
+      const clipUpload =
+        await uploadClipImageToStorage(resolvedClipImageB64, userId, docId);
+      if (clipUpload) baseFields.img_url = clipUpload.publicUrl;
+    }
+    if (resolvedClipSize) baseFields.clip_size = resolvedClipSize;
+    // === END PHASE_CLIP_IMAGE_STORAGE ===
+
+    if (isUpdate) {
+      // Dedup hit: update existing doc. createdAt and directoryId are NOT in
+      // baseFields, so they stay as-is.
+      await docRef.update(baseFields);
     } else {
-      // No dedup match: create new doc. Add createdAt and the
-      // default directoryId to the field set.
-      const newDocRef = itemsRef.doc();
-      docId = newDocRef.id;
-      isUpdate = false;
-      const newDocFields: Record<string, any> = {
+      // No dedup match: create new doc with createdAt + default directoryId.
+      await docRef.set({
         ...baseFields,
         directoryId: "undefined",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-      await newDocRef.set(newDocFields);
+      });
     }
 
     // Screenshot Storage upload (background) — applies to both
@@ -519,7 +557,7 @@ app.delete("/api/v1/items/:itemId", async (req: Request, res: Response): Promise
 
     await db.doc(docPath).delete();
 
-    if (imgUrl.includes("/screenshots/")) {
+    if (imgUrl.includes("/screenshots/") || imgUrl.includes("/clips/")) {
       try {
         const bucket = getStorage();
         const bucketPrefix = `https://storage.googleapis.com/${bucket.name}/`;
