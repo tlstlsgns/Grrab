@@ -54,6 +54,14 @@ function _bitmapToInputTensor(bitmap) {
   const w = bitmap.width, h = bitmap.height;
   const canvas = new OffscreenCanvas(w, h);
   const ctx = canvas.getContext('2d');
+  // PHASE_CLIP_SIZE_ALPHA: composite over white before reading RGB. The model
+  // is RGB-only; transparent pixels would otherwise read as (0,0,0) black and
+  // the SR pass sharpens that black/content boundary into splatter artifacts
+  // (and bleeds black into soft shadows). Flattening onto white keeps the SR
+  // input clean; the source alpha is reapplied to the output separately (see
+  // _reapplySourceAlpha). Fully opaque images are unaffected (white is covered).
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
   ctx.drawImage(bitmap, 0, 0, w, h);
   const { data } = ctx.getImageData(0, 0, w, h); // RGBA uint8
   const plane = w * h;
@@ -118,6 +126,51 @@ async function _fitBlobToWidth(blob, targetWidth) {
   return await canvas.convertToBlob({ type: 'image/png' });
 }
 
+// PHASE_CLIP_SIZE_ALPHA: reapply the source image's alpha onto the (opaque) SR
+// output so transparency and soft shadows survive the SR pass. The SR model is
+// RGB-only and forces output alpha=255; with the white-composite at input, a
+// transparent PNG would otherwise come out opaque on white. The source alpha is
+// bilinearly upscaled to the SR output size and written into the output's alpha
+// channel. Fully opaque sources are detected and returned unchanged.
+async function _reapplySourceAlpha(srBlob, sourceBlob) {
+  try {
+    const [srBmp, srcBmp] = await Promise.all([
+      createImageBitmap(srBlob),
+      createImageBitmap(sourceBlob),
+    ]);
+    const w = srBmp.width, h = srBmp.height;
+
+    // Upscale the source alpha to the SR output size (bilinear via drawImage).
+    const aCanvas = new OffscreenCanvas(w, h);
+    const aCtx = aCanvas.getContext('2d');
+    aCtx.imageSmoothingEnabled = true;
+    aCtx.imageSmoothingQuality = 'high';
+    aCtx.drawImage(srcBmp, 0, 0, w, h);
+    srcBmp.close?.();
+    const srcData = aCtx.getImageData(0, 0, w, h).data;
+
+    // Fully opaque source → nothing to restore; keep the SR output as-is.
+    let hasTransparency = false;
+    for (let i = 3; i < srcData.length; i += 4) {
+      if (srcData[i] !== 255) { hasTransparency = true; break; }
+    }
+    if (!hasTransparency) { srBmp.close?.(); return srBlob; }
+
+    // Overwrite the SR output's alpha channel with the upscaled source alpha.
+    const oCanvas = new OffscreenCanvas(w, h);
+    const oCtx = oCanvas.getContext('2d');
+    oCtx.drawImage(srBmp, 0, 0, w, h);
+    srBmp.close?.();
+    const outImg = oCtx.getImageData(0, 0, w, h);
+    const od = outImg.data;
+    for (let i = 3; i < od.length; i += 4) od[i] = srcData[i];
+    oCtx.putImageData(outImg, 0, 0);
+    return await oCanvas.convertToBlob({ type: 'image/png' });
+  } catch (_) {
+    return srBlob; // on any failure, keep the SR output unchanged
+  }
+}
+
 // SR (4x) then fit to exact target WIDTH. Returns PNG blob, or null on failure.
 export async function superResolveToWidth(blob, targetWidth) {
   try {
@@ -135,8 +188,11 @@ export async function superResolveToWidth(blob, targetWidth) {
     }
     const up = await superResolveBlob(input);
     if (!up) return null;
-    if (!targetWidth || targetWidth <= 0) return up;
-    return await _fitBlobToWidth(up, targetWidth);
+    // PHASE_CLIP_SIZE_ALPHA: restore the original alpha onto the opaque SR
+    // output (no-op for opaque sources) so transparency + soft shadows survive.
+    if (!targetWidth || targetWidth <= 0) return await _reapplySourceAlpha(up, blob);
+    const fitted = await _fitBlobToWidth(up, targetWidth);
+    return await _reapplySourceAlpha(fitted, blob);
   } catch (e) {
     console.log('[KICKCLIP-LOG] SR-to-width failed', e);
     return null;
