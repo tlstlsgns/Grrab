@@ -362,6 +362,101 @@ function _kcResolveClipLoadingUI({ kind = 'success', text = '' } = {}) {
 }
 // === END PHASE_CLIP_LOADING_UI ===
 
+// === PHASE_CLIP_CANCEL ===
+// Per-clip control for the top-frame LOCAL-hover clip path. Unlike the legacy
+// single-toast loading UI above (still used by the iframe / iframe-relay /
+// iframe-hover-propagation paths), each local clip owns an independent stacked
+// toast and a cancel token, so a later clip can cancel an earlier still-in-flight
+// one:
+//   cancel = clipboard write aborted (later clip's bytes win the clipboard)
+//          + optimistic card and Firestore save skipped
+//          + this clip's toast morphs "Clipping…" -> "Clip Canceled".
+// At most one clip is in-flight at a time (each new clip cancels the previous
+// unresolved one). A canceled clip's in-flight super-resolution keeps running;
+// its result is simply ignored.
+const KC_CLIP_CANCELED_TEXT = 'Clip Canceled';
+let _kcClipSeq = 0;
+let _kcInflightClip = null;
+
+function _kcClipCursorWait(on) {
+  try { if (document.body) document.body.style.cursor = on ? 'wait' : ''; } catch (_) {}
+}
+
+// Terminal transition for a clip control: 'success' | 'error' | 'canceled'.
+// No-op if already done, so a cancel cannot be overwritten by a later
+// success/error resolution (and a resolution cannot undo a cancel).
+function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = false } = {}) {
+  if (!ctrl || ctrl.done) return;
+  ctrl.done = true;
+  if (isCancel) {
+    ctrl.cancelled = true;
+    try { if (ctrl.abortReject) ctrl.abortReject(new Error('clip-canceled')); } catch (_) {}
+  }
+  try { if (ctrl.failsafe) clearTimeout(ctrl.failsafe); } catch (_) {}
+  ctrl.failsafe = null;
+  const finalText = text || (kind === 'success' ? KC_CLIP_DEFAULT_SUCCESS_TEXT : KC_CLIP_DEFAULT_ERROR_TEXT);
+  try { if (ctrl.toast) ctrl.toast.update({ kind, text: finalText }); } catch (_) {}
+  if (_kcInflightClip === ctrl) {
+    _kcInflightClip = null;
+    _kcClipCursorWait(false);
+  }
+}
+
+// Begin a new local clip: cancel any still-in-flight previous clip, then create
+// this clip's control with its own immediate loading toast (independent stack
+// entry). _kcInflightClip is set synchronously here so the gesture-time
+// performSyncClipboardWrite -> attachThumbnailPromiseToClipboardWrite can read it.
+function _kcBeginClipControl() {
+  if (_kcInflightClip && !_kcInflightClip.done) {
+    _kcFinishClipControl(_kcInflightClip, { kind: 'canceled', text: KC_CLIP_CANCELED_TEXT, isCancel: true });
+  }
+  const ctrl = { seq: ++_kcClipSeq, cancelled: false, done: false, abortReject: null, toast: null, failsafe: null };
+  try { ctrl.toast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT }); } catch (_) { ctrl.toast = null; }
+  ctrl.failsafe = setTimeout(() => {
+    _kcFinishClipControl(ctrl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
+  }, KC_CLIP_LOADING_FAILSAFE_MS);
+  _kcInflightClip = ctrl;
+  _kcClipCursorWait(true);
+  return ctrl;
+}
+// === END PHASE_CLIP_CANCEL ===
+
+// === PHASE_CLIP_BLOCK ===
+// Existing-clip-priority: while a clip is in-flight, NEW clips are blocked at the
+// gesture (never started — no clipboard write, no save, no card, no per-clip
+// toast) rather than canceling the in-flight clip. The per-clip cancel system
+// above is retained as infrastructure but stays dormant under this gate (the gate
+// prevents _kcBeginClipControl from ever seeing a still-in-flight previous clip).
+// A blocked clip is dropped, NOT queued: the in-flight clip finishing does not
+// start any waiting clip.
+//
+// Blocked attempts surface a SINGLE shared "wait" toast (not one per attempt).
+// Attempts within KC_CLIP_WAIT_TOAST_TTL_MS refresh that toast's dismiss timer
+// (residual time tracks the latest attempt) instead of stacking new toasts; the
+// TTL is kept just under the toast's visual duration so a refresh always lands on
+// a live toast and a lapsed one is replaced (never two at once).
+const KC_CLIP_WAIT_TEXT = 'Please wait, still working';
+const KC_CLIP_WAIT_TOAST_TTL_MS = 1500;
+let _kcWaitToast = null;
+let _kcWaitToastExpiry = 0;
+
+function _kcShowClipWaitToast() {
+  const now = Date.now();
+  try {
+    if (_kcWaitToast && now < _kcWaitToastExpiry) {
+      // Same toast still alive: refresh text + re-arm its dismiss timer.
+      _kcWaitToast.update({ kind: 'canceled', text: KC_CLIP_WAIT_TEXT });
+    } else {
+      // None alive (first block, or the previous one lapsed): replace any lingering
+      // toast with a fresh one so only a single wait toast is ever shown.
+      try { if (_kcWaitToast) _kcWaitToast.dismiss(); } catch (_) {}
+      _kcWaitToast = showCoreClipToast({ kind: 'canceled', text: KC_CLIP_WAIT_TEXT });
+    }
+  } catch (_) { _kcWaitToast = null; }
+  _kcWaitToastExpiry = now + KC_CLIP_WAIT_TOAST_TTL_MS;
+}
+// === END PHASE_CLIP_BLOCK ===
+
 // Waits for the browser to complete two paint frames.
 // Used to ensure DOM visibility changes are reflected on screen.
 function waitForRepaint() {
@@ -2683,10 +2778,21 @@ async function saveActiveCoreItem(request = {}) {
             // status_badge stays on its default "Press X to clip" text.
             if (clipboardResult?.success) {
               markCoreHighlightClipped();
-              const successText = 'Image clipped';
-              _kcResolveClipLoadingUI({ kind: 'success', text: successText }); // PHASE_CLIP_LOADING_UI
+              // PHASE_CLIP_CANCEL: local-hover clips carry a clipControl; resolve THAT
+              // clip's toast (no-op if it was already canceled by a later clip, so the
+              // toast stays "Clip Canceled"). Relay / other callers (no clipControl)
+              // keep the legacy single-toast resolution unchanged.
+              if (request?.clipControl) {
+                _kcFinishClipControl(request.clipControl, { kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT });
+              } else {
+                _kcResolveClipLoadingUI({ kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT }); // PHASE_CLIP_LOADING_UI
+              }
             } else {
-              _kcResolveClipLoadingUI({ kind: 'error', text: 'Clip failed' }); // PHASE_CLIP_LOADING_UI
+              if (request?.clipControl) {
+                _kcFinishClipControl(request.clipControl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT }); // PHASE_CLIP_CANCEL
+              } else {
+                _kcResolveClipLoadingUI({ kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT }); // PHASE_CLIP_LOADING_UI
+              }
             }
             // === END PHASE_CLIP_TOAST ===
           } catch (_) { /* silent */ }
@@ -2877,6 +2983,16 @@ async function saveActiveCoreItem(request = {}) {
       ...(meta?.category      ? { category:       meta.category }      : {}),
       ...(meta?.platform      ? { platform:        meta.platform }      : {}),
     };
+
+    // === PHASE_CLIP_CANCEL ===
+    // Superseded by a later clip while still clipping: skip the optimistic card
+    // and the Firestore save entirely. The clipboard write was already aborted
+    // and this clip's toast already shows "Clip Canceled". (request.clipControl is
+    // only present on the local-hover path; relay/other callers are unaffected.)
+    if (request?.clipControl?.cancelled) {
+      return { success: false, canceled: true };
+    }
+    // === END PHASE_CLIP_CANCEL ===
 
     // Optimistic UI: notify Side Panel to show a temporary card immediately
     // Skip if running inside an iframe — only the top-level frame should create optimistic cards
@@ -3118,14 +3234,32 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
   const thumbnailPromise = Promise.resolve(blobPromise)
     .then((blob) => blobToThumbnailDataUrl(blob))
     .catch(() => null);
-  const finalPromise = Promise.resolve(blobPromise)
+  // adjustedBlobPromise: size-adjusted clip bytes for the SAVE path. Always
+  // resolves (never rejects on cancel); the save path itself gates on
+  // request.clipControl.cancelled.
+  const adjustedBlobPromise = Promise.resolve(blobPromise)
     .then((b) => (b ? maybeUpscaleClip(b) : b)); // PHASE_CLIP_SIZE
+  // === PHASE_CLIP_CANCEL ===
+  // Clipboard content races a cancel signal. _kcInflightClip is set synchronously
+  // at the gesture (in _kcBeginClipControl, just before performSyncClipboardWrite),
+  // so here it is THIS clip's control. If a later clip supersedes this one,
+  // ctrl.abortReject() rejects the ClipboardItem promise, aborting this write so the
+  // later clip's clipboard content is preserved (last-clip-wins) regardless of how
+  // Chrome orders concurrent writes. The non-racing adjustedBlobPromise above is
+  // still exposed for the save path. Guard !done so a settled prior control is ignored.
+  let clipboardItemPromise = adjustedBlobPromise;
+  const _clipCtrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+  if (_clipCtrl) {
+    const abortPromise = new Promise((_, reject) => { _clipCtrl.abortReject = reject; });
+    clipboardItemPromise = Promise.race([adjustedBlobPromise, abortPromise]);
+  }
+  // === END PHASE_CLIP_CANCEL ===
   return navigator.clipboard
-    .write([new ClipboardItem({ 'image/png': finalPromise })])
-    // PHASE_CLIP_IMAGE_STORAGE: expose the adjusted blob so the save path can
-    // upload it. Awaiting finalPromise again is safe (same resolved value).
-    .then(() => ({ success: true, thumbnailPromise, dataUrlPromise, adjustedBlobPromise: finalPromise }))
-    .catch(() => ({ success: false, thumbnailPromise, dataUrlPromise, adjustedBlobPromise: finalPromise }));
+    .write([new ClipboardItem({ 'image/png': clipboardItemPromise })])
+    // PHASE_CLIP_IMAGE_STORAGE: expose the (non-racing) adjusted blob so the save
+    // path can upload it even if the clipboard promise was aborted by a cancel.
+    .then(() => ({ success: true, thumbnailPromise, dataUrlPromise, adjustedBlobPromise }))
+    .catch(() => ({ success: false, thumbnailPromise, dataUrlPromise, adjustedBlobPromise }));
 }
 // === END PHASE_IMAGE_URL_PIPELINE ===
 
@@ -4255,7 +4389,26 @@ function schedulePreScanScrollDebounced() {
     // Active — claim the event and trigger clip.
     event.preventDefault();
     event.stopPropagation();
-    _kcStartClipLoadingUI(); // PHASE_CLIP_LOADING_UI
+    // === PHASE_CLIP_BLOCK ===
+    // Existing-clip-priority: if a clip is already in-flight, block this new clip
+    // entirely (claim the shortcut, show/refresh the shared wait toast, do NOT
+    // start a clip). Dropped, not queued. _kcInflightClip is set only for the
+    // local-hover path, which is the path that can be slow (downscale/SR).
+    if (_kcInflightClip && !_kcInflightClip.done) {
+      _kcShowClipWaitToast();
+      return;
+    }
+    // === END PHASE_CLIP_BLOCK ===
+    // === PHASE_CLIP_CANCEL ===
+    // Local-hover clips use the cancelable per-clip control; the iframe-hover-
+    // propagation path keeps the legacy single-toast loading UI unchanged.
+    let clipCtrl = null;
+    if (hasLocalHover) {
+      clipCtrl = _kcBeginClipControl();
+    } else {
+      _kcStartClipLoadingUI(); // PHASE_CLIP_LOADING_UI (iframe-hover-propagation)
+    }
+    // === END PHASE_CLIP_CANCEL ===
     // === PHASE_CLIPBOARD_SYNC_WRITE ===
     // Call clipboard write in the sync turn (before any await) to
     // preserve user activation. Blob fetch/encode runs async via
@@ -4287,6 +4440,7 @@ function schedulePreScanScrollDebounced() {
           action: 'save-url',
           skipClipboard: true,
           clipboardPromise,
+          clipControl: clipCtrl, // PHASE_CLIP_CANCEL
         });
       } else {
         // === PHASE_IFRAME_HOVER_PROPAGATION ===
