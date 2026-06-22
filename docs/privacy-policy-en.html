@@ -60,7 +60,7 @@
 
 <p class="meta">
   <strong>Effective Date:</strong> May 11, 2026<br>
-  <strong>Last Updated:</strong> June 8, 2026
+  <strong>Last Updated:</strong> June 22, 2026
 </p>
 
 <div class="disclosure-box">
@@ -137,13 +137,22 @@
   <li><strong>Retention:</strong> These fetches are transient — the URL is used to retrieve the image or follow the redirect and is <strong>not</strong> stored as a separate record. (URLs of items you explicitly save are stored as described in Section 2.2.)</li>
 </ul>
 
+<h3>2.7 Clipped Image (size adjustment, on-device upscaling, and storage)</h3>
+<ul>
+  <li><strong>What:</strong> The image you clip, adjusted to your chosen clip size. If the source image is larger than your clip size it is downscaled; if it is smaller, it is enlarged using a super-resolution machine-learning model. This produced image is stored so SeaClip can show it as the saved item's preview in the side panel.</li>
+  <li><strong>On-device upscaling:</strong> The upscaling runs <strong>entirely on your device</strong> using a model bundled with the extension (executed in a background offscreen document via WebAssembly). The image is <strong>not</strong> sent to any external or third-party AI service for upscaling.</li>
+  <li><strong>When:</strong> Only when you save an image clip while signed in.</li>
+  <li><strong>Where stored:</strong> The resulting clip image is uploaded to <strong>Firebase Storage (Google Cloud)</strong> under your user account, so it can serve as the item's preview — independently of, and in addition to, any local-folder or Google Drive copy you chose as your save destination.</li>
+  <li><strong>Why:</strong> So your saved item shows a reliable preview at your chosen size even when the original source image is later unreachable.</li>
+</ul>
+
 <h2>3. What We Don't Collect</h2>
 <ul>
   <li>We do <strong>NOT</strong> keep a log of your browsing history or build a record of the pages you visit.</li>
   <li>We do <strong>NOT</strong> collect or store data from pages you never interact with, and we do not save items you did not choose to save.</li>
   <li>We do <strong>NOT</strong> use third-party analytics, advertising SDKs, or trackers. The only usage signal SeaClip collects is the anonymous, identifier-free clip count described in Section 2.5.</li>
   <li>We do <strong>NOT</strong> sell or share your data with advertisers or data brokers.</li>
-  <li>We do <strong>NOT</strong> send your saved items or page content to any AI service for processing.</li>
+  <li>We do <strong>NOT</strong> send your saved items or page content to any external or third-party AI service for processing. (Image upscaling is performed by a model bundled with the extension that runs entirely on your device — see Section 2.7.)</li>
   <li>We do <strong>NOT</strong> collect sensitive content (e.g., email contents, passwords, financial data, health data).</li>
   <li>The thumbnail stored with a saved item is the preview your browser already rendered on the source page. To <em>display</em> previews reliably, SeaClip may additionally fetch a saved item's image through its own image proxy (see Section 2.6); such fetches are transient and are not retained beyond the saved item's stored fields.</li>
 </ul>
@@ -159,6 +168,8 @@
   <li><code>sidePanel</code> — To display SeaClip's main UI in Chrome's side panel, where you browse saved items by category.</li>
   <li><code>identity</code> — For Google sign-in via OAuth 2.0 to identify your account and request access to your Drive (only with <code>drive.file</code> scope).</li>
   <li><code>clipboardWrite</code> — To copy a clipped image to your clipboard: the save shortcut copies the image you clip, and the side panel's Copy button copies a saved item's image, so you can paste it directly into another app. SeaClip writes only image data to the clipboard; the copy happens locally and is not transmitted.</li>
+  <li><code>offscreen</code> — To run SeaClip's on-device image upscaling (super-resolution) in a background offscreen document, so that when a clipped image is smaller than your chosen clip size it can be enlarged locally without freezing the page. The image is processed entirely on your device (see Section 2.7).</li>
+  <li><code>notifications</code> — To show a brief system notification confirming a clip finished saving when you have navigated away from the page during the clip (for example, while an image is being upscaled), so you still get confirmation when the in-page message isn't visible. These notifications contain only a generic status message and no personal data.</li>
 </ul>
 
 <h3>Host Permissions (<code>&lt;all_urls&gt;</code>)</h3>
@@ -177,10 +188,10 @@
 
 <p>SeaClip shares your data only with the following service providers, strictly to operate the extension's documented functionality:</p>
 
-<h3>5.1 Google (Firebase — Authentication and Firestore)</h3>
+<h3>5.1 Google (Firebase — Authentication, Firestore, and Storage)</h3>
 <ul>
-  <li><strong>What is shared:</strong> Your account information and saved item metadata.</li>
-  <li><strong>Purpose:</strong> Backend infrastructure that hosts your account and saved items.</li>
+  <li><strong>What is shared:</strong> Your account information, saved item metadata, and the clip image stored for previews (Section 2.7).</li>
+  <li><strong>Purpose:</strong> Backend infrastructure that hosts your account, saved items, and their preview images.</li>
   <li><strong>Also processed here:</strong> The anonymous clip count (Section 2.5) and the on-demand image/link fetches (Section 2.6) are handled by SeaClip's own backend running on Google Cloud. The image/link fetches are transient and are not stored; the clip count is stored only as aggregate totals with no identifier.</li>
   <li><strong>Subject to:</strong> <a href="https://policies.google.com/privacy">Google's privacy policy</a> and Google Cloud Platform Terms of Service.</li>
 </ul>
