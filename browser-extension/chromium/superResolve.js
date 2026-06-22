@@ -101,7 +101,9 @@ export async function superResolveBlob(blob) {
     const { tensor } = _bitmapToInputTensor(bitmap);
     bitmap.close?.();
     const res = await session.run({ [session.inputNames[0]]: tensor });
-    return await _outputTensorToBlob(res[session.outputNames[0]]);
+    const outTensor = res[session.outputNames[0]];
+    const outBlob = await _outputTensorToBlob(outTensor);
+    return outBlob;
   } catch (e) {
     console.log('[KICKCLIP-LOG] SR failed', e);
     return null;
@@ -190,9 +192,14 @@ export async function superResolveToWidth(blob, targetWidth) {
     if (!up) return null;
     // PHASE_CLIP_SIZE_ALPHA: restore the original alpha onto the opaque SR
     // output (no-op for opaque sources) so transparency + soft shadows survive.
-    if (!targetWidth || targetWidth <= 0) return await _reapplySourceAlpha(up, blob);
-    const fitted = await _fitBlobToWidth(up, targetWidth);
-    return await _reapplySourceAlpha(fitted, blob);
+    let _result;
+    if (!targetWidth || targetWidth <= 0) {
+      _result = await _reapplySourceAlpha(up, blob);
+    } else {
+      const fitted = await _fitBlobToWidth(up, targetWidth);
+      _result = await _reapplySourceAlpha(fitted, blob);
+    }
+    return _result;
   } catch (e) {
     console.log('[KICKCLIP-LOG] SR-to-width failed', e);
     return null;

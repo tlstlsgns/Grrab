@@ -165,13 +165,12 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 // === END REMOVED ===
 
 // === PHASE_OFFSCREEN ===
-// Shared offscreen-document infrastructure. Currently used by SR (clip-size
-// ML upscaling); kept dev-only because offscreen + wasm-unsafe-eval require
-// permissions absent from the prod build.
+// Shared offscreen-document infrastructure, used by SR (clip-size ML upscaling).
+// Enabled in both dev and prod: the prod manifest now grants the "offscreen"
+// permission and 'wasm-unsafe-eval' CSP needed to run the bundled ONNX WASM.
 let _offscreenCreating = null;
 
 async function hasOffscreen() {
-  if (!KC_IS_DEV) return false;
   try {
     if (chrome.offscreen.hasDocument) return await chrome.offscreen.hasDocument();
   } catch (_) {}
@@ -183,7 +182,6 @@ async function hasOffscreen() {
 }
 
 async function ensureOffscreen() {
-  if (!KC_IS_DEV) return;
   if (await hasOffscreen()) return;
   if (_offscreenCreating) return _offscreenCreating;
   _offscreenCreating = chrome.offscreen.createDocument({
@@ -212,6 +210,68 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       });
     } catch (e) {}
+    return false;
+  }
+
+  if (request.action === 'clip-os-notify') {
+    // OS-level notification for clips that completed while the user was away from
+    // the page (different tab / browser unfocused). The content script decides
+    // WHEN to send this; here we just surface it. Fire-and-forget, no response.
+    try {
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
+        title: request.title || 'SeaClip',
+        message: request.message || 'Image clipped',
+        priority: 0,
+        silent: true,
+      }, () => { if (chrome.runtime.lastError) { /* OS notifications off — ignore */ } });
+    } catch (_) {}
+    return false;
+  }
+
+  if (request.action === 'clip-os-progress-start') {
+    // Loading notification (created when the user left mid-clip). type:'basic' —
+    // macOS Chrome's native notifications don't reliably render type:'progress',
+    // so we morph via the message text instead, which works on all platforms.
+    // clip-os-progress-done replaces this same id with the done state.
+    try {
+      chrome.notifications.create(request.id, {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
+        title: request.title || 'SeaClip',
+        message: request.message || 'Clipping…',
+        priority: 0,
+        silent: true,
+      }, () => { if (chrome.runtime.lastError) console.log('[KICKCLIP-LOG] os-progress-start error', chrome.runtime.lastError.message); });
+    } catch (_) {}
+    return false;
+  }
+
+  if (request.action === 'clip-os-progress-done') {
+    // Clear the loading "Clipping…" notification, then show completion as a FRESH
+    // notification (NO id arg → auto-generated id). On macOS, re-creating with the
+    // SAME id after the loading banner auto-dismissed does NOT re-pop a banner, so
+    // the user never sees completion; a brand-new id guarantees a new banner
+    // regardless of the loading banner's lifetime.
+    try {
+      if (request.id) chrome.notifications.clear(request.id, () => { if (chrome.runtime.lastError) {} });
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
+        title: 'SeaClip',
+        message: request.message || 'Image clipped',
+        priority: 0,
+        silent: true,
+      }, () => { if (chrome.runtime.lastError) console.log('[KICKCLIP-LOG] os-progress-done error', chrome.runtime.lastError.message); });
+    } catch (_) {}
+    return false;
+  }
+
+  if (request.action === 'clip-os-clear') {
+    try {
+      chrome.notifications.clear(request.id, () => { if (chrome.runtime.lastError) {} });
+    } catch (_) {}
     return false;
   }
 

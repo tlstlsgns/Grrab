@@ -396,6 +396,42 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
   ctrl.failsafe = null;
   const finalText = text || (kind === 'success' ? KC_CLIP_DEFAULT_SUCCESS_TEXT : KC_CLIP_DEFAULT_ERROR_TEXT);
   try { if (ctrl.toast) ctrl.toast.update({ kind, text: finalText }); } catch (_) {}
+  // === PHASE_CLIP_OS_NOTIFY ===
+  // Tear down the away-detection listeners armed in _kcBeginClipControl.
+  try {
+    if (ctrl._onClipLeave) {
+      document.removeEventListener('visibilitychange', ctrl._onClipLeave);
+      window.removeEventListener('blur', ctrl._onClipLeave);
+    }
+  } catch (_) {}
+  try {
+    const away = (document.visibilityState === 'hidden') ||
+      (typeof document.hasFocus === 'function' && !document.hasFocus());
+    if (ctrl.osLoadingShown && ctrl.osNotifId) {
+      // A loading "Clipping…" OS notification is already up (user left mid-clip).
+      if (kind === 'success' && away) {
+        // Still away → morph it to the completed state (progress 100 / title % on macOS).
+        chrome.runtime.sendMessage(
+          { action: 'clip-os-progress-done', id: ctrl.osNotifId, message: finalText },
+          () => { if (chrome.runtime.lastError) {} }
+        );
+      } else {
+        // Came back (sees the in-page toast) or non-success → just clear it.
+        chrome.runtime.sendMessage(
+          { action: 'clip-os-clear', id: ctrl.osNotifId },
+          () => { if (chrome.runtime.lastError) {} }
+        );
+      }
+    } else if (kind === 'success' && away) {
+      // No loading notif shown (clip finished before any leave), but away at
+      // completion → surface a terminal notification (prior behavior).
+      chrome.runtime.sendMessage(
+        { action: 'clip-os-notify', title: 'SeaClip', message: finalText },
+        () => { if (chrome.runtime.lastError) {} }
+      );
+    }
+  } catch (_) { /* never let notification surfacing break the clip flow */ }
+  // === END PHASE_CLIP_OS_NOTIFY ===
   if (_kcInflightClip === ctrl) {
     _kcInflightClip = null;
     _kcClipCursorWait(false);
@@ -415,6 +451,32 @@ function _kcBeginClipControl() {
   ctrl.failsafe = setTimeout(() => {
     _kcFinishClipControl(ctrl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
   }, KC_CLIP_LOADING_FAILSAFE_MS);
+  // === PHASE_CLIP_OS_NOTIFY ===
+  // If the user navigates away (other tab / browser unfocused) WHILE this clip is
+  // still in-flight, the in-page loading toast is invisible — so surface an OS
+  // "progress" notification ("Clipping…") that _kcFinishClipControl later morphs to
+  // the terminal state. Fires at most once per clip, only on leaving.
+  ctrl.osNotifId = `seaclip-clip-${ctrl.seq}`;
+  ctrl.osLoadingShown = false;
+  const _onClipLeave = () => {
+    if (ctrl.done || ctrl.osLoadingShown) return;
+    const away = (document.visibilityState === 'hidden') ||
+      (typeof document.hasFocus === 'function' && !document.hasFocus());
+    if (!away) return;
+    ctrl.osLoadingShown = true;
+    try {
+      chrome.runtime.sendMessage(
+        { action: 'clip-os-progress-start', id: ctrl.osNotifId, title: 'SeaClip', message: KC_CLIP_LOADING_TEXT },
+        () => { if (chrome.runtime.lastError) { /* SW asleep / notifications off — ignore */ } }
+      );
+    } catch (_) {}
+  };
+  ctrl._onClipLeave = _onClipLeave;
+  try {
+    document.addEventListener('visibilitychange', _onClipLeave);
+    window.addEventListener('blur', _onClipLeave);
+  } catch (_) {}
+  // === END PHASE_CLIP_OS_NOTIFY ===
   _kcInflightClip = ctrl;
   _kcClipCursorWait(true);
   return ctrl;
