@@ -294,6 +294,11 @@ const KC_CLIP_LOADING_FAILSAFE_MS = 15000;
 const KC_CLIP_LOADING_TEXT = 'Clipping…';
 const KC_CLIP_DEFAULT_SUCCESS_TEXT = 'Image clipped';
 const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
+// PHASE_CLIP_PROGRESS_TEXT: path-aware in-progress morph targets + SR-fallback
+// terminal text. KC_CLIP_LOADING_TEXT above is intentionally unchanged.
+const KC_CLIP_UPSCALING_TEXT = 'Upscaling image…';
+const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
+const KC_CLIP_SR_FALLBACK_TEXT = 'Upscaling failed — original image clipped';
 let _kcClipLoadingToast = null;
 let _kcClipLoadingDeferTimer = null;
 let _kcClipLoadingFailsafeTimer = null;
@@ -407,9 +412,13 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
   try {
     const away = (document.visibilityState === 'hidden') ||
       (typeof document.hasFocus === 'function' && !document.hasFocus());
+    // PHASE_CLIP_PROGRESS_TEXT: treat an SR-fallback terminal (gray 'canceled' kind but
+    // a real clip of the original image) like a completed clip for the away path, so an
+    // away user still gets a completion banner carrying the fallback text.
+    const _terminalDone = (kind === 'success') || !!ctrl._srFallback;
     if (ctrl.osLoadingShown && ctrl.osNotifId) {
       // A loading "Clipping…" OS notification is already up (user left mid-clip).
-      if (kind === 'success' && away) {
+      if (_terminalDone && away) {
         // Still away → morph it to the completed state (progress 100 / title % on macOS).
         chrome.runtime.sendMessage(
           { action: 'clip-os-progress-done', id: ctrl.osNotifId, message: finalText },
@@ -422,7 +431,7 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
           () => { if (chrome.runtime.lastError) {} }
         );
       }
-    } else if (kind === 'success' && away) {
+    } else if (_terminalDone && away) {
       // No loading notif shown (clip finished before any leave), but away at
       // completion → surface a terminal notification (prior behavior).
       chrome.runtime.sendMessage(
@@ -2845,7 +2854,14 @@ async function saveActiveCoreItem(request = {}) {
               // toast stays "Clip Canceled"). Relay / other callers (no clipControl)
               // keep the legacy single-toast resolution unchanged.
               if (request?.clipControl) {
-                _kcFinishClipControl(request.clipControl, { kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT });
+                // PHASE_CLIP_PROGRESS_TEXT: SR upscaling attempted but fell back to the
+                // original image (timeout/failure) -> neutral 'canceled' VISUAL kind only;
+                // ctrl.cancelled stays false so the original image still saves.
+                if (request.clipControl._srFallback) {
+                  _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_FALLBACK_TEXT });
+                } else {
+                  _kcFinishClipControl(request.clipControl, { kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT });
+                }
               } else {
                 _kcResolveClipLoadingUI({ kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT }); // PHASE_CLIP_LOADING_UI
               }
@@ -3260,7 +3276,20 @@ async function _kcDownscaleClipBlobToWidth(blob, targetWidth) {
   }
 }
 
+function _kcMorphClipLoadingText(text) { // PHASE_CLIP_PROGRESS_TEXT
+  try {
+    const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+    if (ctrl && ctrl.toast) ctrl.toast.update({ kind: 'loading', text });
+  } catch (_) {}
+}
+function _kcMarkSrFallback() { // PHASE_CLIP_PROGRESS_TEXT
+  try {
+    const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+    if (ctrl) ctrl._srFallback = true;
+  } catch (_) {}
+}
 async function maybeUpscaleClip(blob) {
+  let _srAttempted = false; // PHASE_CLIP_PROGRESS_TEXT
   try {
     if (!blob || !_clipMaxDim || _clipMaxDim <= 0) return blob;
     const bitmap = await createImageBitmap(blob);
@@ -3268,11 +3297,14 @@ async function maybeUpscaleClip(blob) {
     bitmap.close?.();
     if (srcW === _clipMaxDim) return blob;
     if (srcW > _clipMaxDim) {
+      _kcMorphClipLoadingText(KC_CLIP_RESIZING_TEXT); // PHASE_CLIP_PROGRESS_TEXT
       return await _kcDownscaleClipBlobToWidth(blob, _clipMaxDim);
     }
     // srcW < target: SR upscale path (offscreen). Timeout sized for the worst
     // observed case (cold start + 600px input on multi-thread wasm ≈ 5–6s)
     // with margin. On failure or timeout we return the original blob (no blur).
+    _srAttempted = true; // PHASE_CLIP_PROGRESS_TEXT
+    _kcMorphClipLoadingText(KC_CLIP_UPSCALING_TEXT); // PHASE_CLIP_PROGRESS_TEXT
     const dataUrl = await _ceBlobToDataURL(blob);
     const ask = chrome.runtime.sendMessage({ action: 'sr-upscale', dataUrl, targetWidth: _clipMaxDim });
     const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), 10000));
@@ -3280,8 +3312,10 @@ async function maybeUpscaleClip(blob) {
     if (res && res.ok && res.dataUrl) {
       return await (await fetch(res.dataUrl)).blob();
     }
+    _kcMarkSrFallback(); // PHASE_CLIP_PROGRESS_TEXT: SR timed out / failed -> original clipped
     return blob;
   } catch (_) {
+    if (_srAttempted) _kcMarkSrFallback(); // PHASE_CLIP_PROGRESS_TEXT
     return blob;
   }
 }
