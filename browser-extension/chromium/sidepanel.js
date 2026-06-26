@@ -594,6 +594,7 @@ let _sp_recording = false;
 let _sp_priorShortcut = null;
 let _sp_keydownListener = null;
 let _sp_errorTimer = null;
+let _sp_outsideListener = null; // PHASE_SHORTCUT_RECORDER_OUTSIDE: cancels recording on outside click
 
 function sp_renderChip(shortcut) {
   if (!sp_shortcutBtn_v2) return;
@@ -612,16 +613,20 @@ function sp_setRecordingState(on) {
   }
 }
 
-function sp_showError(msg) {
-  if (!sp_shortcutBtn_v2 || !sp_shortcutError) return;
-  sp_shortcutError.textContent = msg;
-  sp_shortcutError.hidden = false;
-  sp_shortcutBtn_v2.classList.add('error');
+// PHASE_SHORTCUT_RECORDER_INLINE_ERR: show the warning in the button label itself (no separate
+// alert). The button turns red (.error) with the message; after 1500ms it clears and, if still
+// recording, reverts to the "Press a key…" prompt.
+function sp_clearError() {
   clearTimeout(_sp_errorTimer);
-  _sp_errorTimer = setTimeout(() => {
-    sp_shortcutError.hidden = true;
-    sp_shortcutBtn_v2.classList.remove('error');
-  }, 1500);
+  _sp_errorTimer = null;
+  if (sp_shortcutBtn_v2) sp_shortcutBtn_v2.classList.remove('error');
+}
+function sp_showError(msg) {
+  // PHASE_SHORTCUT_RECORDER_INLINE_ERR: the warning persists in the button until the user acts
+  // (another key, a valid shortcut, or cancel) — it does NOT auto-revert on a timer.
+  if (!sp_shortcutBtn_v2) return;
+  sp_shortcutBtn_v2.textContent = msg;
+  sp_shortcutBtn_v2.classList.add('error');
 }
 
 function sp_isModifierOnly(event) {
@@ -662,7 +667,7 @@ function sp_startRecording() {
       };
       // Validate: at least one modifier required.
       if (!candidate.metaKey && !candidate.ctrlKey) {
-        sp_showError('Modifier required (⌘ or Ctrl)');
+        sp_showError('⌘ or Ctrl + key');
         return;
       }
       // Validate: not forbidden.
@@ -683,6 +688,16 @@ function sp_startRecording() {
       });
     };
     document.addEventListener('keydown', _sp_keydownListener, true);
+
+    // PHASE_SHORTCUT_RECORDER_OUTSIDE: a pointerdown anywhere outside the shortcut/reset buttons
+    // cancels recording (sp_stopRecording clears the error and restores the prior shortcut).
+    _sp_outsideListener = (ev) => {
+      const t = ev.target;
+      if (sp_shortcutBtn_v2 && (t === sp_shortcutBtn_v2 || sp_shortcutBtn_v2.contains(t))) return;
+      if (sp_shortcutReset && (t === sp_shortcutReset || sp_shortcutReset.contains(t))) return;
+      sp_stopRecording(false);
+    };
+    document.addEventListener('pointerdown', _sp_outsideListener, true);
   });
 }
 
@@ -692,6 +707,11 @@ function sp_stopRecording(saved, savedShortcut) {
     document.removeEventListener('keydown', _sp_keydownListener, true);
     _sp_keydownListener = null;
   }
+  if (_sp_outsideListener) {
+    document.removeEventListener('pointerdown', _sp_outsideListener, true);
+    _sp_outsideListener = null;
+  }
+  sp_clearError(); // PHASE_SHORTCUT_RECORDER_INLINE_ERR: drop any pending error state on stop
   sp_setRecordingState(false);
   if (saved && savedShortcut) {
     // Render the freshly-saved shortcut directly. We can't rely on the
