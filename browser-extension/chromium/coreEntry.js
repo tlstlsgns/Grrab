@@ -313,8 +313,8 @@ function _kcClipLoadingClearTimers() {
 
 function _kcClipLoadingClearCursor() {
   try {
-    if (_kcClipLoadingCursorActive && document.body) {
-      document.body.style.cursor = '';
+    if (_kcClipLoadingCursorActive) {
+      _kcSetClipWaitCursor(false); // PHASE_CLIP_WAIT_CURSOR
     }
   } catch (_) {}
   _kcClipLoadingCursorActive = false;
@@ -323,8 +323,8 @@ function _kcClipLoadingClearCursor() {
 function _kcStartClipLoadingUI() {
   // Cursor wait: immediate, no threshold (cheap, no flash concern).
   try {
-    if (!_kcClipLoadingCursorActive && document.body) {
-      document.body.style.cursor = 'wait';
+    if (!_kcClipLoadingCursorActive) {
+      _kcSetClipWaitCursor(true); // PHASE_CLIP_WAIT_CURSOR
       _kcClipLoadingCursorActive = true;
     }
   } catch (_) {}
@@ -383,8 +383,32 @@ const KC_CLIP_CANCELED_TEXT = 'Clip Canceled';
 let _kcClipSeq = 0;
 let _kcInflightClip = null;
 
+// PHASE_CLIP_WAIT_CURSOR: page-level wait-cursor toggle. A body inline cursor is an
+// inherited value that page CSS on the hovered element overrides, so it was a silent
+// no-op in practice; inject a document stylesheet with !important on html + all
+// descendants and toggle a class instead. Residual: a keyboard-triggered clip leaves the
+// pointer stationary and browsers repaint the cursor only on pointer movement, so the
+// wait cursor surfaces once the pointer moves during the wait (the toast remains the
+// pointer-independent progress signal).
+function _kcEnsureClipWaitStyle() {
+  try {
+    if (document.getElementById('kickclip-clip-wait-style')) return;
+    const style = document.createElement('style');
+    style.id = 'kickclip-clip-wait-style';
+    style.textContent = 'html.kc-clip-wait, html.kc-clip-wait * { cursor: wait !important; }';
+    (document.head || document.documentElement).appendChild(style);
+  } catch (_) {}
+}
+function _kcSetClipWaitCursor(on) {
+  try {
+    const root = document.documentElement;
+    if (!root) return;
+    if (on) { _kcEnsureClipWaitStyle(); root.classList.add('kc-clip-wait'); }
+    else { root.classList.remove('kc-clip-wait'); }
+  } catch (_) {}
+}
 function _kcClipCursorWait(on) {
-  try { if (document.body) document.body.style.cursor = on ? 'wait' : ''; } catch (_) {}
+  _kcSetClipWaitCursor(!!on); // PHASE_CLIP_WAIT_CURSOR
 }
 
 // Terminal transition for a clip control: 'success' | 'error' | 'canceled'.
