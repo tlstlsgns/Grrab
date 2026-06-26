@@ -206,10 +206,6 @@ function buildOverlayStyleElement() {
 #kickclip-highlight-overlay.kickclip-default.kickclip-size-large {
   box-shadow: 0 6px 44px 7px rgba(188, 19, 254, 0.85);
 }
-#kickclip-highlight-overlay.kickclip-default.kickclip-clipped {
-  box-shadow: 0 0 0 2px rgba(188, 19, 254, 1);
-}
-
 /* ── StatusBadge colors ── */
 #kickclip-status-badge-core {
   background: ${BRAND.KEY_COLOR_HEX};
@@ -1219,20 +1215,9 @@ export function isCoreHighlightShown() {
 // === END PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
 
 // === PHASE_SHUTTER_REMOVAL ===
-// Apply the "clipped" visual state to the active core highlight overlay.
-// This is the thick purple ring that signals clipboard success. Called
-// from the badge IIFE in saveActiveCoreItem after navigator.clipboard.write
-// resolves successfully. Idempotent — re-applying does nothing.
-//
-// The class is cleared by the next hover cycle via showCoreHighlight's
-// existing class-reset logic. No explicit clear needed in normal flow.
-export function markCoreHighlightClipped() {
-  try {
-    const overlay = getKCShadowElement(PURPLE_OVERLAY_ID);
-    if (!overlay) return;
-    overlay.classList.add('kickclip-clipped');
-  } catch (e) {}
-}
+// Clip-completion ring removed. markCoreHighlightClipped is now an intentional no-op, kept
+// exported for the saveActiveCoreItem call site. Clip success feedback is the toast stack only.
+export function markCoreHighlightClipped() {}
 // === END PHASE_SHUTTER_REMOVAL ===
 
 function ensureGreenLayer() {
