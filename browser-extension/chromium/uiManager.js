@@ -1133,7 +1133,11 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
     const overlay = ensurePurpleOverlay();
 
     const isHidden = overlay.style.opacity !== '1';
-    if (isHidden) {
+    // PHASE_OVERLAY_RECT_INSTANT: place instantly (no slide) whenever the active item changes,
+    // not just when the overlay was hidden — avoids the brief old-rect→new-rect transition when
+    // re-activating a different CoreItem while the overlay is still visible.
+    const isNewItem = coreItem !== _activeCoreHighlightItem;
+    if (isHidden || isNewItem) {
       overlay.style.transition = 'none';
       overlay.style.top = `${r.top}px`;
       overlay.style.left = `${r.left}px`;
