@@ -439,7 +439,14 @@ export function setCoreStatusBadgeText(text, opts = {}) {
   } catch (_) {}
 }
 
+// PHASE_BADGE_HIDDEN: the status badge's only remaining role is the hover hint
+// ("Press X to clip"); clip feedback is the top-right toast stack + the purple clipped
+// ring. Suppress the badge on activation by gating the single show path. Flip to true to
+// restore. positionCoreStatusBadgeToOverlay / hideCoreStatusBadge / save-time restore all
+// no-op on the never-created badge element.
+const KC_STATUS_BADGE_ENABLED = false;
 export function showCoreStatusBadge(badgeState = 'default') {
+  if (!KC_STATUS_BADGE_ENABLED) return; // PHASE_BADGE_HIDDEN
   try {
     const el = ensureCoreBadge();
     el.textContent = _coreBadgeDefaultText;
