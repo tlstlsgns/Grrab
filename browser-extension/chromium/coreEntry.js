@@ -42,6 +42,7 @@ import {
   getKCShadowElement,
   getKCBadgeShadowElement,
   isCoreHighlightShown,
+  showShortcutTipImmediate,
 } from './uiManager.js';
 import {
   determineTypeDOverlayElement,
@@ -150,6 +151,12 @@ let _observedCoreItemElement = null;
 // === END PHASE_COREITEM_LIVE_METADATA ===
 
 const IS_IFRAME = window.self !== window.top;
+// PHASE_SHORTCUT_TIP_KEYHINT: true when the keydown is a lone modifier (Meta/Control/Shift/Alt),
+// which must be ignored so pressing the real shortcut's modifier does not trigger the tip.
+function _kcIsLoneModifierKey(event) {
+  const k = event && event.key;
+  return k === 'Meta' || k === 'Control' || k === 'Shift' || k === 'Alt' || k === 'AltGraph';
+}
 let _windowFocused = true; // false while the browser window is not focused
 let _sidePanelFocused = false; // true while the KickClip Side Panel has focus
 let _sidePanelOpen = false;
@@ -4461,7 +4468,18 @@ function schedulePreScanScrollDebounced() {
 
   document.addEventListener('keydown', async (event) => {
     if (!_activeShortcut) return;
-    if (!matchesShortcut(event, _activeShortcut)) return;
+    if (!matchesShortcut(event, _activeShortcut)) {
+      // === PHASE_SHORTCUT_TIP_KEYHINT ===
+      // Non-shortcut key over an active local-hover item: re-show the tip once (bypass the 5s
+      // window, do NOT reset it). Lone modifier keydowns are ignored.
+      if (!IS_IFRAME && !_kcIsLoneModifierKey(event) &&
+          state.activeCoreItem && state.activeHoverUrl &&
+          Number.isFinite(Number(lastPointerX)) && Number.isFinite(Number(lastPointerY))) {
+        showShortcutTipImmediate(state.activeCoreItem, Number(lastPointerX), Number(lastPointerY));
+      }
+      // === END PHASE_SHORTCUT_TIP_KEYHINT ===
+      return;
+    }
     // === PHASE_IFRAME_CLIP_REQUEST ===
     // Iframe-focused keydown: clipboard.write would be blocked by Permissions
     // Policy on most cross-origin iframes. Instead, delegate to top frame via

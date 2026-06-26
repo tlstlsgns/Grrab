@@ -950,6 +950,164 @@ function computeOverlayBorderRadius(sourceEl) {
  * Show CoreHighlight overlay on a CoreItem.
  * Handles position, opacity, class, and border animation.
  */
+// === PHASE_SHORTCUT_TIP ===
+// Cursor-following hint showing the clip shortcut (reuses _coreBadgeDefaultText) at the
+// pointer's bottom-right while a CoreItem is active. Lives in the badge shadow host; positioned
+// by a mousemove listener attached only while shown; hidden during a clip (html.kc-clip-wait).
+const KC_SHORTCUT_TIP_ID = 'kickclip-shortcut-tip';
+const KC_SHORTCUT_TIP_OFFSET_X = 18;
+const KC_SHORTCUT_TIP_OFFSET_Y = 20;
+let _kcShortcutTipMoveHandler = null;
+let _kcShortcutTipClipObserver = null;
+let _kcShortcutTipItem = null;      // PHASE_SHORTCUT_TIP_DWELL: CoreItem the current lifecycle belongs to
+let _kcShortcutTipHoldTimer = null; // 1s hold before the 2s fade-out
+let _kcShortcutTipArmed = false;    // true after show, until first positioning starts the lifecycle
+// PHASE_SHORTCUT_TIP_WINDOW: the tip only appears within 5s of the FIRST activation after a real
+// document load. Content scripts re-inject on full navigation, so this resets per page load (SPA
+// route changes keep the same window). After the window, new activations are blocked while an
+// in-flight fade finishes on its own.
+const KC_SHORTCUT_TIP_WINDOW_MS = 3000;
+let _kcShortcutTipWindowStart = 0;
+function _kcClearShortcutTipTimer() {
+  if (_kcShortcutTipHoldTimer) { clearTimeout(_kcShortcutTipHoldTimer); _kcShortcutTipHoldTimer = null; }
+}
+function ensureShortcutTip() {
+  let el = getKCBadgeShadowElement(KC_SHORTCUT_TIP_ID);
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = KC_SHORTCUT_TIP_ID;
+  el.style.cssText = `
+      position: fixed;
+      pointer-events: none;
+      z-index: 2147483647;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      color: #fff;
+      background: #CF00FF;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+      top: 0;
+      left: 0;
+    `;
+  getKCBadgeShadowRoot().appendChild(el);
+  try {
+    if (!_kcShortcutTipClipObserver && window.MutationObserver && document.documentElement) {
+      _kcShortcutTipClipObserver = new MutationObserver(() => {
+        if (document.documentElement.classList.contains('kc-clip-wait')) {
+          const t = getKCBadgeShadowElement(KC_SHORTCUT_TIP_ID);
+          if (t) t.style.opacity = '0';
+        }
+      });
+      _kcShortcutTipClipObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    }
+  } catch (_) {}
+  return el;
+}
+function _kcEscapeHtml(s) { // PHASE_SHORTCUT_TIP_MARKUP
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function _kcSetShortcutTipMarkup(el, text) {
+  // PHASE_SHORTCUT_TIP_MARKUP: render "{shortcut} to clip" with the shortcut bold. Derive the
+  // glyph from "Press {glyph} to clip" (drop the "Press " prefix); fall back to plain text.
+  try {
+    const idx = text.indexOf(' to clip');
+    if (idx > 0) {
+      const glyph = text.slice(0, idx).replace(/^Press\s+/, '');
+      el.innerHTML = '<strong>' + _kcEscapeHtml(glyph) + '</strong>' + _kcEscapeHtml(text.slice(idx));
+      return;
+    }
+  } catch (_) {}
+  el.textContent = text;
+}
+function _kcPositionShortcutTip(x, y) {
+  const el = getKCBadgeShadowElement(KC_SHORTCUT_TIP_ID);
+  if (!el) return;
+  if (document.documentElement && document.documentElement.classList.contains('kc-clip-wait')) {
+    el.style.opacity = '0';
+    return;
+  }
+  el.style.left = (x + KC_SHORTCUT_TIP_OFFSET_X) + 'px';
+  el.style.top = (y + KC_SHORTCUT_TIP_OFFSET_Y) + 'px';
+  // PHASE_SHORTCUT_TIP_DWELL: one-shot lifecycle — full opacity, hold 1s, then fade over 2s.
+  // The tip keeps following the cursor while it fades; movement does not re-show or reset it.
+  if (_kcShortcutTipArmed) {
+    _kcShortcutTipArmed = false;
+    el.style.transition = 'none';
+    el.style.opacity = '1';
+    _kcShortcutTipHoldTimer = setTimeout(() => {
+      try {
+        el.style.transition = 'opacity 0.5s linear';
+        el.style.opacity = '0';
+      } catch (_) {}
+    }, 750);
+  }
+}
+function showShortcutTip(coreItem) {
+  try {
+    // PHASE_SHORTCUT_TIP_WINDOW: start the 5s window on the first activation after load; once it
+    // has elapsed, block new tips (a tip already mid-fade finishes on its own timer).
+    const _kcNow = Date.now();
+    if (_kcShortcutTipWindowStart === 0) _kcShortcutTipWindowStart = _kcNow;
+    else if (_kcNow - _kcShortcutTipWindowStart > KC_SHORTCUT_TIP_WINDOW_MS) return;
+    // PHASE_SHORTCUT_TIP_DWELL: run the lifecycle once per item; ignore repeat calls for the
+    // same active item (scroll/rect refresh) so it doesn't restart mid-fade.
+    if (coreItem && coreItem === _kcShortcutTipItem) return;
+    _kcShortcutTipItem = coreItem || _kcShortcutTipItem;
+    const text = (typeof _coreBadgeDefaultText === 'string') ? _coreBadgeDefaultText : '';
+    if (!text) return;
+    const el = ensureShortcutTip();
+    _kcSetShortcutTipMarkup(el, text); // PHASE_SHORTCUT_TIP_MARKUP
+    _kcClearShortcutTipTimer();
+    el.style.transition = 'none';
+    el.style.opacity = '0'; // armed; positioned + faded starting on the next mousemove
+    _kcShortcutTipArmed = true;
+    if (!_kcShortcutTipMoveHandler) {
+      _kcShortcutTipMoveHandler = (e) => { try { _kcPositionShortcutTip(e.clientX, e.clientY); } catch (_) {} };
+      window.addEventListener('mousemove', _kcShortcutTipMoveHandler, true);
+    }
+  } catch (_) {}
+}
+export function showShortcutTipImmediate(coreItem, x, y) {
+  // PHASE_SHORTCUT_TIP_KEYHINT: show the tip once at (x,y) regardless of the 5s window and WITHOUT
+  // resetting it. The pointer is stationary on a key press, so position immediately and start the
+  // normal dwell lifecycle (reuses _kcPositionShortcutTip's armed-start path).
+  try {
+    const text = (typeof _coreBadgeDefaultText === 'string') ? _coreBadgeDefaultText : '';
+    if (!text) return;
+    if (document.documentElement && document.documentElement.classList.contains('kc-clip-wait')) return;
+    _kcShortcutTipItem = coreItem || _kcShortcutTipItem;
+    const el = ensureShortcutTip();
+    _kcSetShortcutTipMarkup(el, text);
+    _kcClearShortcutTipTimer();
+    el.style.transition = 'none';
+    el.style.opacity = '0';
+    _kcShortcutTipArmed = true;
+    if (!_kcShortcutTipMoveHandler) {
+      _kcShortcutTipMoveHandler = (e) => { try { _kcPositionShortcutTip(e.clientX, e.clientY); } catch (_) {} };
+      window.addEventListener('mousemove', _kcShortcutTipMoveHandler, true);
+    }
+    _kcPositionShortcutTip(x, y);
+  } catch (_) {}
+}
+function hideShortcutTip() {
+  try {
+    _kcClearShortcutTipTimer();
+    _kcShortcutTipArmed = false;
+    _kcShortcutTipItem = null;
+    if (_kcShortcutTipMoveHandler) {
+      window.removeEventListener('mousemove', _kcShortcutTipMoveHandler, true);
+      _kcShortcutTipMoveHandler = null;
+    }
+    const el = getKCBadgeShadowElement(KC_SHORTCUT_TIP_ID);
+    if (el) { el.style.transition = 'none'; el.style.opacity = '0'; }
+  } catch (_) {}
+}
+// === END PHASE_SHORTCUT_TIP ===
 export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null, forceRestart = false) {
   try {
     const r = rectOverride ?? (coreItem?.getBoundingClientRect?.());
@@ -1030,6 +1188,7 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
       }
     }
     _activeCoreHighlightItem = coreItem;
+    showShortcutTip(coreItem); // PHASE_SHORTCUT_TIP
     return true;
   } catch (e) {
     return false;
@@ -1043,6 +1202,7 @@ export function hideCoreHighlight() {
     overlay.classList.remove('kickclip-clipped');
     _activeCoreHighlightItem = null;
   }
+  hideShortcutTip(); // PHASE_SHORTCUT_TIP
   hideCoreStatusBadge();
 }
 
