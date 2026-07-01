@@ -1819,6 +1819,14 @@ function filterSignificantImages(root = document) {
     if (isInsideMapContainer(img)) continue;
     // === END PHASE26_MAP_FILTER ===
 
+    // === PHASE_YT_PREVIEW_FILTER ===
+    // YouTube overlays a hovered thumbnail with an inline <ytd-video-preview> player. Its media
+    // would register as a Type E ItemMap and intercept the thumbnail's Type D activation. Skip
+    // anything inside the preview so the underlying thumbnail (Type D) stays the active CoreItem.
+    // The tag is YouTube-specific, so no host gate is needed.
+    if (img.closest && img.closest('ytd-video-preview')) continue;
+    // === END PHASE_YT_PREVIEW_FILTER ===
+
     significantImages.push({ img, rect });
   }
 

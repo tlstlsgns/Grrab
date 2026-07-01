@@ -36,6 +36,8 @@ import {
   validateClipImageUrl,
   closestAnchorLike,
   getNavigableAnchorUrl,
+  extractYouTubeShortcodeFromUrl,
+  getYouTubeThumbnailUrl,
 } from './dataExtractor.js';
 import {
   getKCShadowRoot,
@@ -756,6 +758,25 @@ function withInstagramActiveHoverUrl(meta = {}, coreItem = null, cachedExtractio
 // touch UI, does NOT trigger Instagram async refetch. In iframe context,
 // re-broadcasts KC_IFRAME_HOVER with the fresh payload so top's
 // iframeHoverInfo stays current.
+// === PHASE_YT_THUMBNAIL_FROM_ID (helper) ===
+// A YouTube video thumbnail (Type E) may be hovered as the static thumbnail, an inline
+// <ytd-video-preview>, or a GIF <animated-thumbnail-overlay-view-model> — all under the same
+// watch/shorts anchor. Resolve coreEl's wrapping anchor; if it is a YouTube watch/shorts/embed URL,
+// return the canonical thumbnail image (hqdefault, guaranteed to exist), else null. Anchor-derived,
+// so a bare Type E img on a watch page never adopts the page's own thumbnail.
+function _kcYouTubeThumbnailImage(coreEl) {
+  try {
+    const anchor = closestAnchorLike(coreEl);
+    const anchorUrl = anchor ? getNavigableAnchorUrl(anchor) : '';
+    const id = anchorUrl ? extractYouTubeShortcodeFromUrl(anchorUrl) : '';
+    if (!id) return null;
+    const url = getYouTubeThumbnailUrl(id);
+    return url ? { url, width: 480, height: 360 } : null;
+  } catch (e) {
+    return null;
+  }
+}
+// === END PHASE_YT_THUMBNAIL_FROM_ID (helper) ===
 function refreshCoreItemMetadata(coreItem) {
   try {
     if (!coreItem || coreItem !== state.activeCoreItem) return;
@@ -841,6 +862,12 @@ function refreshCoreItemMetadata(coreItem) {
         typeEActiveUrl = String(window.location.href || '');
       }
       meta = { ...meta, activeHoverUrl: typeEActiveUrl };
+      // === PHASE_YT_THUMBNAIL_FROM_ID ===
+      try {
+        const _ytImg = _kcYouTubeThumbnailImage(coreItem);
+        if (_ytImg) meta = { ...meta, image: _ytImg };
+      } catch (e) {}
+      // === END PHASE_YT_THUMBNAIL_FROM_ID ===
     }
 
     if (!meta?.activeHoverUrl) return;
@@ -1408,6 +1435,28 @@ function isPointerInsideOverlay(overlayEl, x, y, fallbackTarget) {
 // overlay/badge hosts are pointer-events:none and never appear in the
 // stack.
 function findItemByImageWithPointerStack(target, x, y) {
+  // === PHASE_YT_PREVIEW_PIERCE ===
+  // YouTube's inline <ytd-video-preview> overlays the hovered thumbnail and takes the hit, but it
+  // is excluded from ItemMaps (itemDetector PHASE_YT_PREVIEW_FILTER), so resolution would miss and
+  // clear the active item. Treat the preview as transparent for hit-testing: when the target sits
+  // inside it, re-anchor to the topmost element under the pointer that is NOT inside the preview
+  // (the thumbnail beneath), so the underlying Type D thumbnail stays the active CoreItem.
+  try {
+    if (target && target.closest && target.closest('ytd-video-preview')) {
+      const _ppx = Number(x);
+      const _ppy = Number(y);
+      if (Number.isFinite(_ppx) && Number.isFinite(_ppy)) {
+        const _pStack = document.elementsFromPoint?.(_ppx, _ppy);
+        if (Array.isArray(_pStack)) {
+          const _under = _pStack.find(
+            (el) => el && el.nodeType === 1 && !(el.closest && el.closest('ytd-video-preview'))
+          );
+          if (_under) target = _under;
+        }
+      }
+    }
+  } catch (_) {}
+  // === END PHASE_YT_PREVIEW_PIERCE ===
   // PHASE_HOVER_ZERO_RECT_GUARD: itemMap entries can include 0×0 hidden IMGs
   // (e.g. Papago's preload___ SVG). They can never be a real hover target —
   // they'd ride elementsFromPoint into activeCoreItem and trigger ghost
@@ -1859,6 +1908,14 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
       typeEActiveUrl = String(window.location.href || '');
     }
     meta = { ...meta, activeHoverUrl: typeEActiveUrl };
+    // === PHASE_YT_THUMBNAIL_FROM_ID ===
+    // Anchor-derived YouTube thumbnail → clip the canonical thumbnail (stable) rather than
+    // whichever overlay (static / inline preview / GIF) is the active element.
+    try {
+      const _ytImg = _kcYouTubeThumbnailImage(coreItem);
+      if (_ytImg) meta = { ...meta, image: _ytImg };
+    } catch (e) {}
+    // === END PHASE_YT_THUMBNAIL_FROM_ID ===
     // === END PHASE_TYPE_E_SELF_NAVIGABLE ===
   }
   // === END PHASE27F_TYPE_E_OVERRIDES ===
@@ -2746,11 +2803,20 @@ async function saveActiveCoreItem(request = {}) {
             }
           }
         } else {
-          const freshResult = extractImageFromCoreItem(activeCoreEl);
-          const freshUrl = String(freshResult?.image?.url || '').trim();
-          if (freshUrl) {
-            freshImage = freshResult.image;
+          // === PHASE_YT_THUMBNAIL_FROM_ID (clip-time) ===
+          // Keep the anchor-derived canonical YouTube thumbnail instead of re-extracting the
+          // possibly-GIF-preview element, so the clip target stays the video's thumbnail.
+          const _ytImg = _kcYouTubeThumbnailImage(activeCoreEl);
+          if (_ytImg) {
+            freshImage = _ytImg;
+          } else {
+            const freshResult = extractImageFromCoreItem(activeCoreEl);
+            const freshUrl = String(freshResult?.image?.url || '').trim();
+            if (freshUrl) {
+              freshImage = freshResult.image;
+            }
           }
+          // === END PHASE_YT_THUMBNAIL_FROM_ID (clip-time) ===
         }
       }
     } catch (e) { /* keep cached image */ }
