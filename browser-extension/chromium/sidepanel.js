@@ -789,6 +789,9 @@ window.addEventListener('blur', () => {
 
 // === PHASE_CARD_MULTISELECT ===
 let _kcSelectedCardIds = new Set();
+// PHASE_CARD_MULTISELECT_KEYS: id of the anchor card (last plain / toggle click) that a Shift+click
+// range selection extends from. Cleared whenever the selection is cleared.
+let _kcSelectionAnchorId = null;
 
 function _kcGetCardSelectId(card) {
   if (!card) return '';
@@ -905,22 +908,53 @@ function attachBulkUploadHandler() {
 function _kcClearCardSelection() {
   if (_kcSelectedCardIds.size === 0) return;
   _kcSelectedCardIds.clear();
+  _kcSelectionAnchorId = null; // PHASE_CARD_MULTISELECT_KEYS
   _kcApplyCardSelectionClasses();
 }
 
-function _kcHandleCardSelectionClick(card, isShift) {
+// PHASE_CARD_MULTISELECT_KEYS: selection modes.
+//   'toggle' (Cmd/Ctrl+click): add/remove the clicked card; the clicked card becomes the anchor.
+//   'range'  (Shift+click): select every card between the anchor and the clicked card, inclusive
+//            (DOM order); the anchor is preserved so further Shift+clicks re-extend from it.
+//   'single' (plain click): select only the clicked card (or clear if it was the sole selection);
+//            the clicked card becomes the anchor.
+function _kcHandleCardSelectionClick(card, mode) {
   const id = _kcGetCardSelectId(card);
   if (!id) return;
-  if (isShift) {
+  if (mode === 'toggle') {
     if (_kcSelectedCardIds.has(id)) _kcSelectedCardIds.delete(id);
     else _kcSelectedCardIds.add(id);
-  } else if (_kcSelectedCardIds.size === 1 && _kcSelectedCardIds.has(id)) {
-    _kcSelectedCardIds.clear();
+    _kcSelectionAnchorId = id;
+  } else if (mode === 'range') {
+    _kcSelectCardRange(id);
   } else {
-    _kcSelectedCardIds.clear();
-    _kcSelectedCardIds.add(id);
+    if (_kcSelectedCardIds.size === 1 && _kcSelectedCardIds.has(id)) {
+      _kcSelectedCardIds.clear();
+      _kcSelectionAnchorId = null;
+    } else {
+      _kcSelectedCardIds.clear();
+      _kcSelectedCardIds.add(id);
+      _kcSelectionAnchorId = id;
+    }
   }
   _kcApplyCardSelectionClasses();
+}
+
+// PHASE_CARD_MULTISELECT_KEYS: select the contiguous run of cards between the anchor and the clicked
+// card (inclusive) in DOM order. With no valid anchor, falls back to selecting just the clicked card.
+// The anchor is left unchanged so consecutive Shift+clicks re-extend from it.
+function _kcSelectCardRange(clickedId) {
+  const ids = Array.from(document.querySelectorAll('.data-card'))
+    .map((c) => _kcGetCardSelectId(c))
+    .filter(Boolean);
+  const clickedIdx = ids.indexOf(clickedId);
+  if (clickedIdx < 0) return;
+  let anchorIdx = _kcSelectionAnchorId ? ids.indexOf(_kcSelectionAnchorId) : -1;
+  if (anchorIdx < 0) anchorIdx = clickedIdx;
+  const start = Math.min(anchorIdx, clickedIdx);
+  const end = Math.max(anchorIdx, clickedIdx);
+  _kcSelectedCardIds.clear();
+  for (let i = start; i <= end; i++) _kcSelectedCardIds.add(ids[i]);
 }
 
 // Collapse a .card-container to zero size + fade, then remove it from the DOM.
@@ -3135,21 +3169,32 @@ function attachCardClickHandlers() {
       if (clickedWrapper.classList.contains('delete-pending')) return;
 
       // === PHASE_CARD_MULTISELECT ===
-      if (e.shiftKey) {
-        _kcHandleCardSelectionClick(newCard, true);
+      // PHASE_CARD_MULTISELECT_KEYS: Cmd/Ctrl+click toggles one card; Shift+click selects the range
+      // from the anchor to the clicked card; a plain click single-selects (and falls through to the
+      // activate / open-URL behavior below).
+      if (e.metaKey || e.ctrlKey) {
+        _kcHandleCardSelectionClick(newCard, 'toggle');
         return;
       }
-      _kcHandleCardSelectionClick(newCard, false);
+      if (e.shiftKey) {
+        _kcHandleCardSelectionClick(newCard, 'range');
+        return;
+      }
+      // PHASE_CARD_MULTISELECT_KEYS: a plain click that collapses a multi-selection (size > 1)
+      // re-activates the clicked card as a fresh single selection — it must NOT be read as a
+      // "second click" that opens the URL, even when the clicked card is the still-active anchor.
+      const _wasMultiSelect = _kcSelectedCardIds.size > 1;
+      _kcHandleCardSelectionClick(newCard, 'single');
       // === END PHASE_CARD_MULTISELECT ===
 
       const url = newCard.dataset.url;
       if (!url) return;
 
-      if (clickedWrapper.classList.contains('active')) {
+      if (!_wasMultiSelect && clickedWrapper.classList.contains('active')) {
         // Second click on already-active card → open URL
         window.open(url, '_blank');
       } else {
-        // First click → activate this card, deactivate all others
+        // First click (or collapsing a multi-selection) → activate this card, deactivate others
         deactivateAllCards();
         clickedWrapper.classList.add('active');
       }
@@ -3193,7 +3238,9 @@ document.addEventListener('click', (e) => {
     deactivateAllCards();
   }
   // === PHASE_CARD_MULTISELECT ===
-  if (!e.target.closest('.data-card') && !e.target.closest('.sp-clear-bar')) {
+  // PHASE_CLEAR_BAR_EMPTY_DESELECT: exclude only the clear-bar's BUTTONS (not the whole bar) so a
+  // click on the bar's empty / non-button area still clears the card selection.
+  if (!e.target.closest('.data-card') && !e.target.closest('.sp-clear-bar button')) {
     _kcClearCardSelection();
   }
   // === END PHASE_CARD_MULTISELECT ===
