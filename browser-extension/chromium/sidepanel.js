@@ -287,19 +287,19 @@ async function _refreshDirContainer() {
       btn.classList.add('kc-dir-configured', 'kc-dir-drive-configured');
     } else if (destination && destination.type === 'downloads') {
       label.textContent = 'Downloads';
-      btn.title = '다운로드 폴더에 저장합니다';
+      btn.title = 'Saves to the Downloads folder';
       btn.classList.add('kc-dir-configured');
     } else if (destination && destination.type === 'local') {
       const handle = getPrimaryHandleForGesture();
       if (handle) {
         label.textContent = handle.name;
-        btn.title = `로컬 폴더: ${handle.name}`;
+        btn.title = `Local folder: ${handle.name}`;
         btn.classList.add('kc-dir-configured');
       } else {
         // Handle was cleared (permission revoked, folder deleted, etc).
         // Fall back to unconfigured display so user can re-pick.
-        label.textContent = '저장 위치 선택';
-        btn.title = '저장 폴더를 선택하세요';
+        label.textContent = 'Select save location';
+        btn.title = 'Choose a save folder';
         btn.classList.add('kc-dir-unconfigured');
       }
     } else {
@@ -313,11 +313,11 @@ async function _refreshDirContainer() {
         // hasn't run yet or failed, fall through here so the user sees
         // their existing folder rather than the implicit default.
         label.textContent = handle.name;
-        btn.title = `로컬 폴더: ${handle.name}`;
+        btn.title = `Local folder: ${handle.name}`;
         btn.classList.add('kc-dir-configured');
       } else {
-        label.textContent = 'Downloads (기본)';
-        btn.title = '저장 위치 미설정 — 다운로드 폴더에 저장합니다. 클릭하여 변경하세요.';
+        label.textContent = 'Downloads';
+        btn.title = 'No save location set — saving to Downloads. Click to change.';
         btn.classList.add('kc-dir-unconfigured');
       }
     }
@@ -328,10 +328,10 @@ function _markDirFolderMissing(folderName) {
   const btn = document.getElementById('kc-dir-folder-btn');
   const label = document.getElementById('kc-dir-folder-label');
   if (!btn || !label) return;
-  label.textContent = folderName ? `${folderName} (없음)` : '폴더 없음';
+  label.textContent = folderName ? `${folderName} (missing)` : 'No folder';
   btn.classList.remove('kc-dir-configured', 'kc-dir-unconfigured');
   btn.classList.add('kc-dir-missing');
-  btn.title = '폴더를 찾을 수 없습니다. 클릭하여 다시 선택하세요.';
+  btn.title = 'Folder not found. Click to choose again.';
 }
 
 async function handleOpenFolderSettings() {
@@ -347,13 +347,13 @@ async function handleOpenFolderSettings() {
   try {
     const winId = await openPickerWindow();
     if (!winId) {
-      showKcToast('폴더 설정 창을 열지 못했습니다.', 'error');
+      showKcToast('Unable to open folder settings.', 'error');
       return;
     }
     _kcPickerWindowId = winId;
     _kcPickerBusy = false;
   } catch (e) {
-    showKcToast(`폴더 설정 창 오류: ${e?.message || String(e)}`, 'error');
+    showKcToast(`Folder settings error: ${e?.message || String(e)}`, 'error');
   }
 }
 
@@ -1099,7 +1099,7 @@ function formatTimelineLabel(date) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   if (d.getTime() === today.getTime()) return 'Today';
   if (d.getTime() === yesterday.getTime()) return 'Yesterday';
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 /**
@@ -2456,10 +2456,10 @@ async function handleClipButtonClick(item, anchorBtn) {
     if (!png) throw new Error('clipboard image resolve failed');
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
     flashUploadMark(anchorBtn, true);
-    showKcToast('클립보드에 복사 완료', 'success');
+    showKcToast('Copied to clipboard', 'success');
   } catch (_) {
     flashUploadMark(anchorBtn, false);
-    showKcToast('이미지 복사에 실패했습니다', 'error');
+    showKcToast('Failed to copy image', 'error');
   } finally {
     if (anchorBtn) anchorBtn.disabled = false;
   }
@@ -2471,17 +2471,17 @@ function handleLocalUpload(item, anchorBtn) {
     .then((result) => {
       if (result.ok) {
         flashUploadMark(anchorBtn, true);
-        showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
+        showKcToast(`${formatToastFileName(result.filename)}\nSaved`, 'success');
       } else if (result.reason === 'cancelled') {
         flashUploadMark(anchorBtn, false);
       } else {
         flashUploadMark(anchorBtn, false);
-        showKcToast(`저장 실패: ${result.message || 'Unknown error'}`, 'error');
+        showKcToast(`Save failed: ${result.message || 'Unknown error'}`, 'error');
       }
     })
     .catch((e) => {
       flashUploadMark(anchorBtn, false);
-      showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
+      showKcToast(`Save failed: ${e?.message || String(e)}`, 'error');
     });
 }
 
@@ -2499,22 +2499,22 @@ function handleAutoPathUpload(item, anchorBtn, handle) {
         let msg;
         switch (result.reason) {
           case 'permission':
-            msg = '폴더 접근 권한이 거부되었습니다. 저장 폴더를 다시 선택하세요.';
+            msg = 'Folder access denied. Please choose the save folder again.';
             _markDirFolderMissing(handle?.name);
             break;
           case 'folder-missing':
-            msg = '폴더를 찾을 수 없습니다. 저장 폴더를 다시 선택하세요.';
+            msg = 'Folder not found. Please choose the save folder again.';
             _markDirFolderMissing(handle?.name);
             break;
           default:
-            msg = `저장 실패: ${result.message || 'Unknown error'}`;
+            msg = `Save failed: ${result.message || 'Unknown error'}`;
         }
         showKcToast(msg, 'error');
       }
     })
     .catch((e) => {
       flashUploadMark(anchorBtn, false);
-      showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
+      showKcToast(`Save failed: ${e?.message || String(e)}`, 'error');
     });
 }
 
@@ -2528,12 +2528,12 @@ function openUploadPopover(item, anchorBtn) {
  */
 async function handleAutoDriveUpload(item, destination, anchorBtn) {
   try {
-    showKcToast('Google Drive에 업로드 중...');
+    showKcToast('Uploading to Google Drive…');
 
     const payload = await buildDriveUploadPayload(item);
     if (!payload.ok) {
       flashUploadMark(anchorBtn, false);
-      showKcToast(`업로드 준비 실패: ${payload.message || 'Unknown'}`, 'error');
+      showKcToast(`Upload prep failed: ${payload.message || 'Unknown'}`, 'error');
       return;
     }
 
@@ -2550,10 +2550,10 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
       if (uploadResp?.reason === 'folder-missing') {
         await clearDestination();
         await _refreshDirContainer();
-        showKcToast('Drive 폴더를 찾을 수 없습니다. 다시 설정해주세요.', 'error');
+        showKcToast('Drive folder not found. Please set it again.', 'error');
         return;
       }
-      showKcToast(`업로드 실패: ${uploadResp?.message || 'Unknown'}`, 'error');
+      showKcToast(`Upload failed: ${uploadResp?.message || 'Unknown'}`, 'error');
       return;
     }
 
@@ -2571,7 +2571,7 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
     );
   } catch (e) {
     flashUploadMark(anchorBtn, false);
-    showKcToast(`업로드 실패: ${e?.message || String(e)}`, 'error');
+    showKcToast(`Upload failed: ${e?.message || String(e)}`, 'error');
   }
 }
 
@@ -2614,10 +2614,10 @@ async function handleUploadToDestination(item, anchorBtn) {
       const result = await saveItemToDownloads(item);
       if (result && result.ok) {
         flashUploadMark(anchorBtn, true);
-        showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
+        showKcToast(`${formatToastFileName(result.filename)}\nSaved`, 'success');
       } else {
         flashUploadMark(anchorBtn, false);
-        showKcToast(`저장 실패: ${result?.message || 'Unknown error'}`, 'error');
+        showKcToast(`Save failed: ${result?.message || 'Unknown error'}`, 'error');
       }
       return;
     }
@@ -2626,7 +2626,7 @@ async function handleUploadToDestination(item, anchorBtn) {
       const handle = getPrimaryHandleForGesture();
       if (!handle) {
         _markDirFolderMissing();
-        showKcToast('선택한 폴더를 찾을 수 없습니다. 저장 위치를 다시 선택해주세요.', 'error');
+        showKcToast('Selected folder not found. Please choose the save location again.', 'error');
         // Open the picker window so user can re-pick.
         await handleOpenFolderSettings();
         return;
@@ -2644,14 +2644,14 @@ async function handleUploadToDestination(item, anchorBtn) {
     const result = await saveItemToDownloads(item);
     if (result && result.ok) {
       flashUploadMark(anchorBtn, true);
-      showKcToast(`${formatToastFileName(result.filename)}\n저장 완료`, 'success');
+      showKcToast(`${formatToastFileName(result.filename)}\nSaved`, 'success');
     } else {
       flashUploadMark(anchorBtn, false);
-      showKcToast(`저장 실패: ${result?.message || 'Unknown error'}`, 'error');
+      showKcToast(`Save failed: ${result?.message || 'Unknown error'}`, 'error');
     }
   } catch (e) {
     flashUploadMark(anchorBtn, false);
-    showKcToast(`저장 실패: ${e?.message || String(e)}`, 'error');
+    showKcToast(`Save failed: ${e?.message || String(e)}`, 'error');
   }
 }
 // === END PHASE_UPLOAD_AUTO_ROUTING ===
@@ -2694,11 +2694,11 @@ function ensureKcUploadPopover() {
   div.innerHTML = `
     <button type="button" class="kc-upload-popover-item" data-destination="local" role="menuitem">
       <span class="kc-upload-popover-icon" aria-hidden="true">📁</span>
-      <span>내 컴퓨터 폴더</span>
+      <span>My Computer</span>
     </button>
     <button type="button" class="kc-upload-popover-item" data-destination="destination" role="menuitem">
       <span class="kc-upload-popover-icon" aria-hidden="true">📁</span>
-      <span>지정 디렉토리로 업로드</span>
+      <span>Upload to set folder</span>
     </button>
   `;
   div.querySelectorAll('.kc-upload-popover-item').forEach((itemBtn) => {
@@ -2985,7 +2985,7 @@ function showAiBoardContent(data) {
   }
 
   if (data.table_of_contents?.length) {
-    let toc = `<div class="sp-ai-section-label sp-ai-reveal">목차</div>`;
+    let toc = `<div class="sp-ai-section-label sp-ai-reveal">Contents</div>`;
     toc += `<ol class="sp-ai-toc sp-ai-reveal">`;
     data.table_of_contents.forEach((section) => {
       toc += `<li>${escapeHtml(section)}</li>`;
@@ -3917,9 +3917,9 @@ if (chrome?.runtime?.onMessage) {
           await refreshPrimaryHandleCache();
           await setDestination({ type: 'local' });
           await _refreshDirContainer();
-          showKcToast(`저장 폴더 설정 완료: ${message.folderName || ''}`, 'success');
+          showKcToast(`Save folder set: ${message.folderName || ''}`, 'success');
         } catch (e) {
-          showKcToast('폴더 설정을 저장하지 못했습니다.', 'error');
+          showKcToast('Unable to save the folder settings.', 'error');
         }
       })();
       return;
@@ -3929,7 +3929,7 @@ if (chrome?.runtime?.onMessage) {
       (async () => {
         try {
           await _refreshDirContainer();
-          showKcToast('✓ Google Drive 폴더가 설정되었습니다.');
+          showKcToast('✓ Google Drive folder set.');
         } catch (_) {}
       })();
       return;
@@ -3939,7 +3939,7 @@ if (chrome?.runtime?.onMessage) {
       (async () => {
         try {
           await _refreshDirContainer();
-          showKcToast('✓ Downloads 폴더로 설정되었습니다.');
+          showKcToast('✓ Downloads folder set.');
         } catch (_) {}
       })();
       return;
