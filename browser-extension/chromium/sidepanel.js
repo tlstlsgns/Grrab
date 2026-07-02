@@ -192,7 +192,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // Clip image size: target longest-edge (px) written to kc_clip_max_dim.
 // 0 = original (no resize). Read by coreEntry (clipboard) and later the save path.
 const KC_CLIP_SIZE_KEY = 'kc_clip_max_dim';
-const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600'];
+const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600', '2880'];
 
 function _renderClipSizeUI(value) {
   const sel = document.getElementById('kc-clip-size-select');

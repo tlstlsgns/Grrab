@@ -264,7 +264,7 @@ initShortcutSync();
 
 // === PHASE_CLIP_SIZE ===
 // Cache kc_clip_max_dim: target longest-edge (px) for clipped images.
-// 0 = original (no resize). Presets: 512 / 1024 / 1600. Upscaling allowed
+// 0 = original (no resize). Presets: 512 / 1024 / 1600 / 2880. Upscaling allowed
 // (presets are targets, not caps) per product decision.
 const KC_CLIP_MAXDIM_KEY = 'kc_clip_max_dim';
 let _clipMaxDim = 0;
