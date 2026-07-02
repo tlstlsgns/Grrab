@@ -1486,20 +1486,6 @@ function createDataCard(item) {
     </div>`;
   // === END PHASE_CARD_CLIPBOARD_COPY ===
 
-  // Upload button HTML (shared) — appears immediately left of delete in header
-  const uploadBtn = `
-    <div class="data-card-upload" title="Upload to folder">
-      <button type="button" class="data-card-upload-btn" aria-label="Upload to folder">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="17 8 12 3 7 8"></polyline>
-          <line x1="12" y1="3" x2="12" y2="15"></line>
-        </svg>
-        <svg class="kc-upload-mark kc-upload-mark--check" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-        <svg class="kc-upload-mark kc-upload-mark--x" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>`;
-
   // Delete button HTML (shared)
   const deleteBtn = `
     <div class="data-card-delete" title="Delete">
@@ -1535,7 +1521,6 @@ function createDataCard(item) {
     <div class="data-card-header">
       <div class="data-card-context">${contextHtml}</div>
       ${clipBtn}
-      ${uploadBtn}
       ${deleteBtn}
     </div>`;
 
@@ -2813,24 +2798,6 @@ function attachClipHandlers(container) {
 }
 // === END PHASE_CARD_CLIPBOARD_COPY ===
 
-function attachUploadHandlers(container) {
-  container.querySelectorAll('.data-card-upload').forEach((wrap) => {
-    const newWrap = wrap.cloneNode(true);
-    wrap.parentNode.replaceChild(newWrap, wrap);
-    const btn = newWrap.querySelector('.data-card-upload-btn');
-    if (!btn) return;
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const card = newWrap.closest('.data-card');
-      if (!card) return;
-      if (card.querySelector('.data-card-header.delete-pending')) return;
-      const item = kcCardItemByEl.get(card);
-      if (!item) return;
-      handleUploadButtonClick(item, btn);
-    });
-  });
-}
-
 // ── Delete handlers ───────────────────────────────────────────────────────────
 function attachDeleteHandlers(container) {
   container.querySelectorAll('.data-card-delete').forEach((btn) => {
@@ -3211,7 +3178,6 @@ function attachCardClickHandlers() {
   // === PHASE_CARD_CLIPBOARD_COPY ===
   attachClipHandlers(document);
   // === END PHASE_CARD_CLIPBOARD_COPY ===
-  attachUploadHandlers(document);
 
   document.querySelectorAll('.data-card-imgcontainer').forEach((container) => {
     if (container.dataset.imgHandlerAttached === 'true') return;
