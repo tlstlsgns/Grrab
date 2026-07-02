@@ -91,20 +91,18 @@ function _renderUploadFormatUI(fmt) {
   const btn = document.getElementById('kc-upload-format-btn');
   const menu = document.getElementById('kc-upload-format-menu');
   if (!btn || !menu) return;
-  btn.textContent = `${KC_UPLOAD_FORMAT_LABELS[key] || 'Original'} ▾`;
+  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_UPLOAD_FORMAT_LABELS[key] || 'Original'}</span>`;
   btn.dataset.format = key;
   btn.setAttribute('aria-expanded', _kcUploadFormatMenuOpen ? 'true' : 'false');
   menu.innerHTML = '';
   for (const preset of KC_UPLOAD_FORMAT_PRESETS) {
     const li = document.createElement('li');
-    li.className = 'kc-upload-format-menu-item';
-    if (preset === key) li.classList.add('kc-upload-format-menu-item-selected');
+    li.className = 'kc-dropdown-menu-item';
+    if (preset === key) li.classList.add('kc-dropdown-menu-item-selected');
     li.setAttribute('role', 'option');
     li.setAttribute('aria-selected', preset === key ? 'true' : 'false');
     li.dataset.format = preset;
-    li.textContent = preset === key
-      ? `✓ ${KC_UPLOAD_FORMAT_LABELS[preset]}`
-      : KC_UPLOAD_FORMAT_LABELS[preset];
+    li.textContent = KC_UPLOAD_FORMAT_LABELS[preset];
     li.addEventListener('click', (e) => {
       e.stopPropagation();
       _selectUploadFormat(preset);
@@ -189,37 +187,123 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // === END PHASE_UPLOAD_FORMAT ===
 
 // === PHASE_CLIP_SIZE ===
-// Clip image size: target longest-edge (px) written to kc_clip_max_dim.
-// 0 = original (no resize). Read by coreEntry (clipboard) and later the save path.
+// Clip image size: target longest-edge (px) written to kc_clip_max_dim (0 = original).
+// Read by coreEntry (clipboard) + save path. Custom dropdown mirroring the upload-format
+// control so the button style + toggle icon match (shared .kc-dropdown-* classes).
 const KC_CLIP_SIZE_KEY = 'kc_clip_max_dim';
 const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600', '2880'];
+const KC_CLIP_SIZE_LABELS = {
+  '0': 'Original',
+  '512': '512px',
+  '1024': '1024px',
+  '1600': '1600px',
+  '2880': '3K',
+};
+
+let _kcClipSizeMenuOpen = false;
+let _kcClipSizeOutsideClick = null;
+let _kcClipSizeEscKey = null;
+
+function _normalizeClipSize(value) {
+  const v = String(value ?? '').trim();
+  return KC_CLIP_SIZE_VALUES.includes(v) ? v : '0';
+}
 
 function _renderClipSizeUI(value) {
-  const sel = document.getElementById('kc-clip-size-select');
-  if (!sel) return;
-  sel.value = KC_CLIP_SIZE_VALUES.includes(String(value)) ? String(value) : '0';
+  const key = _normalizeClipSize(value);
+  const btn = document.getElementById('kc-clip-size-btn');
+  const menu = document.getElementById('kc-clip-size-menu');
+  if (!btn || !menu) return;
+  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_CLIP_SIZE_LABELS[key] || 'Original'}</span>`;
+  btn.dataset.size = key;
+  btn.setAttribute('aria-expanded', _kcClipSizeMenuOpen ? 'true' : 'false');
+  menu.innerHTML = '';
+  for (const preset of KC_CLIP_SIZE_VALUES) {
+    const li = document.createElement('li');
+    li.className = 'kc-dropdown-menu-item';
+    if (preset === key) li.classList.add('kc-dropdown-menu-item-selected');
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', preset === key ? 'true' : 'false');
+    li.dataset.size = preset;
+    li.textContent = KC_CLIP_SIZE_LABELS[preset];
+    li.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _selectClipSize(preset);
+    });
+    menu.appendChild(li);
+  }
+}
+
+function _detachClipSizeMenuListeners() {
+  if (_kcClipSizeOutsideClick) {
+    document.removeEventListener('click', _kcClipSizeOutsideClick, true);
+    _kcClipSizeOutsideClick = null;
+  }
+  if (_kcClipSizeEscKey) {
+    document.removeEventListener('keydown', _kcClipSizeEscKey);
+    _kcClipSizeEscKey = null;
+  }
+}
+
+function _closeClipSizeMenu() {
+  if (!_kcClipSizeMenuOpen) return;
+  _kcClipSizeMenuOpen = false;
+  const menu = document.getElementById('kc-clip-size-menu');
+  const btn = document.getElementById('kc-clip-size-btn');
+  if (menu) menu.hidden = true;
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  _detachClipSizeMenuListeners();
+}
+
+function _openClipSizeMenu() {
+  const menu = document.getElementById('kc-clip-size-menu');
+  const btn = document.getElementById('kc-clip-size-btn');
+  if (!menu || !btn) return;
+  _kcClipSizeMenuOpen = true;
+  menu.hidden = false;
+  btn.setAttribute('aria-expanded', 'true');
+  _renderClipSizeUI(btn.dataset.size || '0');
+  _kcClipSizeOutsideClick = (e) => {
+    const wrap = document.getElementById('kc-clip-size-wrap');
+    if (wrap && !wrap.contains(e.target)) _closeClipSizeMenu();
+  };
+  _kcClipSizeEscKey = (e) => {
+    if (e.key === 'Escape') _closeClipSizeMenu();
+  };
+  setTimeout(() => {
+    if (_kcClipSizeMenuOpen && _kcClipSizeOutsideClick) {
+      document.addEventListener('click', _kcClipSizeOutsideClick, true);
+    }
+  }, 0);
+  document.addEventListener('keydown', _kcClipSizeEscKey);
+}
+
+function _toggleClipSizeMenu() {
+  if (_kcClipSizeMenuOpen) _closeClipSizeMenu();
+  else _openClipSizeMenu();
 }
 
 async function _selectClipSize(value) {
-  const next = KC_CLIP_SIZE_VALUES.includes(String(value)) ? Number(value) : 0;
+  const key = _normalizeClipSize(value);
   try {
-    await chrome.storage.local.set({ [KC_CLIP_SIZE_KEY]: next });
+    await chrome.storage.local.set({ [KC_CLIP_SIZE_KEY]: Number(key) });
   } catch (_) {}
-  _renderClipSizeUI(next);
+  _renderClipSizeUI(key);
+  _closeClipSizeMenu();
 }
 
 async function _loadClipSizeSetting() {
   try {
     const r = await chrome.storage.local.get(KC_CLIP_SIZE_KEY);
-    _renderClipSizeUI(Number(r?.[KC_CLIP_SIZE_KEY]) || 0);
+    _renderClipSizeUI(String(Number(r?.[KC_CLIP_SIZE_KEY]) || 0));
   } catch (_) {
-    _renderClipSizeUI(0);
+    _renderClipSizeUI('0');
   }
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes[KC_CLIP_SIZE_KEY]) return;
-  _renderClipSizeUI(Number(changes[KC_CLIP_SIZE_KEY].newValue) || 0);
+  _renderClipSizeUI(String(Number(changes[KC_CLIP_SIZE_KEY].newValue) || 0));
 });
 // === END PHASE_CLIP_SIZE ===
 
@@ -379,8 +463,9 @@ document.getElementById('kc-upload-format-btn')?.addEventListener('click', (e) =
 });
 
 // === PHASE_CLIP_SIZE ===
-document.getElementById('kc-clip-size-select')?.addEventListener('change', (e) => {
-  _selectClipSize(e.target.value);
+document.getElementById('kc-clip-size-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  _toggleClipSizeMenu();
 });
 // === END PHASE_CLIP_SIZE ===
 
@@ -561,6 +646,7 @@ const btnSignout      = document.getElementById('btn-signout');
 const dirFolderBtn    = document.getElementById('kc-dir-folder-btn');
 const loginError      = document.getElementById('login-error');
 const spUserAvatar    = document.getElementById('sp-user-avatar');
+const spUserEmail     = document.getElementById('sp-user-email');
 const spDirectoryList = document.getElementById('sp-directory-list');
 const spAiBoard        = document.getElementById('sp-ai-board');
 const spAiBoardEmpty   = document.getElementById('sp-ai-board-empty');
@@ -1247,6 +1333,8 @@ function showDashboardScreen(user) {
   } else {
     spUserAvatar.style.display = 'none';
   }
+  // Show the signed-in user's email next to the avatar.
+  if (spUserEmail) spUserEmail.textContent = user.email || '';
 
   startListeners(user.uid);
 }
@@ -1475,10 +1563,10 @@ function createDataCard(item) {
 
   // === PHASE_CARD_CLIPBOARD_COPY ===
   const clipBtn = `
-    <div class="data-card-clip" title="Copy image to clipboard">
+    <div class="data-card-action data-card-clip" title="Copy image to clipboard">
       <button type="button" class="data-card-clip-btn" aria-label="Copy image to clipboard">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+        <svg class="kc-clip-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill-rule="evenodd" clip-rule="evenodd" stroke="none" d="M8 5h7.795c1.115 0 1.519.116 1.926.334.407.218.727.538.945.945.218.407.334.811.334 1.926V16a1 1 0 1 0 2 0V8.128c0-1.783-.186-2.43-.534-3.082a3.635 3.635 0 0 0-1.512-1.512C18.302 3.186 17.655 3 15.872 3H8a1 1 0 0 0 0 2zm7.721 2.334C15.314 7.116 14.91 7 13.795 7h-7.59c-1.115 0-1.519.116-1.926.334a2.272 2.272 0 0 0-.945.945C3.116 8.686 3 9.09 3 10.205v7.59c0 1.114.116 1.519.334 1.926.218.407.538.727.945.945.407.218.811.334 1.926.334h7.59c1.114 0 1.519-.116 1.926-.334.407-.218.727-.538.945-.945.218-.407.334-.811.334-1.926v-7.59c0-1.115-.116-1.519-.334-1.926a2.272 2.272 0 0 0-.945-.945z"/>
         </svg>
         <svg class="kc-upload-mark kc-upload-mark--check" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
         <svg class="kc-upload-mark kc-upload-mark--x" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1488,7 +1576,7 @@ function createDataCard(item) {
 
   // Delete button HTML (shared)
   const deleteBtn = `
-    <div class="data-card-delete" title="Delete">
+    <div class="data-card-action data-card-delete" title="Delete">
       <div class="data-card-delete-btn">
         <svg viewBox="0 0 24 24" class="delete-icon-x">
           <line x1="18" y1="6" x2="6" y2="18"/>
@@ -1520,8 +1608,10 @@ function createDataCard(item) {
   const headerHtml = `
     <div class="data-card-header">
       <div class="data-card-context">${contextHtml}</div>
-      ${clipBtn}
-      ${deleteBtn}
+      <div class="data-card-actions">
+        ${clipBtn}
+        ${deleteBtn}
+      </div>
     </div>`;
 
   let mainContentHtml;
@@ -2423,9 +2513,17 @@ function flashUploadMark(btnEl, success) {
   if (!btnEl) return;
   const cls = success ? 'kc-upload--success' : 'kc-upload--error';
   btnEl.classList.add(cls, 'kc-upload--feedback');
-  setTimeout(() => {
+  const wrapper = btnEl.closest('.card-wrapper');
+  let timer = null;
+  const clear = () => {
     btnEl.classList.remove(cls, 'kc-upload--feedback');
-  }, 1200);
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (wrapper) wrapper.removeEventListener('mouseleave', clear);
+  };
+  timer = setTimeout(clear, 1200);
+  // Reset to the normal icon the moment the pointer leaves the card, so a quick re-hover within
+  // the feedback window shows the re-clip icon instead of the stale success/error mark.
+  if (wrapper) wrapper.addEventListener('mouseleave', clear, { once: true });
 }
 
 // === PHASE_CARD_CLIPBOARD_COPY ===

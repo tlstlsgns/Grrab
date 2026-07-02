@@ -153,6 +153,10 @@
       color: var(--accent);
       border-color: var(--accent);
     }
+    #sp-shortcut-btn:focus,
+    #sp-shortcut-btn:focus-visible {
+      outline: none;
+    }
     /* === PHASE_SHORTCUT_RECORDER === */
     #sp-shortcut-container {
       display: inline-flex;
@@ -199,6 +203,14 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      min-width: 0; /* let the email truncate instead of pushing Sign out off */
+    }
+    #sp-user-email {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     #sp-user-avatar {
       width: 26px;
@@ -208,15 +220,31 @@
       display: none;
     }
     #btn-signout {
-      font-size: 11px;
-      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       background: none;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 3px 8px;
+      border: none;
+      padding: 2px;
       cursor: pointer;
+      color: #000;
+      opacity: 0.5;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
     }
-    #btn-signout:hover { color: #111; border-color: #aaa; }
+    #btn-signout:hover,
+    #btn-signout:active {
+      opacity: 1;
+    }
+    #btn-signout:focus,
+    #btn-signout:focus-visible {
+      outline: none;
+    }
+    #btn-signout svg {
+      display: block;
+      width: 18px;
+      height: 18px;
+    }
 
     .sp-clip {
       display: flex;
@@ -288,14 +316,16 @@
       max-width: calc(100% - 24px);
     }
     /* === PHASE_UPLOAD_FORMAT === */
-    .kc-upload-format-wrap {
+    .kc-dropdown-wrap {
       position: relative;
       flex: 0 0 auto;
       margin-left: 4px;
     }
-    .kc-upload-format-btn {
-      width: 72px;
-      padding: 6px 8px;
+    .kc-dropdown-btn {
+      display: flex;
+      align-items: center;
+      width: 90px;
+      padding: 6px 10px;
       background: transparent;
       border: 1px solid rgba(0, 0, 0, 0.1);
       border-radius: 6px;
@@ -304,17 +334,29 @@
       font-weight: 500;
       color: #6b7280;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
-      text-align: center;
     }
-    .kc-upload-format-btn:hover {
+    .kc-dropdown-btn-label {
+      flex: 1;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .kc-dropdown-btn::after {
+      content: '▾';
+      flex: 0 0 auto;
+      margin-left: 6px;
+      pointer-events: none;
+    }
+    .kc-dropdown-btn:hover {
       background: rgba(188, 19, 254, 0.06);
       color: #BC13FE;
       border-color: rgba(188, 19, 254, 0.3);
     }
-    .kc-upload-format-btn:active {
+    .kc-dropdown-btn:active {
       background: rgba(188, 19, 254, 0.12);
     }
-    .kc-upload-format-menu {
+    .kc-dropdown-menu {
       position: absolute;
       right: 0;
       top: calc(100% + 4px);
@@ -328,23 +370,31 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       z-index: 20;
     }
-    .kc-upload-format-menu-item {
+    .kc-dropdown-menu-item {
+      display: flex;
+      align-items: center;
       padding: 6px 12px;
       cursor: pointer;
       font-size: 12px;
       color: #6b7280;
       white-space: nowrap;
     }
-    .kc-upload-format-menu-item:hover {
+    .kc-dropdown-menu-item:hover {
       background: var(--accent-10);
     }
-    .kc-upload-format-menu-item-selected {
+    .kc-dropdown-menu-item-selected {
       color: var(--accent);
+    }
+    .kc-dropdown-menu-item-selected::after {
+      content: '✓';
+      margin-left: auto;
+      padding-left: 12px;
     }
     /* === END PHASE_UPLOAD_FORMAT === */
 
     /* === PHASE_CLIP_SIZE === */
-    .sp-clip-size-row {
+    /* Shared "label + control" setting row (clip size, clip shortcut, …) */
+    .sp-setting-row {
       display: flex;
       align-items: center;
       justify-content: flex-end;
@@ -355,18 +405,8 @@
       background: #fff;
       flex-shrink: 0;
     }
-    .sp-clip-size-label {
+    .sp-setting-label {
       margin-right: auto;
-      font-size: 12px;
-      font-weight: 500;
-      color: #6b7280;
-    }
-    .kc-clip-size-select {
-      padding: 6px 8px;
-      background: transparent;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: 6px;
-      cursor: pointer;
       font-size: 12px;
       font-weight: 500;
       color: #6b7280;
@@ -381,19 +421,19 @@
         border-color: rgba(255, 255, 255, 0.12);
         color: #9ca3af;
       }
-      .kc-upload-format-btn {
+      .kc-dropdown-btn {
         border-color: rgba(255, 255, 255, 0.12);
         color: #9ca3af;
       }
-      .kc-upload-format-menu {
+      .kc-dropdown-menu {
         background: var(--bg-primary, #1a1a1a);
         border-color: rgba(255, 255, 255, 0.12);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       }
-      .kc-upload-format-menu-item {
+      .kc-dropdown-menu-item {
         color: #9ca3af;
       }
-      .kc-upload-format-menu-item-selected {
+      .kc-dropdown-menu-item-selected {
         color: var(--accent);
       }
       /* === PHASE_CARD_MULTISELECT === */
@@ -908,17 +948,25 @@
       margin: 0;
     }
     /* Delete button — top-right of header */
-    .data-card-delete {
+    /* Top-right action buttons (re-clip + delete), grouped densely */
+    .data-card-actions {
+      display: flex;
+      align-items: stretch;
+      align-self: stretch;
+      margin-left: auto;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+    .data-card-action {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 20px;
       align-self: stretch;
       flex-shrink: 0;
       cursor: pointer;
       pointer-events: auto !important;
     }
-    .data-card-delete * { pointer-events: auto !important; }
+    .data-card-action * { pointer-events: auto !important; }
     .data-card-delete-btn {
       display: flex;
       align-items: center;
@@ -961,19 +1009,7 @@
     }
 
     /* === PHASE_CARD_CLIPBOARD_COPY === */
-    /* Clip (copy-to-clipboard) button — mirrors .data-card-upload behavior */
-    .data-card-clip {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      align-self: stretch;
-      flex-shrink: 0;
-      margin-left: auto;
-      cursor: pointer;
-      pointer-events: auto !important;
-    }
-    .data-card-clip * { pointer-events: auto !important; }
+    /* Clip (copy-to-clipboard) button — layout shared via .data-card-action */
     .data-card-clip-btn {
       display: flex;
       align-items: center;
@@ -1005,11 +1041,20 @@
     .data-card-clip-btn:hover svg {
       stroke: rgba(0, 0, 0, 0.85);
     }
+    /* Link (re-clip) icon is fill-based, not stroke-based */
+    .data-card-clip-btn .kc-clip-icon {
+      fill: rgba(0, 0, 0, 0.6);
+      stroke: none;
+      transition: fill 150ms ease, opacity 150ms ease;
+    }
+    .data-card-clip-btn:hover .kc-clip-icon {
+      fill: rgba(0, 0, 0, 0.85);
+    }
     /* === END PHASE_CARD_CLIPBOARD_COPY === */
 
     /* ── Upload result mark overlay (Phase U2) ─────────────────────── */
-    .data-card-upload-btn.kc-upload--feedback svg,
-    .data-card-clip-btn.kc-upload--feedback svg {
+    .card-wrapper:hover .data-card-upload-btn.kc-upload--feedback svg,
+    .card-wrapper:hover .data-card-clip-btn.kc-upload--feedback svg {
       opacity: 1 !important;
     }
     .data-card-upload-btn .kc-upload-mark,
@@ -1024,7 +1069,6 @@
     .data-card-upload-btn.kc-upload--success .kc-upload-mark.kc-upload-mark--check,
     .data-card-clip-btn.kc-upload--success .kc-upload-mark.kc-upload-mark--check {
       display: inline-block;
-      stroke: #22c55e;
     }
     .data-card-upload-btn.kc-upload--success svg:not(.kc-upload-mark),
     .data-card-clip-btn.kc-upload--success svg:not(.kc-upload-mark) {
@@ -1285,28 +1329,37 @@
       <div id="sp-header">
         <div id="sp-user-section">
           <img id="sp-user-avatar" src="" alt="avatar" />
-          <button id="btn-signout">Sign out</button>
+          <span id="sp-user-email"></span>
         </div>
-        <!-- === PHASE_SHORTCUT_RECORDER === -->
+        <button id="btn-signout" title="Sign out" aria-label="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" width="18" height="18" aria-hidden="true">
+            <path d="M21 12L13 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 15L20.913 12.087V12.087C20.961 12.039 20.961 11.961 20.913 11.913V11.913L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 5V4.5V4.5C16 3.67157 15.3284 3 14.5 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H14.5C15.3284 21 16 20.3284 16 19.5V19.5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- === PHASE_SHORTCUT_RECORDER === -->
+      <div id="sp-shortcut-row" class="sp-setting-row">
+        <span class="sp-setting-label">Clip Shortcut</span>
         <div id="sp-shortcut-container">
           <button id="sp-shortcut-btn" title="Click to record a new shortcut">⌘C</button>
           <button id="sp-shortcut-reset-btn" title="Reset to default" type="button">↺</button>
           <span id="sp-shortcut-error" aria-live="polite" hidden></span>
         </div>
-        <!-- === END PHASE_SHORTCUT_RECORDER === -->
       </div>
+      <!-- === END PHASE_SHORTCUT_RECORDER === -->
 
       <!-- === PHASE_CLIP_SIZE === -->
-      <div id="sp-clip-size-row" class="sp-clip-size-row">
-        <span class="sp-clip-size-label">Clip Size</span>
-        <select id="kc-clip-size-select" class="kc-clip-size-select"
-                title="Clip image size" aria-label="Select clip image size">
-          <option value="0">Original</option>
-          <option value="512">512px</option>
-          <option value="1024">1024px</option>
-          <option value="1600">1600px</option>
-          <option value="2880">2880px (3K)</option>
-        </select>
+      <div id="sp-clip-size-row" class="sp-setting-row">
+        <span class="sp-setting-label">Clip Size</span>
+        <div class="kc-dropdown-wrap" id="kc-clip-size-wrap">
+          <button type="button" id="kc-clip-size-btn" class="kc-dropdown-btn"
+                  title="Clip image size" aria-label="Select clip image size"
+                  aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Original</span></button>
+          <ul id="kc-clip-size-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
+        </div>
       </div>
       <!-- === END PHASE_CLIP_SIZE === -->
 
@@ -1332,11 +1385,11 @@
           <span class="kc-dir-folder-label" id="kc-dir-folder-label">Select save location</span>
         </button>
         <!-- === PHASE_UPLOAD_FORMAT === -->
-        <div class="kc-upload-format-wrap" id="kc-upload-format-wrap">
-          <button type="button" id="kc-upload-format-btn" class="kc-upload-format-btn"
+        <div class="kc-dropdown-wrap" id="kc-upload-format-wrap">
+          <button type="button" id="kc-upload-format-btn" class="kc-dropdown-btn"
                   title="Upload image format" aria-label="Select upload image format"
-                  aria-haspopup="listbox" aria-expanded="false">Original</button>
-          <ul id="kc-upload-format-menu" class="kc-upload-format-menu" role="listbox" hidden></ul>
+                  aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Original</span></button>
+          <ul id="kc-upload-format-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
         </div>
         <!-- === END PHASE_UPLOAD_FORMAT === -->
       </div>
