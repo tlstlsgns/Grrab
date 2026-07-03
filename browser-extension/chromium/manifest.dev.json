@@ -97,6 +97,6 @@
       "48": "assets/icons/icon_48.png",
       "128": "assets/icons/icon_128.png"
     },
-    "default_popup": ""
+    "default_popup": "popup.html"
   }
 }

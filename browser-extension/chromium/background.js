@@ -9,7 +9,7 @@ let _cachedUserId = null; // cached login state for synchronous access in onComm
 // Enable side panel toggle on toolbar icon click.
 // Chrome 116+ automatically opens/closes the side panel on action click.
 chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
+  .setPanelBehavior({ openPanelOnActionClick: false })
   .catch(() => {});
 
 // Restore persisted saved-URLs cache so the first get-saved-urls call

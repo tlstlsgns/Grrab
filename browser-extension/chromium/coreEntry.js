@@ -289,6 +289,33 @@ function initClipSizeSync() {
 initClipSizeSync();
 // === END PHASE_CLIP_SIZE ===
 
+// === PHASE_ACTIVE_TOGGLE ===
+// Master on/off from the toolbar popup. When off: no CoreItem activation, no overlay, and the
+// clip shortcut is inert. Synced from chrome.storage.local (default ON when unset).
+const KC_ACTIVE_ENABLED_KEY = 'kc_active_enabled';
+let _kcActiveEnabled = true;
+function initActiveEnabledSync() {
+  (async () => {
+    try {
+      const r = await chrome.storage.local.get(KC_ACTIVE_ENABLED_KEY);
+      _kcActiveEnabled = (r?.[KC_ACTIVE_ENABLED_KEY] !== false);
+    } catch (_) {
+      _kcActiveEnabled = true;
+    }
+  })();
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes[KC_ACTIVE_ENABLED_KEY]) return;
+      _kcActiveEnabled = (changes[KC_ACTIVE_ENABLED_KEY].newValue !== false);
+      if (!_kcActiveEnabled) {
+        try { if (state.activeCoreItem) coreClear(); } catch (_) {}
+      }
+    });
+  } catch (_) {}
+}
+initActiveEnabledSync();
+// === END PHASE_ACTIVE_TOGGLE ===
+
 // === PHASE_CLIP_LOADING_UI ===
 // Loading UX between ⌘C press and clip completion. SR upscaling adds ~1.2s of
 // clipboard latency; without feedback users can't tell the shortcut was even
@@ -1731,6 +1758,11 @@ function findItemByImageWithPointerStack(target, x, y) {
 // === END PHASE_POINTER_STACK_ITEM_LOOKUP ===
 
 async function updateCoreSelectionFromTarget(target, clientX = null, clientY = null) {
+  // PHASE_ACTIVE_TOGGLE: master off → never activate a CoreItem or show an overlay.
+  if (!_kcActiveEnabled) {
+    if (state.activeCoreItem) coreClear();
+    return false;
+  }
   if (KC_DISPATCH_DEBUG) {
     // every call: caller = stack line 2 (immediate caller), src truncated for
     // IMG/VIDEO, cls truncated. Useful for diagnosing ghost activations (e.g.
@@ -4534,6 +4566,8 @@ function schedulePreScanScrollDebounced() {
 
   document.addEventListener('keydown', async (event) => {
     if (!_activeShortcut) return;
+    // PHASE_ACTIVE_TOGGLE: master off → clip shortcut inert (⌘C falls through to the browser).
+    if (!_kcActiveEnabled) return;
     if (!matchesShortcut(event, _activeShortcut)) {
       // === PHASE_SHORTCUT_TIP_KEYHINT ===
       // Non-shortcut key over an active local-hover item: re-show the tip once (bypass the 5s
