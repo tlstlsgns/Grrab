@@ -745,7 +745,7 @@
          the accent ring on active/selected. Renders evenly on all four sides
          (unlike the inset box-shadow / outline approaches, which clipped on the
          top/left of grid items). */
-      border: 2px solid var(--border-default);
+      border: 1px solid var(--border-default);
       border-radius: var(--corner-extra-small);
       margin: 0;
       width: 100%;
@@ -759,7 +759,7 @@
       user-select: none;
     }
     .card-wrapper:hover {
-      border-color: var(--border-secondary);
+      border-color: #CF00FF;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     /* Active (single-click) and selected (multiselect): the constant 2px border
@@ -768,6 +768,7 @@
     .card-wrapper.active,
     .card-wrapper.kc-wrapper-selected {
       border-color: var(--kc-accent);
+      border-width: 2px;
       box-shadow: 0 4px 16px rgba(var(--kc-accent-rgb), 0.2);
     }
     .card-wrapper.is-dragging-source .data-card { opacity: 0.3; }
@@ -808,7 +809,7 @@
       justify-content: space-between;
       width: 100%;
       box-sizing: border-box;
-      padding: 2px var(--space-100);
+      padding: 0;
       overflow: hidden;
       height: 20px;
       flex-shrink: 0;
@@ -882,9 +883,42 @@
       overflow: hidden;
       padding: 0;
       box-sizing: border-box;
-      gap: 3px;
+      gap: 0;
+    }
+    .data-card-extlink {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 20px;
+      align-self: stretch;
+      background: #CF00FF;
+      border-radius: 3px 0 0 0;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .card-wrapper:hover .data-card-extlink {
+      display: inline-flex;
+    }
+    .card-wrapper.active .data-card-extlink,
+    .card-wrapper.kc-wrapper-selected .data-card-extlink {
+      display: inline-flex;
+      background: var(--kc-accent);
+      border-radius: 2px 0 0 0;
+    }
+    .data-card-extlink-icon {
+      width: 10px;
+      height: 10px;
+      display: block;
+      fill: currentColor;
+    }
+    .data-card .data-card-extlink,
+    .data-card .data-card-extlink * {
+      pointer-events: auto !important;
     }
     .data-card-content-type {
+      padding-left: var(--space-100);
       font-family: 'Roboto', sans-serif;
       font-size: 9px;
       font-weight: 700;
@@ -956,6 +990,7 @@
       margin-left: auto;
       flex-shrink: 0;
       gap: 4px;
+      padding-right: var(--space-100);
     }
     .data-card-action {
       display: flex;

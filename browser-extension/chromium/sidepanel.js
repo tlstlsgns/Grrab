@@ -1607,7 +1607,7 @@ function createDataCard(item) {
     : (urlText ? `<span class="data-card-content-type">${escContext(urlText)}</span>` : '');
   const headerHtml = `
     <div class="data-card-header">
-      <div class="data-card-context">${contextHtml}</div>
+      <div class="data-card-context"><span class="data-card-extlink" role="button" title="Open original link" aria-label="Open original link"><svg class="data-card-extlink-icon" viewBox="0 0 120 120" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M120 101.383V18.617C120 8.33212 111.668 0 101.383 0H60C57.3336 0 55.1774 2.15619 55.1774 4.82263C55.1774 7.48907 57.3336 9.64526 60 9.64526H101.383C106.335 9.64526 110.355 13.665 110.355 18.617V101.383C110.355 106.335 106.335 110.355 101.383 110.355H18.617C13.6648 110.355 9.64526 106.335 9.64526 101.383V60C9.64526 57.3336 7.48907 55.1774 4.82263 55.1774C2.15619 55.1774 0 57.3336 0 60V101.383C0 111.668 8.33192 120 18.617 120H101.383C111.668 120 120 111.668 120 101.383Z"/><path d="M9.64526 32.5595V11.7602C9.64526 10.5971 10.597 9.64526 11.7602 9.64526H32.5595C35.2259 9.64526 37.3821 7.48907 37.3821 4.82263C37.3821 2.15619 35.2259 0 32.5595 0H11.7602C5.26403 0 0 5.2643 0 11.7602V32.5595C0.000350424 35.2254 2.1567 37.3818 4.82263 37.3821C7.48886 37.3821 9.64491 35.2256 9.64526 32.5595Z"/><path d="M15.3169 8.58069C13.4315 6.69523 10.3726 6.69523 8.48712 8.58069C6.60976 10.4646 6.60976 13.5131 8.48712 15.397L63.3816 70.2915C65.2655 72.1689 68.314 72.1689 70.1979 70.2915C72.0834 68.4061 72.0834 65.3472 70.1979 63.4617L15.3169 8.58069Z"/></svg></span>${contextHtml}</div>
       <div class="data-card-actions">
         ${clipBtn}
         ${deleteBtn}
@@ -3221,6 +3221,14 @@ function attachCardClickHandlers() {
     newCard.addEventListener('click', (e) => {
       const timeSinceDragEnd = Date.now() - lastDragEndTime;
       if (isDragging || timeSinceDragEnd < 100) return;
+
+      // External-link icon → open the original URL (same as the second-click-opens behavior).
+      if (e.target.closest('.data-card-extlink')) {
+        e.stopPropagation();
+        const _extUrl = newCard.dataset.url;
+        if (_extUrl) window.open(_extUrl, '_blank');
+        return;
+      }
 
       // Ignore clicks on the delete button area
       if (e.target.closest('.data-card-delete')) return;
