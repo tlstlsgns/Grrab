@@ -904,13 +904,25 @@ function _kcApplyCardSelectionClasses() {
 }
 
 // === PHASE_BULK_UPLOAD ===
-// Show the bulk-upload button only when ≥1 card is selected; otherwise hide it.
-// Never override the hidden state while an upload is in flight.
+// Keep the bulk-upload button always visible: active when ≥1 card is selected,
+// otherwise a muted .is-inactive state that stays clickable to surface a
+// "select a clip first" toast. Never override the state while an upload is in
+// flight (the spinner/disabled state owns the button then).
 function _kcUpdateBulkUploadButton() {
   const btn = document.querySelector('.sp-bulk-upload-btn');
   if (!btn) return;
   if (btn.dataset.uploading === 'true') return;
-  btn.style.display = _kcSelectedCardIds.size >= 1 ? 'inline-flex' : 'none';
+  // Hide entirely while a delete-confirm is pending: the clear bar then shows
+  // only the "Really delete…?" prompt + check button.
+  const bar = document.querySelector('.sp-clear-bar');
+  if (bar && bar.classList.contains('confirm-pending')) {
+    btn.style.display = 'none';
+    return;
+  }
+  const hasSelection = _kcSelectedCardIds.size >= 1;
+  btn.style.display = 'inline-flex';
+  btn.classList.toggle('is-inactive', !hasSelection);
+  btn.setAttribute('aria-disabled', hasSelection ? 'false' : 'true');
 }
 
 // Upload every currently-selected card to the active destination. Immediate
@@ -966,7 +978,7 @@ async function executeUploadSelected() {
     // selected AND active, and the accent ring fires on either class — so the
     // selection clear alone would leave the first-clicked card ringed.
     deactivateAllCards();
-    _kcClearCardSelection(); // also hides the button via _kcUpdateBulkUploadButton
+    _kcClearCardSelection(); // also resets the button to inactive via _kcUpdateBulkUploadButton
   }
 
   // Summary toast.
@@ -985,7 +997,12 @@ function attachBulkUploadHandler() {
   btn.dataset.handlerAttached = 'true';
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (btn.disabled) return;
+    if (btn.disabled) return; // uploading: the spinner owns the button
+    // Inactive (no selection): guide the user instead of uploading nothing.
+    if (_kcSelectedCardIds.size === 0) {
+      showKcToast('Select at least one clip to upload', 'success');
+      return;
+    }
     executeUploadSelected();
   });
 }
@@ -2244,6 +2261,7 @@ function attachClearButtonHandlers() {
 
   const exitConfirmPending = () => {
     bar.classList.remove('confirm-pending');
+    _kcUpdateBulkUploadButton(); // restore the bulk-upload button after pending
     if (trashIcon) trashIcon.style.display = '';
     if (checkIcon) checkIcon.style.display = 'none';
     if (confirmText) {
@@ -2286,6 +2304,7 @@ function attachClearButtonHandlers() {
       confirmMode = selectedCount >= 1 ? 'selected' : 'all';
 
       bar.classList.add('confirm-pending');
+      _kcUpdateBulkUploadButton(); // hide the bulk-upload button while pending
       if (trashIcon) trashIcon.style.display = 'none';
       if (checkIcon) checkIcon.style.display = '';
       if (confirmText) {
@@ -2297,7 +2316,9 @@ function attachClearButtonHandlers() {
       }
 
       dismissHandler = (dismissEvent) => {
-        if (dismissEvent.target.closest('.sp-clear-bar')) return;
+        // Cancel pending on any click except the clear/check button itself —
+        // clicks elsewhere in the bar (empty space, confirm text) also cancel.
+        if (dismissEvent.target.closest('.sp-clear-btn')) return;
         exitConfirmPending();
       };
       confirmEscHandler = (keyEvent) => {

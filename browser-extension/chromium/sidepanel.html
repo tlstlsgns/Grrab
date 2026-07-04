@@ -1292,12 +1292,19 @@
       cursor: pointer;
       transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
     }
-    .sp-bulk-upload-btn:hover:not(:disabled) {
+    .sp-bulk-upload-btn:hover:not(:disabled):not(.is-inactive) {
       background: rgba(0, 0, 0, 0.05);
       color: var(--kc-accent, #BC13FE);
     }
     .sp-bulk-upload-btn:disabled {
       cursor: default;
+    }
+    /* Inactive (no card selected): muted but still clickable so a click can
+       surface a "select a clip first" toast. Do NOT use the native disabled
+       attribute here — that would swallow the click. */
+    .sp-bulk-upload-btn.is-inactive {
+      opacity: 0.3;
+      cursor: pointer;
     }
     .sp-bulk-upload-icon {
       width: 18px;
@@ -1455,7 +1462,7 @@
           <span class="sp-clear-confirm-text" style="display:none;"></span>
           <!-- === PHASE_BULK_UPLOAD === Bulk-upload selected cards. Hidden until
                ≥1 card is selected (see _kcUpdateBulkUploadButton). === -->
-          <button type="button" class="sp-bulk-upload-btn" style="display:none;"
+          <button type="button" class="sp-bulk-upload-btn is-inactive" aria-disabled="true"
                   aria-label="Upload selected clips to folder">
             <svg class="sp-bulk-upload-icon" viewBox="0 0 24 24"
                  fill="none" stroke="currentColor" stroke-width="2"
