@@ -43,7 +43,7 @@ function notifyBusy(isBusy) {
  * (folder selection UI) is deferred to Phase U4 with a custom tree view.
  */
 async function handleDriveButtonClick() {
-  setStatus('Google Drive에 연결 중...', '');
+  setStatus('Connecting to Google Drive…', '');
   notifyBusy(true);
 
   try {
@@ -57,19 +57,19 @@ async function handleDriveButtonClick() {
       ],
     });
     if (!tokenResp?.token) {
-      setStatus('Google 인증에 실패했습니다. 다시 시도해주세요.', 'error');
+      setStatus('Google sign-in failed. Please try again.', 'error');
       notifyBusy(false);
       return;
     }
 
-    setStatus('내 드라이브에 Grrab_files 폴더 준비 중...', '');
+    setStatus('Setting up the Grrab_files folder in your Drive…', '');
     const ensureResp = await chrome.runtime.sendMessage({
       action: 'drive-ensure-folder',
       parentFolderId: 'root',
-      parentFolderName: '내 드라이브',
+      parentFolderName: 'My Drive',
     });
     if (!ensureResp?.ok) {
-      setStatus(`폴더 설정 실패: ${ensureResp?.message || 'Unknown'}`, 'error');
+      setStatus(`Couldn't set up the folder: ${ensureResp?.message || 'Unknown'}`, 'error');
       notifyBusy(false);
       return;
     }
@@ -82,14 +82,14 @@ async function handleDriveButtonClick() {
       driveParentFolderName: ensureResp.parentFolderName,
     });
     if (!saved) {
-      setStatus('저장 실패. 다시 시도해주세요.', 'error');
+      setStatus('Unable to save. Please try again.', 'error');
       notifyBusy(false);
       return;
     }
 
     notifyBusy(false);
     setStatus(
-      `✓ 내 드라이브의 "Grrab_files" 폴더가 설정되었습니다. 창을 닫습니다...`,
+      `✓ Your Drive's "Grrab_files" folder is set. Closing…`,
       'success'
     );
     try {
@@ -106,7 +106,7 @@ async function handleDriveButtonClick() {
     } catch (_) {}
     setTimeout(closeSelfTab, 1200);
   } catch (e) {
-    setStatus(`오류: ${e?.message || String(e)}`, 'error');
+    setStatus(`Error: ${e?.message || String(e)}`, 'error');
     notifyBusy(false);
   }
 }
@@ -117,7 +117,7 @@ window.handleDriveButtonClick = handleDriveButtonClick;
 btn.addEventListener('click', async () => {
   btn.disabled = true;
   if (driveBtn) driveBtn.disabled = true;
-  setStatus('폴더 선택 대화상자를 여는 중...', '');
+  setStatus('Opening the folder picker…', '');
 
   // Tell side panel we're opening the system dialog — suppress auto-close
   notifyBusy(true);
@@ -134,7 +134,7 @@ btn.addEventListener('click', async () => {
       if (driveBtn) driveBtn.disabled = false;
       return;
     }
-    setStatus(`오류: ${e?.message || e}`, 'error');
+    setStatus(`Error: ${e?.message || e}`, 'error');
     btn.disabled = false;
     if (driveBtn) driveBtn.disabled = false;
     return;
@@ -149,14 +149,14 @@ btn.addEventListener('click', async () => {
     if (perm !== 'granted') {
       const req = await handle.requestPermission({ mode: 'readwrite' });
       if (req !== 'granted') {
-        setStatus('폴더 쓰기 권한이 거부되었습니다.', 'error');
+        setStatus('Write permission was denied for this folder.', 'error');
         btn.disabled = false;
         if (driveBtn) driveBtn.disabled = false;
         return;
       }
     }
   } catch (e) {
-    setStatus(`권한 확인 실패: ${e?.message || e}`, 'error');
+    setStatus(`Permission check failed: ${e?.message || e}`, 'error');
     btn.disabled = false;
     if (driveBtn) driveBtn.disabled = false;
     return;
@@ -166,13 +166,13 @@ btn.addEventListener('click', async () => {
   try {
     await setPrimaryHandle(handle);
   } catch (e) {
-    setStatus(`저장 실패: ${e?.message || e}`, 'error');
+    setStatus(`Couldn't save: ${e?.message || e}`, 'error');
     btn.disabled = false;
     if (driveBtn) driveBtn.disabled = false;
     return;
   }
 
-  setStatus(`✓ "${handle.name}" 폴더가 설정되었습니다. 창을 닫습니다...`, 'success');
+  setStatus(`✓ "${handle.name}" is set as your folder. Closing…`, 'success');
 
   try {
     chrome.runtime.sendMessage({
@@ -201,23 +201,23 @@ if (driveBtn) {
 // Wire Default (Downloads) button — sets destination to {type:'downloads'}.
 // No system dialog or OAuth: chrome.downloads writes to the Downloads root.
 async function handleDownloadsButtonClick() {
-  setStatus('Downloads 폴더로 설정 중...', '');
+  setStatus('Setting Downloads as your location…', '');
   notifyBusy(true);
   try {
     const saved = await setDestination({ type: 'downloads' });
     if (!saved) {
-      setStatus('저장 실패. 다시 시도해주세요.', 'error');
+      setStatus('Unable to save. Please try again.', 'error');
       notifyBusy(false);
       return;
     }
     notifyBusy(false);
-    setStatus('✓ Downloads 폴더로 설정되었습니다. 창을 닫습니다...', 'success');
+    setStatus('✓ Downloads is set as your location. Closing…', 'success');
     try {
       chrome.runtime.sendMessage({ action: 'kc-picker-downloads-ready' });
     } catch (_) {}
     setTimeout(closeSelfTab, 800);
   } catch (e) {
-    setStatus(`오류: ${e?.message || String(e)}`, 'error');
+    setStatus(`Error: ${e?.message || String(e)}`, 'error');
     notifyBusy(false);
   }
 }
