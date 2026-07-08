@@ -221,7 +221,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.notifications.create({
         type: 'basic',
         iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
-        title: request.title || 'SeaClip',
+        title: request.title || 'Grrab',
         message: request.message || 'Image clipped',
         priority: 0,
         silent: true,
@@ -239,7 +239,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.notifications.create(request.id, {
         type: 'basic',
         iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
-        title: request.title || 'SeaClip',
+        title: request.title || 'Grrab',
         message: request.message || 'Clipping…',
         priority: 0,
         silent: true,
@@ -259,7 +259,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.notifications.create({
         type: 'basic',
         iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
-        title: 'SeaClip',
+        title: 'Grrab',
         message: request.message || 'Image clipped',
         priority: 0,
         silent: true,
@@ -365,8 +365,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   }
 
-  // Phase U3.3: ensure SeaClip_files subfolder exists in selected parent
-  // on Google Drive. Searches for app-owned 'SeaClip_files' within parent;
+  // Phase U3.3: ensure Grrab_files subfolder exists in selected parent
+  // on Google Drive. Searches for app-owned 'Grrab_files' within parent;
   // reuses if found (drive.file scope lets app see only folders it created),
   // creates new otherwise.
   //
@@ -407,7 +407,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         const query = [
-          "name='SeaClip_files'",
+          "name='Grrab_files'",
           `'${parentFolderId}' in parents`,
           "mimeType='application/vnd.google-apps.folder'",
           'trashed=false',
@@ -448,7 +448,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            name: 'SeaClip_files',
+            name: 'Grrab_files',
             mimeType: 'application/vnd.google-apps.folder',
             parents: [parentFolderId],
           }),
@@ -479,7 +479,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // async response
   }
 
-  // Phase U3.3: upload a DataCard item to Drive's SeaClip_files folder
+  // Phase U3.3: upload a DataCard item to Drive's Grrab_files folder
   // as a markdown (or image for Image category) file via multipart upload.
   //
   // Request: { action: 'drive-upload-file', item, folderId, desiredName, mimeType, contentBase64 }

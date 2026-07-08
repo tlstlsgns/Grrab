@@ -3,7 +3,7 @@
  * Single source of truth for branding in the browser extension codebase.
  */
 export const BRAND = {
-  NAME: 'SeaClip',
+  NAME: 'Grrab',
   VERSION: '1.0.0',
   KEY_COLOR: 'purple',
   KEY_COLOR_HEX: '#BC13FE',

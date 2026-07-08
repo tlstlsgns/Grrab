@@ -495,7 +495,7 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
       // No loading notif shown (clip finished before any leave), but away at
       // completion → surface a terminal notification (prior behavior).
       chrome.runtime.sendMessage(
-        { action: 'clip-os-notify', title: 'SeaClip', message: finalText },
+        { action: 'clip-os-notify', title: 'Grrab', message: finalText },
         () => { if (chrome.runtime.lastError) {} }
       );
     }
@@ -535,7 +535,7 @@ function _kcBeginClipControl() {
     ctrl.osLoadingShown = true;
     try {
       chrome.runtime.sendMessage(
-        { action: 'clip-os-progress-start', id: ctrl.osNotifId, title: 'SeaClip', message: KC_CLIP_LOADING_TEXT },
+        { action: 'clip-os-progress-start', id: ctrl.osNotifId, title: 'Grrab', message: KC_CLIP_LOADING_TEXT },
         () => { if (chrome.runtime.lastError) { /* SW asleep / notifications off — ignore */ } }
       );
     } catch (_) {}

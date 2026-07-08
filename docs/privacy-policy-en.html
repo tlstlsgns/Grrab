@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Privacy Policy | SeaClip</title>
+<title>Privacy Policy | Grrab</title>
 <style>
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -56,7 +56,7 @@
 <body>
 <a href="privacy-policy.html" class="lang-switch">🌐 한국어</a>
 
-<h1>SeaClip Privacy Policy</h1>
+<h1>Grrab Privacy Policy</h1>
 
 <p class="meta">
   <strong>Effective Date:</strong> May 11, 2026<br>
@@ -70,18 +70,18 @@
   including the Limited Use requirements.
 </div>
 
-<h2>1. What SeaClip Does (Single Purpose)</h2>
-<p>SeaClip is a Chrome extension with a single purpose: to enable users to save images and social media posts from any webpage with a keyboard shortcut (Cmd+C on Mac, Ctrl+C on Windows/Linux), and to automatically organize saved items by content type (Img or SNS).</p>
+<h2>1. What Grrab Does (Single Purpose)</h2>
+<p>Grrab is a Chrome extension with a single purpose: to enable users to save images and social media posts from any webpage with a keyboard shortcut (Cmd+C on Mac, Ctrl+C on Windows/Linux), and to automatically organize saved items by content type (Img or SNS).</p>
 
 <h2>2. What We Collect, How, and Why</h2>
 
-<p>SeaClip collects data only in response to your interaction with it — pressing the save shortcut, signing in, or pointing at (hovering) clippable content on the tab you are actively using. SeaClip does not run background analytics across your browsing and does not collect or transmit data from pages you never interact with. Two narrow, feature-essential exceptions are described explicitly below: an anonymous, identifier-free clip count (Section 2.5) and on-demand fetching of images and link destinations to make clipping instant (Section 2.6).</p>
+<p>Grrab collects data only in response to your interaction with it — pressing the save shortcut, signing in, or pointing at (hovering) clippable content on the tab you are actively using. Grrab does not run background analytics across your browsing and does not collect or transmit data from pages you never interact with. Two narrow, feature-essential exceptions are described explicitly below: an anonymous, identifier-free clip count (Section 2.5) and on-demand fetching of images and link destinations to make clipping instant (Section 2.6).</p>
 
 <h3>2.1 Account Information</h3>
 <ul>
   <li><strong>What:</strong> Your Google account's unique identifier (UID), email address, display name, and profile picture URL.</li>
-  <li><strong>When collected:</strong> When you sign in via the SeaClip side panel.</li>
-  <li><strong>How collected:</strong> Through Chrome's <code>chrome.identity</code> API using OAuth 2.0. SeaClip does not store passwords.</li>
+  <li><strong>When collected:</strong> When you sign in via the Grrab side panel.</li>
+  <li><strong>How collected:</strong> Through Chrome's <code>chrome.identity</code> API using OAuth 2.0. Grrab does not store passwords.</li>
   <li><strong>OAuth scopes requested:</strong> <code>openid</code>, <code>email</code>, <code>profile</code>, and <code>https://www.googleapis.com/auth/drive.file</code>.</li>
   <li><strong>Why:</strong> To identify you as the owner of your saved items and to sync items across devices.</li>
   <li><strong>Where stored:</strong> Firebase Authentication (Google Cloud).</li>
@@ -89,10 +89,10 @@
 
 <h3>2.2 Saved Item Metadata</h3>
 <ul>
-  <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so SeaClip can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, a content de-duplication identifier (a stable reference such as a video source URL or a post ID, used to avoid saving the same item twice), the detected platform label (e.g. the social network a saved item came from), an internal correlation ID (a short random string that matches an optimistically-shown card to its stored record), and the organizational folder you assigned (if any) for items you explicitly save.</li>
+  <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so Grrab can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, a content de-duplication identifier (a stable reference such as a video source URL or a post ID, used to avoid saving the same item twice), the detected platform label (e.g. the social network a saved item came from), an internal correlation ID (a short random string that matches an optimistically-shown card to its stored record), and the organizational folder you assigned (if any) for items you explicitly save.</li>
   <li><strong>When collected:</strong> Only when you press the save shortcut on a page.</li>
   <li><strong>How collected:</strong> Via a content script that runs only at the moment of save, reading the active page's URL, title, and (if you saved an image) the image URL.</li>
-  <li><strong>Why:</strong> To store and organize your clips so you can find them later in the SeaClip side panel.</li>
+  <li><strong>Why:</strong> To store and organize your clips so you can find them later in the Grrab side panel.</li>
   <li><strong>Where stored:</strong> Firebase Firestore (Google Cloud, Asia Northeast region), under your user account.</li>
 </ul>
 
@@ -100,12 +100,12 @@
 <ul>
   <li><strong>What:</strong> The actual image or content files you explicitly save.</li>
   <li><strong>When collected:</strong> Only when you press the save shortcut.</li>
-  <li><strong>How collected:</strong> Downloaded from the source URL by SeaClip.</li>
+  <li><strong>How collected:</strong> Downloaded from the source URL by Grrab.</li>
   <li><strong>Why:</strong> To preserve the saved content for your later access.</li>
   <li><strong>Where stored</strong> (you choose per save destination setting):
     <ul>
-      <li><strong>Local folder:</strong> A folder on your computer that you select using Chrome's File System Access API. SeaClip writes saved files directly to this folder and cannot access other folders.</li>
-      <li><strong>Google Drive:</strong> A folder named <code>SeaClip_files</code> automatically created in your Google Drive root. SeaClip uses the <code>drive.file</code> OAuth scope, which means SeaClip can only access files SeaClip itself creates — not your other Drive files.</li>
+      <li><strong>Local folder:</strong> A folder on your computer that you select using Chrome's File System Access API. Grrab writes saved files directly to this folder and cannot access other folders.</li>
+      <li><strong>Google Drive:</strong> A folder named <code>Grrab_files</code> automatically created in your Google Drive root. Grrab uses the <code>drive.file</code> OAuth scope, which means Grrab can only access files Grrab itself creates — not your other Drive files.</li>
     </ul>
   </li>
 </ul>
@@ -122,7 +122,7 @@
 <ul>
   <li><strong>What:</strong> An anonymous signal that one clip occurred. The request body is empty — no URL, site, page, image, account, or device identifier is sent or stored. On the server it only increments aggregate counters (a running total and a per-day total).</li>
   <li><strong>When collected:</strong> Only when you perform a clip while you are <strong>not</strong> signed in. Signed-in saves do not send this.</li>
-  <li><strong>How collected:</strong> A single fire-and-forget request to SeaClip's server. It cannot be tied to you because no identifier is included.</li>
+  <li><strong>How collected:</strong> A single fire-and-forget request to Grrab's server. It cannot be tied to you because no identifier is included.</li>
   <li><strong>Why:</strong> To understand overall usage volume (how many clips happen) without identifying anyone or recording where clips occur.</li>
   <li><strong>Where stored:</strong> As aggregate counters only, in Firebase Firestore (Google Cloud). No per-event or per-user records are created.</li>
 </ul>
@@ -130,16 +130,16 @@
 <h3>2.6 Image and Link Fetching (to make clipping instant)</h3>
 <ul>
   <li><strong>What:</strong> An image URL or a link URL on the tab you are actively using.</li>
-  <li><strong>When:</strong> (a) When the SeaClip side panel displays previews of items <em>you have already saved</em>, the saved item's image URL may be routed through SeaClip's image-proxy server so the preview can render even when the original host blocks direct loading. (b) When you point at (hover) or save a clippable item on the active tab, SeaClip may resolve the item's final link (following redirects) and pre-fetch its image so that saving is instant.</li>
-  <li><strong>How:</strong> These fetches are performed by SeaClip's own backend on your behalf (to bypass cross-origin/hotlink restrictions). They run on the active tab in response to your interaction with clippable content — not as background monitoring of pages you do not interact with.</li>
+  <li><strong>When:</strong> (a) When the Grrab side panel displays previews of items <em>you have already saved</em>, the saved item's image URL may be routed through Grrab's image-proxy server so the preview can render even when the original host blocks direct loading. (b) When you point at (hover) or save a clippable item on the active tab, Grrab may resolve the item's final link (following redirects) and pre-fetch its image so that saving is instant.</li>
+  <li><strong>How:</strong> These fetches are performed by Grrab's own backend on your behalf (to bypass cross-origin/hotlink restrictions). They run on the active tab in response to your interaction with clippable content — not as background monitoring of pages you do not interact with.</li>
   <li><strong>Why:</strong> To render previews reliably and to make the save action instantaneous.</li>
-  <li><strong>Video frames:</strong> When you clip a video whose frame cannot be read directly because the site serves it from another origin, SeaClip briefly captures the current visible tab to obtain the frame you are clipping. This capture is used only to produce that clip image and is not stored separately.</li>
+  <li><strong>Video frames:</strong> When you clip a video whose frame cannot be read directly because the site serves it from another origin, Grrab briefly captures the current visible tab to obtain the frame you are clipping. This capture is used only to produce that clip image and is not stored separately.</li>
   <li><strong>Retention:</strong> These fetches are transient — the URL is used to retrieve the image or follow the redirect and is <strong>not</strong> stored as a separate record. (URLs of items you explicitly save are stored as described in Section 2.2.)</li>
 </ul>
 
 <h3>2.7 Clipped Image (size adjustment, on-device upscaling, and storage)</h3>
 <ul>
-  <li><strong>What:</strong> The image you clip, adjusted to your chosen clip size. If the source image is larger than your clip size it is downscaled; if it is smaller, it is enlarged using a super-resolution machine-learning model. This produced image is stored so SeaClip can show it as the saved item's preview in the side panel.</li>
+  <li><strong>What:</strong> The image you clip, adjusted to your chosen clip size. If the source image is larger than your clip size it is downscaled; if it is smaller, it is enlarged using a super-resolution machine-learning model. This produced image is stored so Grrab can show it as the saved item's preview in the side panel.</li>
   <li><strong>On-device upscaling:</strong> The upscaling runs <strong>entirely on your device</strong> using a model bundled with the extension (executed in a background offscreen document via WebAssembly). The image is <strong>not</strong> sent to any external or third-party AI service for upscaling.</li>
   <li><strong>When:</strong> Only when you save an image clip while signed in.</li>
   <li><strong>Where stored:</strong> The resulting clip image is uploaded to <strong>Firebase Storage (Google Cloud)</strong> under your user account, so it can serve as the item's preview — independently of, and in addition to, any local-folder or Google Drive copy you chose as your save destination.</li>
@@ -150,49 +150,49 @@
 <ul>
   <li>We do <strong>NOT</strong> keep a log of your browsing history or build a record of the pages you visit.</li>
   <li>We do <strong>NOT</strong> collect or store data from pages you never interact with, and we do not save items you did not choose to save.</li>
-  <li>We do <strong>NOT</strong> use third-party analytics, advertising SDKs, or trackers. The only usage signal SeaClip collects is the anonymous, identifier-free clip count described in Section 2.5.</li>
+  <li>We do <strong>NOT</strong> use third-party analytics, advertising SDKs, or trackers. The only usage signal Grrab collects is the anonymous, identifier-free clip count described in Section 2.5.</li>
   <li>We do <strong>NOT</strong> sell or share your data with advertisers or data brokers.</li>
   <li>We do <strong>NOT</strong> send your saved items or page content to any external or third-party AI service for processing. (Image upscaling is performed by a model bundled with the extension that runs entirely on your device — see Section 2.7.)</li>
   <li>We do <strong>NOT</strong> collect sensitive content (e.g., email contents, passwords, financial data, health data).</li>
-  <li>The thumbnail stored with a saved item is the preview your browser already rendered on the source page. To <em>display</em> previews reliably, SeaClip may additionally fetch a saved item's image through its own image proxy (see Section 2.6); such fetches are transient and are not retained beyond the saved item's stored fields.</li>
+  <li>The thumbnail stored with a saved item is the preview your browser already rendered on the source page. To <em>display</em> previews reliably, Grrab may additionally fetch a saved item's image through its own image proxy (see Section 2.6); such fetches are transient and are not retained beyond the saved item's stored fields.</li>
 </ul>
 
 <h2>4. Permission Justifications</h2>
 
-<p>SeaClip requests the following Chrome permissions and uses them as follows:</p>
+<p>Grrab requests the following Chrome permissions and uses them as follows:</p>
 <ul>
   <li><code>storage</code> — To store your preferences (save destination, UI settings) via <code>chrome.storage.local</code> on your device only.</li>
   <li><code>downloads</code> — When you save to your Downloads folder, to write the clipped image file there.</li>
   <li><code>tabs</code> — To read the active tab's URL and title at the moment you save, and to coordinate messages between the side panel UI and content scripts.</li>
-  <li><code>windows</code> — To open and close SeaClip's folder-picker popup window, used when you choose a local save folder.</li>
-  <li><code>sidePanel</code> — To display SeaClip's main UI in Chrome's side panel, where you browse saved items by category.</li>
+  <li><code>windows</code> — To open and close Grrab's folder-picker popup window, used when you choose a local save folder.</li>
+  <li><code>sidePanel</code> — To display Grrab's main UI in Chrome's side panel, where you browse saved items by category.</li>
   <li><code>identity</code> — For Google sign-in via OAuth 2.0 to identify your account and request access to your Drive (only with <code>drive.file</code> scope).</li>
-  <li><code>clipboardWrite</code> — To copy a clipped image to your clipboard: the save shortcut copies the image you clip, and the side panel's Copy button copies a saved item's image, so you can paste it directly into another app. SeaClip writes only image data to the clipboard; the copy happens locally and is not transmitted.</li>
-  <li><code>offscreen</code> — To run SeaClip's on-device image upscaling (super-resolution) in a background offscreen document, so that when a clipped image is smaller than your chosen clip size it can be enlarged locally without freezing the page. The image is processed entirely on your device (see Section 2.7).</li>
+  <li><code>clipboardWrite</code> — To copy a clipped image to your clipboard: the save shortcut copies the image you clip, and the side panel's Copy button copies a saved item's image, so you can paste it directly into another app. Grrab writes only image data to the clipboard; the copy happens locally and is not transmitted.</li>
+  <li><code>offscreen</code> — To run Grrab's on-device image upscaling (super-resolution) in a background offscreen document, so that when a clipped image is smaller than your chosen clip size it can be enlarged locally without freezing the page. The image is processed entirely on your device (see Section 2.7).</li>
   <li><code>notifications</code> — To show a brief system notification confirming a clip finished saving when you have navigated away from the page during the clip (for example, while an image is being upscaled), so you still get confirmation when the in-page message isn't visible. These notifications contain only a generic status message and no personal data.</li>
 </ul>
 
 <h3>Host Permissions (<code>&lt;all_urls&gt;</code>)</h3>
-<p>SeaClip requests permission to run on any URL because it is a universal save tool that must work on any website you choose to save from. Restricting to specific sites would defeat the core purpose.</p>
+<p>Grrab requests permission to run on any URL because it is a universal save tool that must work on any website you choose to save from. Restricting to specific sites would defeat the core purpose.</p>
 <p>Despite the broad URL pattern:</p>
 <ul>
-  <li>SeaClip acts only on the tab you are actively using, in response to your interaction — pressing the save shortcut or pointing at (hovering) clippable content. It highlights clippable items as you hover and, to make saving instant, may pre-resolve a hovered item's link and image (see Section 2.6).</li>
-  <li>SeaClip reads only the metadata necessary for clipping (URL, title, primary image, the element you point at).</li>
-  <li>SeaClip does not run background monitoring of your browsing and does not act on tabs you are not interacting with.</li>
-  <li>SeaClip does not collect or store data from pages you never interact with.</li>
-  <li>SeaClip does not run continuous or AI-based content analysis on the pages you visit.</li>
+  <li>Grrab acts only on the tab you are actively using, in response to your interaction — pressing the save shortcut or pointing at (hovering) clippable content. It highlights clippable items as you hover and, to make saving instant, may pre-resolve a hovered item's link and image (see Section 2.6).</li>
+  <li>Grrab reads only the metadata necessary for clipping (URL, title, primary image, the element you point at).</li>
+  <li>Grrab does not run background monitoring of your browsing and does not act on tabs you are not interacting with.</li>
+  <li>Grrab does not collect or store data from pages you never interact with.</li>
+  <li>Grrab does not run continuous or AI-based content analysis on the pages you visit.</li>
 </ul>
-<p>SeaClip's clipping machinery stays dormant until you interact with clippable content on the active tab.</p>
+<p>Grrab's clipping machinery stays dormant until you interact with clippable content on the active tab.</p>
 
 <h2>5. Data Sharing</h2>
 
-<p>SeaClip shares your data only with the following service providers, strictly to operate the extension's documented functionality:</p>
+<p>Grrab shares your data only with the following service providers, strictly to operate the extension's documented functionality:</p>
 
 <h3>5.1 Google (Firebase — Authentication, Firestore, and Storage)</h3>
 <ul>
   <li><strong>What is shared:</strong> Your account information, saved item metadata, and the clip image stored for previews (Section 2.7).</li>
   <li><strong>Purpose:</strong> Backend infrastructure that hosts your account, saved items, and their preview images.</li>
-  <li><strong>Also processed here:</strong> The anonymous clip count (Section 2.5) and the on-demand image/link fetches (Section 2.6) are handled by SeaClip's own backend running on Google Cloud. The image/link fetches are transient and are not stored; the clip count is stored only as aggregate totals with no identifier.</li>
+  <li><strong>Also processed here:</strong> The anonymous clip count (Section 2.5) and the on-demand image/link fetches (Section 2.6) are handled by Grrab's own backend running on Google Cloud. The image/link fetches are transient and are not stored; the clip count is stored only as aggregate totals with no identifier.</li>
   <li><strong>Subject to:</strong> <a href="https://policies.google.com/privacy">Google's privacy policy</a> and Google Cloud Platform Terms of Service.</li>
 </ul>
 
@@ -200,26 +200,26 @@
 <ul>
   <li><strong>What is shared:</strong> The files you explicitly save.</li>
   <li><strong>Purpose:</strong> Storage of your saved files in your own Google Drive.</li>
-  <li><strong>Access scope:</strong> <code>drive.file</code> only — SeaClip can only see and modify files SeaClip itself created. SeaClip cannot see your other Drive files.</li>
+  <li><strong>Access scope:</strong> <code>drive.file</code> only — Grrab can only see and modify files Grrab itself created. Grrab cannot see your other Drive files.</li>
 </ul>
 
-<p>SeaClip does <strong>NOT</strong> share your data with any other third party. We do not sell, rent, or transfer your data to advertisers, data brokers, or analytics providers.</p>
+<p>Grrab does <strong>NOT</strong> share your data with any other third party. We do not sell, rent, or transfer your data to advertisers, data brokers, or analytics providers.</p>
 
 <h2>6. Data Retention and Deletion</h2>
 <ul>
   <li><strong>Saved items:</strong> Retained until you delete them individually (using the delete button on each item in the side panel) or delete your account.</li>
   <li><strong>Account data:</strong> Retained until you request account deletion.</li>
-  <li><strong>Local data</strong> (chrome.storage.local): Cleared when you uninstall SeaClip or use Chrome's extension settings to clear extension data.</li>
+  <li><strong>Local data</strong> (chrome.storage.local): Cleared when you uninstall Grrab or use Chrome's extension settings to clear extension data.</li>
 </ul>
 <p>To request account deletion, email <a href="mailto:tlstlsgns@gmail.com">tlstlsgns@gmail.com</a>.</p>
 
 <h2>7. Your Rights</h2>
 <ul>
-  <li><strong>Access:</strong> View all your saved items via the SeaClip side panel.</li>
+  <li><strong>Access:</strong> View all your saved items via the Grrab side panel.</li>
   <li><strong>Delete individual items:</strong> Use the delete button on each item card.</li>
   <li><strong>Delete account:</strong> Email <a href="mailto:tlstlsgns@gmail.com">tlstlsgns@gmail.com</a> requesting account deletion.</li>
-  <li><strong>Revoke OAuth access:</strong> Remove SeaClip's permissions at any time via <a href="https://myaccount.google.com/permissions">Google Account Security Settings</a>.</li>
-  <li><strong>Local data:</strong> Use <code>chrome://extensions</code> to remove SeaClip and clear local data.</li>
+  <li><strong>Revoke OAuth access:</strong> Remove Grrab's permissions at any time via <a href="https://myaccount.google.com/permissions">Google Account Security Settings</a>.</li>
+  <li><strong>Local data:</strong> Use <code>chrome://extensions</code> to remove Grrab and clear local data.</li>
 </ul>
 
 <h2>8. Security</h2>
@@ -228,17 +228,17 @@
   <li>OAuth tokens are managed via Chrome's secure <code>chrome.identity</code> API.</li>
   <li>Backend infrastructure (Firebase) uses Google Cloud Platform's industry-standard security practices.</li>
   <li>Firebase Security Rules enforce per-user data isolation; one user cannot access another user's data.</li>
-  <li>SeaClip itself does not store passwords. Authentication is delegated entirely to Google's OAuth flow.</li>
+  <li>Grrab itself does not store passwords. Authentication is delegated entirely to Google's OAuth flow.</li>
 </ul>
 
 <h2>9. Children's Privacy</h2>
-<p>SeaClip is not directed at children under 13 and does not knowingly collect data from children under 13. If we become aware of such collection, we will delete the data immediately.</p>
+<p>Grrab is not directed at children under 13 and does not knowingly collect data from children under 13. If we become aware of such collection, we will delete the data immediately.</p>
 
 <h2>10. Changes to This Policy</h2>
 <p>We may update this policy from time to time. Material changes will be reflected in the "Last Updated" date at the top of this page. We will not retroactively change the policy to expand data collection beyond what was disclosed at the time of your saves.</p>
 
 <h2>11. Open Source</h2>
-<p>SeaClip is open source. You can review the entire codebase at <a href="https://github.com/tlstlsgns/SeaClip">github.com/tlstlsgns/SeaClip</a> to verify the data handling described in this policy.</p>
+<p>Grrab is open source. You can review the entire codebase at <a href="https://github.com/tlstlsgns/SeaClip">github.com/tlstlsgns/SeaClip</a> to verify the data handling described in this policy.</p>
 
 <h2>12. Contact</h2>
 <ul>
