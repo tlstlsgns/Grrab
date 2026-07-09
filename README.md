@@ -160,7 +160,7 @@ KickClip/
 
 ## Privacy & Security
 
-- **Privacy Policy**: [https://tlstlsgns.github.io/KickClip/privacy-policy.html](https://tlstlsgns.github.io/KickClip/privacy-policy.html)
+- **Privacy Policy**: [https://tlstlsgns.github.io/Grrab/privacy-policy.html](https://tlstlsgns.github.io/Grrab/privacy-policy.html)
 - **OAuth scopes**: `openid`, `email`, `profile`, `drive.file` (least privilege)
 - **Data storage**: Firebase Firestore (Asia Northeast / Seoul),
   user's local folder, or user's own Google Drive
@@ -256,5 +256,5 @@ TBD
 
 ---
 
-**Website**: [https://tlstlsgns.github.io/KickClip/](https://tlstlsgns.github.io/KickClip/)  
+**Website**: [https://tlstlsgns.github.io/Grrab/](https://tlstlsgns.github.io/Grrab/)  
 **Contact**: tlstlsgns@gmail.com
