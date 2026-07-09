@@ -46,15 +46,17 @@ function copyOrtVendor(destDir) {
 
 function copyVendorModels(destVendorDir) {
   if (!fs.existsSync(srcModelsDir)) {
-    console.error(`ERROR: missing model dir: ${srcModelsDir} — run fetch-model first`);
+    console.error(`ERROR: missing model dir: ${srcModelsDir}`);
     process.exit(1);
   }
   const destModelsDir = path.join(destVendorDir, 'models');
   fs.mkdirSync(destModelsDir, { recursive: true });
+  const MODEL_ALLOWLIST = new Set(['realesr-general-x4v3.onnx']);
   const entries = fs.readdirSync(srcModelsDir, { withFileTypes: true });
   let copied = 0;
   for (const entry of entries) {
     if (!entry.isFile()) continue;
+    if (!MODEL_ALLOWLIST.has(entry.name)) continue;
     fs.copyFileSync(
       path.join(srcModelsDir, entry.name),
       path.join(destModelsDir, entry.name)

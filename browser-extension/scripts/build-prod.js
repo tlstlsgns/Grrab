@@ -10,9 +10,6 @@ const distDir = path.join(extensionRoot, 'dist');
 const outDir = path.join(distDir, 'prod');
 const zipPath = path.join(distDir, 'grrab-prod.zip');
 const prodVendorDir = path.join(outDir, 'vendor');
-const modelsDir = path.join(srcDir, 'vendor', 'models');
-
-const { fetchModel } = require('./fetch-model');
 const { copyOrtVendor, copyVendorModels } = require('./copy-ort-vendor');
 
 const excludedBasenames = new Set([
@@ -25,6 +22,7 @@ const excludedBasenames = new Set([
   '.DS_Store',
   'logo_source.svg',
   'debug-translation.js',
+  'bgRemoval.js',
 ]);
 
 function shouldExclude(entryName) {
@@ -136,7 +134,6 @@ function createZip() {
 }
 
 async function main() {
-  await fetchModel(modelsDir);
   removePreviousOutputs();
   copySource();
   copyOrtVendor(prodVendorDir);

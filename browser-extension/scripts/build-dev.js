@@ -11,13 +11,9 @@ const srcConfig = path.join(chromiumDir, 'config.dev.js');
 const outManifest = path.join(chromiumDir, 'manifest.json');
 const outConfig = path.join(chromiumDir, 'config.js');
 const vendorDir = path.join(chromiumDir, 'vendor');
-const modelsDir = path.join(vendorDir, 'models');
-
-const { fetchModel } = require('./fetch-model');
 const { copyOrtVendor } = require('./copy-ort-vendor');
 
 async function main() {
-  await fetchModel(modelsDir);
   fs.copyFileSync(srcManifest, outManifest);
   fs.copyFileSync(srcConfig, outConfig);
   copyOrtVendor(vendorDir);
