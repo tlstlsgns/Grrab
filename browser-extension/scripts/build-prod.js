@@ -8,7 +8,7 @@ const extensionRoot = path.join(repoRoot, 'browser-extension');
 const srcDir = path.join(extensionRoot, 'chromium');
 const distDir = path.join(extensionRoot, 'dist');
 const outDir = path.join(distDir, 'prod');
-const zipPath = path.join(distDir, 'seaclip-prod.zip');
+const zipPath = path.join(distDir, 'grrab-prod.zip');
 const prodVendorDir = path.join(outDir, 'vendor');
 const modelsDir = path.join(srcDir, 'vendor', 'models');
 

@@ -124,7 +124,7 @@ Produces:
 
 - `browser-extension/dist/prod/` — unpacked extension with prod
   manifest + config
-- `browser-extension/dist/seaclip-prod.zip` — packaged for
+- `browser-extension/dist/grrab-prod.zip` — packaged for
   Chrome Web Store upload
 
 ## Project Structure

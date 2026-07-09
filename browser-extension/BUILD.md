@@ -2,7 +2,7 @@
 
 ## Overview
 
-KickClip uses a dual-environment extension workflow: `browser-extension/chromium/` is the DEV source directory loaded as unpacked during development, while PROD is generated to `browser-extension/dist/prod/` and zipped as `browser-extension/dist/seaclip-prod.zip` for distribution.
+KickClip uses a dual-environment extension workflow: `browser-extension/chromium/` is the DEV source directory loaded as unpacked during development, while PROD is generated to `browser-extension/dist/prod/` and zipped as `browser-extension/dist/grrab-prod.zip` for distribution.
 
 ## One-time setup (keys)
 
@@ -74,7 +74,7 @@ npm run build:prod
 Outputs:
 
 - `browser-extension/dist/prod/` (loadable unpacked PROD extension folder)
-- `browser-extension/dist/seaclip-prod.zip` (distribution zip for early users)
+- `browser-extension/dist/grrab-prod.zip` (distribution zip for early users)
 
 If placeholders are still present in `manifest.prod.json`, the build script prints a warning but still creates output.
 
