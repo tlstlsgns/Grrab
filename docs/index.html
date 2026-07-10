@@ -1,92 +1,533 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grrab</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grrab — Grab any image on the web, never low-res</title>
+<meta name="description" content="Grab any image on the web in high resolution with one keyboard shortcut. AI-upscaled to 3k, straight to your clipboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    max-width: 680px;
-    margin: 80px auto;
-    padding: 20px 24px;
-    line-height: 1.7;
-    color: #1a1a1a;
-    background: #ffffff;
+  :root{
+    /* ── accent ── */
+    --accent:#BC13FE; --accent-rgb:188,19,254; --accent-hover:#A810E0; --accent-bright:#CF00FF;
+    --accent-05:rgba(188,19,254,.05); --accent-06:rgba(188,19,254,.06); --accent-10:rgba(188,19,254,.10);
+    --accent-12:rgba(188,19,254,.12); --accent-20:rgba(188,19,254,.20); --accent-30:rgba(188,19,254,.30);
+    --accent-wash:#FAF7FD;
+    /* ── ink ── */
+    --ink:#1A1A1A; --ink-strong:#000; --ink-900:#111; --ink-700:#374151; --ink-muted:#6B7280;
+    --ink-soft:#888; --ink-faint:#9CA3AF;
+    /* ── surfaces ── */
+    --surface:#fff; --surface-canvas:#FAFAFA; --surface-subtle:#F9FAFB; --surface-ios:#F2F2F7; --surface-key:#F4F4F5;
+    /* ── borders ── */
+    --border:#E5E7EB; --border-strong:#D9D9D9; --border-soft:#E5E5E5;
+    /* ── type ── */
+    --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-display:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-ui:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-mono:'SF Mono','SFMono-Regular',Menlo,Monaco,Consolas,monospace;
+    --font-display-weight-hero:800; --font-display-weight-feature:700; --font-display-weight-cta:700;
+    --display-sm:28px; --display-md:40px; --display-lg:56px; --display-xl:72px;
+    --tracking-tight:-0.03em;
+    /* ── radii ── */
+    --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-2xl:24px; --radius-pill:999px;
+    /* ── shadow ── */
+    --shadow-xs:0 1px 3px rgba(0,0,0,.08); --shadow-md:0 2px 8px rgba(0,0,0,.14);
+    --shadow-xl:0 12px 32px rgba(0,0,0,.10); --shadow-2xl:0 24px 64px rgba(0,0,0,.14);
+    /* ── layout ── */
+    --container-max:1200px;
+    color-scheme:light;
   }
-  h1 { color: #BC13FE; margin-bottom: 8px; }
-  .tagline { color: #666; margin-top: 0; font-size: 16px; }
-  .features { margin-top: 32px; padding: 20px 24px; background: #faf7fd; border-radius: 12px; }
-  .features h2 { color: #BC13FE; margin-top: 0; font-size: 18px; }
-  .features ul { padding-left: 20px; margin: 12px 0 0 0; }
-  .features li { margin-bottom: 6px; }
-  .links { margin-top: 32px; padding: 24px; background: #faf7fd; border-radius: 12px; }
-  .links h2 { color: #BC13FE; margin-top: 0; font-size: 18px; }
-  .links a {
-    display: block;
-    color: #BC13FE;
-    text-decoration: none;
-    padding: 8px 0;
-    font-weight: 500;
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;font-family:var(--font-sans);color:var(--ink);background:var(--surface);-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent);text-decoration:none;transition:color .15s ease;}
+  a:hover{color:var(--accent-hover);}
+  ::selection{background:var(--accent-20);color:var(--ink-strong);}
+
+  /* buttons (flattened from the design-system Button component) */
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;
+    letter-spacing:-0.01em;border-radius:var(--radius-md);cursor:pointer;border:1px solid transparent;
+    transition:background .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease;white-space:nowrap;text-decoration:none;}
+  .btn-md{height:40px;padding:0 18px;font-size:15px;}
+  .btn-lg{height:52px;padding:0 26px;font-size:17px;}
+  .btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(188,19,254,.20);}
+  .btn-accent:hover{background:var(--accent-hover);color:#fff;}
+  .btn-ghost{background:transparent;color:var(--ink-700);border-color:var(--border);}
+  .btn-ghost:hover{background:var(--surface-subtle);color:var(--ink-strong);}
+
+  /* hero cursor-follow badge + grab toast */
+  .grab-badge{position:fixed;background:var(--accent);color:#fff;font-family:var(--font-ui);font-size:12px;font-weight:600;
+    padding:6px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 14px rgba(188,19,254,.35);
+    pointer-events:none;z-index:40;opacity:0;transition:opacity .12s ease;transform:translate(16px,18px);}
+  .grab-toast{font-family:var(--font-sans);font-weight:600;font-size:14px;color:#fff;background:var(--scrim-dark,rgba(30,30,30,.92));
+    padding:9px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.22);opacity:0;transform:translateY(-6px);
+    transition:opacity .2s ease,transform .2s ease;}
+  .grab-toast.show{opacity:1;transform:translateY(0);}
+
+  @keyframes gfloatA{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(-1.6deg)}}
+  @keyframes gfloatB{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-10px) rotate(1.3deg)}}
+  @keyframes gfloatC{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(.9deg)}}
+
+  @media (max-width:760px){
+    .grrab-inspire-grid{grid-template-columns:1fr !important;}
+    .grrab-rowA{grid-template-columns:1fr !important;}
+    .grrab-rowC{grid-template-columns:1fr !important;}
+    .hero-h1{font-size:38px !important;}
+    .hero-sub{font-size:22px !important;}
+    .feature-h2{font-size:30px !important;}
+    .nav-links{display:none !important;}
   }
-  .links a:hover { text-decoration: underline; }
-  kbd {
-    background: #f4f4f5;
-    border: 1px solid #e5e5e5;
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-family: 'SF Mono', Monaco, monospace;
-    font-size: 13px;
-    color: #1a1a1a;
-  }
-  .footer {
-    margin-top: 48px;
-    padding-top: 24px;
-    border-top: 1px solid #e5e5e5;
-    color: #888;
-    font-size: 14px;
-  }
-  @media (prefers-color-scheme: dark) {
-    body { background: #1a1a1a; color: #f3f4f6; }
-    .features, .links { background: #2a1a3a; }
-    kbd { background: #374151; border-color: #4b5563; color: #f3f4f6; }
-    .footer { border-color: #374151; color: #9ca3af; }
+  @media (prefers-reduced-motion:reduce){
+    .float-tile{animation:none !important;}
   }
 </style>
 </head>
 <body>
-  <h1>Grrab</h1>
-  <p class="tagline">
-    <kbd>Cmd</kbd>+<kbd>C</kbd>로 이미지와 SNS 게시물을 저장하는 Chrome 확장 프로그램
+
+<!-- ══ STICKY HEADER ══ -->
+<header style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--border);">
+  <div style="max-width:var(--container-max);margin:0 auto;padding:14px 32px;display:flex;align-items:center;gap:32px;">
+    <a href="#top" style="display:flex;align-items:center;gap:10px;">
+      <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="30" height="30" style="display:block;border-radius:7px;">
+      <span style="font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:-0.02em;color:var(--ink-strong);">Grrab</span>
+    </a>
+    <nav class="nav-links" style="display:flex;gap:28px;margin-left:auto;">
+      <a href="#how" style="font-size:14px;font-weight:500;color:var(--ink-700);">How it works</a>
+    </nav>
+    <a class="btn btn-accent btn-md" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Add to Chrome</a>
+  </div>
+</header>
+
+<!-- ══ HERO ══ -->
+<section id="top" style="max-width:960px;margin:0 auto;padding:100px 32px 64px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;">
+  <h1 class="hero-h1" style="font-family:var(--font-display);font-weight:var(--font-display-weight-hero);font-size:var(--display-lg);line-height:1.25;letter-spacing:var(--tracking-tight);color:var(--ink-strong);margin:0;">
+    Every great design starts<br>with a good reference.
+  </h1>
+  <p class="hero-sub" style="font-size:32px;line-height:1.25;color:var(--ink-700);max-width:32ch;margin:0;font-weight:600;">
+    Grab it, never low-res — in one shortcut.
   </p>
-  <p>Chrome extension to save images and social media posts with <kbd>Cmd</kbd>+<kbd>C</kbd></p>
+  <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
+    <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Add to Chrome</a>
+    <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+  </div>
+</section>
 
-  <div class="features">
-    <h2>주요 기능 / Features</h2>
-    <ul>
-      <li>⚡ 키보드 단축키로 즉시 저장 / One-key save with keyboard shortcut</li>
-      <li>📎 클립한 이미지를 클립보드로 바로 복사 / Copy a clipped image straight to your clipboard</li>
-      <li>🔎 클립을 원하는 크기로 자동 조정 (온디바이스 업스케일) / Auto-fit clips to your size (on-device upscaling)</li>
-      <li>📁 로컬 폴더 또는 Google Drive에 저장 / Save to local folder or Google Drive</li>
-      <li>🏷️ Img / SNS 카테고리로 자동 분류 / Auto-categorized into Img / SNS</li>
-      <li>📋 사이드 패널에서 카드 형태로 관리 / Browse saved items in side panel</li>
-      <li>🔒 개인정보 우선 · 오픈 소스 / Privacy-first · Open source</li>
-    </ul>
+<!-- ══ INTERACTIVE STAGE — grab a tile (open, frameless) ══ -->
+<section style="max-width:var(--container-max);margin:0 auto;padding:8px 32px 80px;">
+  <div id="stage" style="position:relative;width:100%;height:460px;"></div>
+</section>
+
+<!-- ══ FEATURES ══ -->
+<section id="how" style="max-width:var(--container-max);margin:0 auto;padding:104px 32px;display:flex;flex-direction:column;gap:120px;">
+
+  <!-- Row A — media left, text + comparison slider right -->
+  <div class="grrab-rowA" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:72px;align-items:center;">
+    <!-- LEFT: browser-window gallery mockup (static) -->
+    <div style="border-radius:0 var(--radius-2xl) 0 0;overflow:hidden;background:var(--surface);box-shadow:24px -12px 66px 0 rgba(0,0,0,.14);height:496px;border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:none;border-left:none;">
+      <!-- browser chrome (Chrome toolbar) -->
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 14px 9px 0;background:var(--surface-subtle);border-bottom:1px solid var(--border);color:var(--ink-soft);">
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:30px;padding:0 14px 0 0;border-radius:0 24px 24px 0;background:var(--surface);border-top:1px solid #E5E7EB;border-right:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB;border-left:none;">
+          <span style="flex:1;height:5px;border-radius:999px;background:var(--border);width:100%;"></span>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        </div>
+        <span style="display:flex;align-items:center;gap:13px;flex-shrink:0;padding-right:14px;">
+          <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="18" height="18" style="display:block;border-radius:5px;">
+          <span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(150deg,#C7CBD4,#9AA0AD);flex-shrink:0;"></span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
+        </span>
+      </div>
+      <!-- viewport: gallery grid + floating popup -->
+      <div style="position:relative;padding:14px;background:var(--surface);">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E7E2D8,#CFC7B5);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#DADEE4,#C2C7D0);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#DDE6EC,#BFD0DB);"></div>
+          <div style="position:relative;aspect-ratio:1/1;border-radius:var(--radius-sm);border:2px solid #BC13FE;box-shadow:0 0 0 4px rgba(188,19,254,.16),0 10px 28px rgba(188,19,254,.28);z-index:5;">
+            <div style="position:absolute;inset:0;border-radius:4px;overflow:hidden;background:linear-gradient(150deg,#E9E4DF,#D3CABF);"></div>
+            <span style="position:absolute;top:50%;right:-26px;transform:translateY(-50%);z-index:6;font-family:var(--font-sans);font-weight:700;font-size:16px;line-height:1;color:#fff;background:#BC13FE;padding:8px 13px;border-radius:10px;box-shadow:0 4px 16px rgba(188,19,254,.35);white-space:nowrap;">⌘+C</span>
+            <img src="assets/landing/custom-cursor.svg" alt="" width="40" height="40" style="position:absolute;right:-6px;bottom:6px;z-index:7;filter:drop-shadow(0 2px 5px rgba(0,0,0,.25));">
+          </div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E6E2EC,#CFC7DE);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#EAE1F0,#D4C4E6);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E2E7EC,#C6D0D8);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#EDE0CF,#E6C79E);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#DDE3E8,#C3CDD6);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E4DED4,#CFC4B0);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E1E6EB,#C4CED7);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#ECE2D0,#E0C9A6);"></div>
+        </div>
+        <!-- floating Grrab popup card (top-right) -->
+        <div style="position:absolute;top:-2px;left:274px;width:248px;z-index:20;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.16);overflow:hidden;">
+          <div style="padding:14px 16px 12px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+              <span style="font-family:var(--font-sans);font-weight:700;font-size:15px;color:var(--ink-strong);">Grrab Images</span>
+              <span style="flex-shrink:0;width:40px;height:22px;border-radius:999px;background:#BC13FE;position:relative;">
+                <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);"></span>
+              </span>
+            </div>
+            <span style="display:block;margin-top:4px;font-size:12px;color:var(--ink-muted);">no low-res — in one shortcut</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);">
+            <span style="font-size:13px;color:var(--ink-700);">Clip Shortcut</span>
+            <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--ink-strong);background:var(--surface-subtle);border:1px solid var(--border);border-radius:6px;padding:5px 10px;">⌘C</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
+            <span style="font-size:13px;color:var(--ink-700);">Clip Size</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-strong);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px;">3k
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
+          </div>
+          <div style="padding:0 16px 16px;">
+            <div style="display:flex;align-items:center;justify-content:center;font-family:var(--font-sans);font-weight:700;font-size:12px;color:#fff;background:#BC13FE;border-radius:8px;padding:6px 14px;">Open SidePanel</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: heading + description + before/after slider -->
+    <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;">
+      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Choose the Size,<br>and Press shortcut&nbsp;<kbd style="display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;font-family:var(--font-sans);font-weight:700;font-size:20px;letter-spacing:.01em;line-height:1;color:#fff;background:#BC13FE;border-radius:10px;padding:9px 15px;">⌘+C</kbd></h2>
+      <p style="font-size:22px;line-height:1.25;color:var(--ink-700);max-width:38ch;margin:0;font-weight:500;">AI-upscaled to 3k, straight to your clipboard.</p>
+
+      <!-- Before/after comparison slider -->
+      <div id="compare" style="position:relative;width:100%;margin-top:6px;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow-2xl);cursor:ew-resize;user-select:none;touch-action:none;height:315px;">
+        <!-- AFTER (3k) — base layer -->
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#F3E6FC,#F3E6FC 8px,#FAF7FD 8px,#FAF7FD 16px);display:grid;place-items:center;">
+          <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--accent);opacity:.8;">upscaled&nbsp;·&nbsp;3k</span>
+        </div>
+        <span style="position:absolute;top:8px;right:8px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.03em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;box-shadow:0 4px 14px rgba(188,19,254,.35);pointer-events:none;">Image copied</span>
+        <!-- BEFORE (original) — clipped layer -->
+        <div id="compareBefore" style="position:absolute;inset:0;clip-path:inset(0 50% 0 0);-webkit-clip-path:inset(0 50% 0 0);">
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#D5D8E0,#D5D8E0 22px,#C3C7D1 22px,#C3C7D1 44px);display:grid;place-items:center;">
+            <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--ink-muted);opacity:.85;">original&nbsp;·&nbsp;low-res</span>
+          </div>
+          <span style="position:absolute;top:8px;left:8px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.03em;color:#fff;background:rgba(17,17,17,.55);padding:4px 11px;border-radius:999px;pointer-events:none;">original</span>
+        </div>
+        <!-- Handle -->
+        <div id="compareHandle" style="position:absolute;top:0;bottom:0;left:50%;width:3px;background:#BC13FE;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px rgba(255,255,255,.5);">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:2px solid #BC13FE;box-shadow:0 4px 16px rgba(188,19,254,.28);display:flex;align-items:center;justify-content:center;color:#BC13FE;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left:-8px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="links">
-    <h2>개인정보처리방침 / Privacy Policy</h2>
-    <a href="privacy-policy.html">📄 개인정보처리방침 (한국어)</a>
-    <a href="privacy-policy-en.html">📄 Privacy Policy (English)</a>
+  <!-- divider A / B -->
+  <div style="width:100%;height:1px;background:#E5E7EB;"></div>
+
+  <!-- Row B — interactive source switcher -->
+  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:0.82fr 1.18fr;gap:48px;align-items:center;">
+    <!-- LEFT: heading + subhead + source list -->
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Any image on the web<br>that inspires you.</h2>
+        <p style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Even from Instagram posts, YouTube thumbnails<br>— grab any source.</p>
+      </div>
+      <div id="inspireList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+
+    <!-- RIGHT: framed visual with crossfade -->
+    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);min-height:400px;">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;">
+        <span style="display:flex;gap:5px;flex-shrink:0;">
+          <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>
+          <span style="width:9px;height:9px;border-radius:50%;background:#FEBC2E;"></span>
+          <span style="width:9px;height:9px;border-radius:50%;background:#28C840;"></span>
+        </span>
+        <div style="display:flex;align-items:center;gap:8px;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:8px 8px 0 0;padding:8px 12px;margin-bottom:-11px;box-shadow:0 -1px 3px rgba(0,0,0,.04);">
+          <span id="tabIcon" style="display:inline-flex;flex-shrink:0;line-height:0;"></span>
+          <span id="tabLabel" style="flex:1;font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:-0.01em;color:var(--ink-strong);white-space:nowrap;">Youtube</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+      </div>
+      <div id="inspirePanes" style="position:relative;height:400px;"></div>
+    </div>
   </div>
 
-  <div class="links" style="margin-top: 16px;">
-    <h2>Links</h2>
-    <a href="https://github.com/tlstlsgns/Grrab">🔗 GitHub Repository</a>
+  <!-- divider B / C -->
+  <div style="width:100%;height:1px;background:#E5E7EB;"></div>
+
+  <!-- Row C — media left, text + fanned card stack right -->
+  <div class="grrab-rowC" style="display:grid;grid-template-columns:1fr 1.05fr;gap:72px;align-items:start;">
+    <!-- LEFT: side-panel screenshot placeholder -->
+    <div style="border-radius:0 var(--radius-2xl) 0 0;overflow:hidden;background:var(--surface);box-shadow:24px -12px 66px 0 rgba(0,0,0,.14);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:none;border-left:none;">
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 14px 9px 0;background:var(--surface-subtle);border-bottom:1px solid var(--border);color:var(--ink-soft);">
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:30px;padding:0 14px 0 0;border-radius:0 24px 24px 0;background:var(--surface);border-top:1px solid #E5E7EB;border-right:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB;border-left:none;">
+          <span style="flex:1;height:5px;border-radius:999px;background:var(--border);width:100%;"></span>
+        </div>
+        <span style="display:flex;align-items:center;gap:13px;flex-shrink:0;padding-right:14px;">
+          <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="18" height="18" style="display:block;border-radius:5px;">
+          <span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(150deg,#C7CBD4,#9AA0AD);flex-shrink:0;"></span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
+        </span>
+      </div>
+      <div style="display:flex;height:440px;">
+        <div style="flex:1;background:repeating-linear-gradient(45deg,var(--surface-ios),var(--surface-ios) 12px,#ececf2 12px,#ececf2 24px);opacity:.55;"></div>
+        <div style="width:230px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface-ios);display:grid;place-items:center;text-align:center;padding:16px;">
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-muted);line-height:1.6;">side&nbsp;panel<br>screenshot</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: heading + description + fanned card stack -->
+    <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;height:100%;">
+      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every image clip,<br>saved and organized.</h2>
+      <p style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
+
+      <!-- Fanned card stack (static collage) -->
+      <div style="position:relative;width:100%;height:360px;">
+        <div style="position:absolute;left:21px;top:117px;width:116px;height:174px;transform:rotate(-20deg);z-index:1;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 10px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
+            <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">google</span>
+          </div>
+          <div style="flex:1;background:linear-gradient(150deg,#EDE4F2,#DED0E8);"></div>
+        </div>
+        <div style="position:absolute;left:66px;top:66px;width:132px;height:75%;transform:rotate(-13deg);z-index:2;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 12px 28px rgba(0,0,0,.13);display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
+            <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">instagram</span>
+          </div>
+          <div style="flex:1;background:linear-gradient(150deg,#E7E9F0,#D6D9E4);"></div>
+        </div>
+        <div style="position:absolute;left:132px;top:24px;width:150px;height:90%;transform:rotate(-6deg);z-index:3;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 14px 32px rgba(0,0,0,.14);display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
+            <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">youtube</span>
+          </div>
+          <div style="flex:1;background:linear-gradient(150deg,#F3E9CF,#E3D3A8);"></div>
+        </div>
+        <!-- front / active card -->
+        <div style="position:absolute;right:2%;top:0;width:368px;max-width:64%;z-index:10;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:2px solid #BC13FE;box-shadow:0 22px 48px rgba(188,19,254,.26);display:flex;flex-direction:column;height:100%;">
+          <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);">
+            <span style="flex-shrink:0;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:#fff;background:#BC13FE;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8h8v8"></path><path d="M16 8 6 18"></path></svg>
+            </span>
+            <span style="font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">Pinterest</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--ink-muted);">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </span>
+          </div>
+          <div style="flex:1;background:linear-gradient(150deg,#EFEFF2,#DBDBE2);"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="footer">
-    <p>&copy; 2026 Grrab. Contact: <a href="mailto:tlstlsgns@gmail.com" style="color: #888;">tlstlsgns@gmail.com</a></p>
+</section>
+
+<!-- ══ FINAL CTA ══ -->
+<section style="background:var(--accent-wash);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div style="max-width:var(--container-max);margin:0 auto;padding:54px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;">
+    <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="120" height="120" style="display:block;border-radius:26px;">
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+      <div style="display:flex;flex-direction:row;gap:8px;align-items:center;">
+        <h2 style="font-family:var(--font-display);font-weight:var(--font-display-weight-cta);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--accent-hover);margin:0;">Grrab</h2>
+        <h2 style="font-family:var(--font-display);font-weight:var(--font-display-weight-cta);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">any image</h2>
+      </div>
+      <p style="font-size:23px;line-height:1.5;color:var(--ink-700);margin:0;font-weight:600;">never low-res — in one shortcut.</p>
+    </div>
+    <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc" style="margin-top:8px;">Add to Chrome</a>
   </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer style="background:var(--surface);">
+  <div style="max-width:var(--container-max);margin:0 auto;padding:36px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="22" height="22" style="display:block;border-radius:5px;opacity:.85;">
+      <span style="font-size:14px;color:var(--ink-soft);">© 2026 Grrab</span>
+    </div>
+    <nav style="display:flex;gap:24px;flex-wrap:wrap;">
+      <a href="privacy-policy-en.html" style="font-size:14px;color:var(--ink-muted);">Privacy Policy</a>
+      <a href="https://github.com/tlstlsgns/Grrab" style="font-size:14px;color:var(--ink-muted);">GitHub</a>
+      <a href="mailto:tlstlsgns@gmail.com" style="font-size:14px;color:var(--ink-muted);">Contact</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- cursor-follow badge + grab toast (portaled at body level) -->
+<div id="grabBadge" class="grab-badge">Press ⌘+C to Clip</div>
+<div style="position:fixed;top:20px;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;">
+  <div id="grabToast" class="grab-toast">Clipped to clipboard</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var CURSOR = "assets/landing/custom-cursor.svg";
+  var reduceMotion = false;
+  try { reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){}
+
+  /* ─────────────────────────── HERO FLOATING TILES ─────────────────────────── */
+  var tilesConfig = [
+    {id:1,x:"1%", y:"9%", w:172,h:192,z:3,grad:"linear-gradient(150deg,#EEF0F5,#DFE2EC)",anim:"gfloatA",dur:7.0,delay:0},
+    {id:2,x:"15%",y:"48%",w:150,h:150,z:5,grad:"linear-gradient(150deg,#FAF7FD,#EEDFFA)",anim:"gfloatB",dur:8.2,delay:0.6},
+    {id:3,x:"27%",y:"3%", w:160,h:128,z:2,grad:"linear-gradient(150deg,#F1F1F5,#E4E4EC)",anim:"gfloatC",dur:9.0,delay:0.2},
+    {id:4,x:"40%",y:"40%",w:156,h:176,z:4,grad:"linear-gradient(150deg,#EDEFF4,#DEE1EA)",anim:"gfloatB",dur:7.6,delay:1.0},
+    {id:5,x:"55%",y:"7%", w:150,h:160,z:3,grad:"linear-gradient(150deg,#FBF6FD,#F0E3FB)",anim:"gfloatA",dur:8.6,delay:0.4},
+    {id:6,x:"66%",y:"46%",w:160,h:150,z:5,grad:"linear-gradient(150deg,#F2F2F6,#E6E6EE)",anim:"gfloatC",dur:7.9,delay:0.8},
+    {id:7,x:"80%",y:"13%",w:166,h:182,z:2,grad:"linear-gradient(150deg,#EFF0F4,#E0E2EA)",anim:"gfloatB",dur:8.4,delay:0.3}
+  ];
+  var stage = document.getElementById("stage");
+  var badge = document.getElementById("grabBadge");
+  var toast = document.getElementById("grabToast");
+  var hoveredId = null, grabbingId = null, grabT = null, toastT = null;
+  var placeholderSvg = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.16)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+
+  tilesConfig.forEach(function(t){
+    var outer = document.createElement("div");
+    outer.style.cssText = "position:absolute;left:"+t.x+";top:"+t.y+";width:"+t.w+"px;height:"+t.h+"px;z-index:"+t.z+";will-change:transform;";
+    if(!reduceMotion){ outer.style.animation = t.anim+" "+t.dur+"s ease-in-out "+t.delay+"s infinite"; }
+    outer.className = "float-tile";
+
+    var inner = document.createElement("div");
+    inner.style.cssText = "position:relative;width:100%;height:100%;border-radius:12px;background:"+t.grad+";border:1px solid rgba(0,0,0,0.06);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);transform:scale(1);transition:transform .18s cubic-bezier(.25,.1,.25,1),box-shadow .15s ease;cursor:url("+CURSOR+") 3 2, auto;";
+    inner.innerHTML = placeholderSvg;
+
+    function setActive(on){
+      if(on){
+        inner.style.boxShadow = "0 0 0 2px #BC13FE, 0 10px 28px rgba(188,19,254,0.30)";
+        inner.style.transform = "scale(1.04)";
+        outer.style.animationPlayState = "paused";
+        outer.style.zIndex = "20";
+      } else if(grabbingId !== t.id){
+        inner.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
+        inner.style.transform = "scale(1)";
+        outer.style.animationPlayState = "running";
+        outer.style.zIndex = String(t.z);
+      }
+    }
+    outer.addEventListener("mouseenter", function(){ hoveredId = t.id; setActive(true); badge.style.opacity = "1"; });
+    outer.addEventListener("mouseleave", function(){ if(hoveredId===t.id) hoveredId=null; setActive(false); badge.style.opacity = "0"; });
+    outer.addEventListener("mousemove", function(e){ badge.style.left = e.clientX+"px"; badge.style.top = e.clientY+"px"; });
+    outer.addEventListener("click", function(){ grab(t.id, inner, outer); });
+
+    outer.appendChild(inner);
+    stage.appendChild(outer);
+    t._inner = inner; t._outer = outer;
+  });
+
+  function grab(id, inner, outer){
+    if(grabbingId !== null) return;
+    grabbingId = id;
+    if(inner){ inner.style.transform = "scale(1.11)"; }
+    // toast
+    toast.classList.add("show");
+    clearTimeout(grabT); clearTimeout(toastT);
+    grabT = setTimeout(function(){
+      grabbingId = null;
+      if(inner){ inner.style.transform = (hoveredId===id) ? "scale(1.04)" : "scale(1)"; }
+      if(outer && hoveredId!==id){ outer.style.animationPlayState="running"; }
+    }, 260);
+    toastT = setTimeout(function(){ toast.classList.remove("show"); }, 1700);
+  }
+
+  document.addEventListener("keydown", function(e){
+    var isCopy = (e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C");
+    if(isCopy && hoveredId !== null){
+      var t = tilesConfig.filter(function(x){return x.id===hoveredId;})[0];
+      if(t) grab(t.id, t._inner, t._outer);
+    }
+  });
+
+  /* ─────────────────────────── ROW A — BEFORE/AFTER SLIDER ─────────────────────────── */
+  var compare = document.getElementById("compare");
+  var compareBefore = document.getElementById("compareBefore");
+  var compareHandle = document.getElementById("compareHandle");
+  var dragging = false;
+  function setComparePos(clientX){
+    var r = compare.getBoundingClientRect();
+    var p = ((clientX - r.left) / r.width) * 100;
+    p = Math.max(0, Math.min(100, p));
+    var clip = "inset(0 " + (100 - p) + "% 0 0)";
+    compareBefore.style.clipPath = clip;
+    compareBefore.style.webkitClipPath = clip;
+    compareHandle.style.left = p + "%";
+  }
+  compare.addEventListener("pointerdown", function(e){ dragging=true; try{compare.setPointerCapture(e.pointerId);}catch(_){} setComparePos(e.clientX); });
+  compare.addEventListener("pointermove", function(e){ if(dragging) setComparePos(e.clientX); });
+  compare.addEventListener("pointerup", function(e){ dragging=false; try{compare.releasePointerCapture(e.pointerId);}catch(_){} });
+  compare.addEventListener("pointerleave", function(){ dragging=false; });
+
+  /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
+  var inspireConfig = [
+    {id:"youtube",  label:"YouTube.",  desc:"Grab any thumbnail in full resolution.",  previewLabel:"YouTube grab preview",  name:"Youtube",   short:"YT", tint:"#FF0000",
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 12s0-3.9-.5-5.6a2.9 2.9 0 0 0-2-2C18.8 4 12 4 12 4s-6.8 0-8.5.4a2.9 2.9 0 0 0-2 2C1 8.1 1 12 1 12s0 3.9.5 5.6a2.9 2.9 0 0 0 2 2C5.2 20 12 20 12 20s6.8 0 8.5-.4a2.9 2.9 0 0 0 2-2C23 15.9 23 12 23 12Z"/><polygon points="9.8 15.2 15.5 12 9.8 8.8" fill="#fff"/></svg>'},
+    {id:"instagram",label:"Instagram.",desc:"Save frames from posts and reels.",        previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584",
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>'},
+    {id:"pinterest",label:"Pinterest.",desc:"Clip any pin straight to your library.",    previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023",
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 0-2.9l1.2-4.9s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.2-.8 3.4-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-2-1.3-3.4-3.7-3.4a4.2 4.2 0 0 0-4.4 4.2c0 .8.2 1.4.6 1.8.2.2.2.3.1.5l-.2.8c0 .3-.2.3-.5.2-1.3-.5-1.9-2-1.9-3.6 0-2.7 2.3-5.9 6.7-5.9 3.6 0 5.9 2.6 5.9 5.3 0 3.6-2 6.4-5 6.4-1 0-2-.6-2.3-1.2l-.6 2.5c-.2.8-.7 1.7-1 2.3A10 10 0 1 0 12 2Z"/></svg>'}
+  ];
+  var activeInspire = "youtube";
+  var listEl = document.getElementById("inspireList");
+  var panesEl = document.getElementById("inspirePanes");
+  var tabIcon = document.getElementById("tabIcon");
+  var tabLabel = document.getElementById("tabLabel");
+  var rowEls = {}, paneEls = {}, iconWrapEls = {};
+
+  inspireConfig.forEach(function(it){
+    // list row
+    var row = document.createElement("button");
+    row.type = "button";
+    row.style.cssText = "display:flex;align-items:flex-start;gap:14px;width:100%;text-align:left;cursor:pointer;font:inherit;padding:16px 18px;border-radius:12px;background:transparent;border:none;border-left:3px solid transparent;outline:none;-webkit-appearance:none;appearance:none;transition:background .15s ease,border-color .15s ease;";
+    var iconWrap = document.createElement("span");
+    iconWrap.style.cssText = "flex-shrink:0;width:40px;height:40px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-faint);background:var(--surface-subtle);border:1px solid var(--border);transition:color .15s ease,background .15s ease,border-color .15s ease;";
+    iconWrap.innerHTML = it.icon;
+    var txt = document.createElement("span");
+    txt.style.cssText = "display:flex;flex-direction:column;gap:3px;text-align:left;";
+    txt.innerHTML = '<span style="font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:-0.01em;color:var(--ink-strong);">'+it.label+'</span>'+
+                    '<span style="font-size:14.5px;line-height:1.45;color:var(--ink-muted);">'+it.desc+'</span>';
+    row.appendChild(iconWrap); row.appendChild(txt);
+    row.addEventListener("mouseenter", function(){ activate(it.id); });
+    row.addEventListener("focus", function(){ activate(it.id); });
+    row.addEventListener("click", function(){ activate(it.id); });
+    listEl.appendChild(row);
+    rowEls[it.id] = row; iconWrapEls[it.id] = iconWrap;
+
+    // preview pane
+    var pane = document.createElement("div");
+    pane.style.cssText = "position:absolute;inset:0;display:grid;place-items:center;background:var(--surface-ios);overflow:hidden;opacity:0;transform:scale(1.015);transition:opacity .4s ease,transform .4s ease;pointer-events:none;z-index:1;";
+    var bg = document.createElement("div");
+    bg.style.cssText = "position:absolute;inset:0;background:repeating-linear-gradient(45deg,var(--surface-ios),var(--surface-ios) 12px,#ececf2 12px,#ececf2 24px);opacity:.5;";
+    var fg = document.createElement("div");
+    fg.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;";
+    fg.innerHTML = '<span style="width:56px;height:56px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--accent);background:var(--accent-10);border:1px solid var(--accent-20);">'+it.icon.replace('width="22" height="22"','width="30" height="30"')+'</span>'+
+                   '<span style="font-family:var(--font-mono);font-size:13px;color:var(--ink-muted);letter-spacing:.02em;">'+it.previewLabel+'</span>';
+    pane.appendChild(bg); pane.appendChild(fg);
+    panesEl.appendChild(pane);
+    paneEls[it.id] = pane;
+  });
+
+  function tabSlot(it){
+    // placeholder logo slot (real brand SVG wired later)
+    return '<span data-logo-slot="'+it.id+'" style="width:16px;height:16px;flex-shrink:0;border-radius:4px;background:#fff;border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:9px;letter-spacing:-0.03em;color:'+it.tint+';">'+it.short+'</span>';
+  }
+  function activate(id){
+    activeInspire = id;
+    inspireConfig.forEach(function(it){
+      var on = it.id === id;
+      var row = rowEls[it.id], iw = iconWrapEls[it.id], pane = paneEls[it.id];
+      row.style.background = on ? "var(--accent-06)" : "transparent";
+      row.style.borderLeftColor = on ? "#BC13FE" : "transparent";
+      iw.style.color = on ? "var(--accent)" : "var(--ink-faint)";
+      iw.style.background = on ? "var(--accent-10)" : "var(--surface-subtle)";
+      iw.style.borderColor = on ? "var(--accent-20)" : "var(--border)";
+      pane.style.opacity = on ? "1" : "0";
+      pane.style.transform = on ? "scale(1)" : "scale(1.015)";
+      pane.style.pointerEvents = on ? "auto" : "none";
+      pane.style.zIndex = on ? "2" : "1";
+      if(on){
+        var meta = it;
+        tabLabel.textContent = meta.name;
+        tabIcon.innerHTML = tabSlot(meta);
+      }
+    });
+  }
+  activate("youtube");
+})();
+</script>
 </body>
 </html>
