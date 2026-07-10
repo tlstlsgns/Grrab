@@ -1,75 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy | Grrab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    max-width: 760px;
-    margin: 60px auto;
-    padding: 20px 24px;
-    line-height: 1.8;
-    color: #1a1a1a;
-    background: #ffffff;
+  :root{
+    --accent:#BC13FE; --accent-hover:#A810E0; --accent-20:rgba(188,19,254,.20); --accent-wash:#FAF7FD;
+    --ink:#1A1A1A; --ink-strong:#000; --ink-700:#374151; --ink-muted:#6B7280; --ink-soft:#888;
+    --surface:#fff; --surface-subtle:#F9FAFB; --border:#E5E7EB;
+    --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-display:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-mono:'SF Mono','SFMono-Regular',Menlo,Monaco,Consolas,monospace;
+    --container-max:1200px; --shadow-lg:0 4px 12px rgba(0,0,0,.12);
+    color-scheme:light;
   }
-  h1 { color: #BC13FE; border-bottom: 2px solid #BC13FE; padding-bottom: 12px; }
-  h2 { color: #BC13FE; margin-top: 40px; }
-  h3 { color: #333; margin-top: 24px; font-size: 16px; }
-  .meta { color: #666; font-size: 14px; margin-bottom: 32px; }
-  ul { padding-left: 24px; }
-  li { margin-bottom: 8px; }
-  code { background: #f4f4f5; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
-  a { color: #BC13FE; }
-  .lang-switch {
-    display: inline-block;
-    padding: 6px 14px;
-    background: #f4f4f5;
-    border-radius: 20px;
-    font-size: 14px;
-    text-decoration: none;
-    color: #666;
-    margin-bottom: 24px;
-  }
-  .lang-switch:hover { background: #BC13FE; color: white; }
-  hr { border: none; border-top: 1px solid #e5e5e5; margin: 48px 0 24px; }
-  .footer { color: #666; font-size: 14px; }
-  .disclosure-box {
-    background: #f9f5ff;
-    border-left: 3px solid #BC13FE;
-    padding: 16px 20px;
-    margin: 24px 0;
-    border-radius: 4px;
-  }
-  @media (prefers-color-scheme: dark) {
-    body { background: #1a1a1a; color: #f3f4f6; }
-    h3 { color: #d1d5db; }
-    .meta, .footer { color: #9ca3af; }
-    .lang-switch { background: #374151; color: #d1d5db; }
-    code { background: #374151; }
-    hr { border-color: #374151; }
-    .disclosure-box { background: #2a1f3a; border-left-color: #BC13FE; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-sans);color:var(--ink);background:var(--surface-subtle);-webkit-font-smoothing:antialiased;line-height:1.75;}
+  a{color:var(--accent);text-decoration:none;transition:color .15s ease;}
+  a:hover{color:var(--accent-hover);text-decoration:underline;text-underline-offset:2px;}
+  code{font-family:var(--font-mono);font-size:14px;background:var(--surface-subtle);border:1px solid var(--border);border-radius:4px;padding:2px 6px;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;letter-spacing:-0.01em;border-radius:8px;height:40px;padding:0 18px;font-size:15px;background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(188,19,254,.20);}
+  .btn:hover{background:var(--accent-hover);color:#fff;text-decoration:none;}
+
+  .pp-title{font-family:var(--font-display);font-weight:800;font-size:56px;line-height:1.06;letter-spacing:-0.03em;color:var(--ink-strong);margin:0;}
+  .meta{font-size:14.5px;color:var(--ink-muted);margin:18px 0 0;line-height:1.6;}
+  .disclosure-box{max-width:760px;margin:36px auto 0;background:var(--accent-wash);border:1px solid var(--accent-20);border-left:4px solid var(--accent);border-radius:12px;padding:20px 24px;font-size:15px;line-height:1.6;color:var(--ink-700);}
+  .disclosure-box strong{font-family:var(--font-display);font-weight:700;color:var(--ink-strong);}
+
+  .policy-card{max-width:760px;margin:28px auto 0;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-lg);padding:52px 60px;}
+  .policy-card h2{font-family:var(--font-display);font-weight:700;font-size:22px;line-height:1.3;letter-spacing:-0.01em;color:var(--accent);margin:40px 0 12px;}
+  .policy-card h2:first-child{margin-top:0;}
+  .policy-card h3{font-family:var(--font-display);font-weight:700;font-size:17px;line-height:1.35;letter-spacing:-0.01em;color:var(--ink-strong);margin:26px 0 10px;}
+  .policy-card p{font-family:var(--font-sans);font-size:16px;line-height:1.75;color:var(--ink-700);margin:0 0 12px;}
+  .policy-card ul{padding-left:22px;margin:12px 0;display:block;}
+  .policy-card li{font-family:var(--font-sans);font-size:16px;line-height:1.7;color:var(--ink-700);margin-bottom:8px;}
+  .policy-card strong{color:var(--ink-strong);}
+
+  @media (max-width:760px){
+    .pp-title{font-size:40px !important;}
+    .policy-card{padding:32px 22px !important;border-radius:16px !important;}
+    .nav-links{display:none !important;}
   }
 </style>
 </head>
 <body>
-<a href="privacy-policy.html" class="lang-switch">🌐 한국어</a>
 
-<h1>Grrab Privacy Policy</h1>
+<!-- ══ STICKY HEADER ══ -->
+<header style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--border);">
+  <div style="max-width:var(--container-max);margin:0 auto;padding:14px 32px;display:flex;align-items:center;gap:32px;">
+    <a href="index.html" style="display:flex;align-items:center;gap:10px;">
+      <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="30" height="30" style="display:block;border-radius:7px;">
+      <span style="font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:-0.02em;color:var(--ink-strong);">Grrab</span>
+    </a>
+    <nav class="nav-links" style="display:flex;gap:28px;margin-left:auto;">
+      <a href="index.html" style="font-size:14px;font-weight:500;color:var(--ink-700);">Home</a>
+    </nav>
+    <a class="btn" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Add to Chrome</a>
+  </div>
+</header>
 
-<p class="meta">
+<main style="max-width:920px;margin:0 auto;padding:0 32px 96px;">
+
+  <!-- language toggle -->
+  <div style="display:flex;justify-content:flex-end;padding:22px 0 0;">
+    <a href="privacy-policy.html" style="display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:500;color:var(--ink-700);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:7px 14px;">🌐 한국어</a>
+  </div>
+
+  <!-- title -->
+  <div style="text-align:center;padding:40px 0 8px;">
+    <h1 class="pp-title">Grrab Privacy Policy</h1>
+    <p class="meta">
   <strong>Effective Date:</strong> May 11, 2026<br>
   <strong>Last Updated:</strong> June 22, 2026
 </p>
+  </div>
 
-<div class="disclosure-box">
+  <!-- CWS Limited Use Disclosure -->
+  <div class="disclosure-box">
   <strong>Chrome Web Store Limited Use Disclosure</strong><br>
   The use of information received from Google APIs will adhere to the
   <a href="https://developer.chrome.com/docs/webstore/user_data">Chrome Web Store User Data Policy</a>,
   including the Limited Use requirements.
 </div>
 
+  <!-- policy card (real legal content, verbatim) -->
+  <div class="policy-card">
 <h2>1. What Grrab Does (Single Purpose)</h2>
 <p>Grrab is a Chrome extension with a single purpose: to enable users to save images and social media posts from any webpage with a keyboard shortcut (Cmd+C on Mac, Ctrl+C on Windows/Linux), and to automatically organize saved items by content type (Img or SNS).</p>
 
@@ -246,12 +265,30 @@
   <li><strong>GitHub:</strong> <a href="https://github.com/tlstlsgns/Grrab">https://github.com/tlstlsgns/Grrab</a></li>
   <li><strong>Issues:</strong> <a href="https://github.com/tlstlsgns/Grrab/issues">https://github.com/tlstlsgns/Grrab/issues</a></li>
 </ul>
+  </div>
 
-<hr>
+  <!-- bottom links -->
+  <div style="display:flex;justify-content:center;gap:28px;margin-top:32px;">
+    <a href="index.html" style="font-size:14px;font-weight:500;color:var(--ink-700);">← Home</a>
+    <a href="privacy-policy.html" style="font-size:14px;font-weight:500;color:var(--accent);">한국어 버전</a>
+  </div>
 
-<p class="footer">
-  <a href="index.html">← Home</a> |
-  <a href="privacy-policy.html">한국어 버전</a>
-</p>
+</main>
+
+<!-- ══ FOOTER ══ -->
+<footer style="background:var(--surface);border-top:1px solid var(--border);">
+  <div style="max-width:var(--container-max);margin:0 auto;padding:36px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="22" height="22" style="display:block;border-radius:5px;opacity:.85;">
+      <span style="font-size:14px;color:var(--ink-soft);">© 2026 Grrab</span>
+    </div>
+    <nav style="display:flex;gap:24px;flex-wrap:wrap;">
+      <a href="privacy-policy-en.html" style="font-size:14px;color:var(--ink-muted);">Privacy Policy</a>
+      <a href="https://github.com/tlstlsgns/Grrab" style="font-size:14px;color:var(--ink-muted);">GitHub</a>
+      <a href="mailto:tlstlsgns@gmail.com" style="font-size:14px;color:var(--ink-muted);">Contact</a>
+    </nav>
+  </div>
+</footer>
+
 </body>
 </html>
