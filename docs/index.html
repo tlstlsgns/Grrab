@@ -66,6 +66,174 @@
     transition:opacity .2s ease,transform .2s ease;}
   .grab-toast.show{opacity:1;transform:translateY(0);}
 
+  /* ── Row B — YouTube-in-browser mockup (Figma Frame 746 @ 2×, scaled to fit) ── */
+  .browser-mockup-wrap{width:100%;max-height:100%;aspect-ratio:1290/884;overflow:hidden;container-type:inline-size;container-name:ytmock;background:var(--surface);flex-shrink:0;position:relative;}
+  .browser-mockup-scaler{position:absolute;top:0;left:0;width:1290px;height:884px;transform-origin:top left;}
+  @container ytmock (min-width:0px){
+    .browser-mockup-scaler{transform:scale(calc(100cqw / 1290));}
+  }
+  .browser-frame{display:flex;flex-direction:column;width:1290px;height:884px;border-radius:12px;overflow:hidden;background:var(--surface);font-family:var(--font-sans);}
+  .browser-chrome{display:flex;flex-direction:column;flex-shrink:0;background:var(--surface);}
+  .browser-tabs{display:flex;align-items:flex-end;height:26px;width:100%;}
+  .browser-traffic{display:flex;align-items:center;justify-content:center;gap:6px;height:26px;padding:0 8px;background:#DEE1E6;border-bottom-right-radius:8px;flex-shrink:0;}
+  .browser-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .browser-dot--red{background:#FF5F57;}
+  .browser-dot--yellow{background:#FEBC2E;}
+  .browser-dot--green{background:#28C840;}
+  .browser-tab-container{width:146px;height:100%;background:#DEE1E6;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;flex-shrink:0;box-sizing:border-box;}
+  .browser-tab{width:100%;height:22px;margin-top:0;background:#FFFFFF;border-radius:8px 8px 0 0;display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;padding:0 7px 8px 5px;box-sizing:border-box;flex-shrink:0;}
+  .browser-tab-platform{display:flex;flex-direction:row;align-items:center;gap:5px;flex-shrink:0;}
+  .browser-tab-favicon{width:10px;height:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .browser-tab-favicon .yt-slot-img{width:10px;height:8px;object-fit:contain;}
+  .browser-tab-label{font-family:var(--font-sans);font-size:8px;font-weight:500;color:#000;line-height:1.2;white-space:nowrap;}
+  .browser-tab-close{width:5px;height:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .browser-tab-close .yt-slot-img{width:5px;height:5px;object-fit:contain;}
+  .browser-tabs-spacer{flex:1;height:26px;background:#DEE1E6;border-bottom-left-radius:8px;}
+  .browser-tabs-spacer::before{content:'';display:block;height:22px;margin-top:4px;border-radius:32px 32px 0 0;background:#DEE1E6;}
+  .browser-navbar{display:flex;align-items:center;gap:12px;height:30px;padding:4px 11px;flex-shrink:0;}
+  .browser-navbtns{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+  .browser-navbtn{width:8px;height:8px;opacity:.7;display:block;flex-shrink:0;}
+  .browser-urlbar{flex:1;display:flex;align-items:center;gap:6px;height:22px;padding:0 10px;background:#F2F3F5;border-radius:140px;min-width:0;}
+  .browser-url-lock{width:6px;height:8px;flex-shrink:0;display:block;}
+  .browser-url-text{font-size:8px;font-weight:500;color:var(--ink-strong);white-space:nowrap;}
+  .browser-profile{display:flex;align-items:center;justify-content:flex-end;height:22px;flex-shrink:0;}
+  .browser-profile-bar{display:flex;align-items:center;gap:12px;height:22px;flex-shrink:0;}
+  .browser-profile-pill{display:flex;align-items:center;gap:2px;height:22px;border:1px solid #D7D7D7;border-radius:60px;overflow:hidden;flex-shrink:0;}
+  .browser-profile-grrab{width:22px;height:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 4px 2px;background:#EEE;border-radius:40px;box-sizing:border-box;flex-shrink:0;}
+  .browser-profile-grrab .yt-slot-img{width:14px;height:12px;object-fit:contain;}
+  .browser-profile-ext{width:22px;height:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 5px 2px;box-sizing:border-box;flex-shrink:0;}
+  .browser-profile-ext .yt-slot-img{width:13px;height:13px;object-fit:contain;}
+  .browser-profile-sep{width:1px;height:13px;background:#D7D7D7;flex-shrink:0;}
+  .browser-profile-avatar{width:13px;height:13px;border:1px solid rgba(115,122,136,.3);border-radius:50%;overflow:hidden;flex-shrink:0;display:block;}
+  .browser-profile-avatar .yt-slot-img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+  .browser-profile-menu{width:28px;height:22px;display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;}
+  .browser-profile-menu .yt-slot-img{width:2px;height:8px;object-fit:contain;}
+  .yt-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
+  .yt-body{display:flex;flex:1;min-height:0;background:var(--surface);}
+  .yt-sidebar{width:50px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:16px;padding:0 0 16px;}
+  .yt-sidebar-menu{width:50px;height:38px;display:flex;align-items:center;justify-content:center;}
+  .yt-sidebar-menu-icon{width:12px;height:12px;display:block;flex-shrink:0;}
+  .yt-sidebar-nav{display:flex;flex-direction:column;align-items:center;gap:22px;width:100%;}
+  .yt-sidebar-item{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .yt-sidebar-icon{width:16px;height:16px;opacity:.85;display:block;flex-shrink:0;}
+  .yt-sidebar-label{font-size:7px;font-weight:600;color:var(--ink-strong);opacity:.7;}
+  .yt-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+  .yt-topbar{display:flex;align-items:center;padding:8px;gap:0;flex-shrink:0;}
+  .yt-logo{width:70px;height:30px;flex-shrink:0;display:block;}
+  .yt-logo .yt-slot-img{object-position:left center;}
+  .yt-search-wrap{flex:1;display:flex;justify-content:center;}
+  .yt-search{display:flex;align-items:stretch;height:28px;width:422px;max-width:100%;border:1px solid #D3D3D3;border-radius:18px;overflow:hidden;}
+  .yt-search-input{flex:1;display:flex;align-items:center;padding:0 12px;}
+  .yt-search-input span{font-size:12px;color:#757575;letter-spacing:-.02em;}
+  .yt-search-btn{width:44px;background:#F8F8F8;border-left:1px solid #D3D3D3;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .yt-search-btn svg{width:14px;height:14px;stroke:#333;fill:none;stroke-width:2;}
+  .yt-topbar-right{width:160px;flex-shrink:0;}
+  .yt-chips{display:flex;align-items:center;gap:8px;padding:0 16px;overflow:hidden;flex-shrink:0;height:22px;}
+  .yt-chip{display:flex;align-items:center;justify-content:center;padding:6px 8px;border-radius:5px;font-size:9px;font-weight:600;white-space:nowrap;line-height:1;flex-shrink:0;}
+  .yt-chip--active{background:#000;color:#fff;}
+  .yt-chip--idle{background:#EAEAEA;color:var(--ink-strong);}
+  .yt-feed{flex:1;min-height:0;display:flex;flex-direction:column;gap:24px;padding:24px 16px;overflow:hidden;}
+  .yt-videos{display:flex;gap:12px;height:262px;flex-shrink:0;}
+  .yt-video-card{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+  .yt-video-card--dim{opacity:.3;}
+  .yt-thumb{background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);border-radius:10px;flex:1;min-height:0;}
+  .yt-thumb--glow{box-shadow:0 0 26px 0 var(--accent-bright);}
+  .yt-thumb--short{border-radius:6px;}
+  .yt-meta{display:flex;gap:6px;align-items:flex-start;opacity:.5;flex-shrink:0;height:32px;}
+  .yt-meta-avatar{width:26px;height:26px;border-radius:60px;background:#2D1A61;flex-shrink:0;}
+  .yt-meta-lines{flex:1;display:flex;flex-direction:column;gap:6px;padding:4px 0;}
+  .yt-meta-line{height:10px;border-radius:20px;background:#D7D8DD;}
+  .yt-meta-line--short{width:78px;height:8px;}
+  .yt-shorts-section{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;opacity:.3;}
+  .yt-shorts-label{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink-strong);}
+  .yt-shorts-icon{width:10px;height:14px;flex-shrink:0;object-fit:contain;}
+  .yt-shorts{display:flex;gap:12px;flex:1;min-height:0;}
+  .yt-short-card{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+
+  /* ── Row B — Instagram-in-browser mockup body (Figma .ig-body @ 2×) ── */
+  .ig-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
+  .ig-body{display:flex;flex:1;min-height:0;background:#FFFFFF;}
+  .ig-sidebar{width:60px;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-start;gap:18px;}
+  .ig-logo{width:100%;height:86px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-logo .ig-slot-img{width:28px;height:28px;}
+  .ig-sidebar-nav{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px;width:100%;min-height:0;}
+  .ig-sidebar-item{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-sidebar-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-sidebar-icon--home{width:22px;height:21px;}
+  .ig-sidebar-icon--shorts{width:22px;height:22px;}
+  .ig-sidebar-icon--message{width:22px;height:18px;}
+  .ig-sidebar-icon--search{width:22px;height:22.5px;}
+  .ig-sidebar-icon--favorite{width:22px;height:19px;}
+  .ig-sidebar-icon--add{width:22px;height:22px;}
+  .ig-sidebar-icon--hamburgerbar{width:22px;height:19px;}
+  .ig-sidebar-icon--category{width:22px;height:22px;}
+  .ig-profile-avatar{width:22px;height:22px;border:1px solid rgba(217,217,217,.5);border-radius:50%;overflow:hidden;flex-shrink:0;}
+  .ig-profile-avatar .ig-slot-img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+  .ig-sidebar-footer{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:46px;padding:40px 0;opacity:.5;width:100%;flex-shrink:0;}
+  .ig-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:hidden;}
+  .ig-feed-card{display:flex;flex-direction:column;align-items:center;gap:20px;padding:12px 24px;width:450px;background:#FFFFFF;flex-shrink:0;box-sizing:border-box;}
+  .ig-feed-card--dim{opacity:.3;}
+  .ig-feed{display:flex;flex-direction:column;align-items:flex-start;gap:24px;width:100%;}
+  .ig-feed-header{display:flex;align-items:center;gap:20px;padding:0 2px;width:100%;box-sizing:border-box;}
+  .ig-feed-profile{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .ig-feed-profile-avatar{width:36px;height:36px;background:#000000;border-radius:50%;flex-shrink:0;}
+  .ig-feed-profile-lines{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:188px;flex-shrink:0;}
+  .ig-feed-profile-line{width:188px;height:8px;background:#D7D8DD;border-radius:20px;flex-shrink:0;}
+  .ig-feed-profile-sub{font-family:var(--font-sans);font-size:12px;font-weight:400;color:#000000;line-height:1;}
+  .ig-feed-btn{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex:1;min-width:0;overflow:hidden;}
+  .ig-feed-follow{display:flex;align-items:center;justify-content:center;padding:12px 20px;background:#F1F2F5;border-radius:8px;flex-shrink:0;}
+  .ig-feed-follow span{font-family:var(--font-sans);font-size:14px;font-weight:600;color:#000000;line-height:1;white-space:nowrap;}
+  .ig-feed-menubar{width:10px;height:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-feed-menubar .ig-slot-img{width:10px;height:2px;}
+  .ig-feed-thumb{width:100%;aspect-ratio:269/336;border-radius:8px;background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;}
+  .ig-feed-thumb--glow{box-shadow:0 0 40px 0 #BC13FE;}
+  .ig-meta{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;padding:0 2px;width:100%;opacity:.3;box-sizing:border-box;}
+  .ig-feed-card--dim .ig-meta{opacity:1;}
+  .ig-chips-wrap{display:flex;align-items:center;justify-content:space-between;padding:0 2px;width:100%;box-sizing:border-box;}
+  .ig-chips-left{display:flex;align-items:center;gap:16px;flex-shrink:0;}
+  .ig-chips-right{display:flex;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
+  .ig-chip{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .ig-chip-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-chip-icon--likes{width:18px;height:16px;}
+  .ig-chip-icon--reply{width:16px;height:16px;}
+  .ig-chip-icon--retweet{width:12px;height:16px;}
+  .ig-chip-icon--send{width:18px;height:16px;}
+  .ig-chip-icon--save{width:14px;height:16px;}
+  .ig-chip-count{font-family:var(--font-sans);font-size:14px;font-weight:600;color:#000000;letter-spacing:.6px;line-height:1;white-space:nowrap;}
+  .ig-meta-lines{display:flex;align-items:center;gap:8px;height:16px;flex-shrink:0;}
+  .ig-meta-line{width:92px;height:8px;background:#D7D8DD;border-radius:20px;flex-shrink:0;}
+  .ig-meta-line--short{width:92px;height:6px;}
+
+  /* ── Row B — Pinterest-in-browser mockup body (Figma .pin-body @ 2×) ── */
+  .pin-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
+  .pin-body{display:flex;flex:1;min-height:0;overflow:hidden;background:#FFFFFF;box-shadow:8px 8px 8px rgba(0,0,0,.25);}
+  .pin-sidebar{width:60px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:18px;border-right:1px solid #C8C8C0;box-sizing:border-box;}
+  .pin-logo{width:60px;height:86px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-logo .pin-slot-img{width:28px;height:28px;}
+  .pin-sidebar-nav{flex:1;display:flex;flex-direction:column;align-items:center;gap:48px;width:60px;min-height:0;opacity:.5;}
+  .pin-sidebar-item{width:60px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-sidebar-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-sidebar-icon--home{width:20px;height:22px;}
+  .pin-sidebar-icon--category{width:22px;height:22px;}
+  .pin-sidebar-icon--add{width:20px;height:20px;}
+  .pin-sidebar-icon--notification{width:20px;height:22px;}
+  .pin-sidebar-icon--message{width:24px;height:24px;}
+  .pin-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;min-height:0;overflow:hidden;}
+  .pin-topbar{display:flex;align-items:center;width:100%;height:86px;padding:12px 8px;flex-shrink:0;box-sizing:border-box;}
+  .pin-search{display:flex;align-items:center;gap:8px;flex:1;height:30px;padding:8px 14px;background:#E5E5E1;border-radius:6px;overflow:hidden;box-sizing:border-box;}
+  .pin-search-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-search-icon--search{width:14px;height:14px;}
+  .pin-search-icon--close{width:12px;height:12px;}
+  .pin-search-input{display:flex;align-items:center;flex:1;min-width:0;height:100%;}
+  .pin-search-skeleton{width:374px;height:4px;background:rgba(98,98,90,.5);opacity:.3;border-radius:20px;flex-shrink:0;}
+  .pin-feed{display:flex;align-items:flex-start;gap:10px;padding:8px;width:100%;flex-shrink:0;box-sizing:border-box;}
+  .pin-feed-col{display:flex;flex-direction:column;align-items:flex-start;gap:10px;flex:1;min-width:0;}
+  .pin-feed-col--faint{opacity:.3;}
+  .pin-feed-card{width:100%;border-radius:16px;background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;}
+  .pin-feed-card--glow{box-shadow:0 0 44px 0 #CF00FF;}
+  .pin-feed-card--dim{opacity:.3;}
+  .pin-feed-card--dim50{opacity:.5;}
+
   @keyframes gfloatA{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(-1.6deg)}}
   @keyframes gfloatB{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-10px) rotate(1.3deg)}}
   @keyframes gfloatC{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(.9deg)}}
@@ -134,29 +302,29 @@
         </div>
         <span style="display:flex;align-items:center;gap:13px;flex-shrink:0;padding-right:14px;">
           <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="18" height="18" style="display:block;border-radius:5px;">
-          <span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(150deg,#C7CBD4,#9AA0AD);flex-shrink:0;"></span>
+          <span style="width:20px;height:20px;border-radius:50%;background:url('/assets/landing/img/example_profile.png') center/cover no-repeat;flex-shrink:0;"></span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
         </span>
       </div>
       <!-- viewport: gallery grid + floating popup -->
       <div style="position:relative;padding:14px;background:var(--surface);">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E7E2D8,#CFC7B5);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#DADEE4,#C2C7D0);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#DDE6EC,#BFD0DB);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-2.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-3.png') center/cover no-repeat;"></div>
           <div style="position:relative;aspect-ratio:1/1;border-radius:var(--radius-sm);border:2px solid #BC13FE;box-shadow:0 0 0 4px rgba(188,19,254,.16),0 10px 28px rgba(188,19,254,.28);z-index:5;">
-            <div style="position:absolute;inset:0;border-radius:4px;overflow:hidden;background:linear-gradient(150deg,#E9E4DF,#D3CABF);"></div>
+            <div style="position:absolute;inset:0;border-radius:4px;overflow:hidden;background:url('/assets/landing/img/rowA_after.png') center/cover no-repeat;"></div>
             <span style="position:absolute;top:50%;right:-26px;transform:translateY(-50%);z-index:6;font-family:var(--font-sans);font-weight:700;font-size:16px;line-height:1;color:#fff;background:#BC13FE;padding:8px 13px;border-radius:10px;box-shadow:0 4px 16px rgba(188,19,254,.35);white-space:nowrap;">⌘+C</span>
             <img src="assets/landing/custom-cursor.svg" alt="" width="40" height="40" style="position:absolute;right:-6px;bottom:6px;z-index:7;filter:drop-shadow(0 2px 5px rgba(0,0,0,.25));">
           </div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E6E2EC,#CFC7DE);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#EAE1F0,#D4C4E6);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E2E7EC,#C6D0D8);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#EDE0CF,#E6C79E);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#DDE3E8,#C3CDD6);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E4DED4,#CFC4B0);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#E1E6EB,#C4CED7);"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:linear-gradient(150deg,#ECE2D0,#E0C9A6);"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-4.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-5.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-6.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-7.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
+          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
         </div>
         <!-- floating Grrab popup card (top-right) -->
         <div style="position:absolute;top:-2px;left:274px;width:248px;z-index:20;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.16);overflow:hidden;">
@@ -188,20 +356,20 @@
 
     <!-- RIGHT: heading + description + before/after slider -->
     <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;">
-      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Choose the Size,<br>and Press shortcut&nbsp;<kbd style="display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;font-family:var(--font-sans);font-weight:700;font-size:20px;letter-spacing:.01em;line-height:1;color:#fff;background:#BC13FE;border-radius:10px;padding:9px 15px;">⌘+C</kbd></h2>
+      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Hover the Image,<br>and Press shortcut&nbsp;<kbd style="display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;font-family:var(--font-sans);font-weight:700;font-size:20px;letter-spacing:.01em;line-height:1;color:#fff;background:#BC13FE;border-radius:10px;padding:9px 15px;">⌘+C</kbd></h2>
       <p style="font-size:22px;line-height:1.25;color:var(--ink-700);max-width:38ch;margin:0;font-weight:500;">AI-upscaled to 3k, straight to your clipboard.</p>
 
       <!-- Before/after comparison slider -->
       <div id="compare" style="position:relative;width:100%;margin-top:6px;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow-2xl);cursor:ew-resize;user-select:none;touch-action:none;height:315px;">
         <!-- AFTER (3k) — base layer -->
-        <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#F3E6FC,#F3E6FC 8px,#FAF7FD 8px,#FAF7FD 16px);display:grid;place-items:center;">
-          <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--accent);opacity:.8;">upscaled&nbsp;·&nbsp;3k</span>
+        <div style="position:absolute;inset:0;background:url('/assets/landing/img/rowA_after.png') center/cover no-repeat;display:grid;place-items:center;">
+          <!-- <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--accent);opacity:.8;">upscaled&nbsp;·&nbsp;3k</span> -->
         </div>
         <span style="position:absolute;top:8px;right:8px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.03em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;box-shadow:0 4px 14px rgba(188,19,254,.35);pointer-events:none;">Image copied</span>
         <!-- BEFORE (original) — clipped layer -->
         <div id="compareBefore" style="position:absolute;inset:0;clip-path:inset(0 50% 0 0);-webkit-clip-path:inset(0 50% 0 0);">
-          <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,#D5D8E0,#D5D8E0 22px,#C3C7D1 22px,#C3C7D1 44px);display:grid;place-items:center;">
-            <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--ink-muted);opacity:.85;">original&nbsp;·&nbsp;low-res</span>
+          <div style="position:absolute;inset:0;background:url('/assets/landing/img/rowA_before.png') center/cover no-repeat;display:grid;place-items:center;">
+            <!-- <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--ink-muted);opacity:.85;">original&nbsp;·&nbsp;low-res</span> -->
           </div>
           <span style="position:absolute;top:8px;left:8px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.03em;color:#fff;background:rgba(17,17,17,.55);padding:4px 11px;border-radius:999px;pointer-events:none;">original</span>
         </div>
@@ -232,7 +400,7 @@
 
     <!-- RIGHT: framed visual with crossfade -->
     <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);min-height:400px;">
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;">
+      <div id="inspireTabHeader" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;flex-shrink:0;">
         <span style="display:flex;gap:5px;flex-shrink:0;">
           <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>
           <span style="width:9px;height:9px;border-radius:50%;background:#FEBC2E;"></span>
@@ -267,8 +435,8 @@
       </div>
       <div style="display:flex;height:440px;">
         <div style="flex:1;background:repeating-linear-gradient(45deg,var(--surface-ios),var(--surface-ios) 12px,#ececf2 12px,#ececf2 24px);opacity:.55;"></div>
-        <div style="width:230px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface-ios);display:grid;place-items:center;text-align:center;padding:16px;">
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-muted);line-height:1.6;">side&nbsp;panel<br>screenshot</span>
+        <div style="width:230px;flex-shrink:0;border-left:1px solid var(--border);background:url('/assets/landing/img/sidepanel_screenshot.jpg') top/cover no-repeat;display:grid;place-items:center;text-align:center;padding:16px;">
+          <!-- <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-muted);line-height:1.6;">side&nbsp;panel<br>screenshot</span> -->
         </div>
       </div>
     </div>
@@ -284,19 +452,19 @@
           <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
             <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">google</span>
           </div>
-          <div style="flex:1;background:linear-gradient(150deg,#EDE4F2,#DED0E8);"></div>
+          <div style="flex:1;background:url('/assets/landing/img/hero-4.png') center/cover no-repeat;"></div>
         </div>
         <div style="position:absolute;left:66px;top:66px;width:132px;height:75%;transform:rotate(-13deg);z-index:2;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 12px 28px rgba(0,0,0,.13);display:flex;flex-direction:column;">
           <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
             <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">instagram</span>
           </div>
-          <div style="flex:1;background:linear-gradient(150deg,#E7E9F0,#D6D9E4);"></div>
+          <div style="flex:1;background:url('/assets/landing/img/hero-3.png') center/cover no-repeat;"></div>
         </div>
         <div style="position:absolute;left:132px;top:24px;width:150px;height:90%;transform:rotate(-6deg);z-index:3;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 14px 32px rgba(0,0,0,.14);display:flex;flex-direction:column;">
           <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
             <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">youtube</span>
           </div>
-          <div style="flex:1;background:linear-gradient(150deg,#F3E9CF,#E3D3A8);"></div>
+          <div style="flex:1;background:url('/assets/landing/img/hero-2.png') center/cover no-repeat;"></div>
         </div>
         <!-- front / active card -->
         <div style="position:absolute;right:2%;top:0;width:368px;max-width:64%;z-index:10;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:2px solid #BC13FE;box-shadow:0 22px 48px rgba(188,19,254,.26);display:flex;flex-direction:column;height:100%;">
@@ -310,7 +478,7 @@
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </span>
           </div>
-          <div style="flex:1;background:linear-gradient(150deg,#EFEFF2,#DBDBE2);"></div>
+          <div style="flex:1;background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
         </div>
       </div>
     </div>
@@ -363,13 +531,13 @@
 
   /* ─────────────────────────── HERO FLOATING TILES ─────────────────────────── */
   var tilesConfig = [
-    {id:1,x:"1%", y:"9%", w:172,h:192,z:3,grad:"linear-gradient(150deg,#EEF0F5,#DFE2EC)",anim:"gfloatA",dur:7.0,delay:0},
-    {id:2,x:"15%",y:"48%",w:150,h:150,z:5,grad:"linear-gradient(150deg,#FAF7FD,#EEDFFA)",anim:"gfloatB",dur:8.2,delay:0.6},
-    {id:3,x:"27%",y:"3%", w:160,h:128,z:2,grad:"linear-gradient(150deg,#F1F1F5,#E4E4EC)",anim:"gfloatC",dur:9.0,delay:0.2},
-    {id:4,x:"40%",y:"40%",w:156,h:176,z:4,grad:"linear-gradient(150deg,#EDEFF4,#DEE1EA)",anim:"gfloatB",dur:7.6,delay:1.0},
-    {id:5,x:"55%",y:"7%", w:150,h:160,z:3,grad:"linear-gradient(150deg,#FBF6FD,#F0E3FB)",anim:"gfloatA",dur:8.6,delay:0.4},
-    {id:6,x:"66%",y:"46%",w:160,h:150,z:5,grad:"linear-gradient(150deg,#F2F2F6,#E6E6EE)",anim:"gfloatC",dur:7.9,delay:0.8},
-    {id:7,x:"80%",y:"13%",w:166,h:182,z:2,grad:"linear-gradient(150deg,#EFF0F4,#E0E2EA)",anim:"gfloatB",dur:8.4,delay:0.3}
+    {id:1,x:"1%", y:"9%", w:172,h:192,z:3,grad:"url('/assets/landing/img/hero-1.png') center/cover",anim:"gfloatA",dur:7.0,delay:0},
+    {id:2,x:"15%",y:"48%",w:150,h:150,z:5,grad:"url('/assets/landing/img/hero-2.png') center/cover",anim:"gfloatB",dur:8.2,delay:0.6},
+    {id:3,x:"27%",y:"3%", w:160,h:128,z:2,grad:"url('/assets/landing/img/hero-3.png') center/cover",anim:"gfloatC",dur:9.0,delay:0.2},
+    {id:4,x:"40%",y:"40%",w:156,h:176,z:4,grad:"url('/assets/landing/img/hero-4.png') center/cover",anim:"gfloatB",dur:7.6,delay:1.0},
+    {id:5,x:"55%",y:"7%", w:150,h:160,z:3,grad:"url('/assets/landing/img/hero-5.png') center/cover",anim:"gfloatA",dur:8.6,delay:0.4},
+    {id:6,x:"66%",y:"46%",w:160,h:150,z:5,grad:"url('/assets/landing/img/hero-6.png') center/cover",anim:"gfloatC",dur:7.9,delay:0.8},
+    {id:7,x:"80%",y:"13%",w:166,h:182,z:2,grad:"url('/assets/landing/img/hero-7.png') center/cover",anim:"gfloatB",dur:8.4,delay:0.3}
   ];
   var stage = document.getElementById("stage");
   var badge = document.getElementById("grabBadge");
@@ -454,19 +622,275 @@
 
   /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
   var inspireConfig = [
-    {id:"youtube",  label:"YouTube.",  desc:"Grab any thumbnail in full resolution.",  previewLabel:"YouTube grab preview",  name:"Youtube",   short:"YT", tint:"#FF0000",
+    {id:"youtube",  label:"YouTube.",  desc:"Grab any thumbnail in full resolution.",  previewLabel:"YouTube grab preview",  name:"Youtube",   short:"YT", tint:"#FF0000", preview:"/assets/landing/img/youtube_preview.jpg",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 12s0-3.9-.5-5.6a2.9 2.9 0 0 0-2-2C18.8 4 12 4 12 4s-6.8 0-8.5.4a2.9 2.9 0 0 0-2 2C1 8.1 1 12 1 12s0 3.9.5 5.6a2.9 2.9 0 0 0 2 2C5.2 20 12 20 12 20s6.8 0 8.5-.4a2.9 2.9 0 0 0 2-2C23 15.9 23 12 23 12Z"/><polygon points="9.8 15.2 15.5 12 9.8 8.8" fill="#fff"/></svg>'},
-    {id:"instagram",label:"Instagram.",desc:"Save frames from posts and reels.",        previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584",
+    {id:"instagram",label:"Instagram.",desc:"Save frames from posts and reels.",        previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584", preview:"/assets/landing/img/instagram_preview.jpg",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>'},
-    {id:"pinterest",label:"Pinterest.",desc:"Clip any pin straight to your library.",    previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023",
+    {id:"pinterest",label:"Pinterest.",desc:"Clip any pin straight to your library.",    previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023", preview:"/assets/landing/img/pinterest_preview.jpg",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 0-2.9l1.2-4.9s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.2-.8 3.4-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-2-1.3-3.4-3.7-3.4a4.2 4.2 0 0 0-4.4 4.2c0 .8.2 1.4.6 1.8.2.2.2.3.1.5l-.2.8c0 .3-.2.3-.5.2-1.3-.5-1.9-2-1.9-3.6 0-2.7 2.3-5.9 6.7-5.9 3.6 0 5.9 2.6 5.9 5.3 0 3.6-2 6.4-5 6.4-1 0-2-.6-2.3-1.2l-.6 2.5c-.2.8-.7 1.7-1 2.3A10 10 0 1 0 12 2Z"/></svg>'}
   ];
   var activeInspire = "youtube";
   var listEl = document.getElementById("inspireList");
   var panesEl = document.getElementById("inspirePanes");
+  var tabHeaderEl = document.getElementById("inspireTabHeader");
   var tabIcon = document.getElementById("tabIcon");
   var tabLabel = document.getElementById("tabLabel");
   var rowEls = {}, paneEls = {}, iconWrapEls = {};
+
+  function browserChromeHtml(opts){
+    return '<div class="browser-chrome">'+
+            '<div class="browser-tabs">'+
+              '<div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>'+
+              '<div class="browser-tab-container">'+
+                '<div class="browser-tab">'+
+                  '<div class="browser-tab-platform">'+
+                    '<span class="browser-tab-favicon"><img class="yt-slot-img" src="'+opts.favicon+'" alt=""></span>'+
+                    '<span class="browser-tab-label">'+opts.label+'</span>'+
+                  '</div>'+
+                  '<span class="browser-tab-close"><img class="yt-slot-img" src="/assets/landing/icons/icon_close.svg" alt=""></span>'+
+                '</div>'+
+              '</div>'+
+              '<div class="browser-tabs-spacer"></div>'+
+            '</div>'+
+            '<div class="browser-navbar">'+
+              '<div class="browser-navbtns"><span class="browser-navbtn browser-navbtn--back"><img class="yt-slot-img" src="/assets/landing/icons/icon_prev.svg" alt=""></span><span class="browser-navbtn browser-navbtn--fwd"><img class="yt-slot-img" src="/assets/landing/icons/icon_next.svg" alt=""></span><span class="browser-navbtn browser-navbtn--reload"><img class="yt-slot-img" src="/assets/landing/icons/icon_refresh.svg" alt=""></span></div>'+
+              '<div class="browser-urlbar"><span class="browser-url-lock"><img class="yt-slot-img" src="/assets/landing/icons/icon_lock.svg" alt=""></span><span class="browser-url-text">'+opts.url+'</span></div>'+
+              '<div class="browser-profile">'+
+                '<div class="browser-profile-bar">'+
+                  '<div class="browser-profile-pill">'+
+                    '<span class="browser-profile-grrab"><img class="yt-slot-img" src="/assets/landing/grrab-logo.svg" alt=""></span>'+
+                    '<span class="browser-profile-ext"><img class="yt-slot-img" src="/assets/landing/icons/icon_extension.svg" alt=""></span>'+
+                  '</div>'+
+                  '<span class="browser-profile-sep"></span>'+
+                  '<span class="browser-profile-avatar"><img class="yt-slot-img" src="/assets/landing/img/example_profile.png" alt=""></span>'+
+                '</div>'+
+                '<span class="browser-profile-menu"><img class="yt-slot-img" src="/assets/landing/icons/icon_menubar.svg" alt=""></span>'+
+              '</div>'+
+            '</div>'+
+          '</div>';
+  }
+
+  function browserMockupHtml(opts){
+    return '<div class="browser-mockup-wrap" aria-hidden="true">'+
+      '<div class="browser-mockup-scaler">'+
+        '<div class="browser-frame">'+
+          browserChromeHtml(opts)+
+          opts.bodyHtml+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function youtubeBodyHtml(){
+    var chips = ["All","Music","Podcasts","Live","Playlists","CSS","User interface design","Electropop","Smooth Jazz","Variety shows","Ideas","Ambient Music","Visual arts","Comedy","AI","Motion Graphic","Digital Design"];
+    var chipHtml = chips.map(function(c,i){
+      return '<span class="yt-chip'+(i===0?' yt-chip--active':' yt-chip--idle')+'">'+c+'</span>';
+    }).join('');
+    return '<div class="yt-body">'+
+            '<aside class="yt-sidebar">'+
+              '<div class="yt-sidebar-menu"><span class="yt-sidebar-menu-icon"><img class="yt-slot-img" src="/assets/landing/icons/icon_hamburgerbar.svg" alt=""></span></div>'+
+              '<nav class="yt-sidebar-nav">'+
+                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--home"><img class="yt-slot-img" src="/assets/landing/icons/icon_home.svg" alt=""></span><span class="yt-sidebar-label">Home</span></div>'+
+                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--shorts"><img class="yt-slot-img" src="/assets/landing/icons/icon_shorts.svg" alt=""></span><span class="yt-sidebar-label">Shorts</span></div>'+
+                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--subs"><img class="yt-slot-img" src="/assets/landing/icons/icon_subscriptions.svg" alt=""></span><span class="yt-sidebar-label">Subscriptions</span></div>'+
+                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--you"><img class="yt-slot-img" src="/assets/landing/icons/icon_you.svg" alt=""></span><span class="yt-sidebar-label">You</span></div>'+
+              '</nav>'+
+            '</aside>'+
+            '<div class="yt-main">'+
+              '<div class="yt-topbar">'+
+                '<div class="yt-logo"><img class="yt-slot-img" src="/assets/landing/icons/logo_youtube.jpg" alt=""></div>'+
+                '<div class="yt-search-wrap"><div class="yt-search"><div class="yt-search-input"><span>Search</span></div><div class="yt-search-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></div></div></div>'+
+                '<div class="yt-topbar-right"></div>'+
+              '</div>'+
+              '<div class="yt-chips">'+chipHtml+'</div>'+
+              '<div class="yt-feed">'+
+                '<div class="yt-videos">'+
+                  '<div class="yt-video-card">'+
+                    '<div class="yt-thumb yt-thumb--glow"></div>'+
+                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
+                  '</div>'+
+                  '<div class="yt-video-card yt-video-card--dim">'+
+                    '<div class="yt-thumb"></div>'+
+                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
+                  '</div>'+
+                  '<div class="yt-video-card yt-video-card--dim">'+
+                    '<div class="yt-thumb"></div>'+
+                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
+                  '</div>'+
+                '</div>'+
+                '<div class="yt-shorts-section">'+
+                  '<div class="yt-shorts-label"><img class="yt-shorts-icon" src="/assets/landing/icons/icon_main_shorts.svg" alt="">Shorts</div>'+
+                  '<div class="yt-shorts">'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                  '</div>'+
+                '</div>'+
+              '</div>'+
+            '</div>'+
+          '</div>';
+  }
+
+  function youtubeMockupHtml(){
+    return browserMockupHtml({
+      favicon: '/assets/landing/icons/favicon_youtube.jpg',
+      label: 'YouTube',
+      url: 'youtube.com',
+      bodyHtml: youtubeBodyHtml()
+    });
+  }
+
+  function igFeedCardHtml(dim, glow){
+    var cardClass = 'ig-feed-card'+(dim?' ig-feed-card--dim':'');
+    var thumbClass = 'ig-feed-thumb'+(glow?' ig-feed-thumb--glow':'');
+    var ig = '/assets/landing/icons/instagram/';
+    return '<div class="'+cardClass+'">'+
+      '<div class="ig-feed">'+
+        '<div class="ig-feed-header">'+
+          '<div class="ig-feed-profile">'+
+            '<div class="ig-feed-profile-avatar"></div>'+
+            '<div class="ig-feed-profile-lines">'+
+              '<div class="ig-feed-profile-line"></div>'+
+              '<span class="ig-feed-profile-sub">Suggested for you</span>'+
+            '</div>'+
+          '</div>'+
+          '<div class="ig-feed-btn">'+
+            '<div class="ig-feed-follow"><span>Follow</span></div>'+
+            '<span class="ig-feed-menubar"><img class="ig-slot-img" src="'+ig+'icon_menubar.svg" alt=""></span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="'+thumbClass+'"></div>'+
+      '</div>'+
+      '<div class="ig-meta">'+
+        '<div class="ig-chips-wrap">'+
+          '<div class="ig-chips-left">'+
+            '<span class="ig-chip"><span class="ig-chip-icon ig-chip-icon--likes"><img class="ig-slot-img" src="'+ig+'icon_likes.svg" alt=""></span><span class="ig-chip-count">1.1K</span></span>'+
+            '<span class="ig-chip"><span class="ig-chip-icon ig-chip-icon--reply"><img class="ig-slot-img" src="'+ig+'icon_reply.svg" alt=""></span><span class="ig-chip-count">4</span></span>'+
+            '<span class="ig-chip"><span class="ig-chip-icon ig-chip-icon--retweet"><img class="ig-slot-img" src="'+ig+'icon_retweet.svg" alt=""></span><span class="ig-chip-count">96</span></span>'+
+            '<span class="ig-chip"><span class="ig-chip-icon ig-chip-icon--send"><img class="ig-slot-img" src="'+ig+'icon_send.svg" alt=""></span></span>'+
+          '</div>'+
+          '<div class="ig-chips-right">'+
+            '<span class="ig-chip"><span class="ig-chip-icon ig-chip-icon--save"><img class="ig-slot-img" src="'+ig+'icon_save.svg" alt=""></span></span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="ig-meta-lines">'+
+          '<span class="ig-meta-line"></span>'+
+          '<span class="ig-meta-line ig-meta-line--short"></span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function igBodyHtml(){
+    var ig = '/assets/landing/icons/instagram/';
+    return '<div class="ig-body">'+
+      '<aside class="ig-sidebar">'+
+        '<div class="ig-logo"><img class="ig-slot-img" src="'+ig+'logo_instagram.svg" alt=""></div>'+
+        '<nav class="ig-sidebar-nav">'+
+          '<div class="ig-sidebar-item"><span class="ig-sidebar-icon ig-sidebar-icon--home"><img class="ig-slot-img" src="'+ig+'icon_home.svg" alt=""></span></div>'+
+          '<div class="ig-sidebar-item"><span class="ig-sidebar-icon ig-sidebar-icon--shorts"><img class="ig-slot-img" src="'+ig+'icon_shorts.svg" alt=""></span></div>'+
+          '<div class="ig-sidebar-item"><span class="ig-sidebar-icon ig-sidebar-icon--message"><img class="ig-slot-img" src="'+ig+'icon_message.svg" alt=""></span></div>'+
+          '<div class="ig-sidebar-item"><span class="ig-sidebar-icon ig-sidebar-icon--search"><img class="ig-slot-img" src="'+ig+'icon_search.svg" alt=""></span></div>'+
+          '<div class="ig-sidebar-item"><span class="ig-sidebar-icon ig-sidebar-icon--favorite"><img class="ig-slot-img" src="'+ig+'icon_favorite.svg" alt=""></span></div>'+
+          '<div class="ig-sidebar-item"><span class="ig-sidebar-icon ig-sidebar-icon--add"><img class="ig-slot-img" src="'+ig+'icon_add.svg" alt=""></span></div>'+
+          '<span class="ig-profile-avatar"><img class="ig-slot-img" src="/assets/landing/img/example_profile.png" alt=""></span>'+
+        '</nav>'+
+        '<div class="ig-sidebar-footer">'+
+          '<div class="ig-sidebar-item"><span class="ig-sidebar-icon ig-sidebar-icon--hamburgerbar"><img class="ig-slot-img" src="'+ig+'icon_hamburgerbar.svg" alt=""></span></div>'+
+          '<div class="ig-sidebar-item"><span class="ig-sidebar-icon ig-sidebar-icon--category"><img class="ig-slot-img" src="'+ig+'icon_category.svg" alt=""></span></div>'+
+        '</div>'+
+      '</aside>'+
+      '<div class="ig-main">'+
+        igFeedCardHtml(false, true)+
+        igFeedCardHtml(true, false)+
+      '</div>'+
+    '</div>';
+  }
+
+  function instagramMockupHtml(){
+    return browserMockupHtml({
+      favicon: '/assets/landing/icons/instagram/favicon_instagram.jpg',
+      label: 'Instagram',
+      url: 'instagram.com',
+      bodyHtml: igBodyHtml()
+    });
+  }
+
+  function pinFeedCardHtml(ratio, dim, glow){
+    var cls = 'pin-feed-card';
+    if(dim === 30) cls += ' pin-feed-card--dim';
+    else if(dim === 50) cls += ' pin-feed-card--dim50';
+    if(glow) cls += ' pin-feed-card--glow';
+    return '<div class="'+cls+'" style="aspect-ratio:'+ratio+'"></div>';
+  }
+
+  function pinFeedColHtml(faint, cards){
+    return '<div class="pin-feed-col'+(faint?' pin-feed-col--faint':'')+'">'+cards.join('')+'</div>';
+  }
+
+  function pinBodyHtml(){
+    var pin = '/assets/landing/icons/pinterest/';
+    return '<div class="pin-body">'+
+      '<aside class="pin-sidebar">'+
+        '<div class="pin-logo"><img class="pin-slot-img" src="'+pin+'logo_pinterest.jpg" alt=""></div>'+
+        '<nav class="pin-sidebar-nav">'+
+          '<div class="pin-sidebar-item"><span class="pin-sidebar-icon pin-sidebar-icon--home"><img class="pin-slot-img" src="'+pin+'icon_home.svg" alt=""></span></div>'+
+          '<div class="pin-sidebar-item"><span class="pin-sidebar-icon pin-sidebar-icon--category"><img class="pin-slot-img" src="'+pin+'icon_category.svg" alt=""></span></div>'+
+          '<div class="pin-sidebar-item"><span class="pin-sidebar-icon pin-sidebar-icon--add"><img class="pin-slot-img" src="'+pin+'icon_add.svg" alt=""></span></div>'+
+          '<div class="pin-sidebar-item"><span class="pin-sidebar-icon pin-sidebar-icon--notification"><img class="pin-slot-img" src="'+pin+'icon_notification.svg" alt=""></span></div>'+
+          '<div class="pin-sidebar-item"><span class="pin-sidebar-icon pin-sidebar-icon--message"><img class="pin-slot-img" src="'+pin+'icon_message.svg" alt=""></span></div>'+
+        '</nav>'+
+      '</aside>'+
+      '<div class="pin-main">'+
+        '<div class="pin-topbar">'+
+          '<div class="pin-search">'+
+            '<span class="pin-search-icon pin-search-icon--search"><img class="pin-slot-img" src="'+pin+'icon_search.svg" alt=""></span>'+
+            '<div class="pin-search-input"><span class="pin-search-skeleton"></span></div>'+
+            '<span class="pin-search-icon pin-search-icon--close"><img class="pin-slot-img" src="'+pin+'icon_close.svg" alt=""></span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="pin-feed">'+
+          pinFeedColHtml(true, [
+            pinFeedCardHtml('115.25/160', 50),
+            pinFeedCardHtml('115.25/102.33', 50),
+            pinFeedCardHtml('115.25/169', 50)
+          ])+
+          pinFeedColHtml(false, [
+            pinFeedCardHtml('115.25/132', 0, true),
+            pinFeedCardHtml('115.25/132', 30),
+            pinFeedCardHtml('115.25/115.25', 30)
+          ])+
+          pinFeedColHtml(true, [
+            pinFeedCardHtml('115.25/188', 50),
+            pinFeedCardHtml('115.25/115.25', 50),
+            pinFeedCardHtml('115.25/115.25', 50)
+          ])+
+          pinFeedColHtml(true, [
+            pinFeedCardHtml('115.25/160', 50),
+            pinFeedCardHtml('115.25/169', 50),
+            pinFeedCardHtml('115.25/102.33', 50)
+          ])+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function pinterestMockupHtml(){
+    return browserMockupHtml({
+      favicon: '/assets/landing/icons/pinterest/favicon_pinterest.jpg',
+      label: 'Pinterest',
+      url: 'pinterest.com',
+      bodyHtml: pinBodyHtml()
+    });
+  }
+
+  var mockupHtmlById = {
+    youtube: youtubeMockupHtml,
+    instagram: instagramMockupHtml,
+    pinterest: pinterestMockupHtml
+  };
 
   inspireConfig.forEach(function(it){
     // list row
@@ -489,17 +913,22 @@
 
     // preview pane
     var pane = document.createElement("div");
-    pane.style.cssText = "position:absolute;inset:0;display:grid;place-items:center;background:var(--surface-ios);overflow:hidden;opacity:0;transform:scale(1.015);transition:opacity .4s ease,transform .4s ease;pointer-events:none;z-index:1;";
-    var bg = document.createElement("div");
-    bg.style.cssText = "position:absolute;inset:0;background:repeating-linear-gradient(45deg,var(--surface-ios),var(--surface-ios) 12px,#ececf2 12px,#ececf2 24px);opacity:.5;";
-    var fg = document.createElement("div");
-    fg.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;";
-    fg.innerHTML = '<span style="width:56px;height:56px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--accent);background:var(--accent-10);border:1px solid var(--accent-20);">'+it.icon.replace('width="22" height="22"','width="30" height="30"')+'</span>'+
-                   '<span style="font-family:var(--font-mono);font-size:13px;color:var(--ink-muted);letter-spacing:.02em;">'+it.previewLabel+'</span>';
-    pane.appendChild(bg); pane.appendChild(fg);
+    pane.style.cssText = "position:absolute;inset:0;background:var(--surface);overflow:hidden;opacity:0;transform:scale(1.015);transition:opacity .4s ease,transform .4s ease;pointer-events:none;z-index:1;display:flex;align-items:flex-start;justify-content:flex-start;";
+    pane.innerHTML = mockupHtmlById[it.id]();
     panesEl.appendChild(pane);
     paneEls[it.id] = pane;
   });
+
+  function fitBrowserMockup(){
+    var pane = paneEls[activeInspire];
+    if(!pane) return;
+    var wrap = pane.querySelector(".browser-mockup-wrap");
+    if(!wrap) return;
+    var scaler = wrap.querySelector(".browser-mockup-scaler");
+    if(!scaler) return;
+    var s = wrap.clientWidth / 1290;
+    scaler.style.transform = "scale(" + s + ")";
+  }
 
   function tabSlot(it){
     // placeholder logo slot (real brand SVG wired later)
@@ -507,6 +936,16 @@
   }
   function activate(id){
     activeInspire = id;
+    var isMockup = !!mockupHtmlById[id];
+    tabHeaderEl.style.display = isMockup ? "none" : "flex";
+    panesEl.style.height = isMockup ? "450px" : "400px";
+    panesEl.style.flex = isMockup ? "none" : "none";
+    panesEl.style.minHeight = isMockup ? "" : "";
+    panesEl.style.display = isMockup ? "flex" : "block";
+    panesEl.style.alignItems = isMockup ? "flex-start" : "";
+    panesEl.style.justifyContent = isMockup ? "flex-start" : "";
+    panesEl.style.background = isMockup ? "var(--surface)" : "";
+    panesEl.style.overflow = isMockup ? "hidden" : "";
     inspireConfig.forEach(function(it){
       var on = it.id === id;
       var row = rowEls[it.id], iw = iconWrapEls[it.id], pane = paneEls[it.id];
@@ -525,7 +964,11 @@
         tabIcon.innerHTML = tabSlot(meta);
       }
     });
+    if(isMockup) fitBrowserMockup();
   }
+  window.addEventListener("resize", function(){
+    if(mockupHtmlById[activeInspire]) fitBrowserMockup();
+  });
   activate("youtube");
 })();
 </script>
