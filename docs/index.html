@@ -7,7 +7,7 @@
 <meta name="description" content="Grab any image on the web in high resolution with one keyboard shortcut. AI-upscaled to 3k, straight to your clipboard.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     /* ── accent ── */
@@ -66,12 +66,201 @@
     transition:opacity .2s ease,transform .2s ease;}
   .grab-toast.show{opacity:1;transform:translateY(0);}
 
+  /* ── Row A — gallery mockup (.rowA-window @ 520×496, container-query scaled) ── */
+  .rowA-mockup-wrap{width:100%;aspect-ratio:520/496;overflow:hidden;container-type:inline-size;
+    border-radius:0 var(--radius-2xl) 0 0;box-shadow:24px -12px 66px 0 rgba(0,0,0,.14);}
+  .rowA-mockup-scaler{width:520px;height:496px;transform-origin:top left;transform:scale(calc(100cqw / 520));}
+  .rowA-window{display:flex;flex-direction:column;width:520px;height:496px;overflow:hidden;
+    background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-radius:0 var(--radius-2xl) 0 0;}
+  .rowA-chrome{display:flex;align-items:center;gap:6px;width:520px;height:50px;flex-shrink:0;
+    padding:10px 18px 10px 0;}
+  .rowA-urlbar{display:flex;align-items:center;flex:1;height:30px;min-width:0;
+    background:var(--surface);border:1px solid var(--border);border-radius:0 70px 70px 0;}
+  .rowA-urlbar-line{flex:1;height:3.5px;border-radius:10px;background:var(--border);min-width:0;}
+  .rowA-urlbar-star{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
+    width:43px;height:30px;padding-left:12px;padding-right:16px;}
+  .rowA-urlbar-star-icon{width:15px;height:15px;display:block;flex-shrink:0;}
+  .rowA-profile{display:flex;align-items:center;justify-content:flex-end;gap:10px;
+    width:136px;height:30px;flex-shrink:0;}
+  .rowA-profile-menu{margin-left:3px;}
+  .rowA-profile-pill{display:flex;align-items:center;gap:2px;height:30px;
+    border:0.5px solid var(--border-strong);border-radius:30px;overflow:hidden;flex-shrink:0;}
+  .rowA-profile-logo{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+    background:var(--surface);border-radius:20px;padding:0 5px 1px;flex-shrink:0;}
+  .rowA-profile-logo img{width:20px;height:auto;display:block;}
+  .rowA-profile-ext{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+    padding:0 6px 1px;flex-shrink:0;}
+  .rowA-profile-ext-icon{width:16px;height:16px;display:block;}
+  .rowA-profile-sep{width:1px;height:20px;background:var(--border-strong);flex-shrink:0;}
+  .rowA-profile-avatar{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;
+    border:0.3px solid rgba(115,122,136,.3);}
+  .rowA-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
+  .rowA-profile-menu{width:20px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .rowA-profile-menu-icon{width:100%;height:100%;display:block;}
+  .rowA-viewport{position:relative;width:520px;height:446px;flex-shrink:0;}
+  .rowA-body{position:absolute;inset:0;width:520px;height:446px;display:flex;justify-content:flex-end;
+    padding:15px;background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-radius:0 8px 0 0;overflow:hidden;}
+  .rowA-gallery{display:flex;flex:1;gap:10px;min-width:0;}
+  .rowA-gallery-col{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;}
+  .rowA-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;flex-shrink:0;}
+  .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:8px;}
+  .rowA-tile--dim{opacity:.5;}
+  .rowA-tile--active{box-shadow:0 0 22px 0 var(--accent-bright);}
+  .rowA-popup{position:absolute;top:0;right:6px;width:254px;display:flex;flex-direction:column;
+    padding-top:6px;background:var(--surface);border:1px solid var(--border-strong);border-radius:7px;
+    box-shadow:0 0 2px 0 rgba(0,0,0,.5);overflow:hidden;
+    font-family:'Instrument Sans',var(--font-sans);}
+  .rowA-popup-header{display:flex;flex-direction:column;gap:8px;padding:8px 16px;
+    border-bottom:0.3px solid rgba(0,0,0,.25);}
+  .rowA-popup-titlebar{display:flex;align-items:flex-start;gap:1px;width:222px;}
+  .rowA-popup-title{flex:1;font-weight:700;font-size:16px;line-height:1.2;color:var(--ink-strong);}
+  .rowA-popup-switch{position:relative;display:flex;align-items:center;justify-content:flex-end;
+    width:40px;height:20px;padding:2px;border-radius:30px;background:var(--accent-bright);flex-shrink:0;
+    box-shadow:inset 0 0 4px 0 rgba(0,0,0,.25);}
+  .rowA-popup-switch-knob{width:16px;height:16px;border-radius:20px;background:var(--surface);flex-shrink:0;}
+  .rowA-popup-desc{font-weight:600;font-size:10px;line-height:1.2;color:#737A88;white-space:nowrap;}
+  .rowA-popup-row{display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;border-bottom:0.3px solid rgba(0,0,0,.25);}
+  .rowA-popup-row-label{font-weight:600;font-size:12px;line-height:1;color:#737A88;white-space:nowrap;}
+  .rowA-popup-row-value{display:flex;align-items:center;flex-shrink:0;}
+  .rowA-popup-kbd{display:flex;align-items:center;justify-content:center;min-width:49px;height:29px;
+    padding:7px 13px 5px;border:1px solid rgba(0,0,0,.2);border-radius:4px;
+    font-weight:600;font-size:11px;line-height:1;color:#737A88;white-space:nowrap;}
+  .rowA-popup-refresh{display:flex;align-items:center;justify-content:center;width:21px;height:29px;flex-shrink:0;}
+  .rowA-popup-refresh-icon{width:6px;height:6px;display:block;transform:rotate(-90deg) scaleY(-1);}
+  .rowA-popup-size-toggle{display:flex;align-items:center;justify-content:center;gap:3px;
+    width:70px;height:29px;padding:6px 8px;border:1px solid rgba(0,0,0,.2);border-radius:4px;}
+  .rowA-popup-size{font-weight:600;font-size:12px;line-height:1;letter-spacing:-0.5px;color:#737A88;text-align:center;}
+  .rowA-popup-size-chevron{width:6.547px;height:3.793px;display:block;flex-shrink:0;}
+  .rowA-popup-footer{display:flex;align-items:center;justify-content:center;padding:12px 16px;}
+  .rowA-popup-btn{display:flex;align-items:center;justify-content:center;flex:1;width:222px;height:28px;
+    padding:8px;background:var(--accent-bright);border:1px solid rgba(0,0,0,.2);border-radius:4px;}
+  .rowA-popup-btn-line{flex:1;font-weight:600;font-size:12px;line-height:1;text-align:center;color:#fff;}
+  .rowA-cursor{position:absolute;left:124px;top:250px;display:flex;flex-direction:column;gap:6px;
+    align-items:flex-start;width:110px;pointer-events:none;}
+  .rowA-badge-wrap{display:flex;flex-direction:column;align-items:flex-end;width:100%;}
+  .rowA-badge{display:inline-flex;align-items:center;justify-content:center;
+    flex-shrink:0;font-family:'Instrument Sans',var(--font-sans);font-weight:700;
+    font-size:16px;line-height:1;color:#fff;background:var(--accent-bright);
+    padding:8px 13px;border-radius:10px;
+    box-shadow:0 4px 16px rgba(207,0,255,.35);white-space:nowrap;}
+  .rowA-pointer{width:55.527px;height:55.625px;flex-shrink:0;}
+  .rowA-pointer-icon{width:100%;height:100%;display:block;}
+
+  /* ── Row C — sidepanel mockup (.rowC-window @ 520×554, container-query scaled) ── */
+  .rowC-mockup-wrap{width:100%;aspect-ratio:520/554;overflow:hidden;container-type:inline-size;
+    border-radius:0 var(--radius-2xl) 0 0;box-shadow:24px -12px 66px 0 rgba(0,0,0,.14);}
+  .rowC-mockup-scaler{width:520px;height:554px;transform-origin:top left;transform:scale(calc(100cqw / 520));}
+  .rowC-window{display:flex;flex-direction:column;width:520px;height:554px;overflow:hidden;
+    background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-radius:0 var(--radius-2xl) 0 0;}
+  .rowC-viewport{display:flex;align-items:stretch;justify-content:flex-end;gap:6px;
+    width:520px;flex:1;min-height:0;padding:0 6px;overflow:hidden;}
+  .rowC-body{display:flex;flex-direction:column;align-items:flex-end;gap:12px;
+    width:520px;margin-left:-243px;padding:12px;flex-shrink:0;
+    background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-radius:0 8px 0 0;overflow:hidden;}
+  .rowC-topbar{display:flex;align-items:center;width:100%;padding:6px 0;opacity:.3;flex-shrink:0;}
+  .rowC-search{display:flex;align-items:center;justify-content:flex-end;flex:1;height:30px;min-width:0;
+    padding:4px 12px;background:#E5E5E1;border-radius:8px;overflow:hidden;}
+  .rowC-search-icon--close{width:8px;height:8px;display:block;flex-shrink:0;}
+  .rowC-gallery{display:flex;gap:10px;width:100%;opacity:.3;flex-shrink:0;}
+  .rowC-gallery-col{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;}
+  .rowC-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;flex-shrink:0;}
+  .rowC-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:8px;}
+  .rowC-sidepanel{display:flex;flex-direction:column;gap:4px;width:231px;flex-shrink:0;
+    padding:10px 6px 0;background:var(--surface);border-top:1px solid var(--border);
+    border-left:1px solid var(--border);border-right:1px solid var(--border);
+    border-radius:8px 8px 0 0;overflow:hidden;
+    font-family:'Instrument Sans',var(--font-sans);}
+  .sidepanel-top{display:flex;flex-direction:column;gap:10px;width:219px;flex-shrink:0;}
+  .sidepanel-header{display:flex;align-items:center;gap:10px;height:10px;padding:0 4px;width:219px;}
+  .sidepanel-logo{display:flex;align-items:center;gap:3px;flex:1;min-width:0;}
+  .sidepanel-logo-icon{width:12px;height:10px;display:block;object-fit:contain;flex-shrink:0;}
+  .sidepanel-logo-name{font-weight:700;font-size:8px;line-height:1.2;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0;height:5px;}
+  .sidepanel-ctrl-icon{display:block;flex-shrink:0;}
+  .sidepanel-ctrl-icon--pin{width:5px;height:5px;}
+  .sidepanel-ctrl-icon--close{width:4px;height:4px;}
+  .sidepanel-section{display:flex;flex-direction:column;gap:7px;width:219px;}
+  .sidepanel-profile{display:flex;align-items:flex-end;justify-content:space-between;padding:0 4px;width:100%;}
+  .sidepanel-profile-user{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+  .sidepanel-profile-avatar{width:17px;height:17px;border-radius:50%;overflow:hidden;flex-shrink:0;
+    border:0.3px solid rgba(115,122,136,.3);}
+  .sidepanel-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
+  .sidepanel-profile-name{font-weight:500;font-size:7px;line-height:1.2;color:#737A88;opacity:.7;white-space:nowrap;}
+  .sidepanel-profile-signout{display:flex;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
+  .sidepanel-signout-icon{width:10px;height:10px;display:block;}
+  .sidepanel-clip{display:flex;flex-direction:column;width:100%;}
+  .sidepanel-clip-row{display:flex;align-items:center;justify-content:space-between;
+    height:24px;padding:5px 4px 5px 7px;}
+  .sidepanel-clip-row-label{font-weight:600;font-size:7px;line-height:1;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-clip-row-value{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+  .sidepanel-kbd{display:flex;align-items:center;justify-content:center;
+    padding:4px 6px;border:0.7px solid rgba(0,0,0,.2);border-radius:3px;
+    font-weight:600;font-size:7px;line-height:1;color:#737A88;white-space:nowrap;}
+  .sidepanel-refresh{width:10px;height:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .sidepanel-refresh-icon{width:4px;height:4px;display:block;transform:rotate(-90deg) scaleY(-1);}
+  .sidepanel-clip-sep{width:100%;height:0.3px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
+  .sidepanel-size-toggle{display:flex;align-items:center;justify-content:center;gap:3px;
+    width:47px;padding:6px 5px;border:0.7px solid rgba(0,0,0,.2);border-radius:3px;}
+  .sidepanel-size-value{flex:1;font-weight:500;font-size:7px;line-height:1;letter-spacing:-0.5px;
+    color:#737A88;text-align:center;white-space:nowrap;}
+  .sidepanel-chevron{width:4px;height:2px;display:block;flex-shrink:0;}
+  .sidepanel-main{display:flex;flex-direction:column;width:219px;flex:1;min-height:0;overflow:hidden;
+    background:var(--surface-ios);border-top:1px solid rgba(0,0,0,.2);}
+  .sidepanel-directory{display:flex;align-items:center;gap:6px;width:100%;padding:5px 4px 5px 5px;
+    background:#F5F5F5;border-bottom:0.5px solid rgba(0,0,0,.2);flex-shrink:0;}
+  .sidepanel-directory-bar{display:flex;align-items:center;gap:3px;flex:1;min-width:0;
+    padding:4px 7px;background:#F6EBF7;border:1px solid var(--accent-bright);border-radius:3px;}
+  .sidepanel-directory-icon{width:9px;height:8px;display:block;flex-shrink:0;}
+  .sidepanel-directory-name{font-weight:500;font-size:8px;line-height:1.2;letter-spacing:0.28px;
+    color:var(--accent-bright);white-space:nowrap;}
+  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:3px;
+    width:47px;height:100%;padding:0 5px;border:0.7px solid rgba(0,0,0,.2);border-radius:3px;flex-shrink:0;}
+  .sidepanel-directory-file-type{flex:1;font-weight:500;font-size:7px;line-height:1.2;
+    letter-spacing:-0.245px;color:#737A88;text-align:center;white-space:nowrap;}
+  .sidepanel-gallery{display:flex;flex-direction:column;width:100%;flex:1;min-height:0;overflow:hidden;}
+  .sidepanel-gallery-top{display:flex;align-items:center;justify-content:flex-end;gap:5px;
+    padding:4px 8px;opacity:.2;flex-shrink:0;}
+  .sidepanel-upload-icon{width:9px;height:9px;display:block;}
+  .sidepanel-delete-icon{width:10px;height:11px;display:block;}
+  .sidepanel-gallery-row{display:flex;flex-direction:column;width:100%;flex-shrink:0;}
+  .sidepanel-gallery-time{display:flex;align-items:center;justify-content:center;gap:8px;
+    height:16px;padding:0 4px;opacity:.3;flex-shrink:0;}
+  .sidepanel-gallery-time-line{flex:1;height:0;border-top:0.5px solid rgba(0,0,0,.25);}
+  .sidepanel-gallery-time-label{font-weight:500;font-size:6px;line-height:1.7;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-gallery-grid{display:flex;flex-wrap:wrap;gap:2px;padding:0 1px;width:100%;}
+  .sidepanel-card{display:flex;flex-direction:column;width:71px;height:80px;flex-shrink:0;
+    background:var(--surface);border-radius:2px;overflow:visible;position:relative;}
+  .sidepanel-card--active{border:1px solid var(--accent-bright);
+    box-shadow:0 2px 4px 0 rgba(0,0,0,.25);}
+  .sidepanel-card--dim{border:1px solid var(--border-strong);}
+  .sidepanel-card-header{display:flex;align-items:center;height:13px;width:100%;flex-shrink:0;}
+  .sidepanel-card-header-link{display:flex;align-items:center;justify-content:center;
+    width:13px;height:13px;background:var(--accent-bright);flex-shrink:0;}
+  .sidepanel-card-link-icon{width:6px;height:6px;display:block;}
+  .sidepanel-card-header-meta{display:flex;align-items:center;gap:10px;flex:1;min-width:0;
+    padding:2px 5px 0 2px;height:100%;}
+  .sidepanel-card-meta-line{font-weight:700;font-size:5px;line-height:1.8;color:var(--accent-bright);white-space:nowrap;}
+  .sidepanel-card-meta-btn{display:flex;align-items:center;justify-content:flex-end;gap:3px;flex:1;min-width:0;}
+  .sidepanel-card-copy-icon{width:6px;height:6px;display:block;flex-shrink:0;}
+  .sidepanel-card-cancel-icon{width:4px;height:4px;display:block;flex-shrink:0;}
+  .sidepanel-card-header--dim{padding:2px 5px 0;}
+  .sidepanel-card-thumb{flex:1;min-height:0;width:100%;overflow:hidden;position:relative;}
+  .sidepanel-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .sidepanel-card-pointer{position:absolute;left:74.65%;top:calc(13px + 35px);width:18px;height:18px;
+    transform:translateY(-50%);pointer-events:none;z-index:2;}
+
   /* ── Row B — YouTube-in-browser mockup (Figma Frame 746 @ 2×, scaled to fit) ── */
-  .browser-mockup-wrap{width:100%;max-height:100%;aspect-ratio:1290/884;overflow:hidden;container-type:inline-size;container-name:ytmock;background:var(--surface);flex-shrink:0;position:relative;}
+  .browser-mockup-wrap{width:100%;aspect-ratio:1290/884;overflow:hidden;container-type:inline-size;container-name:ytmock;background:var(--surface);flex-shrink:0;position:relative;}
   .browser-mockup-scaler{position:absolute;top:0;left:0;width:1290px;height:884px;transform-origin:top left;}
   @container ytmock (min-width:0px){
     .browser-mockup-scaler{transform:scale(calc(100cqw / 1290));}
   }
+  #inspirePanes{aspect-ratio:1290/884;}
   .browser-frame{display:flex;flex-direction:column;width:1290px;height:884px;border-radius:12px;overflow:hidden;background:var(--surface);font-family:var(--font-sans);}
   .browser-chrome{display:flex;flex-direction:column;flex-shrink:0;background:var(--surface);}
   .browser-tabs{display:flex;align-items:flex-end;height:26px;width:100%;}
@@ -138,6 +327,7 @@
   .yt-video-card--dim{opacity:.3;}
   .yt-thumb{background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);border-radius:10px;flex:1;min-height:0;}
   .yt-thumb--glow{box-shadow:0 0 26px 0 var(--accent-bright);}
+  .yt-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .yt-thumb--short{border-radius:6px;}
   .yt-meta{display:flex;gap:6px;align-items:flex-start;opacity:.5;flex-shrink:0;height:32px;}
   .yt-meta-avatar{width:26px;height:26px;border-radius:60px;background:#2D1A61;flex-shrink:0;}
@@ -187,6 +377,7 @@
   .ig-feed-menubar .ig-slot-img{width:10px;height:2px;}
   .ig-feed-thumb{width:100%;aspect-ratio:269/336;border-radius:8px;background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;}
   .ig-feed-thumb--glow{box-shadow:0 0 40px 0 #BC13FE;}
+  .ig-feed-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .ig-meta{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;padding:0 2px;width:100%;opacity:.3;box-sizing:border-box;}
   .ig-feed-card--dim .ig-meta{opacity:1;}
   .ig-chips-wrap{display:flex;align-items:center;justify-content:space-between;padding:0 2px;width:100%;box-sizing:border-box;}
@@ -231,6 +422,7 @@
   .pin-feed-col--faint{opacity:.3;}
   .pin-feed-card{width:100%;border-radius:16px;background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;}
   .pin-feed-card--glow{box-shadow:0 0 44px 0 #CF00FF;}
+  .pin-feed-card img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .pin-feed-card--dim{opacity:.3;}
   .pin-feed-card--dim50{opacity:.5;}
 
@@ -239,7 +431,8 @@
   @keyframes gfloatC{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(.9deg)}}
 
   @media (max-width:760px){
-    .grrab-inspire-grid{grid-template-columns:1fr !important;}
+    .grrab-inspire-grid{grid-template-columns:0.82fr 1.18fr;gap:48px;align-items:stretch;
+    }
     .grrab-rowA{grid-template-columns:1fr !important;}
     .grrab-rowC{grid-template-columns:1fr !important;}
     .hero-h1{font-size:38px !important;}
@@ -293,62 +486,93 @@
   <!-- Row A — media left, text + comparison slider right -->
   <div class="grrab-rowA" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:72px;align-items:center;">
     <!-- LEFT: browser-window gallery mockup (static) -->
-    <div style="border-radius:0 var(--radius-2xl) 0 0;overflow:hidden;background:var(--surface);box-shadow:24px -12px 66px 0 rgba(0,0,0,.14);height:496px;border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:none;border-left:none;">
-      <!-- browser chrome (Chrome toolbar) -->
-      <div style="display:flex;align-items:center;gap:12px;padding:9px 14px 9px 0;background:var(--surface-subtle);border-bottom:1px solid var(--border);color:var(--ink-soft);">
-        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:30px;padding:0 14px 0 0;border-radius:0 24px 24px 0;background:var(--surface);border-top:1px solid #E5E7EB;border-right:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB;border-left:none;">
-          <span style="flex:1;height:5px;border-radius:999px;background:var(--border);width:100%;"></span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-        </div>
-        <span style="display:flex;align-items:center;gap:13px;flex-shrink:0;padding-right:14px;">
-          <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="18" height="18" style="display:block;border-radius:5px;">
-          <span style="width:20px;height:20px;border-radius:50%;background:url('/assets/landing/img/example_profile.png') center/cover no-repeat;flex-shrink:0;"></span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
-        </span>
-      </div>
-      <!-- viewport: gallery grid + floating popup -->
-      <div style="position:relative;padding:14px;background:var(--surface);">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-2.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-3.png') center/cover no-repeat;"></div>
-          <div style="position:relative;aspect-ratio:1/1;border-radius:var(--radius-sm);border:2px solid #BC13FE;box-shadow:0 0 0 4px rgba(188,19,254,.16),0 10px 28px rgba(188,19,254,.28);z-index:5;">
-            <div style="position:absolute;inset:0;border-radius:4px;overflow:hidden;background:url('/assets/landing/img/rowA_after.png') center/cover no-repeat;"></div>
-            <span style="position:absolute;top:50%;right:-26px;transform:translateY(-50%);z-index:6;font-family:var(--font-sans);font-weight:700;font-size:16px;line-height:1;color:#fff;background:#BC13FE;padding:8px 13px;border-radius:10px;box-shadow:0 4px 16px rgba(188,19,254,.35);white-space:nowrap;">⌘+C</span>
-            <img src="assets/landing/custom-cursor.svg" alt="" width="40" height="40" style="position:absolute;right:-6px;bottom:6px;z-index:7;filter:drop-shadow(0 2px 5px rgba(0,0,0,.25));">
-          </div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-4.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-5.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-6.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-7.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
-          <div style="aspect-ratio:1/1;border-radius:var(--radius-sm);background:url('/assets/landing/img/hero-1.png') center/cover no-repeat;"></div>
-        </div>
-        <!-- floating Grrab popup card (top-right) -->
-        <div style="position:absolute;top:-2px;left:274px;width:248px;z-index:20;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.16);overflow:hidden;">
-          <div style="padding:14px 16px 12px;border-bottom:1px solid var(--border);">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-              <span style="font-family:var(--font-sans);font-weight:700;font-size:15px;color:var(--ink-strong);">Grrab Images</span>
-              <span style="flex-shrink:0;width:40px;height:22px;border-radius:999px;background:#BC13FE;position:relative;">
-                <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);"></span>
-              </span>
+    <div class="rowA-mockup-wrap">
+      <div class="rowA-mockup-scaler">
+        <div class="rowA-window">
+          <div class="rowA-chrome">
+            <div class="rowA-urlbar">
+              <div class="rowA-urlbar-line"></div>
+              <div class="rowA-urlbar-star">
+                <img class="rowA-urlbar-star-icon" src="assets/landing/icons/rowA/icon_star.svg" alt="" width="15" height="15">
+              </div>
             </div>
-            <span style="display:block;margin-top:4px;font-size:12px;color:var(--ink-muted);">no low-res — in one shortcut</span>
+            <div class="rowA-profile">
+              <div class="rowA-profile-pill">
+                <div class="rowA-profile-logo">
+                  <img src="assets/landing/grrab-logo.svg" alt="Grrab">
+                </div>
+                <div class="rowA-profile-ext">
+                  <img class="rowA-profile-ext-icon" src="assets/landing/icons/rowA/icon_ext.svg" alt="" width="16" height="16">
+                </div>
+              </div>
+              <div class="rowA-profile-sep"></div>
+              <div class="rowA-profile-avatar">
+                <img src="assets/landing/img/example_profile.png" alt="">
+              </div>
+              <div class="rowA-profile-menu">
+                <img class="rowA-profile-menu-icon" src="assets/landing/icons/rowA/icon_menubar.svg" alt="">
+              </div>
+            </div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);">
-            <span style="font-size:13px;color:var(--ink-700);">Clip Shortcut</span>
-            <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--ink-strong);background:var(--surface-subtle);border:1px solid var(--border);border-radius:6px;padding:5px 10px;">⌘C</span>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
-            <span style="font-size:13px;color:var(--ink-700);">Clip Size</span>
-            <span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-strong);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 10px;">3k
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </span>
-          </div>
-          <div style="padding:0 16px 16px;">
-            <div style="display:flex;align-items:center;justify-content:center;font-family:var(--font-sans);font-weight:700;font-size:12px;color:#fff;background:#BC13FE;border-radius:8px;padding:6px 14px;">Open SidePanel</div>
+          <div class="rowA-viewport">
+            <div class="rowA-body">
+              <!-- TODO: gallery images are placeholders; wire finals later -->
+              <div class="rowA-gallery">
+                <div class="rowA-gallery-col">
+                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-1.png" alt=""></div>
+                  <div class="rowA-tile rowA-tile--active"><img src="assets/landing/img/rowA_after.png" alt=""></div>
+                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-2.png" alt=""></div>
+                </div>
+                <div class="rowA-gallery-col">
+                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-3.png" alt=""></div>
+                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-4.png" alt=""></div>
+                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-5.png" alt=""></div>
+                </div>
+                <div class="rowA-gallery-col">
+                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-6.png" alt=""></div>
+                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-7.png" alt=""></div>
+                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/rowA_before.png" alt=""></div>
+                </div>
+              </div>
+            </div>
+            <div class="rowA-popup">
+              <div class="rowA-popup-header">
+                <div class="rowA-popup-titlebar">
+                  <div class="rowA-popup-title">Grrab Images</div>
+                  <div class="rowA-popup-switch"><div class="rowA-popup-switch-knob"></div></div>
+                </div>
+                <div class="rowA-popup-desc">no low-res — in one shortcut.</div>
+              </div>
+              <div class="rowA-popup-row">
+                <div class="rowA-popup-row-label">Clip Shortcut</div>
+                <div class="rowA-popup-row-value">
+                  <div class="rowA-popup-kbd">⌘+C</div>
+                  <div class="rowA-popup-refresh">
+                    <img class="rowA-popup-refresh-icon" src="assets/landing/icons/rowA/icon_refresh.svg" alt="">
+                  </div>
+                </div>
+              </div>
+              <div class="rowA-popup-row">
+                <div class="rowA-popup-row-label">Clip Size</div>
+                <div class="rowA-popup-row-value">
+                  <div class="rowA-popup-size-toggle">
+                    <div class="rowA-popup-size">3k</div>
+                    <img class="rowA-popup-size-chevron" src="assets/landing/icons/rowA/icon_chevron.svg" alt="">
+                  </div>
+                </div>
+              </div>
+              <div class="rowA-popup-footer">
+                <div class="rowA-popup-btn"><div class="rowA-popup-btn-line">Open SidePanel</div></div>
+              </div>
+            </div>
+            <div class="rowA-cursor">
+              <div class="rowA-badge-wrap">
+                <div class="rowA-badge">⌘+C</div>
+              </div>
+              <div class="rowA-pointer">
+                <img class="rowA-pointer-icon" src="assets/landing/icons/rowA/icon_pointer.svg" alt="">
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -388,7 +612,7 @@
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
   <!-- Row B — interactive source switcher -->
-  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:0.82fr 1.18fr;gap:48px;align-items:center;">
+  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:0.82fr 1.18fr;gap:48px;align-items:stretch;">
     <!-- LEFT: heading + subhead + source list -->
     <div style="display:flex;flex-direction:column;gap:24px;">
       <div style="display:flex;flex-direction:column;gap:14px;">
@@ -412,7 +636,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </div>
       </div>
-      <div id="inspirePanes" style="position:relative;height:400px;"></div>
+      <div id="inspirePanes" style="position:relative;height:auto;"></div>
     </div>
   </div>
 
@@ -422,21 +646,201 @@
   <!-- Row C — media left, text + fanned card stack right -->
   <div class="grrab-rowC" style="display:grid;grid-template-columns:1fr 1.05fr;gap:72px;align-items:start;">
     <!-- LEFT: side-panel screenshot placeholder -->
-    <div style="border-radius:0 var(--radius-2xl) 0 0;overflow:hidden;background:var(--surface);box-shadow:24px -12px 66px 0 rgba(0,0,0,.14);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:none;border-left:none;">
-      <div style="display:flex;align-items:center;gap:12px;padding:9px 14px 9px 0;background:var(--surface-subtle);border-bottom:1px solid var(--border);color:var(--ink-soft);">
-        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:30px;padding:0 14px 0 0;border-radius:0 24px 24px 0;background:var(--surface);border-top:1px solid #E5E7EB;border-right:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB;border-left:none;">
-          <span style="flex:1;height:5px;border-radius:999px;background:var(--border);width:100%;"></span>
-        </div>
-        <span style="display:flex;align-items:center;gap:13px;flex-shrink:0;padding-right:14px;">
-          <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="18" height="18" style="display:block;border-radius:5px;">
-          <span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(150deg,#C7CBD4,#9AA0AD);flex-shrink:0;"></span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
-        </span>
-      </div>
-      <div style="display:flex;height:440px;">
-        <div style="flex:1;background:repeating-linear-gradient(45deg,var(--surface-ios),var(--surface-ios) 12px,#ececf2 12px,#ececf2 24px);opacity:.55;"></div>
-        <div style="width:230px;flex-shrink:0;border-left:1px solid var(--border);background:url('/assets/landing/img/sidepanel_screenshot.jpg') top/cover no-repeat;display:grid;place-items:center;text-align:center;padding:16px;">
-          <!-- <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-muted);line-height:1.6;">side&nbsp;panel<br>screenshot</span> -->
+    <div class="rowC-mockup-wrap">
+      <div class="rowC-mockup-scaler">
+        <div class="rowC-window">
+          <div class="rowA-chrome">
+            <div class="rowA-urlbar">
+              <div class="rowA-urlbar-line"></div>
+              <div class="rowA-urlbar-star">
+                <img class="rowA-urlbar-star-icon" src="assets/landing/icons/rowA/icon_star.svg" alt="" width="15" height="15">
+              </div>
+            </div>
+            <div class="rowA-profile">
+              <div class="rowA-profile-pill">
+                <div class="rowA-profile-logo">
+                  <img src="assets/landing/grrab-logo.svg" alt="Grrab">
+                </div>
+                <div class="rowA-profile-ext">
+                  <img class="rowA-profile-ext-icon" src="assets/landing/icons/rowA/icon_ext.svg" alt="" width="16" height="16">
+                </div>
+              </div>
+              <div class="rowA-profile-sep"></div>
+              <div class="rowA-profile-avatar">
+                <img src="assets/landing/img/example_profile.png" alt="">
+              </div>
+              <div class="rowA-profile-menu">
+                <img class="rowA-profile-menu-icon" src="assets/landing/icons/rowA/icon_menubar.svg" alt="">
+              </div>
+            </div>
+          </div>
+          <div class="rowC-viewport">
+            <div class="rowC-body">
+              <!-- TODO: Row C gallery + card images are placeholders; wire finals later -->
+              <div class="rowC-topbar">
+                <div class="rowC-search">
+                  <img class="rowC-search-icon--close" src="assets/landing/icons/rowC/icon_close.svg" alt="">
+                </div>
+              </div>
+              <div class="rowC-gallery">
+                <div class="rowC-gallery-col">
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-1.png" alt=""></div>
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-2.png" alt=""></div>
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-3.png" alt=""></div>
+                </div>
+                <div class="rowC-gallery-col">
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-4.png" alt=""></div>
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-5.png" alt=""></div>
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-6.png" alt=""></div>
+                </div>
+                <div class="rowC-gallery-col">
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-7.png" alt=""></div>
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-1.png" alt=""></div>
+                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-2.png" alt=""></div>
+                </div>
+              </div>
+            </div>
+            <div class="rowC-sidepanel">
+              <div class="sidepanel-top">
+                <div class="sidepanel-header">
+                  <div class="sidepanel-logo">
+                    <img class="sidepanel-logo-icon" src="assets/landing/grrab-logo.svg" alt="">
+                    <span class="sidepanel-logo-name">Grrab</span>
+                  </div>
+                  <div class="sidepanel-ctrl">
+                    <img class="sidepanel-ctrl-icon sidepanel-ctrl-icon--pin" src="assets/landing/icons/rowC/icon_pin.svg" alt="">
+                    <img class="sidepanel-ctrl-icon sidepanel-ctrl-icon--close" src="assets/landing/icons/rowC/icon_close.svg" alt="">
+                  </div>
+                </div>
+                <div class="sidepanel-section">
+                  <div class="sidepanel-profile">
+                    <div class="sidepanel-profile-user">
+                      <div class="sidepanel-profile-avatar">
+                        <img src="assets/landing/img/example_profile.png" alt="">
+                      </div>
+                      <span class="sidepanel-profile-name">name@example.com</span>
+                    </div>
+                    <div class="sidepanel-profile-signout">
+                      <img class="sidepanel-signout-icon" src="assets/landing/icons/rowC/icon_signout.svg" alt="">
+                    </div>
+                  </div>
+                  <div class="sidepanel-clip">
+                    <div class="sidepanel-clip-row">
+                      <span class="sidepanel-clip-row-label">Clip Shortcut</span>
+                      <div class="sidepanel-clip-row-value">
+                        <span class="sidepanel-kbd">⌘C</span>
+                        <span class="sidepanel-refresh">
+                          <img class="sidepanel-refresh-icon" src="assets/landing/icons/rowC/icon_refresh.svg" alt="">
+                        </span>
+                      </div>
+                    </div>
+                    <hr class="sidepanel-clip-sep">
+                    <div class="sidepanel-clip-row">
+                      <span class="sidepanel-clip-row-label">Clip Size</span>
+                      <div class="sidepanel-clip-row-value">
+                        <span class="sidepanel-size-toggle">
+                          <span class="sidepanel-size-value">3k</span>
+                          <img class="sidepanel-chevron" src="assets/landing/icons/rowC/icon_chevron.svg" alt="">
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="sidepanel-main">
+                <div class="sidepanel-directory">
+                  <div class="sidepanel-directory-bar">
+                    <img class="sidepanel-directory-icon" src="assets/landing/icons/rowC/icon_folder.svg" alt="">
+                    <span class="sidepanel-directory-name">My_folder</span>
+                  </div>
+                  <div class="sidepanel-directory-file">
+                    <span class="sidepanel-directory-file-type">PNG</span>
+                    <img class="sidepanel-chevron" src="assets/landing/icons/rowC/icon_chevron.svg" alt="">
+                  </div>
+                </div>
+                <div class="sidepanel-gallery">
+                  <div class="sidepanel-gallery-top">
+                    <img class="sidepanel-upload-icon" src="assets/landing/icons/rowC/icon_upload.svg" alt="">
+                    <img class="sidepanel-delete-icon" src="assets/landing/icons/rowC/icon_delete.svg" alt="">
+                  </div>
+                  <div class="sidepanel-gallery-row">
+                    <div class="sidepanel-gallery-time">
+                      <span class="sidepanel-gallery-time-line"></span>
+                      <span class="sidepanel-gallery-time-label">Today</span>
+                      <span class="sidepanel-gallery-time-line"></span>
+                    </div>
+                    <div class="sidepanel-gallery-grid">
+                      <div class="sidepanel-card sidepanel-card--active">
+                        <div class="sidepanel-card-header">
+                          <div class="sidepanel-card-header-link">
+                            <img class="sidepanel-card-link-icon" src="assets/landing/icons/rowC/icon_link.svg" alt="">
+                          </div>
+                          <div class="sidepanel-card-header-meta">
+                            <span class="sidepanel-card-meta-line">Pinterest</span>
+                            <div class="sidepanel-card-meta-btn">
+                              <img class="sidepanel-card-copy-icon" src="assets/landing/icons/rowC/icon_copy.svg" alt="">
+                              <img class="sidepanel-card-cancel-icon" src="assets/landing/icons/rowC/icon_cancel.svg" alt="">
+                            </div>
+                          </div>
+                        </div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowC/image-1.png" alt=""></div>
+                        <img class="sidepanel-card-pointer" src="assets/landing/icons/rowC/icon_pointer.svg" alt="">
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowC/image-2.png" alt=""></div>
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowC/image-3.png" alt=""></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="sidepanel-gallery-row">
+                    <div class="sidepanel-gallery-time">
+                      <span class="sidepanel-gallery-time-line"></span>
+                      <span class="sidepanel-gallery-time-label">Yesterday</span>
+                      <span class="sidepanel-gallery-time-line"></span>
+                    </div>
+                    <div class="sidepanel-gallery-grid">
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowC/image-4.png" alt=""></div>
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowC/image-5.png" alt=""></div>
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowC/image-6.png" alt=""></div>
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowC/image-7.png" alt=""></div>
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowA_after.png" alt=""></div>
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowA_after.png" alt=""></div>
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowA_after.png" alt=""></div>
+                      </div>
+                      <div class="sidepanel-card sidepanel-card--dim">
+                        <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowA_after.png" alt=""></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -706,26 +1110,26 @@
               '<div class="yt-feed">'+
                 '<div class="yt-videos">'+
                   '<div class="yt-video-card">'+
-                    '<div class="yt-thumb yt-thumb--glow"></div>'+
+                    '<div class="yt-thumb yt-thumb--glow"><img src="/assets/landing/img/rowB/image-1.jpg" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-2.jpg" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-3.jpg" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                 '</div>'+
                 '<div class="yt-shorts-section">'+
                   '<div class="yt-shorts-label"><img class="yt-shorts-icon" src="/assets/landing/icons/icon_main_shorts.svg" alt="">Shorts</div>'+
                   '<div class="yt-shorts">'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-1.jpg" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-2.jpg" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-3.jpg" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-4.jpg" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-5.jpg" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
                   '</div>'+
                 '</div>'+
               '</div>'+
@@ -742,7 +1146,7 @@
     });
   }
 
-  function igFeedCardHtml(dim, glow){
+  function igFeedCardHtml(dim, glow, img){
     var cardClass = 'ig-feed-card'+(dim?' ig-feed-card--dim':'');
     var thumbClass = 'ig-feed-thumb'+(glow?' ig-feed-thumb--glow':'');
     var ig = '/assets/landing/icons/instagram/';
@@ -761,7 +1165,7 @@
             '<span class="ig-feed-menubar"><img class="ig-slot-img" src="'+ig+'icon_menubar.svg" alt=""></span>'+
           '</div>'+
         '</div>'+
-        '<div class="'+thumbClass+'"></div>'+
+        '<div class="'+thumbClass+'">'+(img?'<img src="'+img+'" alt="">':'')+'</div>'+
       '</div>'+
       '<div class="ig-meta">'+
         '<div class="ig-chips-wrap">'+
@@ -803,8 +1207,8 @@
         '</div>'+
       '</aside>'+
       '<div class="ig-main">'+
-        igFeedCardHtml(false, true)+
-        igFeedCardHtml(true, false)+
+        igFeedCardHtml(false, true, '/assets/landing/img/rowB/ig-image-1.jpg')+   // glow(active)
+        igFeedCardHtml(true, false, '/assets/landing/img/rowB/ig-image-2.jpg')+   // dim
       '</div>'+
     '</div>';
   }
@@ -818,12 +1222,12 @@
     });
   }
 
-  function pinFeedCardHtml(ratio, dim, glow){
+  function pinFeedCardHtml(ratio, dim, glow, img){
     var cls = 'pin-feed-card';
     if(dim === 30) cls += ' pin-feed-card--dim';
     else if(dim === 50) cls += ' pin-feed-card--dim50';
     if(glow) cls += ' pin-feed-card--glow';
-    return '<div class="'+cls+'" style="aspect-ratio:'+ratio+'"></div>';
+    return '<div class="'+cls+'" style="aspect-ratio:'+ratio+'">'+(img?'<img src="'+img+'" alt="">':'')+'</div>';
   }
 
   function pinFeedColHtml(faint, cards){
@@ -853,24 +1257,24 @@
         '</div>'+
         '<div class="pin-feed">'+
           pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/160', 50),
-            pinFeedCardHtml('115.25/102.33', 50),
-            pinFeedCardHtml('115.25/169', 50)
+            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowB/pin-image-1.jpg'),
+            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowB/pin-image-2.jpg'),
+            pinFeedCardHtml('115.25/169', 50, false, '/assets/landing/img/rowB/pin-image-3.jpg')
           ])+
           pinFeedColHtml(false, [
-            pinFeedCardHtml('115.25/132', 0, true),
-            pinFeedCardHtml('115.25/132', 30),
-            pinFeedCardHtml('115.25/115.25', 30)
+            pinFeedCardHtml('115.25/132',    0, true,  '/assets/landing/img/rowB/pin-image-4.jpg'),
+            pinFeedCardHtml('115.25/132', 30, false, '/assets/landing/img/rowB/pin-image-5.jpg'),
+            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowB/pin-image-6.jpg')
           ])+
           pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/188', 50),
-            pinFeedCardHtml('115.25/115.25', 50),
-            pinFeedCardHtml('115.25/115.25', 50)
+            pinFeedCardHtml('115.25/188',    50, false, '/assets/landing/img/rowB/pin-image-7.jpg'),
+            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowB/pin-image-8.jpg'),
+            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowB/pin-image-9.jpg')
           ])+
           pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/160', 50),
-            pinFeedCardHtml('115.25/169', 50),
-            pinFeedCardHtml('115.25/102.33', 50)
+            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowB/pin-image-10.jpg'),
+            pinFeedCardHtml('115.25/169', 50, false, '/assets/landing/img/rowB/pin-image-11.jpg'),
+            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowB/pin-image-12.jpg')
           ])+
         '</div>'+
       '</div>'+
@@ -938,7 +1342,7 @@
     activeInspire = id;
     var isMockup = !!mockupHtmlById[id];
     tabHeaderEl.style.display = isMockup ? "none" : "flex";
-    panesEl.style.height = isMockup ? "450px" : "400px";
+    panesEl.style.height = isMockup ? "" : "400px";
     panesEl.style.flex = isMockup ? "none" : "none";
     panesEl.style.minHeight = isMockup ? "" : "";
     panesEl.style.display = isMockup ? "flex" : "block";
