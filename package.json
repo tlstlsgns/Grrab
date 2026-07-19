@@ -3,6 +3,7 @@
   "private": true,
   "description": "Root-level dev dependencies for migration/maintenance scripts",
   "devDependencies": {
-    "firebase-admin": "^13.6.0"
+    "firebase-admin": "^13.6.0",
+    "sharp": "^0.35.3"
   }
 }
