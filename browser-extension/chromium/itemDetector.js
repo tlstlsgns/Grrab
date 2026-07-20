@@ -1074,13 +1074,19 @@ function isImageDominantInCoreItem(imageRect, coreRect) {
 // nested under <main>, <motion.div>, etc.) are treated as content, not nav, and
 // should not exclude their inner images from Type D / E ItemMap detection.
 //
+// Site-level footers are <body> > <footer>; footers nested inside a layout
+// wrapper (e.g. Squarespace's <div id="site">) are content containers and
+// must not exclude their images. <nav> and role=banner/contentinfo/
+// navigation remain unrelaxed at any depth.
+//
 // This replaces the prior PHASE_SECTIONAL_HEADER_ALLOW heuristic
 // (article/main-only) with a broader and more consistent body-direct-child
-// rule. Other nav signals — role=banner / contentinfo / navigation — and
-// <nav>, <footer> tags are NOT relaxed; site nav can use those legitimately
-// regardless of DOM depth.
+// rule.
 function isSiteLevelNavHeader(el) {
   return el?.tagName === 'HEADER' && el?.parentElement === document.body;
+}
+function isSiteLevelNavFooter(el) {
+  return el?.tagName === 'FOOTER' && el?.parentElement === document.body;
 }
 // === END PHASE_HEADER_NAV_RELAX ===
 
@@ -1092,10 +1098,15 @@ function isInsideNavLikeAncestor(el) {
       // === PHASE_HEADER_NAV_RELAX ===
       // HEADER tag matches as nav only when it's the site-level header
       // (<body> > <header>). All other headers are content; continue walking.
-      // FOOTER and NAV still match unconditionally.
+      // FOOTER tag matches as nav only when it's the site-level footer
+      // (<body> > <footer>). Nested/layout footers are content; keep walking.
+      // NAV still matches unconditionally.
       if (tag === 'HEADER') {
         if (isSiteLevelNavHeader(cur)) return true;
         // sectional / hero / content header — not nav; keep walking
+      } else if (tag === 'FOOTER') {
+        if (isSiteLevelNavFooter(cur)) return true;
+        // nested/layout footer — content container, keep walking
       } else if (TYPED_NAV_TAGS.has(tag)) {
         return true;
       }
@@ -2376,6 +2387,9 @@ async function detectTypeDItemMaps(root = document) {
       if (parentTagU === 'HEADER') {
         if (isSiteLevelNavHeader(parent)) break;
         // sectional / hero / content header — not nav; do not break
+      } else if (parentTagU === 'FOOTER') {
+        if (isSiteLevelNavFooter(parent)) break;
+        // nested/layout footer — do not break
       } else if (TYPED_NAV_TAGS.has(parentTagU)) {
         break;
       }
