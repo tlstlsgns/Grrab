@@ -1048,40 +1048,47 @@ function getAncestorClipRect(el, targetR) {
       const next = node.parentElement
         || ((root && root instanceof ShadowRoot && root.host) ? root.host : null);
       try {
-        let cs = null;
-        try { cs = window.getComputedStyle?.(node); } catch (_) { cs = null; }
-        if (cs) {
-          const clipsX = cs.overflowX !== 'visible';
-          const clipsY = cs.overflowY !== 'visible';
-          if (clipsX || clipsY) {
-            const rect = node.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
-              const bl = parseFloat(cs.borderLeftWidth) || 0;
-              const br = parseFloat(cs.borderRightWidth) || 0;
-              const bt = parseFloat(cs.borderTopWidth) || 0;
-              const bb = parseFloat(cs.borderBottomWidth) || 0;
-              const box = {
-                left: rect.left + bl,
-                top: rect.top + bt,
-                right: rect.right - br,
-                bottom: rect.bottom - bb,
-              };
-              if (!targetBox || _kcViewportRectsOverlap(box, targetBox)) {
-                if (clip === null) {
-                  clip = {
-                    left: clipsX ? box.left : Number.NEGATIVE_INFINITY,
-                    right: clipsX ? box.right : Number.POSITIVE_INFINITY,
-                    top: clipsY ? box.top : Number.NEGATIVE_INFINITY,
-                    bottom: clipsY ? box.bottom : Number.POSITIVE_INFINITY,
-                  };
-                } else {
-                  if (clipsX) {
-                    clip.left = Math.max(clip.left, box.left);
-                    clip.right = Math.min(clip.right, box.right);
-                  }
-                  if (clipsY) {
-                    clip.top = Math.max(clip.top, box.top);
-                    clip.bottom = Math.min(clip.bottom, box.bottom);
+        const _kcDoc = node.ownerDocument;
+        const _kcIsRootEl = !!_kcDoc && (node === _kcDoc.documentElement || node === _kcDoc.body);
+        // The root element (<html>/<body>) clips to the viewport, not to its own layout
+        // box, which scrolls with the page. Using its rect truncated the overlay on any
+        // scrolled page. The overlay is position:fixed, so viewport clipping is implicit.
+        if (!_kcIsRootEl) {
+          let cs = null;
+          try { cs = window.getComputedStyle?.(node); } catch (_) { cs = null; }
+          if (cs) {
+            const clipsX = cs.overflowX !== 'visible';
+            const clipsY = cs.overflowY !== 'visible';
+            if (clipsX || clipsY) {
+              const rect = node.getBoundingClientRect();
+              if (rect.width > 0 && rect.height > 0) {
+                const bl = parseFloat(cs.borderLeftWidth) || 0;
+                const br = parseFloat(cs.borderRightWidth) || 0;
+                const bt = parseFloat(cs.borderTopWidth) || 0;
+                const bb = parseFloat(cs.borderBottomWidth) || 0;
+                const box = {
+                  left: rect.left + bl,
+                  top: rect.top + bt,
+                  right: rect.right - br,
+                  bottom: rect.bottom - bb,
+                };
+                if (!targetBox || _kcViewportRectsOverlap(box, targetBox)) {
+                  if (clip === null) {
+                    clip = {
+                      left: clipsX ? box.left : Number.NEGATIVE_INFINITY,
+                      right: clipsX ? box.right : Number.POSITIVE_INFINITY,
+                      top: clipsY ? box.top : Number.NEGATIVE_INFINITY,
+                      bottom: clipsY ? box.bottom : Number.POSITIVE_INFINITY,
+                    };
+                  } else {
+                    if (clipsX) {
+                      clip.left = Math.max(clip.left, box.left);
+                      clip.right = Math.min(clip.right, box.right);
+                    }
+                    if (clipsY) {
+                      clip.top = Math.max(clip.top, box.top);
+                      clip.bottom = Math.min(clip.bottom, box.bottom);
+                    }
                   }
                 }
               }
