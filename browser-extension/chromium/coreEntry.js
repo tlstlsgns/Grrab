@@ -1524,6 +1524,29 @@ function _kcIsCandidateRelated(el, candidateEl) {
 
 const MIN_OCCLUDER_PX = 40;
 const MIN_OCCLUSION_COVERAGE = 0.35;
+const MIN_OCCLUDING_ALPHA = 0.9;
+
+function _kcOccluderElemOpacity(el, cs) {
+  let elemOpacity = parseFloat(cs?.opacity);
+  if (!Number.isFinite(elemOpacity)) elemOpacity = 1;
+  let p = el.parentElement;
+  let depth = 0;
+  while (p && depth++ < 3) {
+    try {
+      const po = parseFloat(window.getComputedStyle?.(p)?.opacity);
+      if (Number.isFinite(po) && po < 1) elemOpacity *= po;
+    } catch (_) {}
+    p = p.parentElement;
+  }
+  return elemOpacity;
+}
+
+function _kcOccluderEffectiveAlpha(elemOpacity, cs) {
+  const bgAlpha = _kcColorAlpha(cs.backgroundColor);
+  const hasBgImage = String(cs.backgroundImage || '') !== 'none' && String(cs.backgroundImage || '') !== '';
+  const paintAlpha = Math.max(bgAlpha, hasBgImage ? 0.5 : 0);
+  return elemOpacity * paintAlpha;
+}
 
 function _kcOccluderMeaningfullyCovers(candidateEl, occluderEl) {
   try {
@@ -1581,6 +1604,8 @@ function isOccludedAtPoint(candidateEl, x, y) {
       const op = parseFloat(cs.opacity);
       if (vis === 'hidden' || disp === 'none' || (Number.isFinite(op) && op < 0.1)) continue;
 
+      const elemOpacity = _kcOccluderElemOpacity(el, cs);
+
       // === PHASE_OCCLUSION_SAME_ITEM_SKIP ===
       // Pinterest closeup stacks multiple <img> nodes (placeholder / full-res /
       // zoom layer) for one Type E item. A sibling duplicate must not veto the
@@ -1615,6 +1640,7 @@ function isOccludedAtPoint(candidateEl, x, y) {
 
       const tag = String(el.tagName || '').toUpperCase();
       if (tag === 'IMG' || tag === 'VIDEO') {
+        if (elemOpacity < MIN_OCCLUDING_ALPHA) continue;
         const mr = el.getBoundingClientRect?.();
         if (mr && mr.width > 0 && mr.height > 0) {
           if (_kcOccluderMeaningfullyCovers(candidateEl, el)) return true;
@@ -1622,10 +1648,8 @@ function isOccludedAtPoint(candidateEl, x, y) {
         }
       }
 
-      const bgAlpha = _kcColorAlpha(cs.backgroundColor);
-      const bgImg = String(cs.backgroundImage || '');
-      const hasBgPaint = bgAlpha > 0 || (bgImg !== 'none' && bgImg !== '');
-      if (!hasBgPaint) continue;
+      const effective = _kcOccluderEffectiveAlpha(elemOpacity, cs);
+      if (effective < MIN_OCCLUDING_ALPHA) continue;
 
       if (_kcOccluderMeaningfullyCovers(candidateEl, el)) return true;
     }

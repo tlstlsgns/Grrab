@@ -1016,59 +1016,82 @@ function getAccumulatedTransform(el) {
 // Viewport-space intersection of all ancestor overflow clip bounds (padding
 // boxes). Returns null when no clipping ancestor exists (fail-open). Ignores
 // border-radius — rectangular clip is sufficient for now.
-function getAncestorClipRect(el) {
+function _kcViewportRectsOverlap(a, b) {
+  return a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
+}
+
+function _kcClipRectIsValid(clip) {
+  if (!clip) return false;
+  const hasX = Number.isFinite(clip.left) && Number.isFinite(clip.right);
+  const hasY = Number.isFinite(clip.top) && Number.isFinite(clip.bottom);
+  if (hasX && clip.right <= clip.left) return false;
+  if (hasY && clip.bottom <= clip.top) return false;
+  return hasX || hasY;
+}
+
+function getAncestorClipRect(el, targetR) {
   try {
     if (!el || el.nodeType !== 1) return null;
+    const targetBox = (targetR && targetR.width > 0 && targetR.height > 0)
+      ? {
+          left: targetR.left,
+          top: targetR.top,
+          right: targetR.left + targetR.width,
+          bottom: targetR.top + targetR.height,
+        }
+      : null;
     let clip = null;
     let node = el.parentElement;
-    while (node && node.nodeType === 1) {
-      let cs = null;
-      try { cs = window.getComputedStyle?.(node); } catch (_) { cs = null; }
-      if (cs) {
-        const clipsX = cs.overflowX !== 'visible';
-        const clipsY = cs.overflowY !== 'visible';
-        if (clipsX || clipsY) {
-          const rect = node.getBoundingClientRect();
-          const bl = parseFloat(cs.borderLeftWidth) || 0;
-          const br = parseFloat(cs.borderRightWidth) || 0;
-          const bt = parseFloat(cs.borderTopWidth) || 0;
-          const bb = parseFloat(cs.borderBottomWidth) || 0;
-          const box = {
-            left: rect.left + bl,
-            top: rect.top + bt,
-            right: rect.right - br,
-            bottom: rect.bottom - bb,
-          };
-          if (clip === null) {
-            clip = {
-              left: clipsX ? box.left : Number.NEGATIVE_INFINITY,
-              right: clipsX ? box.right : Number.POSITIVE_INFINITY,
-              top: clipsY ? box.top : Number.NEGATIVE_INFINITY,
-              bottom: clipsY ? box.bottom : Number.POSITIVE_INFINITY,
-            };
-          } else {
-            if (clipsX) {
-              clip.left = Math.max(clip.left, box.left);
-              clip.right = Math.min(clip.right, box.right);
-            }
-            if (clipsY) {
-              clip.top = Math.max(clip.top, box.top);
-              clip.bottom = Math.min(clip.bottom, box.bottom);
+    let guard = 0;
+    while (node && node.nodeType === 1 && guard++ < 100) {
+      const root = node.getRootNode?.();
+      const next = node.parentElement
+        || ((root && root instanceof ShadowRoot && root.host) ? root.host : null);
+      try {
+        let cs = null;
+        try { cs = window.getComputedStyle?.(node); } catch (_) { cs = null; }
+        if (cs) {
+          const clipsX = cs.overflowX !== 'visible';
+          const clipsY = cs.overflowY !== 'visible';
+          if (clipsX || clipsY) {
+            const rect = node.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              const bl = parseFloat(cs.borderLeftWidth) || 0;
+              const br = parseFloat(cs.borderRightWidth) || 0;
+              const bt = parseFloat(cs.borderTopWidth) || 0;
+              const bb = parseFloat(cs.borderBottomWidth) || 0;
+              const box = {
+                left: rect.left + bl,
+                top: rect.top + bt,
+                right: rect.right - br,
+                bottom: rect.bottom - bb,
+              };
+              if (!targetBox || _kcViewportRectsOverlap(box, targetBox)) {
+                if (clip === null) {
+                  clip = {
+                    left: clipsX ? box.left : Number.NEGATIVE_INFINITY,
+                    right: clipsX ? box.right : Number.POSITIVE_INFINITY,
+                    top: clipsY ? box.top : Number.NEGATIVE_INFINITY,
+                    bottom: clipsY ? box.bottom : Number.POSITIVE_INFINITY,
+                  };
+                } else {
+                  if (clipsX) {
+                    clip.left = Math.max(clip.left, box.left);
+                    clip.right = Math.min(clip.right, box.right);
+                  }
+                  if (clipsY) {
+                    clip.top = Math.max(clip.top, box.top);
+                    clip.bottom = Math.min(clip.bottom, box.bottom);
+                  }
+                }
+              }
             }
           }
         }
-      }
-      if (node.parentElement) {
-        node = node.parentElement;
-        continue;
-      }
-      const root = node.getRootNode?.();
-      if (root && root instanceof ShadowRoot && root.host) {
-        node = root.host;
-        continue;
-      }
-      break;
+      } catch (_) {}
+      node = next;
     }
+    if (clip && !_kcClipRectIsValid(clip)) return null;
     return clip;
   } catch (_) {
     return null;
@@ -1077,6 +1100,7 @@ function getAncestorClipRect(el) {
 
 // === PHASE_OVERLAY_OCCLUDER_HOLES ===
 const KC_HIGHLIGHT_GLOW = 24;
+const HIDE_WHEN_COVERED = 0.995;
 
 function _kcOverlayColorAlpha(color) {
   const c = String(color || '').trim().toLowerCase();
@@ -1260,24 +1284,44 @@ function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadiu
   const clipSrc = (coreItem && srcEl && srcEl !== coreItem && coreItem.contains(srcEl))
     ? coreItem
     : srcEl;
-  const clip = getAncestorClipRect(clipSrc);
+  let clip = getAncestorClipRect(clipSrc, r);
+
+  let clipLeftFin = null;
+  let clipRightFin = null;
+  let clipTopFin = null;
+  let clipBottomFin = null;
 
   if (clip) {
     const clipLeft = Number.isFinite(clip.left) ? clip.left : Number.NEGATIVE_INFINITY;
     const clipRight = Number.isFinite(clip.right) ? clip.right : Number.POSITIVE_INFINITY;
     const clipTop = Number.isFinite(clip.top) ? clip.top : Number.NEGATIVE_INFINITY;
     const clipBottom = Number.isFinite(clip.bottom) ? clip.bottom : Number.POSITIVE_INFINITY;
-    if (clipRight <= ol || clipLeft >= ol + ow || clipBottom <= ot || clipTop >= ot + oh) {
-      overlay.style.opacity = '0';
-      overlay.style.clipPath = '';
-      return false;
+    const targetLeft = r.left;
+    const targetTop = r.top;
+    const targetRight = r.left + r.width;
+    const targetBottom = r.top + r.height;
+    const targetIxLeft = Math.max(clipLeft, targetLeft);
+    const targetIxTop = Math.max(clipTop, targetTop);
+    const targetIxRight = Math.min(clipRight, targetRight);
+    const targetIxBottom = Math.min(clipBottom, targetBottom);
+    const targetInClip = targetIxRight > targetIxLeft && targetIxBottom > targetIxTop;
+    const clipValid = _kcClipRectIsValid(clip) && r.width > 0 && r.height > 0;
+
+    if (!clipValid || !targetInClip) {
+      if (clipValid && !targetInClip) {
+        overlay.style.opacity = '0';
+        overlay.style.clipPath = '';
+        return false;
+      }
+      clip = null;
+    } else {
+      clipLeftFin = Number.isFinite(clip.left) ? clip.left : null;
+      clipRightFin = Number.isFinite(clip.right) ? clip.right : null;
+      clipTopFin = Number.isFinite(clip.top) ? clip.top : null;
+      clipBottomFin = Number.isFinite(clip.bottom) ? clip.bottom : null;
     }
   }
 
-  const clipLeftFin = clip && Number.isFinite(clip.left) ? clip.left : null;
-  const clipRightFin = clip && Number.isFinite(clip.right) ? clip.right : null;
-  const clipTopFin = clip && Number.isFinite(clip.top) ? clip.top : null;
-  const clipBottomFin = clip && Number.isFinite(clip.bottom) ? clip.bottom : null;
   const cutsLeft = clipLeftFin !== null && clipLeftFin > ol + EPS;
   const cutsTop = clipTopFin !== null && clipTopFin > ot + EPS;
   const cutsRight = clipRightFin !== null && clipRightFin < ol + ow - EPS;
@@ -1304,7 +1348,7 @@ function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadiu
     return s + Math.max(0, (Math.min(h.right, r.left + r.width) - Math.max(h.left, r.left)))
       * Math.max(0, (Math.min(h.bottom, r.top + r.height) - Math.max(h.top, r.top)));
   }, 0) / targetArea;
-  if (covered >= 0.85) {
+  if (covered >= HIDE_WHEN_COVERED) {
     overlay.style.opacity = '0';
     overlay.style.clipPath = '';
     return false;
