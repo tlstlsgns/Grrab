@@ -1447,6 +1447,104 @@ function isPointerInsideOverlay(overlayEl, x, y, fallbackTarget) {
 }
 // === END PHASE_OVERLAY_HOVER_GATE (helper) ===
 
+// === PHASE_OCCLUSION_VETO ===
+// Opaque paint above the candidate at (x,y) vetoes activation. Transparent
+// hit-catchers (Pinterest canvas, YouTube preview pierce) are ignored so
+// existing stack-piercing behavior is preserved.
+
+function _kcColorAlpha(color) {
+  const c = String(color || '').trim().toLowerCase();
+  if (!c || c === 'transparent') return 0;
+  const rgba = c.match(/^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)$/);
+  if (rgba) return parseFloat(rgba[1]);
+  const hsla = c.match(/^hsla\(\s*[\d.]+\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*,\s*([\d.]+)\s*\)$/);
+  if (hsla) return parseFloat(hsla[1]);
+  if (c.startsWith('rgb(') || c.startsWith('hsl(')) return 1;
+  return 1;
+}
+
+function _kcIsExtensionUi(el) {
+  if (!el || el.nodeType !== 1) return false;
+  try {
+    const id = el.id || '';
+    if (id === 'kickclip-shadow-host' || id === 'kickclip-badge-shadow-host') return true;
+    if (typeof id === 'string' && id.startsWith('kickclip-')) return true;
+    if (el.closest?.('#kickclip-shadow-host, #kickclip-badge-shadow-host')) return true;
+  } catch (_) {}
+  return false;
+}
+
+function _kcIsCandidateRelated(el, candidateEl) {
+  if (!el || !candidateEl || el.nodeType !== 1 || candidateEl.nodeType !== 1) return false;
+  if (el === candidateEl) return true;
+  try {
+    if (candidateEl.contains?.(el)) return true;
+    if (el.contains?.(candidateEl)) return true;
+  } catch (_) {}
+  return false;
+}
+
+function isOccludedAtPoint(candidateEl, x, y) {
+  try {
+    if (!candidateEl || candidateEl.nodeType !== 1) return false;
+    const px = Number(x);
+    const py = Number(y);
+    if (!Number.isFinite(px) || !Number.isFinite(py)) return false;
+
+    const stack = document.elementsFromPoint?.(px, py);
+    if (!Array.isArray(stack) || stack.length === 0) return false;
+
+    let candIdx = stack.length;
+    for (let i = 0; i < stack.length; i++) {
+      const el = stack[i];
+      if (!el || el.nodeType !== 1) continue;
+      if (_kcIsCandidateRelated(el, candidateEl)) {
+        candIdx = i;
+        break;
+      }
+    }
+
+    for (let i = 0; i < candIdx; i++) {
+      const el = stack[i];
+      if (!el || el.nodeType !== 1) continue;
+      if (_kcIsCandidateRelated(el, candidateEl)) continue;
+      if (_kcIsExtensionUi(el)) continue;
+      // YouTube preview pierce parity — preview is not visual occlusion.
+      try {
+        if (el.closest?.('ytd-video-preview')) continue;
+      } catch (_) {}
+
+      let cs = null;
+      try { cs = window.getComputedStyle?.(el); } catch (_) { continue; }
+      if (!cs) continue;
+
+      if (String(cs.pointerEvents || '') === 'none') continue;
+
+      const vis = String(cs.visibility || '');
+      const disp = String(cs.display || '');
+      const op = parseFloat(cs.opacity);
+      if (vis === 'hidden' || disp === 'none' || (Number.isFinite(op) && op < 0.1)) continue;
+
+      const tag = String(el.tagName || '').toUpperCase();
+      if (tag === 'IMG' || tag === 'VIDEO') {
+        const mr = el.getBoundingClientRect?.();
+        if (mr && mr.width > 0 && mr.height > 0) return true;
+      }
+
+      const bgAlpha = _kcColorAlpha(cs.backgroundColor);
+      const bgImg = String(cs.backgroundImage || '');
+      const hasBgPaint = bgAlpha > 0 || (bgImg !== 'none' && bgImg !== '');
+      if (!hasBgPaint) continue;
+
+      return true;
+    }
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
+// === END PHASE_OCCLUSION_VETO ===
+
 // === PHASE_POINTER_STACK_ITEM_LOOKUP ===
 // Fallback lookup for visually-intercepting elements that are not
 // registered in imageToItem and have no <a href> ancestor — e.g.
@@ -1604,7 +1702,7 @@ function findItemByImageWithPointerStack(target, x, y) {
         const _area = r.width * r.height;
         if (_area < _bestArea) { _best = it; _bestArea = _area; }
       }
-      if (_best) {
+      if (_best && !isOccludedAtPoint(_best.element, px, py)) {
         if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] dispatch tier=geo');
         return _best;
       }
@@ -1648,7 +1746,7 @@ function findItemByImageWithPointerStack(target, x, y) {
           const ia = ir.width * ir.height;
           if (ia < _bestImgArea) { _bestImg = im; _bestImgArea = ia; }
         }
-        if (_bestImg) _jitCandidate = _bestImg;
+        if (_bestImg && !isOccludedAtPoint(_bestImg, px, py)) _jitCandidate = _bestImg;
         if (KC_DISPATCH_DEBUG && !_jitCandidate) {
           try {
             let _near = null;
@@ -1818,6 +1916,14 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
 
   const evidenceType = itemEntry.evidenceType;
   const coreItem = itemEntry.element;
+  if (
+    Number.isFinite(clientX) && Number.isFinite(clientY) &&
+    isOccludedAtPoint(coreItem, clientX, clientY)
+  ) {
+    if (KC_DISPATCH_DEBUG) console.log('[KICKCLIP-LOG] hover-update-clear', { reason: 'occluded' });
+    if (state.activeCoreItem) coreClear();
+    return false;
+  }
   const closestAtag = null;
   if (KC_DISPATCH_DEBUG) {
     try {
@@ -4751,6 +4857,13 @@ function schedulePreScanScrollDebounced() {
     // Already on the active CoreItem? Nothing to do.
     const active = state.activeCoreItem;
     if (active && typeof active.contains === 'function' && active.contains(target)) {
+      if (
+        Number.isFinite(e.clientX) && Number.isFinite(e.clientY) &&
+        isOccludedAtPoint(active, e.clientX, e.clientY)
+      ) {
+        coreClear();
+        return;
+      }
       // === PHASE_OVERLAY_HOVER_GATE ===
       // Pointer moved within the same coreItem (mouseover skip optimization).
       // For Type D, that's not enough — the pointer may have left the
@@ -4823,7 +4936,11 @@ function schedulePreScanScrollDebounced() {
               const ar = _active.getBoundingClientRect();
               _insideActive = !!ar && _mx >= ar.left && _mx <= ar.right && _my >= ar.top && _my <= ar.bottom;
             }
-            if (!_insideActive) {
+            if (_insideActive) {
+              if (_active && _active.nodeType === 1 && isOccludedAtPoint(_active, _mx, _my)) {
+                coreClear();
+              }
+            } else {
               const _hit = document.elementFromPoint(_mx, _my);
               if (_hit && _hit.nodeType === 1) {
                 const _sameHit = _hit === _kcLastMoveDispatchHit;

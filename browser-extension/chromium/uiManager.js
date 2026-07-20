@@ -942,6 +942,66 @@ function computeOverlayBorderRadius(sourceEl) {
 }
 // === END PHASE_OVERLAY_RADIUS_MIRROR ===
 
+// === PHASE_OVERLAY_TRANSFORM_MIRROR ===
+// Accumulated linear transform from el up through ancestors (including
+// shadow-host hops). Translation (e/f) is excluded at apply time — the
+// bounding rect center already reflects it.
+function getAccumulatedTransform(el) {
+  try {
+    if (!el || el.nodeType !== 1) return null;
+    let M = new DOMMatrix();
+    let node = el;
+    while (node && node.nodeType === 1) {
+      let cs = null;
+      try { cs = window.getComputedStyle?.(node); } catch (_) { cs = null; }
+      const t = cs?.transform;
+      if (t && t !== 'none') {
+        M = new DOMMatrix(t).multiply(M);
+      }
+      if (node.parentElement) {
+        node = node.parentElement;
+        continue;
+      }
+      const root = node.getRootNode?.();
+      if (root && root instanceof ShadowRoot && root.host) {
+        node = root.host;
+        continue;
+      }
+      break;
+    }
+    return M;
+  } catch (_) {
+    return null;
+  }
+}
+
+function _positionCoreHighlightOverlay(overlay, srcEl, r, overlayRadius) {
+  const M = getAccumulatedTransform(srcEl);
+  const hasTransform = !!M && !(M.a === 1 && M.b === 0 && M.c === 0 && M.d === 1);
+
+  if (hasTransform && srcEl && srcEl.offsetWidth > 0 && srcEl.offsetHeight > 0) {
+    const w = srcEl.offsetWidth;
+    const h = srcEl.offsetHeight;
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    overlay.style.left = `${cx - w / 2}px`;
+    overlay.style.top = `${cy - h / 2}px`;
+    overlay.style.width = `${w}px`;
+    overlay.style.height = `${h}px`;
+    overlay.style.transformOrigin = 'center center';
+    overlay.style.transform = `matrix(${M.a}, ${M.b}, ${M.c}, ${M.d}, 0, 0)`;
+  } else {
+    overlay.style.left = `${r.left}px`;
+    overlay.style.top = `${r.top}px`;
+    overlay.style.width = `${r.width}px`;
+    overlay.style.height = `${r.height}px`;
+    overlay.style.transformOrigin = '';
+    overlay.style.transform = '';
+  }
+  overlay.style.borderRadius = overlayRadius;
+}
+// === END PHASE_OVERLAY_TRANSFORM_MIRROR ===
+
 /**
  * Show CoreHighlight overlay on a CoreItem.
  * Handles position, opacity, class, and border animation.
@@ -1106,12 +1166,18 @@ function hideShortcutTip() {
 // === END PHASE_SHORTCUT_TIP ===
 export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null, forceRestart = false) {
   try {
+    const srcEl = (rectOverride !== null ? state.activeOverlayElement : null) || coreItem;
     const r = rectOverride ?? (coreItem?.getBoundingClientRect?.());
     if (!r || r.width <= 0 || r.height <= 0) return false;
     // PHASE_OVERLAY_RADIUS_MIRROR: rectOverride implies the rect came from
     // the decoupled overlay element; otherwise the overlay tracks coreItem.
-    const radiusSourceEl = (rectOverride !== null ? state.activeOverlayElement : null) || coreItem;
+    const radiusSourceEl = srcEl;
     const overlayRadius = computeOverlayBorderRadius(radiusSourceEl);
+    const M = getAccumulatedTransform(srcEl);
+    const hasTransform = !!M && !(M.a === 1 && M.b === 0 && M.c === 0 && M.d === 1);
+    const sizeMetric = (hasTransform && srcEl?.offsetWidth > 0 && srcEl?.offsetHeight > 0)
+      ? Math.sqrt(srcEl.offsetWidth * srcEl.offsetHeight)
+      : Math.sqrt(r.width * r.height);
     // === PHASE_OVERLAY_STACKING_ZINDEX ===
     // Sync the shadow host's z-index to coreItem's effective stacking
     // context (max positive z-index in its ancestor chain, or 0 if none).
@@ -1139,19 +1205,11 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
     const isNewItem = coreItem !== _activeCoreHighlightItem;
     if (isHidden || isNewItem) {
       overlay.style.transition = 'none';
-      overlay.style.top = `${r.top}px`;
-      overlay.style.left = `${r.left}px`;
-      overlay.style.width = `${r.width}px`;
-      overlay.style.height = `${r.height}px`;
-      overlay.style.borderRadius = overlayRadius;
+      _positionCoreHighlightOverlay(overlay, srcEl, r, overlayRadius);
       void overlay.offsetHeight;
       overlay.style.transition = '';
     } else {
-      overlay.style.top = `${r.top}px`;
-      overlay.style.left = `${r.left}px`;
-      overlay.style.width = `${r.width}px`;
-      overlay.style.height = `${r.height}px`;
-      overlay.style.borderRadius = overlayRadius;
+      _positionCoreHighlightOverlay(overlay, srcEl, r, overlayRadius);
     }
 
     overlay.style.opacity = '1';
@@ -1173,7 +1231,6 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
       // square side length) and apply the matching size class. The
       // CSS scales box-shadow blur/spread so larger elements get more
       // visually prominent hover feedback.
-      const sizeMetric = Math.sqrt(r.width * r.height);
       overlay.classList.remove(
         'kickclip-size-small',
         'kickclip-size-medium',
@@ -1199,6 +1256,8 @@ export function hideCoreHighlight() {
   const overlay = getKCShadowElement(PURPLE_OVERLAY_ID);
   if (overlay) {
     overlay.style.opacity = '0';
+    overlay.style.transform = '';
+    overlay.style.transformOrigin = '';
     overlay.classList.remove('kickclip-clipped');
     _activeCoreHighlightItem = null;
   }
