@@ -75,7 +75,7 @@
     <h1 class="pp-title">Grrab Privacy Policy</h1>
     <p class="meta">
   <strong>Effective Date:</strong> May 11, 2026<br>
-  <strong>Last Updated:</strong> June 22, 2026
+  <strong>Last Updated:</strong> July 21, 2026
 </p>
   </div>
 
@@ -90,7 +90,7 @@
   <!-- policy card (real legal content, verbatim) -->
   <div class="policy-card">
 <h2>1. What Grrab Does (Single Purpose)</h2>
-<p>Grrab is a Chrome extension with a single purpose: to enable users to save images and social media posts from any webpage with a keyboard shortcut (Cmd+C on Mac, Ctrl+C on Windows/Linux), and to automatically organize saved items by content type (Img or SNS).</p>
+<p>Grrab is a Chrome extension with a single purpose: to enable users to save images and social media posts from any webpage with a keyboard shortcut (Cmd+C on Mac, Ctrl+C on Windows/Linux), and to automatically organize saved items by source and date in the side panel.</p>
 
 <h2>2. What We Collect, How, and Why</h2>
 
@@ -123,6 +123,7 @@
   <li><strong>Why:</strong> To preserve the saved content for your later access.</li>
   <li><strong>Where stored</strong> (you choose per save destination setting):
     <ul>
+      <li><strong>Downloads folder:</strong> Your browser's default download location. Grrab writes the clipped image file there using Chrome's <code>downloads</code> permission.</li>
       <li><strong>Local folder:</strong> A folder on your computer that you select using Chrome's File System Access API. Grrab writes saved files directly to this folder and cannot access other folders.</li>
       <li><strong>Google Drive:</strong> A folder named <code>Grrab_files</code> automatically created in your Google Drive root. Grrab uses the <code>drive.file</code> OAuth scope, which means Grrab can only access files Grrab itself creates — not your other Drive files.</li>
     </ul>
@@ -131,7 +132,7 @@
 
 <h3>2.4 User Preferences</h3>
 <ul>
-  <li><strong>What:</strong> Your save destination choice (local folder vs. Google Drive), UI toggles, and a reference to your selected local folder (if any).</li>
+  <li><strong>What:</strong> Your save destination choice (Downloads folder, local folder, or Google Drive), UI toggles, and a reference to your selected local folder (if any).</li>
   <li><strong>How collected:</strong> Via <code>chrome.storage.local</code>.</li>
   <li><strong>Why:</strong> To remember your settings between sessions.</li>
   <li><strong>Where stored:</strong> Locally on your device only. Not transmitted anywhere.</li>
@@ -184,7 +185,7 @@
   <li><code>downloads</code> — When you save to your Downloads folder, to write the clipped image file there.</li>
   <li><code>tabs</code> — To read the active tab's URL and title at the moment you save, and to coordinate messages between the side panel UI and content scripts.</li>
   <li><code>windows</code> — To open and close Grrab's folder-picker popup window, used when you choose a local save folder.</li>
-  <li><code>sidePanel</code> — To display Grrab's main UI in Chrome's side panel, where you browse saved items by category.</li>
+  <li><code>sidePanel</code> — To display Grrab's main UI in Chrome's side panel, where you browse saved items grouped by source and date.</li>
   <li><code>identity</code> — For Google sign-in via OAuth 2.0 to identify your account and request access to your Drive (only with <code>drive.file</code> scope).</li>
   <li><code>clipboardWrite</code> — To copy a clipped image to your clipboard: the save shortcut copies the image you clip, and the side panel's Copy button copies a saved item's image, so you can paste it directly into another app. Grrab writes only image data to the clipboard; the copy happens locally and is not transmitted.</li>
   <li><code>offscreen</code> — To run Grrab's on-device image upscaling (super-resolution) in a background offscreen document, so that when a clipped image is smaller than your chosen clip size it can be enlarged locally without freezing the page. The image is processed entirely on your device (see Section 2.7).</li>
