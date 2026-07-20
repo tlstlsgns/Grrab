@@ -5,6 +5,7 @@
 
 import { state } from './stateLite.js';
 import { BRAND } from './brandConfig.js';
+import { findItemByImage, ensureClusterCacheFromState } from './itemDetector.js';
 
 const PURPLE_OVERLAY_ID = 'kickclip-highlight-overlay';
 const CORE_BADGE_ID = 'kickclip-status-badge-core';
@@ -1071,6 +1072,156 @@ function getAncestorClipRect(el) {
   }
 }
 
+// === PHASE_OVERLAY_OCCLUDER_HOLES ===
+const KC_HIGHLIGHT_GLOW = 24;
+
+function _kcOverlayColorAlpha(color) {
+  const c = String(color || '').trim().toLowerCase();
+  if (!c || c === 'transparent') return 0;
+  const rgba = c.match(/^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)$/);
+  if (rgba) return parseFloat(rgba[1]);
+  const hsla = c.match(/^hsla\(\s*[\d.]+\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*,\s*([\d.]+)\s*\)$/);
+  if (hsla) return parseFloat(hsla[1]);
+  if (c.startsWith('rgb(') || c.startsWith('hsl(')) return 1;
+  return 1;
+}
+
+function _kcIsOverlayExtensionUi(el) {
+  if (!el || el.nodeType !== 1) return false;
+  try {
+    const id = el.id || '';
+    if (id === 'kickclip-shadow-host' || id === 'kickclip-badge-shadow-host') return true;
+    if (typeof id === 'string' && id.startsWith('kickclip-')) return true;
+    if (el.closest?.('#kickclip-shadow-host, #kickclip-badge-shadow-host')) return true;
+  } catch (_) {}
+  return false;
+}
+
+function _kcIsOverlaySrcRelated(el, srcEl) {
+  if (!el || !srcEl || el.nodeType !== 1 || srcEl.nodeType !== 1) return false;
+  if (el === srcEl) return true;
+  try {
+    if (srcEl.contains?.(el)) return true;
+    if (el.contains?.(srcEl)) return true;
+  } catch (_) {}
+  return false;
+}
+
+function _kcIsDuplicateMediaImg(el, srcEl) {
+  if (String(el.tagName || '').toUpperCase() !== 'IMG' ||
+      String(srcEl.tagName || '').toUpperCase() !== 'IMG') {
+    return false;
+  }
+  const a = el.currentSrc || el.src || '';
+  const b = srcEl.currentSrc || srcEl.src || '';
+  if (a && b && a === b) return true;
+  const tail = (u) => {
+    try { return new URL(u, location.href).pathname.split('/').slice(-2).join('/'); } catch (_) { return ''; }
+  };
+  const ta = tail(a);
+  const tb = tail(b);
+  return !!(ta && ta === tb);
+}
+
+function _kcFindTargetStackIndex(stack, srcEl) {
+  for (let i = 0; i < stack.length; i++) {
+    const el = stack[i];
+    if (!el || el.nodeType !== 1) continue;
+    if (el === srcEl) return i;
+    try {
+      if (el.contains?.(srcEl) || srcEl.contains?.(el)) return i;
+    } catch (_) {}
+  }
+  return -1;
+}
+
+function _kcShouldCollectOccluder(el, srcEl) {
+  if (!el || el.nodeType !== 1 || _kcIsOverlaySrcRelated(el, srcEl)) return false;
+  if (_kcIsOverlayExtensionUi(el)) return false;
+  try {
+    if (el.closest?.('ytd-video-preview')) return false;
+  } catch (_) {}
+  let cs = null;
+  try { cs = window.getComputedStyle?.(el); } catch (_) { return false; }
+  if (!cs) return false;
+  if (String(cs.pointerEvents || '') === 'none') return false;
+  const vis = String(cs.visibility || '');
+  const disp = String(cs.display || '');
+  const op = parseFloat(cs.opacity);
+  if (vis === 'hidden' || disp === 'none' || (Number.isFinite(op) && op < 0.1)) return false;
+  try {
+    const entryOfEl = findItemByImage(el);
+    const entryOfSrc = findItemByImage(srcEl);
+    if (entryOfEl && entryOfSrc && entryOfEl === entryOfSrc) return false;
+    if (entryOfEl && entryOfSrc && entryOfEl.element === srcEl) return false;
+  } catch (_) {}
+  if (_kcIsDuplicateMediaImg(el, srcEl)) return false;
+  const tag = String(el.tagName || '').toUpperCase();
+  if (tag === 'IMG' || tag === 'VIDEO') {
+    const mr = el.getBoundingClientRect?.();
+    return !!(mr && mr.width > 0 && mr.height > 0);
+  }
+  const bgAlpha = _kcOverlayColorAlpha(cs.backgroundColor);
+  const bgImg = String(cs.backgroundImage || '');
+  return bgAlpha > 0 || (bgImg !== 'none' && bgImg !== '');
+}
+
+function _kcIntersectViewportRect(a, b) {
+  const left = Math.max(a.left, b.left);
+  const top = Math.max(a.top, b.top);
+  const right = Math.min(a.right, b.right);
+  const bottom = Math.min(a.bottom, b.bottom);
+  if (right <= left || bottom <= top) return null;
+  return { left, top, right, bottom, width: right - left, height: bottom - top };
+}
+
+function collectOccluderRects(srcEl, r) {
+  try {
+    if (!srcEl || srcEl.nodeType !== 1 || !r || r.width <= 0 || r.height <= 0) return [];
+    ensureClusterCacheFromState();
+    const occluders = new Set();
+    const holeRects = [];
+    const GRID = 5;
+    const INSET = 0.08;
+    const glowBounds = {
+      left: r.left - KC_HIGHLIGHT_GLOW,
+      top: r.top - KC_HIGHLIGHT_GLOW,
+      right: r.left + r.width + KC_HIGHLIGHT_GLOW,
+      bottom: r.top + r.height + KC_HIGHLIGHT_GLOW,
+    };
+    for (let gy = 0; gy < GRID; gy++) {
+      for (let gx = 0; gx < GRID; gx++) {
+        if (occluders.size >= 4) break;
+        const fx = INSET + (gx / (GRID - 1)) * (1 - 2 * INSET);
+        const fy = INSET + (gy / (GRID - 1)) * (1 - 2 * INSET);
+        const px = r.left + r.width * fx;
+        const py = r.top + r.height * fy;
+        const stack = document.elementsFromPoint?.(px, py);
+        if (!Array.isArray(stack) || stack.length === 0) continue;
+        const candIdx = _kcFindTargetStackIndex(stack, srcEl);
+        const end = candIdx >= 0 ? candIdx : stack.length;
+        for (let i = 0; i < end; i++) {
+          if (occluders.size >= 4) break;
+          const el = stack[i];
+          if (!el) continue;
+          if (occluders.has(el)) continue;
+          if (!_kcShouldCollectOccluder(el, srcEl)) continue;
+          occluders.add(el);
+          const er = el.getBoundingClientRect?.();
+          if (!er) continue;
+          const hole = _kcIntersectViewportRect(er, glowBounds);
+          if (hole) holeRects.push(hole);
+        }
+      }
+      if (occluders.size >= 4) break;
+    }
+    return holeRects;
+  } catch (_) {
+    return [];
+  }
+}
+// === END PHASE_OVERLAY_OCCLUDER_HOLES ===
+
 function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadius) {
   const M = getAccumulatedTransform(srcEl);
   const hasTransform = !!M && !(M.a === 1 && M.b === 0 && M.c === 0 && M.d === 1);
@@ -1096,47 +1247,44 @@ function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadiu
   }
   overlay.style.borderRadius = overlayRadius;
 
-  const clipSrc = (coreItem && srcEl && srcEl !== coreItem && coreItem.contains(srcEl))
-    ? coreItem
-    : srcEl;
-  const clip = getAncestorClipRect(clipSrc);
-  if (!clip) {
-    overlay.style.clipPath = '';
-    return true;
-  }
-
   const ol = parseFloat(overlay.style.left);
   const ot = parseFloat(overlay.style.top);
   const ow = parseFloat(overlay.style.width);
   const oh = parseFloat(overlay.style.height);
 
-  const clipLeft = Number.isFinite(clip.left) ? clip.left : Number.NEGATIVE_INFINITY;
-  const clipRight = Number.isFinite(clip.right) ? clip.right : Number.POSITIVE_INFINITY;
-  const clipTop = Number.isFinite(clip.top) ? clip.top : Number.NEGATIVE_INFINITY;
-  const clipBottom = Number.isFinite(clip.bottom) ? clip.bottom : Number.POSITIVE_INFINITY;
-
-  if (clipRight <= ol || clipLeft >= ol + ow || clipBottom <= ot || clipTop >= ot + oh) {
-    overlay.style.opacity = '0';
-    overlay.style.clipPath = '';
-    return false;
-  }
-
-  const GLOW = 24;
   const EPS = 0.5;
-  const cutsLeft = clipLeft > ol + EPS;
-  const cutsTop = clipTop > ot + EPS;
-  const cutsRight = clipRight < ol + ow - EPS;
-  const cutsBottom = clipBottom < ot + oh - EPS;
-  if (!cutsLeft && !cutsTop && !cutsRight && !cutsBottom) {
-    overlay.style.clipPath = '';
-    return true;
+
+  const clipSrc = (coreItem && srcEl && srcEl !== coreItem && coreItem.contains(srcEl))
+    ? coreItem
+    : srcEl;
+  const clip = getAncestorClipRect(clipSrc);
+
+  if (clip) {
+    const clipLeft = Number.isFinite(clip.left) ? clip.left : Number.NEGATIVE_INFINITY;
+    const clipRight = Number.isFinite(clip.right) ? clip.right : Number.POSITIVE_INFINITY;
+    const clipTop = Number.isFinite(clip.top) ? clip.top : Number.NEGATIVE_INFINITY;
+    const clipBottom = Number.isFinite(clip.bottom) ? clip.bottom : Number.POSITIVE_INFINITY;
+    if (clipRight <= ol || clipLeft >= ol + ow || clipBottom <= ot || clipTop >= ot + oh) {
+      overlay.style.opacity = '0';
+      overlay.style.clipPath = '';
+      return false;
+    }
   }
+
+  const clipLeftFin = clip && Number.isFinite(clip.left) ? clip.left : null;
+  const clipRightFin = clip && Number.isFinite(clip.right) ? clip.right : null;
+  const clipTopFin = clip && Number.isFinite(clip.top) ? clip.top : null;
+  const clipBottomFin = clip && Number.isFinite(clip.bottom) ? clip.bottom : null;
+  const cutsLeft = clipLeftFin !== null && clipLeftFin > ol + EPS;
+  const cutsTop = clipTopFin !== null && clipTopFin > ot + EPS;
+  const cutsRight = clipRightFin !== null && clipRightFin < ol + ow - EPS;
+  const cutsBottom = clipBottomFin !== null && clipBottomFin < ot + oh - EPS;
 
   const box = {
-    left: cutsLeft ? clipLeft : ol - GLOW,
-    top: cutsTop ? clipTop : ot - GLOW,
-    right: cutsRight ? clipRight : ol + ow + GLOW,
-    bottom: cutsBottom ? clipBottom : ot + oh + GLOW,
+    left: cutsLeft ? clipLeftFin : ol - KC_HIGHLIGHT_GLOW,
+    top: cutsTop ? clipTopFin : ot - KC_HIGHLIGHT_GLOW,
+    right: cutsRight ? clipRightFin : ol + ow + KC_HIGHLIGHT_GLOW,
+    bottom: cutsBottom ? clipBottomFin : ot + oh + KC_HIGHLIGHT_GLOW,
   };
 
   const inv = hasTransform ? new DOMMatrix([M.a, M.b, M.c, M.d, 0, 0]).inverse() : null;
@@ -1146,15 +1294,55 @@ function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadiu
     const dy = py - (ot + oh / 2);
     return [ow / 2 + inv.a * dx + inv.c * dy, oh / 2 + inv.b * dx + inv.d * dy];
   };
-  const pts = [
-    [box.left, box.top],
-    [box.right, box.top],
-    [box.right, box.bottom],
-    [box.left, box.bottom],
-  ]
-    .map(([x, y]) => toLocal(x, y))
-    .map(([x, y]) => `${x.toFixed(2)}px ${y.toFixed(2)}px`);
-  overlay.style.clipPath = `polygon(${pts.join(', ')})`;
+
+  const holes = collectOccluderRects(srcEl, r);
+  const targetArea = Math.max(1, r.width * r.height);
+  const covered = holes.reduce((s, h) => {
+    return s + Math.max(0, (Math.min(h.right, r.left + r.width) - Math.max(h.left, r.left)))
+      * Math.max(0, (Math.min(h.bottom, r.top + r.height) - Math.max(h.top, r.top)));
+  }, 0) / targetArea;
+  if (covered >= 0.85) {
+    overlay.style.opacity = '0';
+    overlay.style.clipPath = '';
+    return false;
+  }
+
+  const hasOuterClip = cutsLeft || cutsTop || cutsRight || cutsBottom;
+
+  if (holes.length === 0) {
+    if (!hasOuterClip) {
+      overlay.style.clipPath = '';
+      return true;
+    }
+    const pts = [
+      [box.left, box.top],
+      [box.right, box.top],
+      [box.right, box.bottom],
+      [box.left, box.bottom],
+    ]
+      .map(([x, y]) => toLocal(x, y))
+      .map(([x, y]) => `${x.toFixed(2)}px ${y.toFixed(2)}px`);
+    overlay.style.clipPath = `polygon(${pts.join(', ')})`;
+    return true;
+  }
+
+  const rectPath = (p1, p2, p3, p4) =>
+    `M ${p1[0].toFixed(2)} ${p1[1].toFixed(2)} L ${p2[0].toFixed(2)} ${p2[1].toFixed(2)} L ${p3[0].toFixed(2)} ${p3[1].toFixed(2)} L ${p4[0].toFixed(2)} ${p4[1].toFixed(2)} Z`;
+  const corners = (b) => [
+    [b.left, b.top],
+    [b.right, b.top],
+    [b.right, b.bottom],
+    [b.left, b.bottom],
+  ].map(([x, y]) => toLocal(x, y));
+  const outer = corners(box);
+  const d = [
+    rectPath(outer[0], outer[1], outer[2], outer[3]),
+    ...holes.map((h) => {
+      const hc = corners(h);
+      return rectPath(hc[0], hc[1], hc[2], hc[3]);
+    }),
+  ].join(' ');
+  overlay.style.clipPath = `path(evenodd, "${d}")`;
   return true;
 }
 // === END PHASE_OVERLAY_TRANSFORM_MIRROR ===
