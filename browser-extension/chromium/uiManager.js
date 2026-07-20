@@ -28,6 +28,40 @@ let _coreBadgeFailedText = '';
 const ITEMMAP_DEBUG_OUTLINES = false;
 
 let _activeCoreHighlightItem = null; // tracks which coreItem is currently highlighted
+let _kcHideResetHandle = null; // deferred clip/transform clear after hide fade-out
+
+function _kcCancelHideReset() {
+  if (!_kcHideResetHandle) return;
+  const { timer, overlay, onTransitionEnd } = _kcHideResetHandle;
+  if (timer) clearTimeout(timer);
+  if (overlay && onTransitionEnd) {
+    try { overlay.removeEventListener('transitionend', onTransitionEnd); } catch (_) {}
+  }
+  _kcHideResetHandle = null;
+}
+
+function _kcResetOverlayVisualState(overlay) {
+  if (!overlay || parseFloat(overlay.style.opacity) !== 0) return;
+  overlay.style.transform = '';
+  overlay.style.transformOrigin = '';
+  overlay.style.clipPath = '';
+  overlay.classList.remove('kickclip-clipped');
+}
+
+function _kcScheduleHideReset(overlay) {
+  _kcCancelHideReset();
+  const finish = () => {
+    _kcCancelHideReset();
+    _kcResetOverlayVisualState(overlay);
+  };
+  const onTransitionEnd = (e) => {
+    if (e.target !== overlay || e.propertyName !== 'opacity') return;
+    finish();
+  };
+  try { overlay.addEventListener('transitionend', onTransitionEnd); } catch (_) {}
+  const timer = setTimeout(finish, 250);
+  _kcHideResetHandle = { timer, overlay, onTransitionEnd };
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Shadow DOM host — single isolation boundary for all injected UI
@@ -975,7 +1009,69 @@ function getAccumulatedTransform(el) {
   }
 }
 
-function _positionCoreHighlightOverlay(overlay, srcEl, r, overlayRadius) {
+// Viewport-space intersection of all ancestor overflow clip bounds (padding
+// boxes). Returns null when no clipping ancestor exists (fail-open). Ignores
+// border-radius — rectangular clip is sufficient for now.
+function getAncestorClipRect(el) {
+  try {
+    if (!el || el.nodeType !== 1) return null;
+    let clip = null;
+    let node = el.parentElement;
+    while (node && node.nodeType === 1) {
+      let cs = null;
+      try { cs = window.getComputedStyle?.(node); } catch (_) { cs = null; }
+      if (cs) {
+        const clipsX = cs.overflowX !== 'visible';
+        const clipsY = cs.overflowY !== 'visible';
+        if (clipsX || clipsY) {
+          const rect = node.getBoundingClientRect();
+          const bl = parseFloat(cs.borderLeftWidth) || 0;
+          const br = parseFloat(cs.borderRightWidth) || 0;
+          const bt = parseFloat(cs.borderTopWidth) || 0;
+          const bb = parseFloat(cs.borderBottomWidth) || 0;
+          const box = {
+            left: rect.left + bl,
+            top: rect.top + bt,
+            right: rect.right - br,
+            bottom: rect.bottom - bb,
+          };
+          if (clip === null) {
+            clip = {
+              left: clipsX ? box.left : Number.NEGATIVE_INFINITY,
+              right: clipsX ? box.right : Number.POSITIVE_INFINITY,
+              top: clipsY ? box.top : Number.NEGATIVE_INFINITY,
+              bottom: clipsY ? box.bottom : Number.POSITIVE_INFINITY,
+            };
+          } else {
+            if (clipsX) {
+              clip.left = Math.max(clip.left, box.left);
+              clip.right = Math.min(clip.right, box.right);
+            }
+            if (clipsY) {
+              clip.top = Math.max(clip.top, box.top);
+              clip.bottom = Math.min(clip.bottom, box.bottom);
+            }
+          }
+        }
+      }
+      if (node.parentElement) {
+        node = node.parentElement;
+        continue;
+      }
+      const root = node.getRootNode?.();
+      if (root && root instanceof ShadowRoot && root.host) {
+        node = root.host;
+        continue;
+      }
+      break;
+    }
+    return clip;
+  } catch (_) {
+    return null;
+  }
+}
+
+function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadius) {
   const M = getAccumulatedTransform(srcEl);
   const hasTransform = !!M && !(M.a === 1 && M.b === 0 && M.c === 0 && M.d === 1);
 
@@ -999,6 +1095,67 @@ function _positionCoreHighlightOverlay(overlay, srcEl, r, overlayRadius) {
     overlay.style.transform = '';
   }
   overlay.style.borderRadius = overlayRadius;
+
+  const clipSrc = (coreItem && srcEl && srcEl !== coreItem && coreItem.contains(srcEl))
+    ? coreItem
+    : srcEl;
+  const clip = getAncestorClipRect(clipSrc);
+  if (!clip) {
+    overlay.style.clipPath = '';
+    return true;
+  }
+
+  const ol = parseFloat(overlay.style.left);
+  const ot = parseFloat(overlay.style.top);
+  const ow = parseFloat(overlay.style.width);
+  const oh = parseFloat(overlay.style.height);
+
+  const clipLeft = Number.isFinite(clip.left) ? clip.left : Number.NEGATIVE_INFINITY;
+  const clipRight = Number.isFinite(clip.right) ? clip.right : Number.POSITIVE_INFINITY;
+  const clipTop = Number.isFinite(clip.top) ? clip.top : Number.NEGATIVE_INFINITY;
+  const clipBottom = Number.isFinite(clip.bottom) ? clip.bottom : Number.POSITIVE_INFINITY;
+
+  if (clipRight <= ol || clipLeft >= ol + ow || clipBottom <= ot || clipTop >= ot + oh) {
+    overlay.style.opacity = '0';
+    overlay.style.clipPath = '';
+    return false;
+  }
+
+  const GLOW = 24;
+  const EPS = 0.5;
+  const cutsLeft = clipLeft > ol + EPS;
+  const cutsTop = clipTop > ot + EPS;
+  const cutsRight = clipRight < ol + ow - EPS;
+  const cutsBottom = clipBottom < ot + oh - EPS;
+  if (!cutsLeft && !cutsTop && !cutsRight && !cutsBottom) {
+    overlay.style.clipPath = '';
+    return true;
+  }
+
+  const box = {
+    left: cutsLeft ? clipLeft : ol - GLOW,
+    top: cutsTop ? clipTop : ot - GLOW,
+    right: cutsRight ? clipRight : ol + ow + GLOW,
+    bottom: cutsBottom ? clipBottom : ot + oh + GLOW,
+  };
+
+  const inv = hasTransform ? new DOMMatrix([M.a, M.b, M.c, M.d, 0, 0]).inverse() : null;
+  const toLocal = (px, py) => {
+    if (!inv) return [px - ol, py - ot];
+    const dx = px - (ol + ow / 2);
+    const dy = py - (ot + oh / 2);
+    return [ow / 2 + inv.a * dx + inv.c * dy, oh / 2 + inv.b * dx + inv.d * dy];
+  };
+  const pts = [
+    [box.left, box.top],
+    [box.right, box.top],
+    [box.right, box.bottom],
+    [box.left, box.bottom],
+  ]
+    .map(([x, y]) => toLocal(x, y))
+    .map(([x, y]) => `${x.toFixed(2)}px ${y.toFixed(2)}px`);
+  overlay.style.clipPath = `polygon(${pts.join(', ')})`;
+  return true;
 }
 // === END PHASE_OVERLAY_TRANSFORM_MIRROR ===
 
@@ -1166,6 +1323,7 @@ function hideShortcutTip() {
 // === END PHASE_SHORTCUT_TIP ===
 export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null, forceRestart = false) {
   try {
+    _kcCancelHideReset();
     const srcEl = (rectOverride !== null ? state.activeOverlayElement : null) || coreItem;
     const r = rectOverride ?? (coreItem?.getBoundingClientRect?.());
     if (!r || r.width <= 0 || r.height <= 0) return false;
@@ -1203,14 +1361,16 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
     // not just when the overlay was hidden — avoids the brief old-rect→new-rect transition when
     // re-activating a different CoreItem while the overlay is still visible.
     const isNewItem = coreItem !== _activeCoreHighlightItem;
+    let overlayVisible = true;
     if (isHidden || isNewItem) {
       overlay.style.transition = 'none';
-      _positionCoreHighlightOverlay(overlay, srcEl, r, overlayRadius);
+      overlayVisible = _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadius);
       void overlay.offsetHeight;
       overlay.style.transition = '';
     } else {
-      _positionCoreHighlightOverlay(overlay, srcEl, r, overlayRadius);
+      overlayVisible = _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadius);
     }
+    if (!overlayVisible) return false;
 
     overlay.style.opacity = '1';
     // === PHASE_BADGE_ANCHOR_OVERLAY ===
@@ -1253,12 +1413,11 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
 }
 
 export function hideCoreHighlight() {
+  _kcCancelHideReset();
   const overlay = getKCShadowElement(PURPLE_OVERLAY_ID);
   if (overlay) {
     overlay.style.opacity = '0';
-    overlay.style.transform = '';
-    overlay.style.transformOrigin = '';
-    overlay.classList.remove('kickclip-clipped');
+    _kcScheduleHideReset(overlay);
     _activeCoreHighlightItem = null;
   }
   hideShortcutTip(); // PHASE_SHORTCUT_TIP

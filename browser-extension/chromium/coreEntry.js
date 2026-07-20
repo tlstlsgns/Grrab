@@ -85,7 +85,45 @@ let lastFingerprint = '';
 let lastRenderedElementSet = null;
 let _retryScanTimer = 0;    // setTimeout handle for pending retry scan
 let _retryScanCount  = 0;   // number of retries attempted for current navigation
+let _kcSpaLateScanTimers = []; // delayed forced scans after SPA navigation
 let _forceFullScanOnMutation = false; // true after navigation: next MutationObserver trigger uses full document scan
+
+function _kcClearSpaLateScanTimers() {
+  try {
+    for (const t of _kcSpaLateScanTimers) {
+      if (t) window.clearTimeout(t);
+    }
+  } catch (_) {}
+  _kcSpaLateScanTimers = [];
+}
+
+function _kcScheduleSpaLateScans() {
+  _kcClearSpaLateScanTimers();
+  for (const ms of [350, 1200]) {
+    try {
+      const handle = window.setTimeout(() => {
+        try { schedulePreScan(document, true, 'spa-navigation-late'); } catch (_) {}
+      }, ms);
+      _kcSpaLateScanTimers.push(handle);
+    } catch (_) {}
+  }
+}
+
+function _kcMissTargetPlausiblyClippable(el) {
+  try {
+    if (!el || el.nodeType !== 1) return false;
+    const tag = String(el.tagName || '').toUpperCase();
+    if (tag === 'IMG' || tag === 'VIDEO' || tag === 'CANVAS') return true;
+    if (el.querySelector?.('img, video, canvas')) return true;
+    if (el.closest?.('img, video, canvas')) return true;
+    const cs = window.getComputedStyle?.(el);
+    const bgImg = String(cs?.backgroundImage || '');
+    if (bgImg && bgImg !== 'none') return true;
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
 // === PHASE_SHADOW_MUTATION_RESCAN ===
 // Document-level MutationObservers cannot see inside shadow roots,
 // and img 'load' events are non-composed — so shadow-heavy pages
@@ -1484,6 +1522,24 @@ function _kcIsCandidateRelated(el, candidateEl) {
   return false;
 }
 
+const MIN_OCCLUDER_PX = 40;
+const MIN_OCCLUSION_COVERAGE = 0.35;
+
+function _kcOccluderMeaningfullyCovers(candidateEl, occluderEl) {
+  try {
+    const cr = candidateEl.getBoundingClientRect?.();
+    const er = occluderEl.getBoundingClientRect?.();
+    if (!cr || !er || !cr.width || !cr.height) return false;
+    if (er.width < MIN_OCCLUDER_PX || er.height < MIN_OCCLUDER_PX) return false;
+    const ix = Math.max(0, Math.min(cr.right, er.right) - Math.max(cr.left, er.left));
+    const iy = Math.max(0, Math.min(cr.bottom, er.bottom) - Math.max(cr.top, er.top));
+    const coverage = (ix * iy) / (cr.width * cr.height);
+    return coverage >= MIN_OCCLUSION_COVERAGE;
+  } catch (_) {
+    return false;
+  }
+}
+
 function isOccludedAtPoint(candidateEl, x, y) {
   try {
     if (!candidateEl || candidateEl.nodeType !== 1) return false;
@@ -1525,10 +1581,45 @@ function isOccludedAtPoint(candidateEl, x, y) {
       const op = parseFloat(cs.opacity);
       if (vis === 'hidden' || disp === 'none' || (Number.isFinite(op) && op < 0.1)) continue;
 
+      // === PHASE_OCCLUSION_SAME_ITEM_SKIP ===
+      // Pinterest closeup stacks multiple <img> nodes (placeholder / full-res /
+      // zoom layer) for one Type E item. A sibling duplicate must not veto the
+      // registered candidate via the unrelated-IMG branch.
+      try {
+        const _entryOfEl = findItemByImage(el);
+        const _entryOfCand = findItemByImage(candidateEl);
+        if (_entryOfEl && _entryOfCand && _entryOfEl === _entryOfCand) continue;
+        if (_entryOfEl && _entryOfEl.element === candidateEl) continue;
+      } catch (_) {}
+      if (String(el.tagName || '').toUpperCase() === 'IMG' &&
+          String(candidateEl.tagName || '').toUpperCase() === 'IMG') {
+        const a = el.currentSrc || el.src || '';
+        const b = candidateEl.currentSrc || candidateEl.src || '';
+        if (a && b && a === b) continue;
+        const tail = (u) => {
+          try { return new URL(u, location.href).pathname.split('/').slice(-2).join('/'); } catch (_) { return ''; }
+        };
+        const ta = tail(a);
+        const tb = tail(b);
+        if (ta && ta === tb) continue;
+      }
+      try {
+        const hit = document.elementFromPoint?.(px, py);
+        if (hit === el) {
+          const _entryOfEl = findItemByImage(el);
+          const _entryOfCand = findItemByImage(candidateEl);
+          if (_entryOfEl && _entryOfCand && _entryOfEl === _entryOfCand) continue;
+        }
+      } catch (_) {}
+      // === END PHASE_OCCLUSION_SAME_ITEM_SKIP ===
+
       const tag = String(el.tagName || '').toUpperCase();
       if (tag === 'IMG' || tag === 'VIDEO') {
         const mr = el.getBoundingClientRect?.();
-        if (mr && mr.width > 0 && mr.height > 0) return true;
+        if (mr && mr.width > 0 && mr.height > 0) {
+          if (_kcOccluderMeaningfullyCovers(candidateEl, el)) return true;
+          continue;
+        }
       }
 
       const bgAlpha = _kcColorAlpha(cs.backgroundColor);
@@ -1536,7 +1627,7 @@ function isOccludedAtPoint(candidateEl, x, y) {
       const hasBgPaint = bgAlpha > 0 || (bgImg !== 'none' && bgImg !== '');
       if (!hasBgPaint) continue;
 
-      return true;
+      if (_kcOccluderMeaningfullyCovers(candidateEl, el)) return true;
     }
     return false;
   } catch (_) {
@@ -1830,17 +1921,14 @@ function findItemByImageWithPointerStack(target, x, y) {
     } catch (_) {}
     // === END PHASE_TYPE_E_JIT_SHADOW ===
     // === PHASE_DISPATCH_MISS_RESCAN ===
-    // Every tier missed while OPEN shadow content sits under the pointer:
-    // on shadow-heavy pages (Firefly) the visible cards frequently render
-    // AFTER the last completed scan, so state.itemMap holds a stale
-    // generation (triage: 31 connected shadow items, rectHit 0). A user
-    // scroll "fixed" it only because the scroll-triggered pre-scan
-    // registered the current nodes and PHASE_POST_PRESCAN_REDISPATCH
-    // re-dispatched at the parked pointer. Close that loop here: a miss
-    // schedules the same debounced pre-scan; the post-prescan redispatch
-    // then auto-activates without user interaction. Gated on the
-    // shadow-host signal (no-op on normal pages) and a cooldown.
-    if (_sawOpenShadowHost) {
+    // Every tier missed while media-ish content sits under the pointer:
+    // on shadow-heavy pages (Firefly) AND light-DOM SPAs (Pinterest pin
+    // closeup after pushState) the visible hero frequently renders AFTER
+    // the navigation-triggered scan, leaving itemMap stale until a later
+    // trigger. Close that loop: a miss schedules debounced pre-scan;
+    // post-prescan redispatch then auto-activates without user interaction.
+    // Cooldown + plausibly-clippable gate keep plain-text/UI misses cheap.
+    if (_kcMissTargetPlausiblyClippable(target)) {
       const _now = Date.now();
       if (_now - _kcLastDispatchMissRescanTs >= KC_DISPATCH_MISS_RESCAN_COOLDOWN_MS) {
         _kcLastDispatchMissRescanTs = _now;
@@ -2644,7 +2732,7 @@ const KC_DOM_DRIVEN_REDISPATCH_DEBOUNCE_MS = 100;
 const KC_POINTER_STACK_LOOKUP_MAX = 8;
 const KC_SHADOW_PIERCE_MAX_DEPTH = 6; // PHASE_POINTER_STACK_SHADOW_PIERCE: max nested open-shadow levels to descend
 const KC_SHADOW_PIERCE_PROBE_MAX = 24; // PHASE_POINTER_STACK_SHADOW_PIERCE: per-level probe cap — card-root stacks are deep (overlay slots above the img); probes are O(1) map lookups
-const KC_DISPATCH_MISS_RESCAN_COOLDOWN_MS = 1000; // PHASE_DISPATCH_MISS_RESCAN
+const KC_DISPATCH_MISS_RESCAN_COOLDOWN_MS = 1500; // PHASE_DISPATCH_MISS_RESCAN
 let _kcLastDispatchMissRescanTs = 0; // PHASE_DISPATCH_MISS_RESCAN
 // === PHASE_POINTERMOVE_DISPATCH_FALLBACK ===
 const KC_MOVE_DISPATCH_THROTTLE_MS = 150;
@@ -5070,6 +5158,7 @@ function schedulePreScanScrollDebounced() {
   // Resets lastFingerprint and cancels any pending scanTimer so the new page's
   // content is always scanned from scratch.
   function resetAndFullScan() {
+    _kcClearSpaLateScanTimers();
     _mouseHasMovedOnPage = false;
     _mouseInsideDocument = false;
     // Cancel any pending idle/timeout scan before scheduling a new one
@@ -5091,7 +5180,12 @@ function schedulePreScanScrollDebounced() {
     lastRenderedElementSet = null;
     _forceFullScanOnMutation = true;
     schedulePreScan(document, true, 'spa-navigation');
+    _kcScheduleSpaLateScans();
   }
+
+  window.addEventListener('pagehide', () => {
+    try { _kcClearSpaLateScanTimers(); } catch (_) {}
+  }, { passive: true });
 
   // popstate: browser back/forward navigation
   window.addEventListener('popstate', resetAndFullScan, { passive: true });
