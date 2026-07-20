@@ -232,6 +232,9 @@ function buildOverlayStyleElement() {
               top 0.05s ease, left 0.05s ease,
               width 0.05s ease, height 0.05s ease;
 }
+#kickclip-highlight-overlay.kickclip-following {
+  transition: box-shadow 0.15s ease, opacity 0.15s ease;
+}
 #kickclip-highlight-overlay.kickclip-default {
   box-shadow: 0 2px 16px 4px rgba(188, 19, 254, 0.65);
 }
@@ -1222,7 +1225,7 @@ function collectOccluderRects(srcEl, r) {
 }
 // === END PHASE_OVERLAY_OCCLUDER_HOLES ===
 
-function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadius) {
+function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadius, cachedHoles = null) {
   const M = getAccumulatedTransform(srcEl);
   const hasTransform = !!M && !(M.a === 1 && M.b === 0 && M.c === 0 && M.d === 1);
 
@@ -1295,7 +1298,7 @@ function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadiu
     return [ow / 2 + inv.a * dx + inv.c * dy, oh / 2 + inv.b * dx + inv.d * dy];
   };
 
-  const holes = collectOccluderRects(srcEl, r);
+  const holes = cachedHoles ?? collectOccluderRects(srcEl, r);
   const targetArea = Math.max(1, r.width * r.height);
   const covered = holes.reduce((s, h) => {
     return s + Math.max(0, (Math.min(h.right, r.left + r.width) - Math.max(h.left, r.left)))
@@ -1345,6 +1348,125 @@ function _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadiu
   overlay.style.clipPath = `path(evenodd, "${d}")`;
   return true;
 }
+
+// === PHASE_OVERLAY_RAF_FOLLOW ===
+let _kcFollowRaf = 0;
+let _kcFollowLastRect = null;
+let _kcFollowHoleTs = 0;
+let _kcFollowCachedHoles = null;
+let _kcFollowCoreItem = null;
+let _kcFollowSrcEl = null;
+let _kcFollowTeardownBound = false;
+
+const KC_FOLLOW_RECT_EPS = 0.5;
+const KC_FOLLOW_HOLE_INTERVAL_MS = 120;
+
+function _kcFollowRectChanged(r, last) {
+  if (!last) return true;
+  return Math.abs(r.left - last.left) >= KC_FOLLOW_RECT_EPS
+    || Math.abs(r.top - last.top) >= KC_FOLLOW_RECT_EPS
+    || Math.abs(r.width - last.width) >= KC_FOLLOW_RECT_EPS
+    || Math.abs(r.height - last.height) >= KC_FOLLOW_RECT_EPS;
+}
+
+function _kcBindFollowTeardown() {
+  if (_kcFollowTeardownBound) return;
+  _kcFollowTeardownBound = true;
+  try {
+    window.addEventListener('pagehide', _kcStopFollow, true);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') _kcStopFollow();
+    });
+  } catch (_) {}
+}
+
+function _kcStopFollow() {
+  if (_kcFollowRaf) {
+    cancelAnimationFrame(_kcFollowRaf);
+    _kcFollowRaf = 0;
+  }
+  _kcFollowLastRect = null;
+  _kcFollowHoleTs = 0;
+  _kcFollowCachedHoles = null;
+  _kcFollowCoreItem = null;
+  _kcFollowSrcEl = null;
+  try {
+    const overlay = getKCShadowElement(PURPLE_OVERLAY_ID);
+    if (overlay) overlay.classList.remove('kickclip-following');
+  } catch (_) {}
+}
+
+function _kcFollowTick() {
+  _kcFollowRaf = 0;
+  const coreItem = _kcFollowCoreItem;
+  const srcEl = _kcFollowSrcEl;
+  if (!coreItem || coreItem !== _activeCoreHighlightItem) {
+    _kcStopFollow();
+    return;
+  }
+  let overlay;
+  try {
+    overlay = getKCShadowElement(PURPLE_OVERLAY_ID);
+  } catch (_) {
+    _kcStopFollow();
+    return;
+  }
+  if (!overlay || overlay.style.opacity !== '1' || !srcEl?.isConnected) {
+    _kcStopFollow();
+    return;
+  }
+  let r;
+  try {
+    r = srcEl.getBoundingClientRect();
+  } catch (_) {
+    _kcStopFollow();
+    return;
+  }
+  if (!r || r.width <= 0 || r.height <= 0) {
+    _kcFollowRaf = requestAnimationFrame(_kcFollowTick);
+    return;
+  }
+  if (!_kcFollowRectChanged(r, _kcFollowLastRect)) {
+    _kcFollowRaf = requestAnimationFrame(_kcFollowTick);
+    return;
+  }
+  const now = performance.now();
+  const recomputeHoles = !_kcFollowCachedHoles || (now - _kcFollowHoleTs) >= KC_FOLLOW_HOLE_INTERVAL_MS;
+  let holes = _kcFollowCachedHoles;
+  if (recomputeHoles) {
+    holes = collectOccluderRects(srcEl, r);
+    _kcFollowCachedHoles = holes;
+    _kcFollowHoleTs = now;
+  }
+  const overlayRadius = computeOverlayBorderRadius(srcEl);
+  const visible = _positionCoreHighlightOverlay(overlay, srcEl, coreItem, r, overlayRadius, holes);
+  if (!visible) {
+    _kcStopFollow();
+    return;
+  }
+  try {
+    positionCoreStatusBadgeToOverlay(r, coreItem);
+  } catch (_) {}
+  _kcFollowLastRect = { left: r.left, top: r.top, width: r.width, height: r.height };
+  _kcFollowRaf = requestAnimationFrame(_kcFollowTick);
+}
+
+function _kcStartFollow(coreItem, srcEl) {
+  _kcStopFollow();
+  if (!coreItem || !srcEl) return;
+  _kcBindFollowTeardown();
+  _kcFollowCoreItem = coreItem;
+  _kcFollowSrcEl = srcEl;
+  _kcFollowLastRect = null;
+  _kcFollowHoleTs = 0;
+  _kcFollowCachedHoles = null;
+  try {
+    const overlay = getKCShadowElement(PURPLE_OVERLAY_ID);
+    if (overlay) overlay.classList.add('kickclip-following');
+  } catch (_) {}
+  _kcFollowRaf = requestAnimationFrame(_kcFollowTick);
+}
+// === END PHASE_OVERLAY_RAF_FOLLOW ===
 // === END PHASE_OVERLAY_TRANSFORM_MIRROR ===
 
 /**
@@ -1594,6 +1716,7 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
     }
     _activeCoreHighlightItem = coreItem;
     showShortcutTip(coreItem); // PHASE_SHORTCUT_TIP
+    _kcStartFollow(coreItem, srcEl);
     return true;
   } catch (e) {
     return false;
@@ -1601,6 +1724,7 @@ export function showCoreHighlight(coreItem, isSaved = false, rectOverride = null
 }
 
 export function hideCoreHighlight() {
+  _kcStopFollow();
   _kcCancelHideReset();
   const overlay = getKCShadowElement(PURPLE_OVERLAY_ID);
   if (overlay) {
