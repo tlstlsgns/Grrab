@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grrab Documentation</title>
+<meta name="description" content="Install Grrab, clip images to your clipboard, choose save destinations, and troubleshoot common issues.">
+<!-- Open Graph / social preview -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Grrab">
+<meta property="og:url" content="https://grrab.app/docs/">
+<meta property="og:title" content="Grrab Documentation">
+<meta property="og:description" content="Install Grrab, clip images to your clipboard, choose save destinations, and troubleshoot common issues.">
+<meta property="og:image" content="https://grrab.app/assets/landing/og-preview.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Grrab — grab any image on the web, never low-res">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Grrab Documentation">
+<meta name="twitter:description" content="Install Grrab, clip images to your clipboard, choose save destinations, and troubleshoot common issues.">
+<meta name="twitter:image" content="https://grrab.app/assets/landing/og-preview.png">
+<link rel="canonical" href="https://grrab.app/docs/">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/landing/favicons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/landing/favicons/favicon-16.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/assets/landing/favicons/favicon-48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/landing/favicons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ── accent ── */
+    --accent:#BC13FE; --accent-rgb:188,19,254; --accent-hover:#A810E0; --accent-bright:#CF00FF;
+    --accent-05:rgba(188,19,254,.05); --accent-06:rgba(188,19,254,.06); --accent-10:rgba(188,19,254,.10);
+    --accent-12:rgba(188,19,254,.12); --accent-20:rgba(188,19,254,.20); --accent-30:rgba(188,19,254,.30);
+    --accent-wash:#FAF7FD;
+    /* ── ink ── */
+    --ink:#1A1A1A; --ink-strong:#000; --ink-900:#111; --ink-700:#374151; --ink-muted:#6B7280;
+    --ink-soft:#888; --ink-faint:#9CA3AF;
+    /* ── surfaces ── */
+    --surface:#fff; --surface-canvas:#FAFAFA; --surface-subtle:#F9FAFB; --surface-ios:#F2F2F7; --surface-key:#F4F4F5;
+    /* ── borders ── */
+    --border:#E5E7EB; --border-strong:#D9D9D9; --border-soft:#E5E5E5;
+    /* ── type ── */
+    --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-display:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-ui:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-mono:'SF Mono','SFMono-Regular',Menlo,Monaco,Consolas,monospace;
+    --font-display-weight-hero:800; --font-display-weight-feature:700; --font-display-weight-cta:700;
+    --display-sm:28px; --display-md:40px; --display-lg:56px; --display-xl:72px;
+    --tracking-tight:-0.03em;
+    /* ── radii ── */
+    --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-2xl:24px; --radius-pill:999px;
+    /* ── shadow ── */
+    --shadow-xs:0 1px 3px rgba(0,0,0,.08); --shadow-md:0 2px 8px rgba(0,0,0,.14);
+    --shadow-xl:0 12px 32px rgba(0,0,0,.10); --shadow-2xl:0 24px 64px rgba(0,0,0,.14);
+    /* ── layout ── */
+    --container-max:1200px;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;font-family:var(--font-sans);color:var(--ink);background:var(--surface);-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent);text-decoration:none;transition:color .15s ease;}
+  a:hover{color:var(--accent-hover);}
+  ::selection{background:var(--accent-20);color:var(--ink-strong);}
+
+  /* buttons (flattened from the design-system Button component) */
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;
+    letter-spacing:-0.01em;border-radius:var(--radius-md);cursor:pointer;border:1px solid transparent;
+    transition:background .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease;white-space:nowrap;text-decoration:none;}
+  .btn-md{height:40px;padding:0 18px;font-size:15px;}
+  .btn-lg{height:52px;padding:0 26px;font-size:17px;}
+  .btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(188,19,254,.20);}
+  .btn-accent:hover{background:var(--accent-hover);color:#fff;}
+  .btn-ghost{background:transparent;color:var(--ink-700);border-color:var(--border);}
+  .btn-ghost:hover{background:var(--surface-subtle);color:var(--ink-strong);}
+
+  /* documentation page */
+  .docs-main{max-width:760px;margin:0 auto;padding:48px 32px 80px;}
+  .docs-title{font-family:var(--font-display);font-weight:700;font-size:40px;letter-spacing:var(--tracking-tight);color:var(--ink-strong);margin:0 0 12px;line-height:1.15;}
+  .docs-subtitle{font-size:18px;line-height:1.5;color:var(--ink-700);margin:0 0 40px;}
+  .docs-card{border:1px solid var(--border);border-radius:var(--radius-xl);background:var(--surface-subtle);padding:20px 24px;margin-bottom:48px;}
+  .docs-card-title{font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink-strong);margin:0 0 12px;}
+  .docs-toc{margin:0;padding-left:20px;font-size:15px;line-height:1.7;color:var(--ink-700);}
+  .docs-toc li{margin-bottom:4px;}
+  .docs-toc a{color:var(--ink-700);font-weight:500;}
+  .docs-toc a:hover{color:var(--accent);}
+  .docs-section{margin-bottom:40px;}
+  .docs-section h2{font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-0.02em;color:var(--ink-strong);margin:0 0 16px;scroll-margin-top:80px;}
+  .docs-section p{font-size:16px;line-height:1.65;color:var(--ink-700);margin:0 0 14px;}
+  .docs-section p:last-child{margin-bottom:0;}
+  .docs-section ul{margin:0 0 14px;padding-left:20px;font-size:16px;line-height:1.65;color:var(--ink-700);}
+  .docs-section li{margin-bottom:6px;}
+  .docs-section li:last-child{margin-bottom:0;}
+  .docs-section dl{margin:0 0 14px;font-size:16px;line-height:1.65;color:var(--ink-700);}
+  .docs-section dt{font-weight:600;color:var(--ink-strong);margin-top:12px;}
+  .docs-section dt:first-child{margin-top:0;}
+  .docs-section dd{margin:4px 0 0;padding-left:0;}
+  .docs-contact{margin-top:48px;}
+  .docs-contact p{margin:0 0 8px;font-size:15px;line-height:1.6;color:var(--ink-700);}
+  .docs-contact p:last-child{margin-bottom:0;}
+  @media (max-width:820px){
+    .nav-links{display:none !important;}
+    header > div{padding:14px 20px !important;}
+    .docs-main{padding:40px 20px 64px;}
+    footer > div{padding:36px 20px !important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ STICKY HEADER ══ -->
+<header style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--border);">
+  <div style="max-width:var(--container-max);margin:0 auto;padding:14px 32px;display:flex;align-items:center;gap:32px;">
+    <a href="/" style="display:flex;align-items:center;gap:10px;">
+      <img src="/assets/landing/grrab-logo.svg" alt="Grrab" width="30" height="30" style="display:block;border-radius:7px;">
+      <span style="font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:-0.02em;color:var(--ink-strong);">Grrab</span>
+    </a>
+    <nav class="nav-links" style="display:flex;gap:28px;margin-left:auto;">
+      <a href="/docs/" style="font-size:14px;font-weight:500;color:var(--ink-700);">How it works</a>
+    </nav>
+    <a class="btn btn-accent btn-md" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Add to Chrome</a>
+  </div>
+</header>
+
+<main class="docs-main">
+  <h1 class="docs-title">Grrab Documentation</h1>
+  <p class="docs-subtitle">How to install Grrab, clip images, choose where they are saved, and fix common issues.</p>
+
+  <div class="docs-card">
+    <p class="docs-card-title">On this page</p>
+    <ol class="docs-toc">
+      <li><a href="#what">What is Grrab</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="#workflow">Daily workflow</a></li>
+      <li><a href="#clip-size">Clip size and AI upscaling</a></li>
+      <li><a href="#destinations">Save destinations</a></li>
+      <li><a href="#side-panel">Side panel</a></li>
+      <li><a href="#shortcut">Change the clip shortcut</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+    </ol>
+  </div>
+
+  <section class="docs-section" id="what">
+    <h2>What is Grrab</h2>
+    <p>Grrab is a Chrome extension. Hover an image on any page and press the clip shortcut. The image is copied to the clipboard immediately, and when signed in it is also saved to the chosen destination and listed in the side panel.</p>
+    <p>Images smaller than the chosen clip size are enlarged on-device with a bundled super-resolution model; nothing is uploaded for processing.</p>
+  </section>
+
+  <section class="docs-section" id="install">
+    <h2>Install</h2>
+    <p>Install Grrab from the <a href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Chrome Web Store</a>. Click the Grrab icon to open the side panel and sign in with Google, then choose a save destination.</p>
+    <p>Clipping to the clipboard works without signing in. The side panel, saved history, and settings require signing in.</p>
+  </section>
+
+  <section class="docs-section" id="workflow">
+    <h2>Daily workflow</h2>
+    <p>Hover a clippable image; Grrab highlights it. Press the shortcut. The image lands on the clipboard right away. When signed in, a card also appears in the side panel.</p>
+  </section>
+
+  <section class="docs-section" id="clip-size">
+    <h2>Clip size and AI upscaling</h2>
+    <p>Selectable clip sizes are Original, 512px, 1024px, 1600px, and 3K. Larger sources are resized down; smaller ones are AI-upscaled. Upscaling runs in an offscreen document on your own machine.</p>
+  </section>
+
+  <section class="docs-section" id="destinations">
+    <h2>Save destinations</h2>
+    <p>Grrab can save clips to:</p>
+    <ul>
+      <li>Your Downloads folder</li>
+      <li>A local folder you choose with the File System Access API</li>
+      <li>Google Drive, into a folder named <strong>Grrab_files</strong>, using the <code>drive.file</code> scope so Grrab can only touch files it created</li>
+    </ul>
+    <p>Save format can be Original, JPG, JPEG, PNG, or WEBP. You can switch destinations at any time from the side panel.</p>
+  </section>
+
+  <section class="docs-section" id="side-panel">
+    <h2>Side panel</h2>
+    <p>Clips appear in one list, grouped by date dividers (Today, Yesterday, older). Each card shows a source label, plus a title and thumbnail.</p>
+    <p>Each card has exactly three actions: copy the image back to the clipboard, open the original link, and delete. The toolbar has bulk upload for selected clips, and clear-all.</p>
+  </section>
+
+  <section class="docs-section" id="shortcut">
+    <h2>Change the clip shortcut</h2>
+    <p>The default shortcut is Cmd+C on macOS and Ctrl+C on Windows and Linux. In the side panel, click the shortcut button under &ldquo;Clip Shortcut&rdquo;, then press the combination you want.</p>
+    <p>The combination must include Cmd or Ctrl plus a key. Some combinations reserved by the browser are rejected. Press Escape to cancel recording; the reset button restores the default.</p>
+  </section>
+
+  <section class="docs-section" id="troubleshooting">
+    <h2>Troubleshooting</h2>
+    <dl>
+      <dt>&ldquo;Folder access denied&rdquo; or &ldquo;Folder not found&rdquo;</dt>
+      <dd>Choose the save folder again from the side panel.</dd>
+      <dt>&ldquo;Write permission was denied for this folder&rdquo;</dt>
+      <dd>Pick a folder you can write to.</dd>
+      <dt>&ldquo;Drive folder not found&rdquo;</dt>
+      <dd>Set the Drive folder again.</dd>
+      <dt>&ldquo;Google sign-in failed&rdquo;</dt>
+      <dd>Sign in again from the side panel.</dd>
+      <dt>The shortcut shows an error</dt>
+      <dd>The combination must include Cmd or Ctrl, and some browser-reserved combinations are unavailable.</dd>
+      <dt>Nothing happens on a page</dt>
+      <dd>Reload the page, then hover the image again.</dd>
+    </dl>
+  </section>
+
+  <section class="docs-section" id="privacy">
+    <h2>Privacy</h2>
+    <p>Image processing and AI upscaling run on your device; clip bytes are not sent to a server for enhancement. Saved clips and metadata go to your own Google account or the folder you chose.</p>
+    <p>Read the full policy at <a href="https://grrab.app/privacy/">grrab.app/privacy</a> or the Korean version at <a href="https://grrab.app/privacy/kr/">grrab.app/privacy/kr</a>.</p>
+  </section>
+
+  <div class="docs-card docs-contact">
+    <p class="docs-card-title">Contact</p>
+    <p>Email <a href="mailto:tlstlsgns@gmail.com">tlstlsgns@gmail.com</a> or open an issue on <a href="https://github.com/tlstlsgns/Grrab/issues">GitHub</a>.</p>
+  </div>
+</main>
+
+<!-- ══ FOOTER ══ -->
+<footer style="background:var(--surface);">
+  <div style="max-width:var(--container-max);margin:0 auto;padding:36px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="/assets/landing/grrab-logo.svg" alt="Grrab" width="22" height="22" style="display:block;border-radius:5px;opacity:.85;">
+      <span style="font-size:14px;color:var(--ink-soft);">© 2026 Grrab</span>
+    </div>
+    <nav style="display:flex;gap:24px;flex-wrap:wrap;">
+      <a href="/docs/" style="font-size:14px;color:var(--ink-muted);">Docs</a>
+      <a href="/privacy/" style="font-size:14px;color:var(--ink-muted);">Privacy Policy</a>
+      <a href="https://github.com/tlstlsgns/Grrab" style="font-size:14px;color:var(--ink-muted);">GitHub</a>
+      <a href="mailto:tlstlsgns@gmail.com" style="font-size:14px;color:var(--ink-muted);">Contact</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
