@@ -841,6 +841,21 @@ function _kcYouTubeThumbnailImage(coreEl) {
     return null;
   }
 }
+// Type D/B counterpart: the coreItem is the card wrapper and the watch anchor is a
+// DESCENDANT, so closestAnchorLike (upward-only) cannot find it. Those types already
+// resolve an absolute page URL of their own, so derive the id straight from that URL.
+function _kcYouTubeThumbnailImageFromUrl(pageUrl) {
+  try {
+    const raw = String(pageUrl || '').trim();
+    if (!raw) return null;
+    const id = extractYouTubeShortcodeFromUrl(raw);
+    if (!id) return null;
+    const url = getYouTubeThumbnailUrl(id);
+    return url ? { url, width: 480, height: 360 } : null;
+  } catch (e) {
+    return null;
+  }
+}
 // === END PHASE_YT_THUMBNAIL_FROM_ID (helper) ===
 function refreshCoreItemMetadata(coreItem) {
   try {
@@ -934,6 +949,17 @@ function refreshCoreItemMetadata(coreItem) {
       } catch (e) {}
       // === END PHASE_YT_THUMBNAIL_FROM_ID ===
     }
+
+    // === PHASE_YT_THUMBNAIL_FROM_ID (Type B/D hover) ===
+    // Type D/B YouTube cards swap in an animated overlay image on hover. Prefer the
+    // anchor-derived canonical thumbnail so the saved item is not the animation.
+    if (evidenceType === 'D' || evidenceType === 'B') {
+      try {
+        const _ytImg = _kcYouTubeThumbnailImageFromUrl(meta?.activeHoverUrl);
+        if (_ytImg) meta = { ...meta, image: _ytImg };
+      } catch (e) {}
+    }
+    // === END PHASE_YT_THUMBNAIL_FROM_ID (Type B/D hover) ===
 
     if (!meta?.activeHoverUrl) return;
 
@@ -2168,6 +2194,18 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     // === END PHASE_YT_THUMBNAIL_FROM_ID ===
     // === END PHASE_TYPE_E_SELF_NAVIGABLE ===
   }
+
+  // === PHASE_YT_THUMBNAIL_FROM_ID (Type B/D hover) ===
+  // Type D/B YouTube cards swap in an animated overlay image on hover. Prefer the
+  // anchor-derived canonical thumbnail so the saved item is not the animation.
+  if (evidenceType === 'D' || evidenceType === 'B') {
+    try {
+      const _ytImg = _kcYouTubeThumbnailImageFromUrl(meta?.activeHoverUrl);
+      if (_ytImg) meta = { ...meta, image: _ytImg };
+    } catch (e) {}
+  }
+  // === END PHASE_YT_THUMBNAIL_FROM_ID (Type B/D hover) ===
+
   // === END PHASE27F_TYPE_E_OVERRIDES ===
 
   // Type B no-URL gate (preserved). Type B without a URL must not
@@ -3041,15 +3079,27 @@ async function saveActiveCoreItem(request = {}) {
                 };
               }
             } else {
-              const r = dominantImg.getBoundingClientRect?.();
-              const src = resolveClipImageUrl(activeCoreEl, dominantImg);
-              if (src && r && r.width > 0 && r.height > 0) {
-                freshImage = {
-                  url: src,
-                  width: Math.round(r.width),
-                  height: Math.round(r.height),
-                };
+              // === PHASE_YT_THUMBNAIL_FROM_ID (Type B/D clip-time) ===
+              // Non-video dominant element on a YouTube card: prefer the anchor-derived
+              // canonical thumbnail over whatever overlay is currently on top.
+              // The VIDEO / SHREDDIT-PLAYER branch above is intentionally untouched so
+              // real video-frame clipping is unaffected.
+              let _ytImg = null;
+              try { _ytImg = _kcYouTubeThumbnailImageFromUrl(activeUrl); } catch (e) { _ytImg = null; }
+              if (_ytImg) {
+                freshImage = _ytImg;
+              } else {
+                const r = dominantImg.getBoundingClientRect?.();
+                const src = resolveClipImageUrl(activeCoreEl, dominantImg);
+                if (src && r && r.width > 0 && r.height > 0) {
+                  freshImage = {
+                    url: src,
+                    width: Math.round(r.width),
+                    height: Math.round(r.height),
+                  };
+                }
               }
+              // === END PHASE_YT_THUMBNAIL_FROM_ID (Type B/D clip-time) ===
             }
           }
         } else {
