@@ -672,7 +672,7 @@
                   <div class="rowA-tile rowA-tile--active"><img src="assets/landing/img/rowA_after.webp" alt="">
                     <div class="rowA-cursor">
                       <div class="rowA-badge-wrap">
-                        <div class="rowA-badge">⌘+C</div>
+                        <div class="rowA-badge">⌘C</div>
                       </div>
                       <div class="rowA-pointer">
                         <img class="rowA-pointer-icon" src="assets/landing/icons/rowA/icon_pointer.svg" alt="">
@@ -705,7 +705,7 @@
               <div class="rowA-popup-row">
                 <div class="rowA-popup-row-label">Clip Shortcut</div>
                 <div class="rowA-popup-row-value">
-                  <div class="rowA-popup-kbd">⌘+C</div>
+                  <div class="rowA-popup-kbd">⌘C</div>
                   <div class="rowA-popup-refresh">
                     <img class="rowA-popup-refresh-icon" src="assets/landing/icons/rowA/icon_refresh.svg" alt="">
                   </div>
@@ -731,7 +731,7 @@
 
     <!-- RIGHT: heading + description + before/after slider -->
     <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;">
-      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Hover the image,<br>and press&nbsp;<kbd style="display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;font-family:var(--font-sans);font-weight:700;font-size:20px;letter-spacing:.01em;line-height:1;color:#fff;background:#BC13FE;border-radius:10px;padding:9px 15px;">⌘+C</kbd></h2>
+      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Hover the image,<br>and press&nbsp;<kbd style="display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;font-family:var(--font-sans);font-weight:700;font-size:20px;letter-spacing:.01em;line-height:1;color:#fff;background:#BC13FE;border-radius:10px;padding:9px 15px;">⌘C</kbd></h2>
       <p style="font-size:22px;line-height:1.25;color:var(--ink-700);max-width:38ch;margin:0;font-weight:500;">AI-upscaled to 3k, straight to your clipboard.</p>
 
       <!-- Before/after comparison slider -->
@@ -1078,6 +1078,24 @@
   var CURSOR = "assets/landing/custom-cursor.svg";
   var reduceMotion = false;
   try { reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){}
+
+  /* ───────────────── SHORTCUT GLYPH — platform parity ─────────────────
+     The markup ships the macOS glyph. On non-Mac we rewrite every shortcut
+     spot to what the extension's formatShortcut() returns, using the same
+     detection it uses, so the page never shows a shortcut the visitor
+     cannot press. Failing open leaves the macOS text in place. */
+  var KC_SHORTCUT_SELECTOR =
+    ".rowA-badge, .rowA-popup-kbd, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
+  try {
+    var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
+                navigator.userAgent.indexOf("Mac") !== -1;
+    if (!isMac) {
+      var kcEls = document.querySelectorAll(KC_SHORTCUT_SELECTOR);
+      for (var kcI = 0; kcI < kcEls.length; kcI++) {
+        kcEls[kcI].textContent = "Ctrl+C";
+      }
+    }
+  } catch (e) {}
 
   /* ─────────────────────────── HERO FLOATING TILES ─────────────────────────── */
   var tilesConfig = [
