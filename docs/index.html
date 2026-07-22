@@ -82,6 +82,7 @@
   .grab-badge{position:fixed;background:var(--accent);color:#fff;font-family:var(--font-ui);font-size:12px;font-weight:600;
     padding:6px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 14px rgba(188,19,254,.35);
     pointer-events:none;z-index:40;opacity:0;transition:opacity .12s ease;transform:translate(16px,18px);}
+  .grab-badge strong{font-weight:700;}
   .grab-toast{font-family:var(--font-sans);font-weight:600;font-size:14px;color:#fff;background:var(--scrim-dark,rgba(30,30,30,.92));
     padding:9px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.22);opacity:0;transform:translateY(-6px);
     transition:opacity .2s ease,transform .2s ease;}
@@ -1066,7 +1067,7 @@
 </footer>
 
 <!-- cursor-follow badge + grab toast (portaled at body level) -->
-<div id="grabBadge" class="grab-badge">Press ⌘+C to Clip</div>
+<div id="grabBadge" class="grab-badge">Press <strong>⌘C</strong> to Clip</div>
 <div style="position:fixed;top:20px;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;">
   <div id="grabToast" class="grab-toast">Clipped to clipboard</div>
 </div>

@@ -1554,15 +1554,15 @@ function ensureShortcutTip() {
       position: fixed;
       pointer-events: none;
       z-index: 2147483647;
-      font-size: 11px;
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
       font-weight: 600;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 3px 8px;
-      border-radius: 4px;
-      letter-spacing: 0.02em;
+      padding: 6px 12px;
+      border-radius: 999px;
       white-space: nowrap;
       color: #fff;
-      background: #CF00FF;
+      background: #BC13FE;
+      box-shadow: 0 4px 14px rgba(188, 19, 254, .35);
       opacity: 0;
       transition: opacity 0.12s ease;
       top: 0;
@@ -1586,13 +1586,26 @@ function _kcEscapeHtml(s) { // PHASE_SHORTCUT_TIP_MARKUP
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 function _kcSetShortcutTipMarkup(el, text) {
-  // PHASE_SHORTCUT_TIP_MARKUP: render "{shortcut} to clip" with the shortcut bold. Derive the
-  // glyph from "Press {glyph} to clip" (drop the "Press " prefix); fall back to plain text.
+  // PHASE_SHORTCUT_TIP_MARKUP: render "Press {glyph} to Clip" with only the glyph
+  // bold, mirroring the landing page's .grab-badge. The tail below must stay in
+  // sync with defaultText in coreEntry.js; if it ever stops matching, this falls
+  // back to plain text and the glyph silently loses its emphasis.
   try {
-    const idx = text.indexOf(' to clip');
+    const TAIL = ' to Clip';
+    const idx = text.indexOf(TAIL);
     if (idx > 0) {
-      const glyph = text.slice(0, idx).replace(/^Press\s+/, '');
-      el.innerHTML = '<strong>' + _kcEscapeHtml(glyph) + '</strong>' + _kcEscapeHtml(text.slice(idx));
+      const head = text.slice(0, idx);          // e.g. "Press ⌘C"
+      const m = head.match(/^(Press\s+)([\s\S]+)$/);
+      if (m) {
+        el.innerHTML =
+          _kcEscapeHtml(m[1]) +
+          '<strong style="font-weight:700;">' + _kcEscapeHtml(m[2]) + '</strong>' +
+          _kcEscapeHtml(text.slice(idx));
+        return;
+      }
+      el.innerHTML =
+        '<strong style="font-weight:700;">' + _kcEscapeHtml(head) + '</strong>' +
+        _kcEscapeHtml(text.slice(idx));
       return;
     }
   } catch (_) {}
