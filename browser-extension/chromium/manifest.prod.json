@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuN16VDVWJjz5UtO58XjGBzgDYEbFngGUwvpw4SS6WmEYGfi9IyDOnF4AahHrT9/75uNFDm3Uc0K0t72071dIPKIR2TCkzERpVNmZScloZXx6F7Xt68IsIIRnPSK+J785eNDeE4qdnmc5SFfulTfDTbvy4G4Q1IfJjEJ6n27gNIqWMjBLVetN2sxw9/U21Rr3D+2F8b0Ub57U5AIWz2N/NhghObgSul5oR6COzU3AWW8qnwBf8RQhjSiQpyYHokRpF6S425j+CdJCSJ0svqar7V/o0qgvxXNCtcji2nSFTp9IxNqBXqjofC0DK1xhYBXOfNRHxIkeTP1FLex2n6g/AwIDAQAB",
-  "name": "Grrab",
+  "name": "Grrab — Reference image clipper",
   "version": "1.5.3",
   "description": "Grab any image on the web, never low-res — in one shortcut.",
   "icons": {
