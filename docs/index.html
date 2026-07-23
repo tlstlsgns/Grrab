@@ -344,7 +344,7 @@
   .yt-videos{display:flex;gap:calc(6 / 645 * 100cqw);flex-shrink:0;width:100%;}
   .yt-video-card{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(4 / 645 * 100cqw);aspect-ratio:197.33/131;}
   .yt-video-card--dim{opacity:.3;}
-  .yt-thumb{background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);border-radius:calc(5 / 645 * 100cqw);flex:1;min-height:0;overflow:hidden;}
+  .yt-thumb{position:relative;background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);border-radius:calc(5 / 645 * 100cqw);flex:1;min-height:0;overflow:hidden;}
   .yt-thumb--glow{box-shadow:0 0 calc(13 / 645 * 100cqw) 0 var(--accent-bright);}
   .yt-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .yt-thumb--short{flex-shrink:0;aspect-ratio:116/182.29;border-radius:calc(3 / 645 * 100cqw);}
@@ -394,7 +394,7 @@
   .ig-feed-follow span{font-family:var(--font-sans);font-size:clamp(6px,calc(7 / 645 * 100cqw),9px);font-weight:600;color:#000000;line-height:1;white-space:nowrap;}
   .ig-feed-menubar{width:5px;height:1px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .ig-feed-menubar .ig-slot-img{width:5px;height:1px;object-fit:contain;}
-  .ig-feed-thumb{width:100%;aspect-ratio:269/336;border-radius:calc(4 / 645 * 100cqw);background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;overflow:hidden;}
+  .ig-feed-thumb{position:relative;width:100%;aspect-ratio:269/336;border-radius:calc(4 / 645 * 100cqw);background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;overflow:hidden;}
   .ig-feed-thumb--glow{box-shadow:0 0 calc(20 / 645 * 100cqw) 0 #BC13FE;}
   .ig-feed-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .ig-meta{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:calc(6 / 645 * 100cqw);padding:0 calc(1 / 645 * 100cqw);width:100%;opacity:.3;box-sizing:border-box;flex-shrink:0;}
@@ -440,11 +440,106 @@
   .pin-feed{display:flex;flex-direction:row;align-items:flex-start;gap:calc(5 / 645 * 100cqw);padding:calc(4 / 645 * 100cqw);width:100%;flex-shrink:0;box-sizing:border-box;}
   .pin-feed-col{display:flex;flex-direction:column;align-items:stretch;gap:calc(5 / 645 * 100cqw);flex:1;min-width:0;}
   .pin-feed-col--faint{opacity:.3;}
-  .pin-feed-card{width:100%;border-radius:calc(8 / 645 * 100cqw);background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;overflow:hidden;}
+  .pin-feed-card{position:relative;width:100%;border-radius:calc(8 / 645 * 100cqw);background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;overflow:hidden;}
   .pin-feed-card--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 #CF00FF;opacity:1;}
   .pin-feed-card img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .pin-feed-card--dim{opacity:.3;}
   .pin-feed-card--dim50{opacity:.5;}
+
+  /* ── Row B — Video mockup (Figma .browser-frame 645x442, body 645x414) ── */
+  .vid-body{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;background:#FFFFFF;overflow:hidden;}
+  .vid-main{display:flex;flex-direction:column;width:100%;height:calc(368 / 645 * 100cqw);flex-shrink:0;background:#0F0F0F;overflow:hidden;}
+  .vid-bottom{display:flex;flex-direction:row;align-items:flex-start;flex:1;min-height:0;width:100%;gap:calc(10 / 645 * 100cqw);padding:calc(5 / 645 * 100cqw) calc(10 / 645 * 100cqw) 0;box-sizing:border-box;overflow:hidden;}
+  .vid-topbar{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(27 / 645 * 100cqw);padding:calc(4 / 645 * 100cqw);flex-shrink:0;gap:calc(4 / 645 * 100cqw);}
+  .vid-sidebar-menu{width:calc(19 / 645 * 100cqw);height:calc(19 / 645 * 100cqw);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .vid-sidebar-menu img{width:calc(6 / 645 * 100cqw);height:calc(5 / 645 * 100cqw);display:block;}
+  .vid-logo{width:calc(36 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);flex-shrink:0;display:block;}
+  .vid-logo img{width:100%;height:100%;display:block;}
+  .vid-search-wrap{display:flex;flex-direction:column;flex:1;min-width:0;align-items:center;padding-inline:calc(10 / 645 * 100cqw);}
+  .vid-search{display:flex;flex-direction:row;justify-content:space-between;align-items:center;width:100%;max-width:calc(211 / 645 * 100cqw);height:calc(14 / 645 * 100cqw);border-radius:calc(9 / 645 * 100cqw);border:max(0.5px,calc(0.3 / 645 * 100cqw)) solid rgba(255,255,255,.1);overflow:hidden;box-sizing:border-box;flex-shrink:0;}
+  .vid-search-input{display:flex;flex-direction:row;align-items:center;padding:0 calc(6 / 645 * 100cqw);flex:1;min-width:0;}
+  .vid-search-text{font-family:var(--font-ui);font-size:calc(6 / 645 * 100cqw);line-height:1;color:#757575;white-space:nowrap;}
+  .vid-search-btn{display:flex;flex-direction:row;align-items:center;justify-content:center;width:calc(22 / 645 * 100cqw);height:100%;background:rgba(255,255,255,.1);flex-shrink:0;border-left:max(0.5px,calc(0.3 / 645 * 100cqw)) solid rgba(255,255,255,.1);}
+  .vid-search-btn img{width:calc(7 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;}
+  .vid-topbar-right{width:calc(80 / 645 * 100cqw);height:calc(16 / 645 * 100cqw);flex-shrink:0;}
+  .vid-screen{position:relative;flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;}
+  .vid-screen-video{position:relative;width:calc(606.222 / 645 * 100cqw);height:100%;flex-shrink:0;overflow:hidden;}
+  .vid-screen-video img{width:100%;height:100%;object-fit:cover;display:block;}
+  .vid-screen-controller{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;height:calc(19 / 645 * 100cqw);padding:0 calc(3 / 645 * 100cqw);box-sizing:border-box;z-index:2;}
+  .vid-control-playbar{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(2 / 645 * 100cqw);background:#544E4B;border-radius:calc(6 / 645 * 100cqw);flex-shrink:0;}
+  .vid-playbar-played{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;position:relative;width:15.8%;height:100%;background:#FF0025;border-radius:calc(6 / 645 * 100cqw);}
+  .vid-playbar-point{width:calc(5 / 645 * 100cqw);height:calc(5 / 645 * 100cqw);border-radius:50%;background:#FFFFFF;flex-shrink:0;margin-right:calc(-2.5 / 645 * 100cqw);}
+  .vid-control-container{display:flex;flex-direction:row;align-items:center;gap:calc(3 / 645 * 100cqw);flex:1;min-height:0;padding:calc(2 / 645 * 100cqw) calc(5 / 645 * 100cqw);box-sizing:border-box;}
+  .vid-control-left{display:flex;flex-direction:row;align-items:center;gap:calc(3 / 645 * 100cqw);flex-shrink:0;}
+  .vid-control-playbtn{width:calc(7 / 645 * 100cqw);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .vid-control-playbtn img{width:calc(7 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;}
+  .vid-control-etc{display:flex;flex-direction:row;align-items:center;gap:calc(10 / 645 * 100cqw);padding:0 calc(5 / 645 * 100cqw);background:rgba(0,0,0,.3);border-radius:calc(8 / 645 * 100cqw);height:calc(13 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-icon-volume{width:calc(8 / 645 * 100cqw);height:calc(6 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-control-time{display:flex;flex-direction:row;justify-content:space-between;align-items:center;width:calc(22 / 645 * 100cqw);font-family:var(--font-ui);font-size:calc(4 / 645 * 100cqw);line-height:1;color:#FFFFFF;flex-shrink:0;}
+  .vid-control-chapter{display:flex;flex-direction:row;align-items:center;gap:calc(3 / 645 * 100cqw);padding:0 calc(5 / 645 * 100cqw);background:rgba(0,0,0,.3);border-radius:calc(8 / 645 * 100cqw);height:calc(13 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-chapter-label{font-family:var(--font-ui);font-size:calc(5 / 645 * 100cqw);line-height:1;color:#FFFFFF;white-space:nowrap;}
+  .vid-icon-chapter{width:calc(2 / 645 * 100cqw);height:calc(3.5 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-control-right{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
+  .vid-control-setting{display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:calc(79 / 645 * 100cqw);height:calc(13 / 645 * 100cqw);padding:calc(3 / 645 * 100cqw) calc(4 / 645 * 100cqw);background:rgba(0,0,0,.3);border-radius:calc(8 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-setting-relay{display:inline-flex;align-items:center;justify-content:flex-end;width:calc(10 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) calc(0.3 / 645 * 100cqw);box-sizing:border-box;background:#FFFFFF;border-radius:calc(8 / 645 * 100cqw);flex-shrink:0;overflow:hidden;}
+  .vid-setting-relay img{height:100%;width:auto;aspect-ratio:1;display:block;flex-shrink:0;}
+  .vid-icon-transcription{width:calc(8.556 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-icon-setting{width:calc(6.822 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-icon-view{width:calc(8.522 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-icon-size{width:calc(6.968 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-screen-video--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 var(--accent-bright);}
+  .mock-pointer{position:absolute;width:calc(55.527 / 645 * 100cqw);height:calc(55.625 / 645 * 100cqw);z-index:3;pointer-events:none;}
+  .mock-pointer img{width:100%;height:100%;display:block;}
+  .vid-meta{display:flex;flex-direction:column;width:100%;}
+  .vid-meta-title{display:flex;flex-direction:column;justify-content:center;width:calc(187 / 645 * 100cqw);height:calc(19 / 645 * 100cqw);padding:calc(6 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-meta-title-bar{width:100%;height:calc(7 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-meta-info{display:flex;flex-direction:row;align-items:flex-start;gap:calc(10 / 645 * 100cqw);width:100%;height:calc(17 / 645 * 100cqw);}
+  .vid-meta-profile{display:flex;flex-direction:row;align-items:flex-start;gap:calc(3 / 645 * 100cqw);width:auto;opacity:.5;flex-shrink:0;}
+  .vid-profile-avatar{width:calc(17 / 645 * 100cqw);height:calc(17 / 645 * 100cqw);border-radius:50%;background:#2D1A61;flex-shrink:0;display:block;}
+  .vid-profile-lines{display:flex;flex-direction:column;justify-content:center;width:calc(85 / 645 * 100cqw);height:calc(17 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-profile-line{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(7.5 / 645 * 100cqw);}
+  .vid-profile-line-bar{width:calc(50 / 645 * 100cqw);height:calc(5.5 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-profile-line-bar--long{width:100%;height:calc(4.5 / 645 * 100cqw);}
+  .vid-meta-action{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:calc(2 / 645 * 100cqw);flex:1;min-width:0;align-self:stretch;}
+  .vid-action-react{display:flex;flex-direction:row;align-items:center;height:calc(12 / 645 * 100cqw);padding:calc(2 / 645 * 100cqw) calc(3 / 645 * 100cqw);background:#F2F2F2;border-radius:calc(8 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-react-good,.vid-react-bad{display:inline-flex;align-items:center;justify-content:center;width:calc(16.85 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);flex-shrink:0;}
+  .vid-react-good img{width:calc(7 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);display:block;}
+  .vid-react-bad img{width:calc(7 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);display:block;}
+  .vid-react-separator{width:max(0.5px,calc(0.3 / 645 * 100cqw));height:calc(8 / 645 * 100cqw);background:rgba(0,0,0,.15);flex-shrink:0;display:block;}
+  .vid-action-share,.vid-action-save{display:flex;flex-direction:row;align-items:center;gap:calc(2 / 645 * 100cqw);height:calc(12 / 645 * 100cqw);padding:calc(2 / 645 * 100cqw) calc(3 / 645 * 100cqw);background:#F2F2F2;border-radius:calc(8 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-action-share img{width:calc(7 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;}
+  .vid-action-save img{width:calc(6 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;}
+  .vid-action-label{font-family:var(--font-ui);font-size:calc(5 / 645 * 100cqw);font-weight:600;line-height:1;color:#000000;white-space:nowrap;}
+  .vid-action-more{display:inline-flex;align-items:center;justify-content:center;width:calc(12 / 645 * 100cqw);height:calc(12 / 645 * 100cqw);flex-shrink:0;}
+  .vid-action-more img{width:calc(5.5 / 645 * 100cqw);height:calc(1.5 / 645 * 100cqw);display:block;}
+  .vid-addition{display:flex;flex-direction:column;gap:calc(6 / 645 * 100cqw);width:calc(194 / 645 * 100cqw);padding-top:calc(6 / 645 * 100cqw);flex-shrink:0;box-sizing:border-box;overflow:hidden;}
+  .vid-addition-chips{display:flex;flex-direction:row;gap:calc(4 / 645 * 100cqw);width:100%;}
+  .vid-addition-chip{display:inline-flex;align-items:center;justify-content:center;height:calc(11 / 645 * 100cqw);padding:calc(3 / 645 * 100cqw) calc(4 / 645 * 100cqw);border-radius:calc(2.5 / 645 * 100cqw);font-family:var(--font-ui);font-size:calc(4.5 / 645 * 100cqw);font-weight:600;line-height:1;white-space:nowrap;box-sizing:border-box;flex-shrink:0;}
+  .vid-addition-chip--active{background:#000000;color:#FFFFFF;}
+  .vid-addition-chip--idle{background:#EAEAEA;color:#000000;}
+  .vid-addition-card{display:flex;flex-direction:row;gap:calc(4 / 645 * 100cqw);width:100%;}
+  .vid-addition-card--dim{opacity:.3;}
+  .vid-card-thumb{width:calc(96 / 645 * 100cqw);aspect-ratio:197.333 / 111;border-radius:calc(5 / 645 * 100cqw);overflow:hidden;flex-shrink:0;}
+  .vid-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .vid-card-meta-lines{display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0;height:calc(16 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-card-meta-line{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(7 / 645 * 100cqw);}
+  .vid-card-meta-line-bar{width:100%;height:calc(5 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-card-meta-line-bar--short{width:calc(45 / 645 * 100cqw);height:calc(4 / 645 * 100cqw);}
+  .vid-info{display:flex;flex-direction:column;flex:1;min-width:0;gap:calc(10 / 645 * 100cqw);align-items:flex-start;}
+  .vid-addition-list{display:flex;flex-direction:column;gap:calc(6 / 645 * 100cqw);width:100%;}
+  .vid-description{display:flex;flex-direction:column;width:100%;gap:calc(6 / 645 * 100cqw);padding:calc(10 / 645 * 100cqw);box-sizing:border-box;background:#F2F2F2;border-radius:calc(8 / 645 * 100cqw);flex-shrink:0;}
+  .vid-desc-lines{display:flex;flex-direction:column;width:100%;gap:calc(3 / 645 * 100cqw);padding:calc(1.5 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-desc-line{display:flex;flex-direction:row;align-items:center;width:100%;box-sizing:border-box;}
+  .vid-desc-line-bar{width:100%;background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-comments{display:flex;flex-direction:column;width:100%;gap:calc(6 / 645 * 100cqw);flex-shrink:0;}
+  .vid-comments-label{font-family:var(--font-ui);font-size:calc(8 / 645 * 100cqw);font-weight:600;line-height:1;color:#5F6267;display:block;}
+  .vid-comments-list{display:flex;flex-direction:column;width:100%;gap:calc(6 / 645 * 100cqw);}
+  .vid-comment-box{display:flex;flex-direction:row;align-items:flex-start;width:100%;gap:calc(3 / 645 * 100cqw);height:calc(17 / 645 * 100cqw);opacity:.5;}
+  .vid-comment-avatar{width:calc(17 / 645 * 100cqw);height:calc(17 / 645 * 100cqw);border-radius:50%;flex-shrink:0;display:block;}
+  .vid-comment-lines{display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0;height:calc(17 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-comment-line{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(7.5 / 645 * 100cqw);}
+  .vid-comment-line-bar{width:calc(50 / 645 * 100cqw);height:calc(5.5 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-comment-line-bar--long{width:calc(85 / 645 * 100cqw);height:calc(4.5 / 645 * 100cqw);}
 
   @keyframes gfloatA{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(-1.6deg)}}
   @keyframes gfloatB{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-10px) rotate(1.3deg)}}
@@ -1197,7 +1292,9 @@
     {id:"instagram",label:"Instagram.",desc:"Save frames from posts and reels.",        previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584", preview:"/assets/landing/img/instagram_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>'},
     {id:"pinterest",label:"Pinterest.",desc:"Clip any pin straight to your library.",    previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023", preview:"/assets/landing/img/pinterest_preview.webp",
-     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 0-2.9l1.2-4.9s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.2-.8 3.4-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-2-1.3-3.4-3.7-3.4a4.2 4.2 0 0 0-4.4 4.2c0 .8.2 1.4.6 1.8.2.2.2.3.1.5l-.2.8c0 .3-.2.3-.5.2-1.3-.5-1.9-2-1.9-3.6 0-2.7 2.3-5.9 6.7-5.9 3.6 0 5.9 2.6 5.9 5.3 0 3.6-2 6.4-5 6.4-1 0-2-.6-2.3-1.2l-.6 2.5c-.2.8-.7 1.7-1 2.3A10 10 0 1 0 12 2Z"/></svg>'}
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 0-2.9l1.2-4.9s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.2-.8 3.4-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-2-1.3-3.4-3.7-3.4a4.2 4.2 0 0 0-4.4 4.2c0 .8.2 1.4.6 1.8.2.2.2.3.1.5l-.2.8c0 .3-.2.3-.5.2-1.3-.5-1.9-2-1.9-3.6 0-2.7 2.3-5.9 6.7-5.9 3.6 0 5.9 2.6 5.9 5.3 0 3.6-2 6.4-5 6.4-1 0-2-.6-2.3-1.2l-.6 2.5c-.2.8-.7 1.7-1 2.3A10 10 0 1 0 12 2Z"/></svg>'},
+    {id:"video",    label:"Video.",     desc:"Capture the current frame from any video.", previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowB/video-main.webp",
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><polygon points="10.5 9.2 15.5 12 10.5 14.8" fill="currentColor" stroke="none"/></svg>'}
   ];
   var activeInspire = "youtube";
   var listEl = document.getElementById("inspireList");
@@ -1274,7 +1371,7 @@
               '<div class="yt-feed">'+
                 '<div class="yt-videos">'+
                   '<div class="yt-video-card">'+
-                    '<div class="yt-thumb yt-thumb--glow"><img src="/assets/landing/img/rowB/image-1.webp" alt=""></div>'+
+                    '<div class="yt-thumb yt-thumb--glow"><img src="/assets/landing/img/rowB/image-1.webp" alt=""><span class="mock-pointer" style="left:58%;top:42%;"><img src="/assets/landing/icons/rowB/video/icon_cursor.svg" alt=""></span></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
@@ -1328,6 +1425,7 @@
   function igFeedCardHtml(dim, glow, img){
     var cardClass = 'ig-feed-card'+(dim?' ig-feed-card--dim':'');
     var thumbClass = 'ig-feed-thumb'+(glow?' ig-feed-thumb--glow':'');
+    var pointerHtml = glow ? '<span class="mock-pointer" style="left:52%;top:36%;"><img src="/assets/landing/icons/rowB/video/icon_cursor.svg" alt=""></span>' : '';
     var ig = '/assets/landing/icons/instagram/';
     return '<div class="'+cardClass+'">'+
       '<div class="ig-feed">'+
@@ -1344,7 +1442,7 @@
             '<span class="ig-feed-menubar"><img class="ig-slot-img" src="'+ig+'icon_menubar.svg" alt=""></span>'+
           '</div>'+
         '</div>'+
-        '<div class="'+thumbClass+'">'+(img?'<img src="'+img+'" alt="">':'')+'</div>'+
+        '<div class="'+thumbClass+'">'+(img?'<img src="'+img+'" alt="">':'')+pointerHtml+'</div>'+
       '</div>'+
       '<div class="ig-meta">'+
         '<div class="ig-chips-wrap">'+
@@ -1406,7 +1504,8 @@
     if(dim === 30) cls += ' pin-feed-card--dim';
     else if(dim === 50) cls += ' pin-feed-card--dim50';
     if(glow) cls += ' pin-feed-card--glow';
-    return '<div class="'+cls+'" style="aspect-ratio:'+ratio+'">'+(img?'<img src="'+img+'" alt="">':'')+'</div>';
+    var pointerHtml = glow ? '<span class="mock-pointer" style="left:42%;top:44%;"><img src="/assets/landing/icons/rowB/video/icon_cursor.svg" alt=""></span>' : '';
+    return '<div class="'+cls+'" style="aspect-ratio:'+ratio+'">'+(img?'<img src="'+img+'" alt="">':'')+pointerHtml+'</div>';
   }
 
   function pinFeedColHtml(faint, cards){
@@ -1477,10 +1576,161 @@
     });
   }
 
+  function vidDescLineHtml(pr, h){
+    return '<div class="vid-desc-line" style="padding-right:calc('+pr+' / 645 * 100cqw);">'+
+             '<span class="vid-desc-line-bar" style="height:calc('+h+' / 645 * 100cqw);"></span>'+
+           '</div>';
+  }
+
+  function vidCommentHtml(color){
+    return '<div class="vid-comment-box">'+
+             '<span class="vid-comment-avatar" style="background:'+color+';"></span>'+
+             '<div class="vid-comment-lines">'+
+               '<div class="vid-comment-line"><span class="vid-comment-line-bar"></span></div>'+
+               '<div class="vid-comment-line vid-comment-line--long"><span class="vid-comment-line-bar vid-comment-line-bar--long"></span></div>'+
+             '</div>'+
+           '</div>';
+  }
+
+  function vidRelatedCardHtml(img){
+    return '<div class="vid-addition-card vid-addition-card--dim">'+
+             '<div class="vid-card-thumb"><img src="'+img+'" alt=""></div>'+
+             '<div class="vid-card-meta-lines">'+
+               '<div class="vid-card-meta-line"><span class="vid-card-meta-line-bar"></span></div>'+
+               '<div class="vid-card-meta-line vid-card-meta-line--short"><span class="vid-card-meta-line-bar vid-card-meta-line-bar--short"></span></div>'+
+             '</div>'+
+           '</div>';
+  }
+
+  function vidBodyHtml(){
+    return '<div class="vid-body">'+
+             '<div class="vid-main">'+
+               '<div class="vid-topbar">'+
+                 '<span class="vid-sidebar-menu"><img src="/assets/landing/icons/icon_menubar.svg" alt=""></span>'+
+                 '<span class="vid-logo"><img src="/assets/landing/icons/rowB/video/icon_logo.svg" alt=""></span>'+
+                 '<div class="vid-search-wrap">'+
+                   '<div class="vid-search">'+
+                     '<div class="vid-search-input"><span class="vid-search-text">Search</span></div>'+
+                     '<div class="vid-search-btn"><img src="/assets/landing/icons/rowB/video/icon_search.svg" alt=""></div>'+
+                   '</div>'+
+                 '</div>'+
+                 '<div class="vid-topbar-right"></div>'+
+               '</div>'+
+               '<div class="vid-screen">'+
+                 '<div class="vid-screen-video vid-screen-video--glow">'+
+                   '<img src="/assets/landing/img/rowB/video-main.webp" alt="">'+
+                   '<span class="mock-pointer" style="left:calc(450.61 / 645 * 100cqw);top:calc(149 / 645 * 100cqw);"><img src="/assets/landing/icons/rowB/video/icon_cursor.svg" alt=""></span>'+
+                 '</div>'+
+                 '<div class="vid-screen-controller">'+
+                   '<div class="vid-control-playbar"><div class="vid-playbar-played"><span class="vid-playbar-point"></span></div></div>'+
+                   '<div class="vid-control-container">'+
+                     '<div class="vid-control-left">'+
+                       '<span class="vid-control-playbtn"><img src="/assets/landing/icons/rowB/video/icon_playbtn.svg" alt=""></span>'+
+                       '<div class="vid-control-etc">'+
+                         '<img class="vid-icon-volume" src="/assets/landing/icons/rowB/video/icon_volume.svg" alt="">'+
+                         '<div class="vid-control-time"><span>0:00</span><span>/</span><span>15:01</span></div>'+
+                       '</div>'+
+                       '<div class="vid-control-chapter">'+
+                         '<span class="vid-chapter-label">Intro</span>'+
+                         '<img class="vid-icon-chapter" src="/assets/landing/icons/rowB/video/icon_chapter.svg" alt="">'+
+                       '</div>'+
+                     '</div>'+
+                     '<div class="vid-control-right">'+
+                       '<div class="vid-control-setting">'+
+                         '<span class="vid-setting-relay"><img src="/assets/landing/icons/rowB/video/icon_relay.svg" alt=""></span>'+
+                         '<img class="vid-icon-transcription" src="/assets/landing/icons/rowB/video/icon_transcription.svg" alt="">'+
+                         '<img class="vid-icon-setting" src="/assets/landing/icons/rowB/video/icon_setting.svg" alt="">'+
+                         '<img class="vid-icon-view" src="/assets/landing/icons/rowB/video/icon_view.svg" alt="">'+
+                         '<img class="vid-icon-size" src="/assets/landing/icons/rowB/video/icon_size.svg" alt="">'+
+                       '</div>'+
+                     '</div>'+
+                   '</div>'+
+                 '</div>'+
+               '</div>'+
+             '</div>'+
+             '<div class="vid-bottom">'+
+               '<div class="vid-info">'+
+                 '<div class="vid-meta">'+
+                   '<div class="vid-meta-title"><span class="vid-meta-title-bar"></span></div>'+
+                   '<div class="vid-meta-info">'+
+                     '<div class="vid-meta-profile">'+
+                       '<span class="vid-profile-avatar"></span>'+
+                       '<div class="vid-profile-lines">'+
+                         '<div class="vid-profile-line"><span class="vid-profile-line-bar"></span></div>'+
+                         '<div class="vid-profile-line vid-profile-line--long"><span class="vid-profile-line-bar vid-profile-line-bar--long"></span></div>'+
+                       '</div>'+
+                     '</div>'+
+                     '<div class="vid-meta-action">'+
+                       '<div class="vid-action-react">'+
+                         '<span class="vid-react-good"><img src="/assets/landing/icons/rowB/video/icon_react_good.svg" alt=""></span>'+
+                         '<span class="vid-react-separator"></span>'+
+                         '<span class="vid-react-bad"><img src="/assets/landing/icons/rowB/video/icon_react_bad.svg" alt=""></span>'+
+                       '</div>'+
+                       '<div class="vid-action-share"><img src="/assets/landing/icons/rowB/video/icon_share.svg" alt=""><span class="vid-action-label">Share</span></div>'+
+                       '<div class="vid-action-save"><img src="/assets/landing/icons/rowB/video/icon_save.svg" alt=""><span class="vid-action-label">Save</span></div>'+
+                       '<div class="vid-action-more"><img src="/assets/landing/icons/rowB/video/icon_more.svg" alt=""></div>'+
+                     '</div>'+
+                   '</div>'+
+                 '</div>'+
+                 '<div class="vid-description">'+
+                   '<div class="vid-desc-lines">'+
+                     vidDescLineHtml(120, 4)+
+                     vidDescLineHtml(60, 4)+
+                   '</div>'+
+                   '<div class="vid-desc-lines">'+
+                     vidDescLineHtml(0, 4.5)+
+                     vidDescLineHtml(50, 4.5)+
+                     vidDescLineHtml(100, 4)+
+                   '</div>'+
+                   '<div class="vid-desc-lines">'+
+                     vidDescLineHtml(30, 4.5)+
+                     vidDescLineHtml(200, 4.5)+
+                     vidDescLineHtml(150, 4)+
+                   '</div>'+
+                   '<div class="vid-desc-lines">'+
+                     vidDescLineHtml(120, 4)+
+                     vidDescLineHtml(60, 4)+
+                   '</div>'+
+                 '</div>'+
+                 '<div class="vid-comments">'+
+                   '<span class="vid-comments-label">Comments</span>'+
+                   '<div class="vid-comments-list">'+
+                     vidCommentHtml('#FF5E57')+
+                     vidCommentHtml('#27C940')+
+                     vidCommentHtml('#BC13FE')+
+                   '</div>'+
+                 '</div>'+
+               '</div>'+
+               '<div class="vid-addition">'+
+                 '<div class="vid-addition-chips">'+
+                   '<span class="vid-addition-chip vid-addition-chip--active">All</span>'+
+                   '<span class="vid-addition-chip vid-addition-chip--idle">Related</span>'+
+                 '</div>'+
+                 '<div class="vid-addition-list">'+
+                   vidRelatedCardHtml('/assets/landing/img/rowB/video-image-1.webp')+
+                   vidRelatedCardHtml('/assets/landing/img/rowB/video-image-2.webp')+
+                   vidRelatedCardHtml('/assets/landing/img/rowB/video-image-3.webp')+
+                   vidRelatedCardHtml('/assets/landing/img/rowB/video-image-4.webp')+
+                 '</div>'+
+               '</div>'+
+             '</div>'+
+           '</div>';
+  }
+
+  function videoMockupHtml(){
+    return browserMockupHtml({
+      favicon: '/assets/landing/icons/favicon_youtube.webp',
+      label: 'YouTube',
+      url: 'youtube.com',
+      bodyHtml: vidBodyHtml()
+    });
+  }
+
   var mockupHtmlById = {
     youtube: youtubeMockupHtml,
     instagram: instagramMockupHtml,
-    pinterest: pinterestMockupHtml
+    pinterest: pinterestMockupHtml,
+    video: videoMockupHtml
   };
 
   inspireConfig.forEach(function(it){
