@@ -70,13 +70,15 @@
   /* buttons (flattened from the design-system Button component) */
   .btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;
     letter-spacing:-0.01em;border-radius:var(--radius-md);cursor:pointer;border:1px solid transparent;
-    transition:background .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease;white-space:nowrap;text-decoration:none;}
+    transition:background .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease;white-space:nowrap;text-decoration:none;gap:8px;}
   .btn-md{height:40px;padding:0 18px;font-size:15px;}
   .btn-lg{height:52px;padding:0 26px;font-size:17px;}
   .btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(188,19,254,.20);}
   .btn-accent:hover{background:var(--accent-hover);color:#fff;}
   .btn-ghost{background:transparent;color:var(--ink-700);border-color:var(--border);}
   .btn-ghost:hover{background:var(--surface-subtle);color:var(--ink-strong);}
+  .btn-md img{width:18px;height:18px;display:block;flex:0 0 auto;}
+  .btn-lg img{width:20px;height:20px;display:block;flex:0 0 auto;}
 
   /* hero cursor-follow badge + grab toast */
   .grab-badge{position:fixed;background:var(--accent);color:#fff;font-family:var(--font-ui);font-size:12px;font-weight:600;
@@ -607,7 +609,7 @@
     <nav class="nav-links" style="display:flex;gap:28px;margin-left:auto;">
       <a href="/docs/" style="font-size:14px;font-weight:500;color:var(--ink-700);">How it works</a>
     </nav>
-    <a class="btn btn-accent btn-md" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Add to Chrome</a>
+    <a class="btn btn-accent btn-md" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc"><img src="/assets/landing/icons/chrome.svg" alt="" aria-hidden="true" width="18" height="18">Add to Chrome</a>
   </div>
 </header>
 
@@ -620,8 +622,8 @@
     Grab any image, never low-res<br>— in one shortcut.
   </p>
   <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
-    <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Add to Chrome</a>
-    <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+    <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc"><img src="/assets/landing/icons/chrome.svg" alt="" aria-hidden="true" width="20" height="20">Add to Chrome</a>
+    <a class="btn btn-ghost btn-lg" href="/docs/">See how it works</a>
   </div>
 </section>
 
@@ -1046,7 +1048,7 @@
     <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
       <h2 style="font-family:var(--font-display);font-weight:var(--font-display-weight-cta);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;text-align:center;"><span style="color:var(--accent-hover);">Grrab</span> any image. Never low-res.</h2>
     </div>
-    <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc" style="margin-top:8px;">Add to Chrome</a>
+    <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc" style="margin-top:8px;"><img src="/assets/landing/icons/chrome.svg" alt="" aria-hidden="true" width="20" height="20">Add to Chrome</a>
   </div>
 </section>
 
