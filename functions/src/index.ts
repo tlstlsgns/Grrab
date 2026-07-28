@@ -1,6 +1,5 @@
 import {setGlobalOptions} from "firebase-functions";
 import {onRequest} from "firebase-functions/v2/https";
-import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import express, {NextFunction, Request, Response} from "express";
 import fetch from "node-fetch";
@@ -8,15 +7,8 @@ import fetch from "node-fetch";
 // ─── Firebase Admin 초기화 ───────────────────────────────────────────────────
 admin.initializeApp();
 
-// ─── Secrets ─────────────────────────────────────────────────────────────────
-const geminiApiKey = defineSecret("GEMINI_API_KEY");
-
 // ─── 전역 옵션 ────────────────────────────────────────────────────────────────
 setGlobalOptions({maxInstances: 10});
-
-// ─── Gemini ───────────────────────────────────────────────────────────────────
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 // ─── Express 앱 ───────────────────────────────────────────────────────────────
 const app = express();
@@ -111,125 +103,6 @@ async function uploadClipImageToStorage(
   itemId: string
 ): Promise<{ publicUrl: string } | null> {
   return uploadBase64ImageToStorage(base64DataUrl, userId, itemId, "clips");
-}
-
-// ─── 헬퍼: Logo cache ─────────────────────────────────────────────────────────
-interface LogoCacheEntry { url: string; timestamp: number; }
-const logoCache = new Map<string, LogoCacheEntry>();
-const LOGO_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
-
-function getRootDomain(domain: string): string {
-  const parts = domain.split(".");
-  return parts.length > 2 ? parts.slice(-2).join(".") : domain;
-}
-
-async function fetchLogoUrlForDomain(domain: string): Promise<string | null> {
-  const methods: Array<() => Promise<string | null>> = [
-    async () => {
-      try {
-        const url = `https://${domain}/apple-touch-icon.png`;
-        const response = await fetch(url, {method: "HEAD", headers: {"User-Agent": "Mozilla/5.0"}} as any);
-        if (response.ok && response.headers.get("content-type")?.startsWith("image/")) return url;
-      } catch {/* continue */}
-      return null;
-    },
-    async () => {
-      try {
-        const url = `https://${domain}/apple-touch-icon-precomposed.png`;
-        const response = await fetch(url, {method: "HEAD", headers: {"User-Agent": "Mozilla/5.0"}} as any);
-        if (response.ok && response.headers.get("content-type")?.startsWith("image/")) return url;
-      } catch {/* continue */}
-      return null;
-    },
-    async () => {
-      try {
-        const url = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
-        const response = await fetch(url, {method: "HEAD"} as any);
-        if (response.ok) return url;
-      } catch {/* continue */}
-      return null;
-    },
-    async () => {
-      try {
-        const url = `https://${domain}/favicon.ico`;
-        const response = await fetch(url, {method: "HEAD", headers: {"User-Agent": "Mozilla/5.0"}} as any);
-        if (response.ok && response.headers.get("content-type")?.startsWith("image/")) return url;
-      } catch {/* continue */}
-      return null;
-    },
-  ];
-  for (const method of methods) {
-    try {
-      const url = await method();
-      if (url) {
-        logoCache.set(domain, {url, timestamp: Date.now()});
-        return url;
-      }
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-async function fetchLogoUrl(domain: string): Promise<string | null> {
-  const cached = logoCache.get(domain);
-  if (cached && Date.now() - cached.timestamp < LOGO_CACHE_DURATION) return cached.url;
-  const rootDomain = getRootDomain(domain);
-  if (rootDomain !== domain) {
-    const rootCached = logoCache.get(rootDomain);
-    if (rootCached && Date.now() - rootCached.timestamp < LOGO_CACHE_DURATION) {
-      logoCache.set(domain, rootCached);
-      return rootCached.url;
-    }
-    const rootLogoUrl = await fetchLogoUrlForDomain(rootDomain);
-    if (rootLogoUrl) {
-      const cacheEntry = {url: rootLogoUrl, timestamp: Date.now()};
-      logoCache.set(rootDomain, cacheEntry);
-      logoCache.set(domain, cacheEntry);
-      return rootLogoUrl;
-    }
-  }
-  return fetchLogoUrlForDomain(domain);
-}
-
-// ─── 헬퍼: fetchMetadata ──────────────────────────────────────────────────────
-async function fetchMetadata(url: string): Promise<{ title: string | null; description: string | null }> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(url, {
-      method: "GET",
-      signal: controller.signal,
-      headers: {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
-    } as any);
-    clearTimeout(timeoutId);
-    if (!response.ok) return {title: null, description: null};
-    const html = await response.text();
-    let title: string | null = null;
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    if (titleMatch?.[1]) {
-      title = titleMatch[1].trim()
-        .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-        .replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
-    }
-    let description: string | null = null;
-    const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
-    if (ogDescMatch?.[1]) {
-      description = ogDescMatch[1].trim();
-    } else {
-      const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
-      if (descMatch?.[1]) description = descMatch[1].trim();
-    }
-    if (description) {
-      description = description
-        .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-        .replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
-    }
-    return {title, description};
-  } catch {
-    return {title: null, description: null};
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -638,169 +511,6 @@ app.get("/api/v1/image-proxy", async (req: Request, res: Response): Promise<void
   }
 });
 
-// ── GET /api/v1/logo/:domain ──────────────────────────────────────────────────
-app.get("/api/v1/logo/:domain", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const domain = decodeURIComponent(String(req.params.domain ?? ""));
-    if (
-      !domain ||
-      !/^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(domain)
-    ) {
-      res.status(400).json({error: "Invalid domain format"});
-      return;
-    }
-
-    const logoUrl = await fetchLogoUrl(domain);
-    const rawFormat = req.query.format;
-    const formatQuery = Array.isArray(rawFormat) ?
-      String(rawFormat[0] ?? "") :
-      typeof rawFormat === "string" ? rawFormat : "";
-
-    if (formatQuery === "json") {
-      res.status(200).json({url: logoUrl || null}); return;
-    }
-    if (!logoUrl) {
-      res.status(404).json({error: "Logo not found"}); return;
-    }
-
-    const imgRes = await fetch(logoUrl, {
-      headers: {"User-Agent": "Mozilla/5.0"},
-      signal: AbortSignal.timeout(5000),
-    } as any);
-
-    if (!imgRes.ok) {
-      res.status(502).json({error: "Failed to fetch logo image"}); return;
-    }
-
-    const contentType = imgRes.headers.get("content-type") || "image/x-icon";
-    const buffer = Buffer.from(await imgRes.arrayBuffer());
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=86400");
-    res.setHeader("Content-Length", buffer.length);
-    res.status(200).send(buffer);
-  } catch {
-    res.status(500).json({error: "Internal server error"});
-  }
-});
-
-// ── POST /api/v1/fetch-metadata ───────────────────────────────────────────────
-app.post("/api/v1/fetch-metadata", async (req: Request, res: Response): Promise<void> => {
-  const {url} = req.body;
-  if (!url || typeof url !== "string") {
-    res.status(400).json({success: false, error: "Invalid URL"});
-    return;
-  }
-  try {
-    const metadata = await fetchMetadata(url);
-    res.status(200).json({success: true, ...metadata});
-  } catch {
-    res.status(500).json({success: false, error: "Failed to fetch metadata"});
-  }
-});
-
-// ── POST /api/v1/analyze-page ─────────────────────────────────────────────────
-app.post("/api/v1/analyze-page", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const {url, userLanguage} = req.body as { url: string; userLanguage?: string };
-    if (!url || typeof url !== "string" || !url.trim()) {
-      res.status(400).json({error: "Invalid url"});
-      return;
-    }
-
-    const GEMINI_KEY = geminiApiKey.value();
-    if (!GEMINI_KEY) {
-      res.status(503).json({error: "Gemini API key not configured"});
-      return;
-    }
-
-    const crawled = await fetchMetadata(url.trim());
-    if (!crawled.title && !crawled.description) {
-      res.status(502).json({error: "Failed to fetch page"});
-      return;
-    }
-
-    const langCode = ((userLanguage || "en").split("-")[0]).toLowerCase();
-    const langMap: Record<string, string> = {
-      ko: "Korean", ja: "Japanese", zh: "Chinese", fr: "French",
-      de: "German", es: "Spanish", pt: "Portuguese", it: "Italian",
-    };
-    const outputLanguage = langMap[langCode] || "English";
-
-    const prompt = `You are analyzing the content of a web page.
-URL: ${url}
-Page title: ${crawled.title || ""}
-Page description: ${crawled.description || ""}
-
-Call the analyze_page_content function with your analysis.
-Write all text fields in ${outputLanguage}.`;
-
-    const tools = [{
-      functionDeclarations: [{
-        name: "analyze_page_content",
-        description: "Analyzes a web page and returns structured insights.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            title: {type: "STRING", description: "The main title or topic."},
-            key_points: {type: "ARRAY", items: {type: "STRING"}, description: "3-5 key points."},
-            keywords: {type: "ARRAY", items: {type: "STRING"}, description: "4-6 keywords."},
-            content_type: {type: "STRING", description: "Type: Article, News, Product, Video, Profile, etc."},
-          },
-          required: ["title", "key_points", "keywords", "content_type"],
-        },
-      }],
-    }];
-
-    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${GEMINI_KEY}`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        contents: [{role: "user", parts: [{text: prompt}]}],
-        tools,
-        generationConfig: {temperature: 0.2},
-      }),
-    } as any);
-
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text().catch(() => "");
-      throw new Error(`Gemini error ${geminiRes.status}: ${errText.substring(0, 100)}`);
-    }
-
-    const data = await geminiRes.json() as any;
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const fnPart = parts.find((p: any) => p.functionCall?.name === "analyze_page_content");
-
-    if (!fnPart) {
-      const fallbackText = parts.find((p: any) => p.text)?.text || "";
-      res.status(200).json({raw: fallbackText});
-      return;
-    }
-
-    let rawArgs = fnPart.functionCall.args as unknown;
-    if (typeof rawArgs === "string") {
-      try {
-        rawArgs = JSON.parse(rawArgs);
-      } catch {
-        res.status(200).json({raw: String(rawArgs)}); return;
-      }
-    }
-
-    const args = rawArgs as {
-      title: string; key_points: string[]; keywords: string[]; content_type: string;
-    };
-    res.status(200).json({
-      title: args.title || crawled.title || "",
-      key_points: Array.isArray(args.key_points) ? args.key_points : [],
-      keywords: Array.isArray(args.keywords) ? args.keywords : [],
-      content_type: args.content_type || "Other",
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[Analyze Page] Error:", msg);
-    res.status(500).json({error: "Internal server error"});
-  }
-});
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // Cloud Functions 진입점
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -842,7 +552,6 @@ export const api = onRequest(
     memory: "512MiB",
     timeoutSeconds: 60,
     region: "asia-northeast3",
-    secrets: [geminiApiKey],
   },
   app
 );
