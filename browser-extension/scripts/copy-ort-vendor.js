@@ -2,12 +2,15 @@
 const fs = require('fs');
 const path = require('path');
 
+// Only the asyncify build ships. ort.webgpu.bundle.min.mjs loads
+// ort-wasm-simd-threaded.asyncify.{mjs,wasm} and nothing else; confirmed in the
+// offscreen document's Network tab during a real clip, where the plain build was
+// never requested. removeStaleOrtWasm below deletes anything left over from an
+// earlier list, so dropping a name here also cleans the working tree on next build.
 const ORT_VENDOR_FILES = [
   'ort.webgpu.bundle.min.mjs',
   'ort-wasm-simd-threaded.asyncify.mjs',
   'ort-wasm-simd-threaded.asyncify.wasm',
-  'ort-wasm-simd-threaded.mjs',
-  'ort-wasm-simd-threaded.wasm',
 ];
 
 const STALE_ORT_WASM_RE = /^ort-wasm-.*\.(mjs|wasm)$/;
@@ -51,7 +54,14 @@ function copyVendorModels(destVendorDir) {
   }
   const destModelsDir = path.join(destVendorDir, 'models');
   fs.mkdirSync(destModelsDir, { recursive: true });
-  const MODEL_ALLOWLIST = new Set(['realesr-general-x4v3.onnx']);
+  // Models that ship in the extension package. Both run on ONNX Runtime WASM in the
+  // offscreen document: the first upscales a clip, the second produces the alpha matte
+  // for background removal. A file placed in vendor/models/ does NOT ship unless it is
+  // named here.
+  const MODEL_ALLOWLIST = new Set([
+    'realesr-general-x4v3.onnx',
+    'ormbg-int8.onnx',
+  ]);
   const entries = fs.readdirSync(srcModelsDir, { withFileTypes: true });
   let copied = 0;
   for (const entry of entries) {
