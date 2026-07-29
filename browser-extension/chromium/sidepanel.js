@@ -307,6 +307,123 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 // === END PHASE_CLIP_SIZE ===
 
+// === PHASE_CLIP_EFFECT ===
+// Clip effect: 'none' | 'bg-remove' written to kc_clip_effect.
+// Read by coreEntry (clipboard) via initClipEffectSync. Custom dropdown mirroring clip-size.
+const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
+const KC_CLIP_EFFECT_VALUES = ['none', 'bg-remove'];
+const KC_CLIP_EFFECT_LABELS = {
+  'none': 'None',
+  'bg-remove': 'Remove background',
+};
+
+let _kcClipEffectMenuOpen = false;
+let _kcClipEffectOutsideClick = null;
+let _kcClipEffectEscKey = null;
+
+function _normalizeClipEffect(value) {
+  const v = String(value ?? '').trim();
+  return KC_CLIP_EFFECT_VALUES.includes(v) ? v : 'none';
+}
+
+function _renderClipEffectUI(value) {
+  const key = _normalizeClipEffect(value);
+  const btn = document.getElementById('kc-clip-effect-btn');
+  const menu = document.getElementById('kc-clip-effect-menu');
+  if (!btn || !menu) return;
+  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_CLIP_EFFECT_LABELS[key] || 'None'}</span>`;
+  btn.dataset.effect = key;
+  btn.setAttribute('aria-expanded', _kcClipEffectMenuOpen ? 'true' : 'false');
+  menu.innerHTML = '';
+  for (const preset of KC_CLIP_EFFECT_VALUES) {
+    const li = document.createElement('li');
+    li.className = 'kc-dropdown-menu-item';
+    if (preset === key) li.classList.add('kc-dropdown-menu-item-selected');
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', preset === key ? 'true' : 'false');
+    li.dataset.effect = preset;
+    li.textContent = KC_CLIP_EFFECT_LABELS[preset];
+    li.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _selectClipEffect(preset);
+    });
+    menu.appendChild(li);
+  }
+}
+
+function _detachClipEffectMenuListeners() {
+  if (_kcClipEffectOutsideClick) {
+    document.removeEventListener('click', _kcClipEffectOutsideClick, true);
+    _kcClipEffectOutsideClick = null;
+  }
+  if (_kcClipEffectEscKey) {
+    document.removeEventListener('keydown', _kcClipEffectEscKey);
+    _kcClipEffectEscKey = null;
+  }
+}
+
+function _closeClipEffectMenu() {
+  if (!_kcClipEffectMenuOpen) return;
+  _kcClipEffectMenuOpen = false;
+  const menu = document.getElementById('kc-clip-effect-menu');
+  const btn = document.getElementById('kc-clip-effect-btn');
+  if (menu) menu.hidden = true;
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  _detachClipEffectMenuListeners();
+}
+
+function _openClipEffectMenu() {
+  const menu = document.getElementById('kc-clip-effect-menu');
+  const btn = document.getElementById('kc-clip-effect-btn');
+  if (!menu || !btn) return;
+  _kcClipEffectMenuOpen = true;
+  menu.hidden = false;
+  btn.setAttribute('aria-expanded', 'true');
+  _renderClipEffectUI(btn.dataset.effect || 'none');
+  _kcClipEffectOutsideClick = (e) => {
+    const wrap = document.getElementById('kc-clip-effect-wrap');
+    if (wrap && !wrap.contains(e.target)) _closeClipEffectMenu();
+  };
+  _kcClipEffectEscKey = (e) => {
+    if (e.key === 'Escape') _closeClipEffectMenu();
+  };
+  setTimeout(() => {
+    if (_kcClipEffectMenuOpen && _kcClipEffectOutsideClick) {
+      document.addEventListener('click', _kcClipEffectOutsideClick, true);
+    }
+  }, 0);
+  document.addEventListener('keydown', _kcClipEffectEscKey);
+}
+
+function _toggleClipEffectMenu() {
+  if (_kcClipEffectMenuOpen) _closeClipEffectMenu();
+  else _openClipEffectMenu();
+}
+
+async function _selectClipEffect(value) {
+  const key = _normalizeClipEffect(value);
+  try {
+    await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: key });
+  } catch (_) {}
+  _renderClipEffectUI(key);
+  _closeClipEffectMenu();
+}
+
+async function _loadClipEffectSetting() {
+  try {
+    const r = await chrome.storage.local.get(KC_CLIP_EFFECT_KEY);
+    _renderClipEffectUI(_normalizeClipEffect(r?.[KC_CLIP_EFFECT_KEY]));
+  } catch (_) {
+    _renderClipEffectUI('none');
+  }
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes[KC_CLIP_EFFECT_KEY]) return;
+  _renderClipEffectUI(_normalizeClipEffect(changes[KC_CLIP_EFFECT_KEY].newValue));
+});
+// === END PHASE_CLIP_EFFECT ===
+
 // Picker popup window tracking for auto-close + re-click handling.
 let _kcPickerWindowId = null;
 let _kcPickerBusy = false;
@@ -455,6 +572,7 @@ async function handleOpenFolderSettings() {
   await _refreshDirContainer();
   await _loadUploadFormatSetting();
   await _loadClipSizeSetting(); // PHASE_CLIP_SIZE
+  await _loadClipEffectSetting(); // PHASE_CLIP_EFFECT
 })();
 
 document.getElementById('kc-upload-format-btn')?.addEventListener('click', (e) => {
@@ -468,6 +586,13 @@ document.getElementById('kc-clip-size-btn')?.addEventListener('click', (e) => {
   _toggleClipSizeMenu();
 });
 // === END PHASE_CLIP_SIZE ===
+
+// === PHASE_CLIP_EFFECT ===
+document.getElementById('kc-clip-effect-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  _toggleClipEffectMenu();
+});
+// === END PHASE_CLIP_EFFECT ===
 
 // ── Firebase config ───────────────────────────────────────────────────────────
 const DEV_FIREBASE_CONFIG = {
