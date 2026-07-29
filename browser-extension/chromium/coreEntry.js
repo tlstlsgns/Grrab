@@ -327,6 +327,34 @@ function initClipSizeSync() {
 initClipSizeSync();
 // === END PHASE_CLIP_SIZE ===
 
+// === PHASE_CLIP_EFFECT ===
+const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
+let _clipEffect = 'none'; // 'none' | 'bg-remove'
+
+function _normalizeClipEffect(value) {
+  const v = String(value ?? '').trim();
+  return v === 'bg-remove' ? 'bg-remove' : 'none';
+}
+
+function initClipEffectSync() {
+  (async () => {
+    try {
+      const r = await chrome.storage.local.get(KC_CLIP_EFFECT_KEY);
+      _clipEffect = _normalizeClipEffect(r?.[KC_CLIP_EFFECT_KEY]);
+    } catch (_) {
+      _clipEffect = 'none';
+    }
+  })();
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes[KC_CLIP_EFFECT_KEY]) return;
+      _clipEffect = _normalizeClipEffect(changes[KC_CLIP_EFFECT_KEY].newValue);
+    });
+  } catch (_) {}
+}
+
+initClipEffectSync();
+
 // === PHASE_ACTIVE_TOGGLE ===
 // Master on/off from the toolbar popup. When off: no CoreItem activation, no overlay, and the
 // clip shortcut is inert. Synced from chrome.storage.local (default ON when unset).
@@ -365,6 +393,7 @@ initActiveEnabledSync();
 // message ever arrives, so a loading toast can never get stuck.
 const KC_CLIP_LOADING_THRESHOLD_MS = 150;
 const KC_CLIP_LOADING_FAILSAFE_MS = 15000;
+const KC_CLIP_LOADING_FAILSAFE_EFFECT_MS = 30000; // PHASE_CLIP_EFFECT
 const KC_CLIP_LOADING_TEXT = 'Clipping…';
 const KC_CLIP_DEFAULT_SUCCESS_TEXT = 'Image clipped';
 const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
@@ -373,6 +402,8 @@ const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
 const KC_CLIP_UPSCALING_TEXT = 'Upscaling image…';
 const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
 const KC_CLIP_SR_FALLBACK_TEXT = 'Upscaling failed — original image clipped';
+const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
+const KC_CLIP_BG_FALLBACK_TEXT = 'Background removal failed — original clipped';
 let _kcClipLoadingToast = null;
 let _kcClipLoadingDeferTimer = null;
 let _kcClipLoadingFailsafeTimer = null;
@@ -557,7 +588,7 @@ function _kcBeginClipControl() {
   try { ctrl.toast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT }); } catch (_) { ctrl.toast = null; }
   ctrl.failsafe = setTimeout(() => {
     _kcFinishClipControl(ctrl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
-  }, KC_CLIP_LOADING_FAILSAFE_MS);
+  }, _clipEffect !== 'none' ? KC_CLIP_LOADING_FAILSAFE_EFFECT_MS : KC_CLIP_LOADING_FAILSAFE_MS);
   // === PHASE_CLIP_OS_NOTIFY ===
   // If the user navigates away (other tab / browser unfocused) WHILE this clip is
   // still in-flight, the in-page loading toast is invisible — so surface an OS
@@ -3256,6 +3287,8 @@ async function saveActiveCoreItem(request = {}) {
                 // ctrl.cancelled stays false so the original image still saves.
                 if (request.clipControl._srFallback) {
                   _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_FALLBACK_TEXT });
+                } else if (request.clipControl._bgFallback) {
+                  _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_BG_FALLBACK_TEXT });
                 } else {
                   _kcFinishClipControl(request.clipControl, { kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT });
                 }
@@ -3685,6 +3718,12 @@ function _kcMarkSrFallback() { // PHASE_CLIP_PROGRESS_TEXT
     if (ctrl) ctrl._srFallback = true;
   } catch (_) {}
 }
+function _kcMarkBgFallback() { // PHASE_CLIP_EFFECT
+  try {
+    const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+    if (ctrl) ctrl._bgFallback = true;
+  } catch (_) {}
+}
 async function maybeUpscaleClip(blob) {
   let _srAttempted = false; // PHASE_CLIP_PROGRESS_TEXT
   try {
@@ -3718,6 +3757,30 @@ async function maybeUpscaleClip(blob) {
 }
 // === END PHASE_CLIP_SIZE ===
 
+const KC_BG_TIMEOUT_MS = 15000;
+
+async function maybeRemoveBackground(blob) {
+  let _bgAttempted = false;
+  try {
+    if (!blob || _clipEffect !== 'bg-remove') return blob;
+    _bgAttempted = true;
+    _kcMorphClipLoadingText(KC_CLIP_BG_REMOVING_TEXT);
+    const dataUrl = await _ceBlobToDataURL(blob);
+    const ask = chrome.runtime.sendMessage({ action: 'bg-remove', dataUrl });
+    const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), KC_BG_TIMEOUT_MS));
+    const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
+    if (res && res.ok && res.dataUrl) {
+      return await (await fetch(res.dataUrl)).blob();
+    }
+    _kcMarkBgFallback();
+    return blob;
+  } catch (_) {
+    if (_bgAttempted) _kcMarkBgFallback();
+    return blob;
+  }
+}
+// === END PHASE_CLIP_EFFECT ===
+
 function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = null) {
   // dataUrlPromise is the optional video img_url path: when the dominant
   // element is <video>, the same canvas drawImage produces both the
@@ -3731,7 +3794,8 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
   // resolves (never rejects on cancel); the save path itself gates on
   // request.clipControl.cancelled.
   const adjustedBlobPromise = Promise.resolve(blobPromise)
-    .then((b) => (b ? maybeUpscaleClip(b) : b)); // PHASE_CLIP_SIZE
+    .then((b) => (b ? maybeUpscaleClip(b) : b)) // PHASE_CLIP_SIZE
+    .then((b) => (b ? maybeRemoveBackground(b) : b)); // PHASE_CLIP_EFFECT
   // === PHASE_CLIP_CANCEL ===
   // Clipboard content races a cancel signal. _kcInflightClip is set synchronously
   // at the gesture (in _kcBeginClipControl, just before performSyncClipboardWrite),

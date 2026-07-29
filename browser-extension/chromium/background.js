@@ -692,6 +692,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   // === END PHASE_CLIP_SIZE ===
+
+  // === PHASE_CLIP_EFFECT ===
+  if (request.action === 'bg-remove') {
+    (async () => {
+      try {
+        await ensureOffscreen();
+        const res = await chrome.runtime.sendMessage({
+          target: 'offscreen',
+          action: 'bg-remove-run',
+          dataUrl: request.dataUrl,
+        });
+        sendResponse(res || { ok: false });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+  // === END PHASE_CLIP_EFFECT ===
   
   if (request.action === 'sidepanel-focused' || request.action === 'sidepanel-blurred') {
     // Forward to the active tab's content script so it can track
