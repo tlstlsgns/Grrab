@@ -90,9 +90,24 @@
     transition:opacity .2s ease,transform .2s ease;}
   .grab-toast.show{opacity:1;transform:translateY(0);}
 
+  /* All three feature headings share one size. Row A's column is the narrowest, so
+     36px is the ceiling that keeps its single-line heading from wrapping. Set it here
+     only — do not reintroduce a font-size on the individual h2 elements. */
+  .feature-h2{font-size:clamp(24px,3.1vw,36px);}
+
+  /* Hero line 1 is longer than line 2, so it is scaled down until both lines measure
+     the same width. The value is a ratio of the h1 size, not a fixed px, so it holds
+     at every breakpoint. Tune this ONE number if the lines do not line up; it was measured against the
+     rendered page, not calculated, so it needs re-checking whenever either line's
+     wording changes. */
+  .hero-h1-lead{font-size:0.84em;}
+
   /* ── Row A — gallery mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
-  .rowA-mockup-wrap{position:relative;width:100%;height:100%;overflow:hidden;
-    border-radius:0 24px 0 0;box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);}
+  /* Row A video sits shorter than the text column (16:9 vs the row height).
+     align-self controls where the slack goes: center | start | end. */
+  .rowA-mockup-wrap{position:relative;width:100%;height:auto;overflow:hidden;
+    aspect-ratio:1920/1080;align-self:center;order:2;
+    border-radius:var(--radius-xl);box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);}
   .rowA-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
     background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
     border-radius:0 24px 0 0;container-type:inline-size;}
@@ -171,10 +186,33 @@
     box-shadow:0 4px 16px rgba(207,0,255,.35);white-space:nowrap;}
   .rowA-pointer{width:55.527px;height:55.625px;flex-shrink:0;}
   .rowA-pointer-icon{width:100%;height:100%;display:block;object-fit:contain;}
+  .rowA-video{position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;object-position:top left;display:block;
+    border-radius:var(--radius-xl);background:var(--surface-key);}
+  .rowA-steps{display:flex;flex-direction:column;gap:10px;width:100%;}
+  .rowA-step{display:flex;align-items:flex-start;gap:14px;width:100%;
+    padding:16px 18px;border-radius:12px;background:var(--surface-subtle);
+    border:1px solid var(--border);}
+  .rowA-step-icon{flex-shrink:0;width:40px;height:40px;border-radius:10px;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:var(--surface);border:1px solid var(--border);}
+  .rowA-step-icon img{width:22px;height:22px;display:block;object-fit:contain;}
+  .rowA-step-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .rowA-step-title{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+    font-family:var(--font-display);font-weight:700;font-size:18px;
+    letter-spacing:-0.01em;color:var(--accent-bright);}
+  .rowA-step-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
+  .rowA-step-kbd{display:inline-flex;align-items:center;justify-content:center;
+    font-family:var(--font-sans);font-weight:700;font-size:15px;line-height:1;
+    letter-spacing:.01em;color:#fff;background:var(--accent);
+    border-radius:7px;padding:5px 9px;}
 
   /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
   .rowC-mockup-wrap{position:relative;width:100%;height:100%;overflow:hidden;
-    border-radius:0 var(--radius-2xl) 0 0;box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);}
+    border-radius:0 var(--radius-2xl) 0 0;box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);order:2;}
+  /* Row B is the odd one out: mockup left, text right. Its mockup wrapper has no
+     class, so it is addressed positionally. */
+  .grrab-inspire-grid > div:last-child{order:-1;}
   .rowC-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
     background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
     border-radius:0 var(--radius-2xl) 0 0;container-type:inline-size;}
@@ -448,7 +486,7 @@
 
   /* ── Row B — Video mockup (Figma .browser-frame 645x442, body 645x414) ── */
   .vid-body{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;background:#FFFFFF;overflow:hidden;}
-  .vid-main{display:flex;flex-direction:column;width:100%;height:calc(368 / 645 * 100cqw);flex-shrink:0;background:#0F0F0F;overflow:hidden;}
+  .vid-main{display:flex;flex-direction:column;width:100%;height:100%;flex-shrink:0;background:#0F0F0F;overflow:hidden;}
   .vid-bottom{display:flex;flex-direction:row;align-items:flex-start;flex:1;min-height:0;width:100%;gap:calc(10 / 645 * 100cqw);padding:calc(5 / 645 * 100cqw) calc(10 / 645 * 100cqw) 0;box-sizing:border-box;overflow:hidden;}
   .vid-topbar{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(27 / 645 * 100cqw);padding:calc(4 / 645 * 100cqw);flex-shrink:0;gap:calc(4 / 645 * 100cqw);}
   .vid-sidebar-menu{width:calc(19 / 645 * 100cqw);height:calc(19 / 645 * 100cqw);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -488,7 +526,13 @@
   .vid-icon-view{width:calc(8.522 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
   .vid-icon-size{width:calc(6.968 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
   .vid-screen-video--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 var(--accent-bright);}
-  .mock-pointer{position:absolute;width:calc(55.527 / 645 * 100cqw);height:calc(55.625 / 645 * 100cqw);z-index:3;pointer-events:none;}
+  /* Cursor size: Figma is 55.527 x 55.625. The multiplier below is the only value to
+     tune — the child <img> is 100%/100%, so it follows. left/top anchor the SVG's tip
+     at the top-left corner, so scaling does not move where it points. */
+  .mock-pointer{position:absolute;
+    width:calc(55.527 * 0.7 / 645 * 100cqw);
+    height:calc(55.625 * 0.7 / 645 * 100cqw);
+    z-index:3;pointer-events:none;}
   .mock-pointer img{width:100%;height:100%;display:block;}
   .vid-meta{display:flex;flex-direction:column;width:100%;}
   .vid-meta-title{display:flex;flex-direction:column;justify-content:center;width:calc(187 / 645 * 100cqw);height:calc(19 / 645 * 100cqw);padding:calc(6 / 645 * 100cqw) 0;box-sizing:border-box;}
@@ -574,17 +618,24 @@
       margin-left:0.35em !important;
       vertical-align:middle !important;
     }
-    #compare{ display:none !important; }
+    .rowA-steps{ gap:8px !important; }
+    .rowA-step{ padding:14px 14px !important; gap:12px !important; }
+    .rowA-step-icon{ width:34px !important; height:34px !important; }
+    .rowA-step-icon img{ width:19px !important; height:19px !important; }
+    .rowA-step-title{ font-size:16px !important; }
+    .rowA-step-desc{ font-size:13.5px !important; }
+    .rowA-step-kbd{ font-size:13px !important; padding:4px 7px !important; }
     .grrab-rowC{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowC > div:last-child{ gap:14px !important; }
     .grrab-rowC > div:last-child > div:last-child{ display:none !important; }
     .grrab-inspire-grid{ grid-template-columns:1fr !important; align-items:start !important; gap:24px !important; }
     .grrab-inspire-grid > div:last-child{ min-height:auto !important; height:auto !important; }
 
-    /* text/heading FIRST, mockup below (Row A & C have mockup first → push down;
-       Row B is already text-first) */
+    /* text/heading FIRST, mockup below. All three rows now need an explicit order
+       here: A and C push the mockup down, B cancels its desktop mockup-left order. */
     .rowA-mockup-wrap{ order:2 !important; }
     .rowC-mockup-wrap{ order:2 !important; }
+    .grrab-inspire-grid > div:last-child{ order:0 !important; }
 
     /* ---- uniform-scale mockups (option A) ----
        Each mockup renders at a fixed REFERENCE size, then scales to fit the mobile
@@ -594,10 +645,7 @@
 
     /* Row A — ref 520×496 */
     .rowA-mockup-wrap{ position:relative !important; width:100% !important;
-      height:calc((100vw - 40px) * 496 / 520) !important; overflow:hidden !important; }
-    .rowA-window{ position:absolute !important; inset:auto !important; top:0 !important;
-      left:0 !important; width:520px !important; height:496px !important;
-      transform-origin:top left; transform:scale(calc((100vw - 40px) / 520px)) !important; }
+      height:calc((100vw - 40px) * 1080 / 1920) !important; overflow:hidden !important; }
 
     /* Row C — ref 520×554 */
     .rowC-mockup-wrap{ position:relative !important; width:100% !important;
@@ -606,11 +654,11 @@
       left:0 !important; width:520px !important; height:554px !important;
       transform-origin:top left; transform:scale(calc((100vw - 40px) / 520px)) !important; }
 
-    /* Row B — ref 645×442 (browser mockup; panes = .browser-mockup-wrap fill #inspirePanes) */
+    /* Row B — frame ref 645×442, scaled by width; wrapper reserves 16:9 to match Row A */
     #inspirePanes{ position:relative !important; flex:none !important; width:100% !important;
-      height:calc((100vw - 40px) * 442 / 645) !important; overflow:hidden !important; }
+      height:calc((100vw - 40px) * 1080 / 1920) !important; overflow:hidden !important; }
     .browser-frame{ position:absolute !important; top:0 !important; left:0 !important;
-      width:645px !important; height:442px !important;
+      width:645px !important; height:calc(645px * 1080 / 1920) !important;
       transform-origin:top left; transform:scale(calc((100vw - 40px) / 645px)) !important; }
 
     /* ===== minimal mobile mockup chrome (Obsidian-style) ===== */
@@ -673,11 +721,10 @@
     .feature-h2{ font-size:24px !important; }
 
     /* side padding now 16px each → 100vw-32px in the mockup scale math */
-    .rowA-mockup-wrap{ height:calc((100vw - 32px) * 496 / 520) !important; }
-    .rowA-window{ transform:scale(calc((100vw - 32px) / 520px)) !important; }
+    .rowA-mockup-wrap{ height:calc((100vw - 32px) * 1080 / 1920) !important; }
     .rowC-mockup-wrap{ height:calc((100vw - 32px) * 554 / 520) !important; }
     .rowC-window{ transform:scale(calc((100vw - 32px) / 520px)) !important; }
-    #inspirePanes{ height:calc((100vw - 32px) * 442 / 645) !important; }
+    #inspirePanes{ height:calc((100vw - 32px) * 1080 / 1920) !important; }
     .browser-frame{ transform:scale(calc((100vw - 32px) / 645px)) !important; }
 
     /* FINAL CTA + footer horizontal padding → 16px; CTA button shrink/wrap */
@@ -711,7 +758,7 @@
 <!-- ══ HERO ══ -->
 <section id="top" style="max-width:960px;margin:0 auto;padding:100px 32px 64px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;">
   <h1 class="hero-h1" style="font-family:var(--font-display);font-weight:var(--font-display-weight-hero);font-size:var(--display-lg);line-height:1.25;letter-spacing:var(--tracking-tight);color:var(--ink-strong);margin:0;">
-    Every great design starts<br>with a good reference.
+    <span class="hero-h1-lead">Every design starts with hunting</span><br>reference after reference.
   </h1>
   <p class="hero-sub" style="font-size:32px;line-height:1.25;color:var(--ink-700);max-width:32ch;margin:0;font-weight:600;">
     Grab any image, never low-res<br>— in one shortcut.
@@ -731,126 +778,44 @@
 <section id="how" style="max-width:var(--container-max);margin:0 auto;padding:104px 32px;display:flex;flex-direction:column;gap:120px;">
 
   <!-- Row A — media left, text + comparison slider right -->
-  <div class="grrab-rowA" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:72px;align-items:stretch;">
-    <!-- LEFT: browser-window gallery mockup (static) -->
+  <div class="grrab-rowA" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
+    <!-- RIGHT: product demo video -->
     <div class="rowA-mockup-wrap">
-        <div class="rowA-window">
-          <div class="rowA-chrome">
-            <div class="rowA-urlbar">
-              <div class="rowA-urlbar-line"></div>
-              <div class="rowA-urlbar-star">
-                <img class="rowA-urlbar-star-icon" src="assets/landing/icons/rowA/icon_star.svg" alt="" width="15" height="15">
-              </div>
-            </div>
-            <div class="rowA-profile">
-              <div class="rowA-profile-pill">
-                <div class="rowA-profile-logo">
-                  <img src="assets/landing/grrab-logo.svg" alt="Grrab">
-                </div>
-                <div class="rowA-profile-ext">
-                  <img class="rowA-profile-ext-icon" src="assets/landing/icons/rowA/icon_ext.svg" alt="" width="16" height="16">
-                </div>
-              </div>
-              <div class="rowA-profile-sep"></div>
-              <div class="rowA-profile-avatar">
-                <img src="assets/landing/img/example_profile.webp" alt="">
-              </div>
-              <div class="rowA-profile-menu">
-                <img class="rowA-profile-menu-icon" src="assets/landing/icons/rowA/icon_menubar.svg" alt="">
-              </div>
-            </div>
-          </div>
-          <div class="rowA-viewport">
-            <div class="rowA-body">
-              <!-- TODO: gallery images are placeholders; wire finals later -->
-              <div class="rowA-gallery">
-                <div class="rowA-gallery-col">
-                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-1.webp" alt=""></div>
-                  <div class="rowA-tile rowA-tile--active"><img src="assets/landing/img/rowA_after.webp" alt="">
-                    <div class="rowA-cursor">
-                      <div class="rowA-badge-wrap">
-                        <div class="rowA-badge">⌘C</div>
-                      </div>
-                      <div class="rowA-pointer">
-                        <img class="rowA-pointer-icon" src="assets/landing/icons/rowA/icon_pointer.svg" alt="">
-                      </div>
-                    </div>
-                  </div>
-                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-2.webp" alt=""></div>
-                </div>
-                <div class="rowA-gallery-col">
-                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-3.webp" alt=""></div>
-                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-4.webp" alt=""></div>
-                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-5.webp" alt=""></div>
-                </div>
-                <div class="rowA-gallery-col">
-                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-6.webp" alt=""></div>
-                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/hero-7.webp" alt=""></div>
-                  <div class="rowA-tile rowA-tile--dim"><img src="assets/landing/img/rowA_before.webp" alt=""></div>
-                </div>
-              </div>
-            </div>
-            <div class="rowA-popup-wrap">
-            <div class="rowA-popup">
-              <div class="rowA-popup-header">
-                <div class="rowA-popup-titlebar">
-                  <div class="rowA-popup-title">Grrab Images</div>
-                  <div class="rowA-popup-switch"><div class="rowA-popup-switch-knob"></div></div>
-                </div>
-                <div class="rowA-popup-desc">no low-res — in one shortcut.</div>
-              </div>
-              <div class="rowA-popup-row">
-                <div class="rowA-popup-row-label">Clip Shortcut</div>
-                <div class="rowA-popup-row-value">
-                  <div class="rowA-popup-kbd">⌘C</div>
-                  <div class="rowA-popup-refresh">
-                    <img class="rowA-popup-refresh-icon" src="assets/landing/icons/rowA/icon_refresh.svg" alt="">
-                  </div>
-                </div>
-              </div>
-              <div class="rowA-popup-row">
-                <div class="rowA-popup-row-label">Clip Size</div>
-                <div class="rowA-popup-row-value">
-                  <div class="rowA-popup-size-toggle">
-                    <div class="rowA-popup-size">3k</div>
-                    <img class="rowA-popup-size-chevron" src="assets/landing/icons/rowA/icon_chevron.svg" alt="">
-                  </div>
-                </div>
-              </div>
-              <div class="rowA-popup-footer">
-                <div class="rowA-popup-btn"><div class="rowA-popup-btn-line">Open SidePanel</div></div>
-              </div>
-            </div>
-            </div>
-          </div>
-        </div>
+      <video class="rowA-video"
+             src="/assets/landing/video/rowA_demo.mp4"
+             poster="/assets/landing/img/rowA_demo_poster.webp"
+             autoplay muted loop playsinline preload="metadata"
+             aria-label="Grrab clipping an image from a gallery page"></video>
     </div>
 
-    <!-- RIGHT: heading + description + before/after slider -->
-    <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;">
-      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Hover the image,<br>and press&nbsp;<kbd style="display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;font-family:var(--font-sans);font-weight:700;font-size:20px;letter-spacing:.01em;line-height:1;color:#fff;background:#BC13FE;border-radius:10px;padding:9px 15px;">⌘C</kbd></h2>
-      <p style="font-size:22px;line-height:1.25;color:var(--ink-700);max-width:38ch;margin:0;font-weight:500;">AI-upscaled to 3k, straight to your clipboard.</p>
+    <!-- LEFT: heading + description + 3-step usage list -->
+    <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Grab the image in one click</h2>
+        <p style="font-size:22px;line-height:1.25;color:var(--ink-700);max-width:38ch;margin:0;font-weight:500;">AI-upscaled to 3k, straight to your clipboard.</p>
+      </div>
 
-      <!-- Before/after comparison slider -->
-      <div id="compare" style="position:relative;width:100%;margin-top:6px;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow-2xl);cursor:ew-resize;user-select:none;touch-action:none;height:315px;">
-        <!-- AFTER (3k) — base layer -->
-        <div style="position:absolute;inset:0;background:url('/assets/landing/img/rowA_after.webp') center/cover no-repeat;display:grid;place-items:center;">
-          <!-- <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--accent);opacity:.8;">upscaled&nbsp;·&nbsp;3k</span> -->
+      <div class="rowA-steps">
+        <div class="rowA-step">
+          <span class="rowA-step-icon"><img src="/assets/landing/icons/rowA/icon_pointer.svg" alt=""></span>
+          <span class="rowA-step-text">
+            <span class="rowA-step-title">Step 1: Hover</span>
+            <span class="rowA-step-desc">Move your cursor over any image on the web to highlight extractable elements.</span>
+          </span>
         </div>
-        <span style="position:absolute;top:8px;right:8px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.03em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;box-shadow:0 4px 14px rgba(188,19,254,.35);pointer-events:none;">Image copied</span>
-        <!-- BEFORE (original) — clipped layer -->
-        <div id="compareBefore" style="position:absolute;inset:0;clip-path:inset(0 50% 0 0);-webkit-clip-path:inset(0 50% 0 0);">
-          <div style="position:absolute;inset:0;background:url('/assets/landing/img/rowA_before.webp') center/cover no-repeat;display:grid;place-items:center;">
-            <!-- <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--ink-muted);opacity:.85;">original&nbsp;·&nbsp;low-res</span> -->
-          </div>
-          <span style="position:absolute;top:8px;left:8px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.03em;color:#fff;background:rgba(17,17,17,.55);padding:4px 11px;border-radius:999px;pointer-events:none;">original</span>
+        <div class="rowA-step">
+          <span class="rowA-step-icon"><img src="/assets/landing/icons/rowA/icon_keydown.svg" alt=""></span>
+          <span class="rowA-step-text">
+            <span class="rowA-step-title">Step 2: Press the shortcut&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd></span>
+            <span class="rowA-step-desc">Press the shortcut when the right image highlighted. It is copied to clipboard.</span>
+          </span>
         </div>
-        <!-- Handle -->
-        <div id="compareHandle" style="position:absolute;top:0;bottom:0;left:50%;width:3px;background:#BC13FE;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px rgba(255,255,255,.5);">
-          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:2px solid #BC13FE;box-shadow:0 4px 16px rgba(188,19,254,.28);display:flex;align-items:center;justify-content:center;color:#BC13FE;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left:-8px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </div>
+        <div class="rowA-step">
+          <span class="rowA-step-icon"><img src="/assets/landing/icons/rowA/icon_paste.svg" alt=""></span>
+          <span class="rowA-step-text">
+            <span class="rowA-step-title">Step 3: Paste it</span>
+            <span class="rowA-step-desc">Paste it to anywhere you want.</span>
+          </span>
         </div>
       </div>
     </div>
@@ -860,18 +825,18 @@
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
   <!-- Row B — interactive source switcher -->
-  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:0.82fr 1.18fr;gap:48px;align-items:stretch;">
-    <!-- LEFT: heading + subhead + source list -->
+  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:1.18fr 0.82fr;gap:48px;align-items:stretch;">
+    <!-- RIGHT: heading + subhead + source list -->
     <div style="display:flex;flex-direction:column;gap:24px;">
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Any image on the web<br>that inspires you.</h2>
-        <p style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Even from Instagram posts, YouTube thumbnails — any source.</p>
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Any image on the web</h2>
+        <p style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Even from Instagram posts, YouTube thumbnails — any source that inspires you.</p>
       </div>
       <div id="inspireList" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
 
-    <!-- RIGHT: framed visual with crossfade -->
-    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);min-height:400px;">
+    <!-- LEFT: framed visual with crossfade -->
+    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);aspect-ratio:1920/1080;align-self:center;">
       <div id="inspireTabHeader" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;flex-shrink:0;">
         <span style="display:flex;gap:5px;flex-shrink:0;">
           <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>
@@ -892,8 +857,8 @@
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
   <!-- Row C — media left, text + fanned card stack right -->
-  <div class="grrab-rowC" style="display:grid;grid-template-columns:1fr 1.05fr;gap:72px;align-items:stretch;">
-    <!-- LEFT: side-panel screenshot placeholder -->
+  <div class="grrab-rowC" style="display:grid;grid-template-columns:1.05fr 1fr;gap:72px;align-items:stretch;">
+    <!-- RIGHT: side-panel screenshot placeholder -->
     <div class="rowC-mockup-wrap">
         <div class="rowC-window">
           <div class="rowA-chrome">
@@ -1091,9 +1056,9 @@
         </div>
     </div>
 
-    <!-- RIGHT: heading + description + fanned card stack -->
+    <!-- LEFT: heading + description + fanned card stack -->
     <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;height:100%;">
-      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every image clip,<br>saved and organized.</h2>
+      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every image clip,<br>saved and organized.</h2>
       <p style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
 
       <!-- Fanned card stack (static collage) -->
@@ -1182,7 +1147,7 @@
      detection it uses, so the page never shows a shortcut the visitor
      cannot press. Failing open leaves the macOS text in place. */
   var KC_SHORTCUT_SELECTOR =
-    ".rowA-badge, .rowA-popup-kbd, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
+    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
   try {
     var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
                 navigator.userAgent.indexOf("Mac") !== -1;
@@ -1265,25 +1230,6 @@
       if(t) grab(t.id, t._inner, t._outer);
     }
   });
-
-  /* ─────────────────────────── ROW A — BEFORE/AFTER SLIDER ─────────────────────────── */
-  var compare = document.getElementById("compare");
-  var compareBefore = document.getElementById("compareBefore");
-  var compareHandle = document.getElementById("compareHandle");
-  var dragging = false;
-  function setComparePos(clientX){
-    var r = compare.getBoundingClientRect();
-    var p = ((clientX - r.left) / r.width) * 100;
-    p = Math.max(0, Math.min(100, p));
-    var clip = "inset(0 " + (100 - p) + "% 0 0)";
-    compareBefore.style.clipPath = clip;
-    compareBefore.style.webkitClipPath = clip;
-    compareHandle.style.left = p + "%";
-  }
-  compare.addEventListener("pointerdown", function(e){ dragging=true; try{compare.setPointerCapture(e.pointerId);}catch(_){} setComparePos(e.clientX); });
-  compare.addEventListener("pointermove", function(e){ if(dragging) setComparePos(e.clientX); });
-  compare.addEventListener("pointerup", function(e){ dragging=false; try{compare.releasePointerCapture(e.pointerId);}catch(_){} });
-  compare.addEventListener("pointerleave", function(){ dragging=false; });
 
   /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
   var inspireConfig = [
