@@ -129,8 +129,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 // ─────────── Clip Effect dropdown (shares kc_clip_effect with the sidepanel) ───────────
 const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
-const KC_CLIP_EFFECT_VALUES = ['none', 'bg-remove'];
-const KC_CLIP_EFFECT_LABELS = { 'none': 'None', 'bg-remove': 'Remove background' };
+const KC_CLIP_EFFECT_VALUES = ['none', 'bg-remove', 'erase'];
+const KC_CLIP_EFFECT_LABELS = { 'none': 'None', 'bg-remove': 'Remove background', 'erase': 'Erase' };
 const ceBtn = document.getElementById('pp-clip-effect-btn');
 const ceMenu = document.getElementById('pp-clip-effect-menu');
 let _ceOpen = false;

@@ -311,10 +311,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // Clip effect: 'none' | 'bg-remove' written to kc_clip_effect.
 // Read by coreEntry (clipboard) via initClipEffectSync. Custom dropdown mirroring clip-size.
 const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
-const KC_CLIP_EFFECT_VALUES = ['none', 'bg-remove'];
+const KC_CLIP_EFFECT_VALUES = ['none', 'bg-remove', 'erase'];
 const KC_CLIP_EFFECT_LABELS = {
   'none': 'None',
   'bg-remove': 'Remove background',
+  'erase': 'Erase',
 };
 
 let _kcClipEffectMenuOpen = false;
