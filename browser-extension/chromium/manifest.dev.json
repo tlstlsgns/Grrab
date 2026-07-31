@@ -62,6 +62,7 @@
         "uiManager.js",
         "urlResolver.js",
         "coreEntry.js",
+        "eraseOverlay.js",
         "sidepanel.html",
         "sidepanel.js",
         "sidepanel.css",

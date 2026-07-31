@@ -329,11 +329,13 @@ initClipSizeSync();
 
 // === PHASE_CLIP_EFFECT ===
 const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
-let _clipEffect = 'none'; // 'none' | 'bg-remove'
+let _clipEffect = 'none'; // 'none' | 'bg-remove' | 'erase'
 
 function _normalizeClipEffect(value) {
   const v = String(value ?? '').trim();
-  return v === 'bg-remove' ? 'bg-remove' : 'none';
+  if (v === 'bg-remove') return 'bg-remove';
+  if (v === 'erase') return 'erase';
+  return 'none';
 }
 
 function initClipEffectSync() {
@@ -529,7 +531,10 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
   try { if (ctrl.failsafe) clearTimeout(ctrl.failsafe); } catch (_) {}
   ctrl.failsafe = null;
   const finalText = text || (kind === 'success' ? KC_CLIP_DEFAULT_SUCCESS_TEXT : KC_CLIP_DEFAULT_ERROR_TEXT);
-  try { if (ctrl.toast) ctrl.toast.update({ kind, text: finalText }); } catch (_) {}
+  try {
+    if (!ctrl.toast) ctrl.toast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT });
+    if (ctrl.toast) ctrl.toast.update({ kind, text: finalText });
+  } catch (_) {}
   // === PHASE_CLIP_OS_NOTIFY ===
   // Tear down the away-detection listeners armed in _kcBeginClipControl.
   try {
@@ -3622,8 +3627,9 @@ function pickDominantImageElement(rootElement) {
  * Returns null if all paths fail.
  */
 // === PHASE_IMAGE_URL_PIPELINE ===
-// Resize a clipboard-bound Blob to a 400x400 JPEG thumbnail data URL
-// for storage in Firestore (img_thumbnail_b64 field).
+// Resize a clipboard-bound Blob to a thumbnail data URL (≤400×400) for storage
+// in Firestore (img_thumbnail_b64 field). Opaque sources encode as JPEG; sources
+// with any transparency encode as PNG so background-removal alpha survives.
 async function blobToThumbnailDataUrl(blob) {
   if (!blob) return null;
   try {
@@ -3641,18 +3647,53 @@ async function blobToThumbnailDataUrl(blob) {
     if (!ctx) return null;
     ctx.drawImage(bitmap, 0, 0, dstW, dstH);
     bitmap.close?.();
-    return await new Promise((resolve) => {
-      canvas.toBlob((thumbBlob) => {
-        if (!thumbBlob) {
-          resolve(null);
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || '') || null);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(thumbBlob);
-      }, 'image/jpeg', 0.8);
-    });
+
+    const encodeCanvasToDataUrl = (targetCanvas, mime, quality) =>
+      new Promise((resolve) => {
+        targetCanvas.toBlob((thumbBlob) => {
+          if (!thumbBlob) {
+            resolve(null);
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || '') || null);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(thumbBlob);
+        }, mime, quality);
+      });
+
+    // Alpha scan: one getImageData over the thumbnail canvas (at most 400×400 =
+    // 160,000 pixels), not the source bitmap.
+    const imageData = ctx.getImageData(0, 0, dstW, dstH);
+    const pixels = imageData.data;
+    let hasTransparency = false;
+    for (let i = 3; i < pixels.length; i += 4) {
+      if (pixels[i] < 255) {
+        hasTransparency = true;
+        break;
+      }
+    }
+
+    if (!hasTransparency) {
+      return await encodeCanvasToDataUrl(canvas, 'image/jpeg', 0.8);
+    }
+
+    // JPEG cannot carry alpha; the background-removal effect produces transparent clips.
+    const pngDataUrl = await encodeCanvasToDataUrl(canvas, 'image/png');
+    if (pngDataUrl && pngDataUrl.length <= 700000) {
+      return pngDataUrl;
+    }
+
+    console.log('[KICKCLIP-LOG] thumbnail png too large, falling back');
+    const whiteCanvas = document.createElement('canvas');
+    whiteCanvas.width = dstW;
+    whiteCanvas.height = dstH;
+    const wctx = whiteCanvas.getContext('2d');
+    if (!wctx) return pngDataUrl || null;
+    wctx.fillStyle = '#ffffff';
+    wctx.fillRect(0, 0, dstW, dstH);
+    wctx.drawImage(canvas, 0, 0);
+    return await encodeCanvasToDataUrl(whiteCanvas, 'image/jpeg', 0.8);
   } catch (_) {
     return null;
   }
@@ -3707,6 +3748,7 @@ async function _kcDownscaleClipBlobToWidth(blob, targetWidth) {
 }
 
 function _kcMorphClipLoadingText(text) { // PHASE_CLIP_PROGRESS_TEXT
+  try { if (_kcEraseSetStatus) _kcEraseSetStatus(text); } catch (_) {}
   try {
     const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
     if (ctrl && ctrl.toast) ctrl.toast.update({ kind: 'loading', text });
@@ -3779,6 +3821,58 @@ async function maybeRemoveBackground(blob) {
     return blob;
   }
 }
+
+let _kcEraseCommitted = null;   // Blob committed by the overlay's Done, or null
+let _kcEraseSetStatus = null;   // overlay status setter while an erase overlay is open
+
+async function maybeEraseClip(blobPromise) {
+  if (_clipEffect !== 'erase') return blobPromise;
+  _kcEraseCommitted = null;
+  const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+  if (ctrl && ctrl.failsafe) { clearTimeout(ctrl.failsafe); ctrl.failsafe = null; }
+  try { if (ctrl && ctrl.toast) { ctrl.toast.dismiss(); ctrl.toast = null; } } catch (_) {}
+  _kcClipCursorWait(false);
+
+  try {
+    const mod = await import(chrome.runtime.getURL('eraseOverlay.js'));
+
+    const inpaintFn = async (b, maskDataUrl) => {
+      const dataUrl = await _ceBlobToDataURL(b);
+      const res = await chrome.runtime.sendMessage({
+        action: 'inpaint', dataUrl, maskDataUrl,
+      });
+      if (!res || !res.ok || !res.dataUrl) return null;
+      return await (await fetch(res.dataUrl)).blob();
+    };
+
+    const commitFn = (finalBlob) => {
+      _kcEraseCommitted = finalBlob;
+      try {
+        navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': finalBlob }),
+        ]);
+      } catch (_) {}
+      _kcFinishClipControl(ctrl, { kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT });
+    };
+
+    const bindStatus = (fn) => { _kcEraseSetStatus = fn; };
+    const out = await mod.showEraseOverlay(blobPromise, inpaintFn, commitFn, bindStatus);
+    if (out.action === 'cancel') {
+      _kcFinishClipControl(ctrl, { kind: 'canceled', text: KC_CLIP_CANCELED_TEXT, isCancel: true });
+      return null;
+    }
+    return out.blob;
+  } catch (_) {
+    return null;
+  } finally {
+    _kcEraseSetStatus = null;
+    if (ctrl && !ctrl.done) {
+      ctrl.failsafe = setTimeout(() => {
+        _kcFinishClipControl(ctrl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
+      }, KC_CLIP_LOADING_FAILSAFE_MS);
+    }
+  }
+}
 // === END PHASE_CLIP_EFFECT ===
 
 function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = null) {
@@ -3787,15 +3881,24 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
   // clipboard Blob and a base64 data URL for img_url. Image-case callers
   // (poster URL fetch, image URL fetch) pass nothing — img_url is the
   // original image URL string in those cases and doesn't need this path.
-  const thumbnailPromise = Promise.resolve(blobPromise)
-    .then((blob) => blobToThumbnailDataUrl(blob))
-    .catch(() => null);
   // adjustedBlobPromise: size-adjusted clip bytes for the SAVE path. Always
   // resolves (never rejects on cancel); the save path itself gates on
   // request.clipControl.cancelled.
-  const adjustedBlobPromise = Promise.resolve(blobPromise)
+  const pipelinePromise = Promise.resolve(blobPromise)
     .then((b) => (b ? maybeUpscaleClip(b) : b)) // PHASE_CLIP_SIZE
     .then((b) => (b ? maybeRemoveBackground(b) : b)); // PHASE_CLIP_EFFECT
+  // PHASE_CLIP_EFFECT: erase opens its overlay at gesture time rather than after the
+  // pipeline, so the user sees it immediately and the finished image arrives into it.
+  const adjustedBlobPromise = (_clipEffect === 'erase')
+    ? maybeEraseClip(pipelinePromise)
+    : pipelinePromise;
+  // The thumbnail is what the side panel card displays, and Firestore keeps it
+  // permanently, so it must come from the adjusted blob rather than the raw one.
+  // Deriving it from adjustedBlobPromise costs nothing in latency: the save path
+  // already awaits the clipboard promise, which itself waits on that same chain.
+  const thumbnailPromise = adjustedBlobPromise
+    .then((blob) => (blob ? blobToThumbnailDataUrl(blob) : null))
+    .catch(() => null);
   // === PHASE_CLIP_CANCEL ===
   // Clipboard content races a cancel signal. _kcInflightClip is set synchronously
   // at the gesture (in _kcBeginClipControl, just before performSyncClipboardWrite),

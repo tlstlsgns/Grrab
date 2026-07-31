@@ -711,7 +711,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   // === END PHASE_CLIP_EFFECT ===
-  
+
+  // === PHASE_ERASE ===
+  if (request.action === 'inpaint') {
+    (async () => {
+      try {
+        await ensureOffscreen();
+        const res = await chrome.runtime.sendMessage({
+          target: 'offscreen',
+          action: 'inpaint-run',
+          dataUrl: request.dataUrl,
+          maskDataUrl: request.maskDataUrl,
+        });
+        sendResponse(res || { ok: false });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+  // === END PHASE_ERASE ===
+
   if (request.action === 'sidepanel-focused' || request.action === 'sidepanel-blurred') {
     // Forward to the active tab's content script so it can track
     // whether the Side Panel has focus (to avoid false not-focused detection).
