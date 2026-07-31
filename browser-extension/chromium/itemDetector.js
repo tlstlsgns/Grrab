@@ -1777,6 +1777,14 @@ function filterSignificantImages(root = document) {
     queryAllInOpenShadow(root, MEDIA_SELECTOR)
   );
   for (const img of allImgs) {
+    // === PHASE_KC_UI_EXCLUDE ===
+    // Grrab's own injected UI must never be clippable. The toast and the hover highlight
+    // live in closed shadow DOM so they are invisible to these queries, but the erase
+    // overlay is light DOM on documentElement and its <img> passes every size gate.
+    // Anything Grrab injects into the light DOM carries data-kc-ui.
+    if (img.closest && img.closest('[data-kc-ui]')) continue;
+    // === END PHASE_KC_UI_EXCLUDE ===
+
     if (img.getAttribute?.('aria-hidden') === 'true') {
       const probeRect = img.getBoundingClientRect?.();
       const visuallyLarge = probeRect && probeRect.width >= 100 && probeRect.height >= 100;
