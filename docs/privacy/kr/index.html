@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>개인정보처리방침 | Grrab</title>
-<meta name="description" content="Grrab이 수집·이용·저장·공유하는 정보, 단일 목적, 권한 사용 근거, 온디바이스 처리, 사용자의 권리를 안내합니다.">
+<meta name="description" content="Grrab이 수집·이용·저장·공유하는 정보, 단일 목적, 권한 사용 근거, 이미지 처리 방식, 사용자의 권리를 안내합니다.">
 <!-- Open Graph / social preview -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Grrab">
 <meta property="og:url" content="https://grrab.app/privacy/kr/">
 <meta property="og:title" content="Grrab 개인정보처리방침">
-<meta property="og:description" content="Grrab이 수집·이용·저장·공유하는 정보, 단일 목적, 권한 사용 근거, 온디바이스 처리, 사용자의 권리를 안내합니다.">
+<meta property="og:description" content="Grrab이 수집·이용·저장·공유하는 정보, 단일 목적, 권한 사용 근거, 이미지 처리 방식, 사용자의 권리를 안내합니다.">
 <meta property="og:image" content="https://grrab.app/assets/landing/og-preview.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
@@ -99,7 +99,7 @@
     <h1 class="pp-title">Grrab 개인정보처리방침</h1>
     <p class="meta">
   <strong>시행일:</strong> 2026년 5월 11일<br>
-  <strong>최종 수정일:</strong> 2026년 7월 21일
+  <strong>최종 수정일:</strong> 2026년 8월 3일
 </p>
   </div>
 
@@ -181,10 +181,12 @@
   <li><strong>보관:</strong> 이 가져오기는 일시적입니다 — URL은 이미지를 가져오거나 리다이렉트를 따라가는 데만 사용되며 별도 레코드로 <strong>저장되지 않습니다</strong>. (사용자가 명시적으로 저장한 항목의 URL은 2.2절에 설명된 대로 저장됩니다.)</li>
 </ul>
 
-<h3>2.7 클립 이미지 (크기 조정, 온디바이스 업스케일링, 저장)</h3>
+<h3>2.7 클립 이미지 (크기 조정, 이미지 처리, 저장)</h3>
 <ul>
   <li><strong>무엇을:</strong> 사용자가 클립한 이미지를 선택한 클립 크기에 맞게 조정한 것. 원본이 클립 크기보다 크면 축소하고, 작으면 초해상도(super-resolution) 머신러닝 모델로 확대합니다. 이렇게 생성된 이미지는 사이드 패널에서 저장 항목의 미리보기로 표시하기 위해 저장됩니다.</li>
-  <li><strong>온디바이스 업스케일링:</strong> 업스케일링은 확장 프로그램에 번들된 모델을 사용해 <strong>전적으로 사용자 기기에서</strong> 실행됩니다(백그라운드 offscreen 문서에서 WebAssembly로 실행). 이미지는 업스케일링을 위해 외부·제3자 AI 서비스로 <strong>전송되지 않습니다</strong>.</li>
+  <li><strong>온디바이스 처리:</strong> 업스케일링과 지우기는 확장 프로그램에 번들된 모델을 사용해 <strong>전적으로 사용자 기기에서</strong> 실행됩니다(백그라운드 offscreen 문서에서 WebAssembly로 실행). 해당 이미지는 어디로도 <strong>전송되지 않습니다</strong>.</li>
+  <li><strong>배경 제거:</strong> 배경 제거 효과를 선택하면 클립 이미지가 Grrab 백엔드를 거쳐 <strong>fal.ai</strong>로 <strong>전송</strong>되어 모델이 처리합니다. 전송 전 이미지는 긴 변 기준 최대 2048픽셀로 축소되고 JPEG로 인코딩됩니다. 이 기능은 로그인이 필요하며 하루 200회로 제한됩니다. 5.3절 참조.</li>
+  <li><strong>보관하지 않음:</strong> Grrab 백엔드는 이미지를 저장하지 않고 전달만 하며, 계정 식별자와 성공 여부만 기록합니다. fal.ai는 처리 후 이미지를 보관하지 않습니다.</li>
   <li><strong>언제:</strong> 로그인 상태에서 이미지 클립을 저장할 때만.</li>
   <li><strong>저장 위치:</strong> 생성된 클립 이미지는 사용자 계정 하위의 <strong>Firebase Storage(Google Cloud)</strong>에 업로드되어, 저장 대상으로 선택한 로컬 폴더나 Google Drive 사본과는 <strong>별개로(추가로)</strong> 항목의 미리보기로 사용됩니다.</li>
   <li><strong>목적:</strong> 원본 소스 이미지를 나중에 가져올 수 없게 되더라도, 저장 항목이 선택한 크기의 미리보기를 안정적으로 표시할 수 있도록 하기 위함.</li>
@@ -196,7 +198,7 @@
   <li>사용자가 상호작용하지 않는 페이지의 데이터를 수집·저장하지 <strong>않으며</strong>, 사용자가 저장하지 않은 항목을 저장하지 않습니다.</li>
   <li>제3자 분석 도구, 광고 SDK, 추적기를 사용하지 <strong>않습니다</strong>. Grrab이 수집하는 유일한 사용 신호는 2.5절의 익명·식별 불가능한 클립 횟수뿐입니다.</li>
   <li>광고주나 데이터 브로커에게 데이터를 판매하거나 공유하지 <strong>않습니다</strong>.</li>
-  <li>저장 항목이나 페이지 콘텐츠를 외부·제3자 AI 서비스로 전송하여 처리하지 <strong>않습니다</strong>. (이미지 업스케일링은 확장 프로그램에 번들된 모델이 전적으로 사용자 기기에서 수행합니다 — 2.7절 참조.)</li>
+  <li>해당 기능을 사용자가 명시적으로 켜지 않는 한, 저장 항목이나 페이지 콘텐츠를 외부·제3자 AI 서비스로 전송하지 <strong>않습니다</strong>. 업스케일링과 지우기는 전적으로 사용자 기기에서 실행됩니다. 배경 제거만 예외로, 선택 시 클립 이미지가 처리를 위해 전송됩니다 — 2.7절 및 5.3절 참조.</li>
   <li>민감한 콘텐츠(이메일 전체 내용, 비밀번호, 금융 데이터, 건강 데이터 등)를 수집하지 <strong>않습니다</strong>.</li>
   <li>저장 항목과 함께 보관되는 썸네일은 사용자의 브라우저가 소스 페이지에서 이미 렌더링한 미리보기입니다. 미리보기를 안정적으로 <em>표시</em>하기 위해 Grrab은 저장 항목의 이미지를 자체 image-proxy로 추가로 가져올 수 있으나(2.6절 참조), 이러한 가져오기는 일시적이며 저장 항목의 저장된 필드 이상으로 보관되지 않습니다.</li>
 </ul>
@@ -212,7 +214,7 @@
   <li><code>sidePanel</code> — Chrome 사이드 패널에 Grrab 메인 UI 표시. 사용자가 저장 항목을 출처·날짜별로 탐색하는 곳입니다.</li>
   <li><code>identity</code> — OAuth 2.0을 통한 Google 로그인. 계정 식별 및 Drive 접근 요청(<code>drive.file</code> scope만).</li>
   <li><code>clipboardWrite</code> — 클립한 이미지를 클립보드에 복사하기 위함: 저장 단축키는 클립한 이미지를 복사하고, 사이드 패널의 복사 버튼은 저장 항목의 이미지를 복사하여 다른 앱에 바로 붙여넣을 수 있게 합니다. Grrab은 클립보드에 이미지 데이터만 기록하며, 복사는 로컬에서 이뤄지고 전송되지 않습니다.</li>
-  <li><code>offscreen</code> — Grrab의 온디바이스 이미지 업스케일링(초해상도)을 백그라운드 offscreen 문서에서 실행하기 위함. 클립한 이미지가 선택한 클립 크기보다 작을 때 페이지를 멈추게 하지 않고 로컬에서 확대합니다. 이미지는 전적으로 사용자 기기에서 처리됩니다(2.7절 참조).</li>
+  <li><code>offscreen</code> — Grrab의 온디바이스 이미지 처리(초해상도 업스케일링 및 지우기 기능의 인페인팅)를 백그라운드 offscreen 문서에서 실행하기 위함. 페이지를 멈추게 하지 않고 로컬에서 이미지를 처리합니다. 해당 모델은 확장 프로그램에 번들되어 전적으로 사용자 기기에서 실행됩니다(2.7절 참조).</li>
   <li><code>notifications</code> — 클립 도중(예: 이미지 업스케일링 중) 사용자가 페이지를 벗어났을 때 저장 완료를 알리는 간단한 시스템 알림을 표시하기 위함. 인페이지 메시지가 보이지 않을 때도 완료를 확인할 수 있게 합니다. 이 알림에는 일반적인 상태 메시지만 포함되며 개인정보는 포함되지 않습니다.</li>
 </ul>
 
@@ -247,7 +249,16 @@
   <li><strong>접근 범위:</strong> <code>drive.file</code>만 — Grrab이 직접 만든 파일만 보고 수정 가능. 사용자의 다른 Drive 파일은 볼 수 없음.</li>
 </ul>
 
-<p>Grrab은 다른 어떤 제3자와도 데이터를 공유하지 <strong>않습니다</strong>. 광고주, 데이터 브로커, 분석 제공자에게 데이터를 판매하거나 대여하거나 양도하지 않습니다.</p>
+<h3>5.3 fal.ai (배경 제거를 사용하는 경우에만)</h3>
+<ul>
+  <li><strong>공유되는 것:</strong> 사용자가 배경 제거를 요청한 클립 이미지. 긴 변 기준 최대 2048픽셀로 축소된 상태입니다.</li>
+  <li><strong>목적:</strong> 배경 제거 모델 실행.</li>
+  <li><strong>보관:</strong> fal.ai는 처리 후 이미지를 보관하지 않습니다. Grrab 백엔드는 저장 없이 전달만 합니다.</li>
+  <li><strong>언제:</strong> 로그인 상태에서 배경 제거 효과를 선택했을 때만. 하루 200회로 제한됩니다.</li>
+  <li><strong>적용:</strong> <a href="https://fal.ai/privacy">fal.ai 개인정보처리방침</a>.</li>
+</ul>
+
+<p>Grrab은 위에 명시된 서비스 제공자 외 다른 어떤 제3자와도 데이터를 공유하지 <strong>않습니다</strong>. 광고주, 데이터 브로커, 분석 제공자에게 데이터를 판매하거나 대여하거나 양도하지 않습니다.</p>
 
 <h2>6. 데이터 보관 및 삭제</h2>
 <ul>
