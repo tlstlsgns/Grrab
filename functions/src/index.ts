@@ -1,11 +1,15 @@
 import {setGlobalOptions} from "firebase-functions";
 import {onRequest} from "firebase-functions/v2/https";
+import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import express, {NextFunction, Request, Response} from "express";
 import fetch from "node-fetch";
 
 // ─── Firebase Admin 초기화 ───────────────────────────────────────────────────
 admin.initializeApp();
+
+// ─── Secrets ─────────────────────────────────────────────────────────────────
+const falApiKey = defineSecret("FAL_KEY");
 
 // ─── 전역 옵션 ────────────────────────────────────────────────────────────────
 setGlobalOptions({maxInstances: 10});
@@ -511,6 +515,149 @@ app.get("/api/v1/image-proxy", async (req: Request, res: Response): Promise<void
   }
 });
 
+// === PHASE_BG_REMOVE_FAL ===
+const BG_REMOVE_MAX_BASE64_BYTES = 10 * 1024 * 1024; // 10 MiB base64 payload
+const FAL_BG_REMOVE_URL = "https://fal.run/fal-ai/birefnet/v2";
+const FAL_BG_REMOVE_TIMEOUT_MS = 30_000;
+
+async function falImageToDataUrl(
+  image: {url?: string; content_type?: string | null}
+): Promise<string | null> {
+  const url = typeof image?.url === "string" ? image.url.trim() : "";
+  if (!url) return null;
+  if (url.startsWith("data:image/")) return url;
+  if (!url.startsWith("http://") && !url.startsWith("https://")) return null;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FAL_BG_REMOVE_TIMEOUT_MS);
+  try {
+    const resp = await fetch(url, {method: "GET", signal: controller.signal} as any);
+    if (!resp.ok) return null;
+    const buf = Buffer.from(await resp.arrayBuffer());
+    const ct = resp.headers.get("content-type") ||
+      (typeof image.content_type === "string" ? image.content_type : "image/png");
+    const mime = ct.split(";")[0].trim() || "image/png";
+    return `data:${mime};base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+const BG_REMOVE_DAILY_LIMIT = 200;
+
+async function checkAndIncrementBgQuota(uid: string): Promise<boolean> {
+  const day = new Date().toISOString().slice(0, 10);
+  const ref = getFirestore().collection("usage").doc(`bg_remove_${uid}_${day}`);
+  try {
+    return await getFirestore().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const count = snap.exists ? (snap.data()?.count || 0) : 0;
+      if (count >= BG_REMOVE_DAILY_LIMIT) return false;
+      tx.set(ref, {
+        count: count + 1,
+        uid,
+        day,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      return true;
+    });
+  } catch (e) {
+    console.error(`[bg-remove] uid=${uid} quota check failed`, e);
+    return true;
+  }
+}
+
+// ── POST /api/v1/bg-remove ────────────────────────────────────────────────────
+app.post("/api/v1/bg-remove", async (req: Request, res: Response): Promise<void> => {
+  const uid = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+  if (!uid) {
+    res.status(401).json({error: "Sign in required"});
+    return;
+  }
+
+  const rawDataUrl = req.body?.dataUrl;
+  if (typeof rawDataUrl !== "string" || !rawDataUrl.trim().startsWith("data:image/")) {
+    res.status(400).json({error: "Invalid payload"});
+    return;
+  }
+  const dataUrl = rawDataUrl.trim();
+
+  const commaIdx = dataUrl.indexOf(",");
+  if (commaIdx < 0) {
+    res.status(400).json({error: "Invalid payload"});
+    return;
+  }
+  const base64Payload = dataUrl.slice(commaIdx + 1);
+  if (base64Payload.length > BG_REMOVE_MAX_BASE64_BYTES) {
+    res.status(413).json({error: "Image too large"});
+    return;
+  }
+
+  const allowed = await checkAndIncrementBgQuota(uid);
+  if (!allowed) {
+    console.warn(`[bg-remove] uid=${uid} quota exceeded`);
+    res.status(429).json({error: "Daily limit reached"});
+    return;
+  }
+
+  const falKey = falApiKey.value();
+  if (!falKey) {
+    console.error(`[bg-remove] uid=${uid} fal key not configured`);
+    res.status(503).json({error: "Background removal not configured"});
+    return;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FAL_BG_REMOVE_TIMEOUT_MS);
+    let falResp: Awaited<ReturnType<typeof fetch>>;
+    try {
+      falResp = await fetch(FAL_BG_REMOVE_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Key ${falKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image_url: dataUrl,
+          sync_mode: true,
+        }),
+        signal: controller.signal,
+      } as any);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!falResp.ok) {
+      console.error(`[bg-remove] uid=${uid} fal status=${falResp.status}`);
+      res.status(502).json({error: "Background removal failed"});
+      return;
+    }
+
+    const falData = await falResp.json() as {image?: {url?: string; content_type?: string | null}};
+    const resultDataUrl = await falImageToDataUrl(falData?.image ?? {});
+    if (!resultDataUrl) {
+      console.error(`[bg-remove] uid=${uid} fal response unusable`);
+      res.status(502).json({error: "Background removal failed"});
+      return;
+    }
+
+    console.log(`[bg-remove] uid=${uid} ok`);
+    res.status(200).json({ok: true, dataUrl: resultDataUrl});
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      console.error(`[bg-remove] uid=${uid} fal timeout`);
+      res.status(504).json({error: "Background removal timed out"});
+      return;
+    }
+    console.error(`[bg-remove] uid=${uid} failed`, err);
+    res.status(502).json({error: "Background removal failed"});
+  }
+});
+// === END PHASE_BG_REMOVE_FAL ===
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Cloud Functions 진입점
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -552,6 +699,7 @@ export const api = onRequest(
     memory: "512MiB",
     timeoutSeconds: 60,
     region: "asia-northeast3",
+    secrets: [falApiKey],
   },
   app
 );
