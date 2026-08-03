@@ -693,25 +693,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   // === END PHASE_CLIP_SIZE ===
 
-  // === PHASE_CLIP_EFFECT ===
-  if (request.action === 'bg-remove') {
-    (async () => {
-      try {
-        await ensureOffscreen();
-        const res = await chrome.runtime.sendMessage({
-          target: 'offscreen',
-          action: 'bg-remove-run',
-          dataUrl: request.dataUrl,
-        });
-        sendResponse(res || { ok: false });
-      } catch (e) {
-        sendResponse({ ok: false, error: String(e) });
-      }
-    })();
-    return true;
-  }
-  // === END PHASE_CLIP_EFFECT ===
-
   // === PHASE_BG_REMOVE_SERVER ===
   if (request.action === 'bg-remove-server') {
     (async () => {

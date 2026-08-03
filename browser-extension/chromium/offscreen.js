@@ -1,5 +1,4 @@
 import { superResolveToWidth, warmUpSr } from './superResolve.js'; // PHASE_CLIP_SIZE
-import { removeBackground } from './backgroundRemove.js'; // PHASE_BG_REMOVE
 import { inpaintWithMask } from './inpaint.js'; // PHASE_ERASE
 
 const toDataURL = (blob) => new Promise((res, rej) => {
@@ -31,21 +30,6 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
     return true;
   }
   // === END PHASE_CLIP_SIZE ===
-  // === PHASE_BG_REMOVE ===
-  if (msg.action === 'bg-remove-run') {
-    (async () => {
-      try {
-        const blob = await (await fetch(msg.dataUrl)).blob();
-        const out = await removeBackground(blob);
-        if (!out) { sendResponse({ ok: false, error: 'bg-null' }); return; }
-        sendResponse({ ok: true, dataUrl: await toDataURL(out) });
-      } catch (e) {
-        sendResponse({ ok: false, error: String(e) });
-      }
-    })();
-    return true;
-  }
-  // === END PHASE_BG_REMOVE ===
   // === PHASE_ERASE ===
   if (msg.action === 'inpaint-run') {
     (async () => {

@@ -54,12 +54,11 @@ function copyVendorModels(destVendorDir) {
   }
   const destModelsDir = path.join(destVendorDir, 'models');
   fs.mkdirSync(destModelsDir, { recursive: true });
-  // Models that ship in the extension package. All three run on ONNX Runtime WASM in the
-  // offscreen document: upscaling, background-removal matting, and MI-GAN inpainting.
+  // Models that ship in the extension package. Both run on ONNX Runtime WASM in the
+  // offscreen document: upscaling and MI-GAN inpainting.
   // A file placed in vendor/models/ does NOT ship unless it is named here.
   const MODEL_ALLOWLIST = new Set([
     'realesr-general-x4v3.onnx',
-    'ormbg-int8.onnx',
     'migan-512.onnx',
   ]);
   const entries = fs.readdirSync(srcModelsDir, { withFileTypes: true });
