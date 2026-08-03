@@ -616,9 +616,14 @@ app.post("/api/v1/bg-remove", async (req: Request, res: Response): Promise<void>
     try {
       falResp = await fetch(FAL_BG_REMOVE_URL, {
         method: "POST",
+        // fal keeps request inputs and outputs for thirty days by default to populate its
+        // dashboard history. The clip travels inside that payload, so this header turns the
+        // retention off. The trade is that failed calls cannot be inspected in fal's console;
+        // the uid and outcome are logged here instead.
         headers: {
           "Authorization": `Key ${falKey}`,
           "Content-Type": "application/json",
+          "X-Fal-Store-IO": "0",
         },
         body: JSON.stringify({
           image_url: dataUrl,
