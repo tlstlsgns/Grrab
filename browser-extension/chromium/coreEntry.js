@@ -408,6 +408,8 @@ const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
 const KC_CLIP_BG_FALLBACK_TEXT = 'Background removal failed — original clipped';
 const KC_CLIP_BG_SIGNIN_TEXT = 'Sign in to remove backgrounds';
 const KC_CLIP_BG_LIMIT_TEXT = 'Daily background removal limit reached';
+const KC_BG_MAX_SEND_W = 2048;
+const KC_BG_JPEG_QUALITY = 0.9;
 let _kcClipLoadingToast = null;
 let _kcClipLoadingDeferTimer = null;
 let _kcClipLoadingFailsafeTimer = null;
@@ -3807,13 +3809,43 @@ async function maybeUpscaleClip(blob) {
 
 const KC_BG_TIMEOUT_MS = 15000;
 
+async function _kcBgEncodeForSend(blob) {
+  try {
+    const bmp = await createImageBitmap(blob);
+    const sw = bmp.width || 1, sh = bmp.height || 1;
+    const scale = sw > KC_BG_MAX_SEND_W ? KC_BG_MAX_SEND_W / sw : 1;
+    const dw = Math.max(1, Math.round(sw * scale));
+    const dh = Math.max(1, Math.round(sh * scale));
+    const canvas = (typeof OffscreenCanvas !== 'undefined')
+      ? new OffscreenCanvas(dw, dh)
+      : Object.assign(document.createElement('canvas'), { width: dw, height: dh });
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, dw, dh);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bmp, 0, 0, dw, dh);
+    bmp.close?.();
+    if (canvas.convertToBlob) {
+      return await canvas.convertToBlob({ type: 'image/jpeg', quality: KC_BG_JPEG_QUALITY });
+    }
+    return await new Promise((res, rej) =>
+      canvas.toBlob((b) => b ? res(b) : rej(new Error('toBlob null')), 'image/jpeg', KC_BG_JPEG_QUALITY)
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
 async function maybeRemoveBackground(blob) {
   let _bgAttempted = false;
   try {
     if (!blob || _clipEffect !== 'bg-remove') return blob;
     _bgAttempted = true;
     _kcMorphClipLoadingText(KC_CLIP_BG_REMOVING_TEXT);
-    const dataUrl = await _ceBlobToDataURL(blob);
+    const sendBlob = await _kcBgEncodeForSend(blob);
+    if (!sendBlob) { _kcMarkBgFallback('encode-failed'); return blob; }
+    const dataUrl = await _ceBlobToDataURL(sendBlob);
     const ask = chrome.runtime.sendMessage({ action: 'bg-remove-server', dataUrl });
     const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), KC_BG_TIMEOUT_MS));
     const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
