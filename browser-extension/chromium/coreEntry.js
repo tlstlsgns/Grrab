@@ -406,6 +406,8 @@ const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
 const KC_CLIP_SR_FALLBACK_TEXT = 'Upscaling failed — original image clipped';
 const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
 const KC_CLIP_BG_FALLBACK_TEXT = 'Background removal failed — original clipped';
+const KC_CLIP_BG_SIGNIN_TEXT = 'Sign in to remove backgrounds';
+const KC_CLIP_BG_LIMIT_TEXT = 'Daily background removal limit reached';
 let _kcClipLoadingToast = null;
 let _kcClipLoadingDeferTimer = null;
 let _kcClipLoadingFailsafeTimer = null;
@@ -3293,7 +3295,11 @@ async function saveActiveCoreItem(request = {}) {
                 if (request.clipControl._srFallback) {
                   _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_FALLBACK_TEXT });
                 } else if (request.clipControl._bgFallback) {
-                  _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_BG_FALLBACK_TEXT });
+                  const _bgReason = request.clipControl._bgReason || '';
+                  let _bgToastText = KC_CLIP_BG_FALLBACK_TEXT;
+                  if (_bgReason === 'signed-out') _bgToastText = KC_CLIP_BG_SIGNIN_TEXT;
+                  else if (_bgReason === 'http-429') _bgToastText = KC_CLIP_BG_LIMIT_TEXT;
+                  _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: _bgToastText });
                 } else {
                   _kcFinishClipControl(request.clipControl, { kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT });
                 }
@@ -3760,10 +3766,10 @@ function _kcMarkSrFallback() { // PHASE_CLIP_PROGRESS_TEXT
     if (ctrl) ctrl._srFallback = true;
   } catch (_) {}
 }
-function _kcMarkBgFallback() { // PHASE_CLIP_EFFECT
+function _kcMarkBgFallback(reason) { // PHASE_CLIP_EFFECT
   try {
     const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
-    if (ctrl) ctrl._bgFallback = true;
+    if (ctrl) { ctrl._bgFallback = true; ctrl._bgReason = reason || ''; }
   } catch (_) {}
 }
 async function maybeUpscaleClip(blob) {
@@ -3808,13 +3814,13 @@ async function maybeRemoveBackground(blob) {
     _bgAttempted = true;
     _kcMorphClipLoadingText(KC_CLIP_BG_REMOVING_TEXT);
     const dataUrl = await _ceBlobToDataURL(blob);
-    const ask = chrome.runtime.sendMessage({ action: 'bg-remove', dataUrl });
+    const ask = chrome.runtime.sendMessage({ action: 'bg-remove-server', dataUrl });
     const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), KC_BG_TIMEOUT_MS));
     const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
     if (res && res.ok && res.dataUrl) {
       return await (await fetch(res.dataUrl)).blob();
     }
-    _kcMarkBgFallback();
+    _kcMarkBgFallback(res && res.error);
     return blob;
   } catch (_) {
     if (_bgAttempted) _kcMarkBgFallback();

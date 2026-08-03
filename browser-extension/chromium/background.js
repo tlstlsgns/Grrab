@@ -712,6 +712,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   // === END PHASE_CLIP_EFFECT ===
 
+  // === PHASE_BG_REMOVE_SERVER ===
+  if (request.action === 'bg-remove-server') {
+    (async () => {
+      try {
+        const userId = await getCachedUserId();
+        if (!userId) { sendResponse({ ok: false, error: 'signed-out' }); return; }
+        const resp = await fetch(`${KC_SERVER_URL}/api/v1/bg-remove`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, dataUrl: request.dataUrl }),
+        });
+        if (!resp.ok) {
+          sendResponse({ ok: false, error: `http-${resp.status}` });
+          return;
+        }
+        const data = await resp.json();
+        if (!data?.ok || !data?.dataUrl) { sendResponse({ ok: false, error: 'bad-response' }); return; }
+        sendResponse({ ok: true, dataUrl: data.dataUrl });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+  // === END PHASE_BG_REMOVE_SERVER ===
+
   // === PHASE_ERASE ===
   if (request.action === 'inpaint') {
     (async () => {
