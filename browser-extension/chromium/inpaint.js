@@ -107,6 +107,53 @@ export async function inpaintWithMask(blob, maskBlob) {
     bitmap.close?.();
     const { data: rgba } = ctx.getImageData(0, 0, w, h);
 
+    const label = new Int32Array(plane).fill(-1);
+    const queue = new Int32Array(plane);
+    let regionCount = 0;
+    for (let s = 0; s < plane; s++) {
+      if (mask[s] !== IP_ERASE || label[s] >= 0) continue;
+      const id = regionCount++;
+      let head = 0, tail = 0;
+      queue[tail++] = s; label[s] = id;
+      while (head < tail) {
+        const i = queue[head++];
+        const x = i % w, y = (i / w) | 0;
+        if (x > 0)     { const j = i - 1; if (mask[j] === IP_ERASE && label[j] < 0) { label[j] = id; queue[tail++] = j; } }
+        if (x < w - 1) { const j = i + 1; if (mask[j] === IP_ERASE && label[j] < 0) { label[j] = id; queue[tail++] = j; } }
+        if (y > 0)     { const j = i - w; if (mask[j] === IP_ERASE && label[j] < 0) { label[j] = id; queue[tail++] = j; } }
+        if (y < h - 1) { const j = i + w; if (mask[j] === IP_ERASE && label[j] < 0) { label[j] = id; queue[tail++] = j; } }
+      }
+    }
+
+    const ringSum = new Float64Array(regionCount);
+    const ringCount = new Float64Array(regionCount);
+    for (let i = 0; i < plane; i++) {
+      if (mask[i] !== IP_ERASE) continue;
+      const id = label[i];
+      const x = i % w, y = (i / w) | 0;
+      const look = (j) => {
+        if (mask[j] === IP_ERASE) return;
+        ringSum[id] += rgba[j * 4 + 3];
+        ringCount[id] += 1;
+      };
+      if (x > 0) look(i - 1);
+      if (x < w - 1) look(i + 1);
+      if (y > 0) look(i - w);
+      if (y < h - 1) look(i + w);
+    }
+
+    // Ring alpha above this means the region sits inside real content and should be filled
+    // in; below it the surroundings are empty and the region should go with them.
+    // Measured: nine selections gave 0 to 40 per cent opaque rings when removal was wanted
+    // and 100 per cent when filling was. 70 per cent is the midpoint of that gap. No case
+    // landed between, so the exact position is untested there — adjust here if one turns up.
+    const IP_RING_FILL_THRESHOLD = 0.70 * 255;
+
+    const fillRegion = new Uint8Array(regionCount);
+    for (let id = 0; id < regionCount; id++) {
+      fillRegion[id] = ringCount[id] > 0 && (ringSum[id] / ringCount[id]) >= IP_RING_FILL_THRESHOLD ? 1 : 0;
+    }
+
     const imagePlanar = _rgbaToPlanarUint8(rgba, w, h);
     const session = await getInpaintSession();
     const res = await session.run({
@@ -119,6 +166,13 @@ export async function inpaintWithMask(blob, maskBlob) {
     }
 
     const outRgba = _planarUint8ToRgba(outTensor.data, w, h);
+    for (let i = 0; i < plane; i++) {
+      if (mask[i] === IP_ERASE) {
+        outRgba[i * 4 + 3] = fillRegion[label[i]] ? 255 : 0;
+      } else {
+        outRgba[i * 4 + 3] = rgba[i * 4 + 3];
+      }
+    }
     const outCanvas = new OffscreenCanvas(w, h);
     const oCtx = outCanvas.getContext('2d');
     const outImg = oCtx.createImageData(w, h);
