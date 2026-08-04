@@ -17,12 +17,11 @@ const SR_INPUT_HEADROOM = 1.5;
 // larger than SR_INPUT_MIN_CAP_W are pre-downscaled, and only down to this
 // floor. 384 = the established quality/speed sweet spot (~1s inference).
 const SR_INPUT_MIN_CAP_W = 384;
-// Absolute ceiling for the SR input width, independent of the target. Measured on a
-// 1200px source: a 600px input takes about 4.2s, a 1080px input about 13.4s, and the
-// clip path abandons the round trip at 10s. Cost scales with input pixels, so the
-// ceiling is what keeps the largest preset inside the budget. 720 is target/4 for the
-// 2880 preset, i.e. the model's native 4x point with no headroom — the smaller presets
-// never reach this ceiling and are unaffected.
+// Absolute ceiling for the SR input width, independent of the target. Cost scales with input
+// pixels: measured on a 1200px source, a 600px input takes about 6.7s and a 720px input
+// about 10.1s against a 10s client timeout. With 1600 the largest preset the formula caps at
+// 600 and this ceiling is not reached; it remains as a guard if a larger preset is ever
+// added.
 const SR_INPUT_MAX_CAP_W = 720;
 
 let _srSession = null;

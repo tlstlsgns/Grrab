@@ -191,13 +191,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // Read by coreEntry (clipboard) + save path. Custom dropdown mirroring the upload-format
 // control so the button style + toggle icon match (shared .kc-dropdown-* classes).
 const KC_CLIP_SIZE_KEY = 'kc_clip_max_dim';
-const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600', '2880'];
+const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600'];
 const KC_CLIP_SIZE_LABELS = {
   '0': 'Original',
   '512': '512px',
   '1024': '1024px',
   '1600': '1600px',
-  '2880': '3K',
 };
 
 let _kcClipSizeMenuOpen = false;
@@ -206,6 +205,7 @@ let _kcClipSizeEscKey = null;
 
 function _normalizeClipSize(value) {
   const v = String(value ?? '').trim();
+  if (v === '2880' || value === 2880) return '1600';
   return KC_CLIP_SIZE_VALUES.includes(v) ? v : '0';
 }
 

@@ -78,14 +78,14 @@ onShortcutChange(() => { if (!_recording) getShortcut().then(renderChip); });
 
 // ─────────── Clip Size dropdown (shares kc_clip_max_dim with the sidepanel) ───────────
 const KC_CLIP_SIZE_KEY = 'kc_clip_max_dim';
-const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600', '2880'];
-const KC_CLIP_SIZE_LABELS = { '0': 'Original', '512': '512px', '1024': '1024px', '1600': '1600px', '2880': '3K' };
+const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600'];
+const KC_CLIP_SIZE_LABELS = { '0': 'Original', '512': '512px', '1024': '1024px', '1600': '1600px' };
 const csBtn = document.getElementById('pp-clip-size-btn');
 const csMenu = document.getElementById('pp-clip-size-menu');
 let _csOpen = false;
 let _csOutside = null;
 
-function csNormalize(v) { const s = String(v ?? '').trim(); return KC_CLIP_SIZE_VALUES.includes(s) ? s : '0'; }
+function csNormalize(v) { if (v === '2880' || v === 2880) return '1600'; const s = String(v ?? '').trim(); return KC_CLIP_SIZE_VALUES.includes(s) ? s : '0'; }
 function csRender(value) {
   const key = csNormalize(value);
   csBtn.innerHTML = '<span class="kc-dropdown-btn-label">' + (KC_CLIP_SIZE_LABELS[key] || 'Original') + '</span>';
