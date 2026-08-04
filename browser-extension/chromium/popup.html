@@ -38,6 +38,8 @@
     .pp-open { display: block; width: calc(100% - 28px); margin: 12px 14px; padding: 10px; background: #BC13FE; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
     .pp-open:hover { background: #a810e0; }
     .pp-open:focus, .pp-open:focus-visible { outline: none; }
+    .pp-note { padding: 0 14px 10px; font-size: 11px; line-height: 1.4; color: #BC13FE; }
+    .pp-note[hidden] { display: none; }
   </style>
 </head>
 <body>
@@ -66,11 +68,14 @@
     </div>
   </div>
   <div class="pp-row">
-    <span class="pp-row-label">Effect</span>
+    <span class="pp-row-label">Clip mode</span>
     <div class="kc-dropdown-wrap">
-      <button type="button" id="pp-clip-effect-btn" class="kc-dropdown-btn" aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">None</span></button>
+      <button type="button" id="pp-clip-effect-btn" class="kc-dropdown-btn" aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Instant</span></button>
       <ul id="pp-clip-effect-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
     </div>
+  </div>
+  <div id="pp-clip-mode-note" class="pp-note" hidden>
+    Sign in to use Editor mode.<br>Open the side panel to sign in.
   </div>
   <button type="button" id="pp-open-sidepanel" class="pp-open">Open SidePanel</button>
   <script type="module" src="popup.js"></script>

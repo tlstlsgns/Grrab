@@ -592,7 +592,7 @@ function _buildClipToastSpinner() {
  * Each call creates its own toast (newest at the bottom). The stack is capped
  * at CORE_CLIP_TOAST_MAX; the oldest is dropped immediately on overflow.
  */
-export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
+export function showCoreClipToast({ kind = 'success', text = '', icon = true, align = 'left', duration = CORE_CLIP_TOAST_DURATION_MS, onClick = null } = {}) {
   try {
     const stack = ensureCoreClipToastStack();
     const el = document.createElement('div');
@@ -609,7 +609,7 @@ export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
         border-radius: 9999px;
         color: #fff;
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
-        white-space: nowrap;
+        white-space: pre-line;
         opacity: 0;
         transform: translateX(8px);
         transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
@@ -620,6 +620,7 @@ export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
     iconSlot.style.cssText = 'display:inline-flex;align-items:center;line-height:0;';
     el.appendChild(iconSlot);
     const span = document.createElement('span');
+    span.style.textAlign = align;
     el.appendChild(span);
 
     const applyKind = (k, t) => {
@@ -630,12 +631,12 @@ export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
       while (iconSlot.firstChild) iconSlot.removeChild(iconSlot.firstChild);
       if (k === 'loading') {
         iconSlot.appendChild(_buildClipToastSpinner());
-      } else if (k !== 'error' && k !== 'canceled') {
+      } else if (icon && k !== 'error' && k !== 'canceled') {
         // success: reuse the badge clip glyph (PHASE_BADGE_CLIP_ICON), sized for the toast.
-        const icon = _buildBadgeClipIcon();
-        icon.setAttribute('width', '14');
-        icon.setAttribute('height', '14');
-        iconSlot.appendChild(icon);
+        const clipIcon = _buildBadgeClipIcon();
+        clipIcon.setAttribute('width', '14');
+        clipIcon.setAttribute('height', '14');
+        iconSlot.appendChild(clipIcon);
       } // error / canceled: text only
       span.textContent = String(t == null ? '' : t);
     };
@@ -649,6 +650,17 @@ export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
     // FIFO cap: drop oldest (top) toasts immediately on overflow.
     while (stack.children.length > CORE_CLIP_TOAST_MAX) {
       _removeCoreClipToast(stack.firstElementChild);
+    }
+
+    if (typeof onClick === 'function') {
+      el.style.pointerEvents = 'auto';
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try { onClick(); } catch (_) {}
+        try { _removeCoreClipToast(el); } catch (_) {}
+      });
     }
 
     // Enter animation: reflow from the hidden state, then settle.
@@ -666,7 +678,7 @@ export function showCoreClipToast({ kind = 'success', text = '' } = {}) {
           el.style.transform = 'translateX(8px)';
           el._kcRemoveTimer = setTimeout(() => _removeCoreClipToast(el), CORE_CLIP_TOAST_EXIT_MS);
         } catch (_) {}
-      }, CORE_CLIP_TOAST_DURATION_MS);
+      }, duration);
     };
     if (currentKind !== 'loading') armDismiss();
 

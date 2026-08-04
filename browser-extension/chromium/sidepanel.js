@@ -311,11 +311,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // Clip effect: 'none' | 'bg-remove' written to kc_clip_effect.
 // Read by coreEntry (clipboard) via initClipEffectSync. Custom dropdown mirroring clip-size.
 const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
-const KC_CLIP_EFFECT_VALUES = ['none', 'bg-remove', 'erase'];
+const KC_CLIP_EFFECT_VALUES = ['none', 'erase'];
+// Displayed names differ from the stored values: 'none' shows as Instant and 'erase' as
+// Editor. The values are kept as they are so existing settings keep working; only the
+// wording changed when the overlay grew beyond erasing.
 const KC_CLIP_EFFECT_LABELS = {
-  'none': 'None',
-  'bg-remove': 'Remove background',
-  'erase': 'Erase',
+  'none': 'Instant',
+  'erase': 'Editor',
 };
 
 let _kcClipEffectMenuOpen = false;
@@ -324,6 +326,7 @@ let _kcClipEffectEscKey = null;
 
 function _normalizeClipEffect(value) {
   const v = String(value ?? '').trim();
+  if (v === 'bg-remove') return 'erase';
   return KC_CLIP_EFFECT_VALUES.includes(v) ? v : 'none';
 }
 
@@ -332,7 +335,7 @@ function _renderClipEffectUI(value) {
   const btn = document.getElementById('kc-clip-effect-btn');
   const menu = document.getElementById('kc-clip-effect-menu');
   if (!btn || !menu) return;
-  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_CLIP_EFFECT_LABELS[key] || 'None'}</span>`;
+  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_CLIP_EFFECT_LABELS[key] || 'Instant'}</span>`;
   btn.dataset.effect = key;
   btn.setAttribute('aria-expanded', _kcClipEffectMenuOpen ? 'true' : 'false');
   menu.innerHTML = '';
@@ -403,6 +406,11 @@ function _toggleClipEffectMenu() {
 
 async function _selectClipEffect(value) {
   const key = _normalizeClipEffect(value);
+  if (key === 'erase' && !currentUser) {
+    showKcToast('Sign in to use Editor mode', 'error');
+    _closeClipEffectMenu();
+    return;
+  }
   try {
     await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: key });
   } catch (_) {}
@@ -769,6 +777,7 @@ const loginScreen     = document.getElementById('login-screen');
 const dashboardScreen = document.getElementById('dashboard-screen');
 const btnSignin       = document.getElementById('btn-signin');
 const btnSignout      = document.getElementById('btn-signout');
+const _signOutBtnDefaultHtml = btnSignout ? btnSignout.innerHTML : '';
 const dirFolderBtn    = document.getElementById('kc-dir-folder-btn');
 const loginError      = document.getElementById('login-error');
 const spUserAvatar    = document.getElementById('sp-user-avatar');
@@ -1256,6 +1265,10 @@ async function executeDeleteSelected() {
 
 // === PHASE_SIDEPANEL_UNIFIED_LIST ===
 let _clearBarExitConfirmPending = null;
+let _signOutConfirmPending = false;
+let _signOutConfirmTimer = null;
+let _signOutOverlayTabId = null;
+let _signOutConfirmEscHandler = null;
 
 function dismissClearConfirmPendingIfActive() {
   if (_clearBarExitConfirmPending) {
@@ -1573,6 +1586,7 @@ onAuthStateChanged(auth, async (user) => {
       if (chrome?.storage?.local) {
         chrome.storage.local.remove('kickclipUserId').catch(() => {});
       }
+      try { await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: 'none' }); } catch (_) {}
       showLoginScreen();
       return;
     }
@@ -1597,6 +1611,7 @@ onAuthStateChanged(auth, async (user) => {
       if (chrome?.storage?.local) {
         chrome.storage.local.remove('kickclipUserId').catch(() => {});
       }
+      try { await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: 'none' }); } catch (_) {}
       showLoginScreen();
     }
   }
@@ -2477,8 +2492,54 @@ function attachClearButtonHandlers() {
 }
 
 // ── Button event listeners ────────────────────────────────────────────────────
+function _beginSignOutConfirm() {
+  _signOutConfirmPending = true;
+  btnSignout.classList.add('confirm-pending');
+  btnSignout.textContent = 'Close editor and sign out?';
+  if (_signOutConfirmTimer) clearTimeout(_signOutConfirmTimer);
+  _signOutConfirmTimer = setTimeout(_cancelSignOutConfirm, 5000);
+  _signOutConfirmEscHandler = (keyEvent) => {
+    if (keyEvent.key === 'Escape') _cancelSignOutConfirm();
+  };
+  document.addEventListener('keydown', _signOutConfirmEscHandler);
+}
+
+function _cancelSignOutConfirm() {
+  _signOutConfirmPending = false;
+  _signOutOverlayTabId = null;
+  btnSignout.classList.remove('confirm-pending');
+  btnSignout.innerHTML = _signOutBtnDefaultHtml;
+  if (_signOutConfirmTimer) { clearTimeout(_signOutConfirmTimer); _signOutConfirmTimer = null; }
+  if (_signOutConfirmEscHandler) {
+    document.removeEventListener('keydown', _signOutConfirmEscHandler);
+    _signOutConfirmEscHandler = null;
+  }
+}
+
 btnSignin.addEventListener('click', signInWithGoogle);
-btnSignout.addEventListener('click', signOut);
+btnSignout.addEventListener('click', async () => {
+  if (_signOutConfirmPending) {
+    const tabId = _signOutOverlayTabId;
+    _cancelSignOutConfirm();
+    if (tabId != null) {
+      try {
+        await chrome.runtime.sendMessage({
+          action: 'cancel-erase-overlay', tabId,
+        });
+      } catch (_) {}
+    }
+    signOut();
+    return;
+  }
+  let tabId = null;
+  try {
+    const r = await chrome.runtime.sendMessage({ action: 'find-erase-overlay' });
+    tabId = r?.tabId ?? null;
+  } catch (_) {}
+  if (tabId == null) { signOut(); return; }
+  _signOutOverlayTabId = tabId;
+  _beginSignOutConfirm();
+});
 if (dirFolderBtn) {
   dirFolderBtn.addEventListener('click', () => { handleOpenFolderSettings(); });
 }

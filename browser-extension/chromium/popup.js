@@ -129,17 +129,21 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 // ─────────── Clip Effect dropdown (shares kc_clip_effect with the sidepanel) ───────────
 const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
-const KC_CLIP_EFFECT_VALUES = ['none', 'bg-remove', 'erase'];
-const KC_CLIP_EFFECT_LABELS = { 'none': 'None', 'bg-remove': 'Remove background', 'erase': 'Erase' };
+const KC_CLIP_EFFECT_VALUES = ['none', 'erase'];
+// Displayed names differ from the stored values: 'none' shows as Instant and 'erase' as
+// Editor. The values are kept as they are so existing settings keep working; only the
+// wording changed when the overlay grew beyond erasing.
+const KC_CLIP_EFFECT_LABELS = { 'none': 'Instant', 'erase': 'Editor' };
 const ceBtn = document.getElementById('pp-clip-effect-btn');
 const ceMenu = document.getElementById('pp-clip-effect-menu');
+const ceNote = document.getElementById('pp-clip-mode-note');
 let _ceOpen = false;
 let _ceOutside = null;
 
-function ceNormalize(v) { const s = String(v ?? '').trim(); return KC_CLIP_EFFECT_VALUES.includes(s) ? s : 'none'; }
+function ceNormalize(v) { const s = String(v ?? '').trim(); if (s === 'bg-remove') return 'erase'; return KC_CLIP_EFFECT_VALUES.includes(s) ? s : 'none'; }
 function ceRender(value) {
   const key = ceNormalize(value);
-  ceBtn.innerHTML = '<span class="kc-dropdown-btn-label">' + (KC_CLIP_EFFECT_LABELS[key] || 'None') + '</span>';
+  ceBtn.innerHTML = '<span class="kc-dropdown-btn-label">' + (KC_CLIP_EFFECT_LABELS[key] || 'Instant') + '</span>';
   ceBtn.dataset.effect = key;
   ceBtn.setAttribute('aria-expanded', _ceOpen ? 'true' : 'false');
   ceMenu.innerHTML = '';
@@ -159,13 +163,27 @@ function ceClose() {
   if (_ceOutside) { document.removeEventListener('click', _ceOutside, true); _ceOutside = null; }
 }
 function ceOpen() {
+  ceNote.hidden = true;
   _ceOpen = true; ceMenu.hidden = false; ceBtn.setAttribute('aria-expanded', 'true');
   ceRender(ceBtn.dataset.effect || 'none');
   _ceOutside = (e) => { const wrap = ceBtn.parentNode; if (wrap && !wrap.contains(e.target)) ceClose(); };
   setTimeout(() => { if (_ceOpen) document.addEventListener('click', _ceOutside, true); }, 0);
 }
-function ceSelect(value) {
+async function ceSelect(value) {
   const key = ceNormalize(value);
+  if (key === 'erase') {
+    let signedIn = false;
+    try {
+      const r = await chrome.storage.local.get('kickclipUserId');
+      signedIn = !!r?.kickclipUserId;
+    } catch (_) {}
+    if (!signedIn) {
+      ceNote.hidden = false;
+      ceClose();
+      return;
+    }
+  }
+  ceNote.hidden = true;
   try { chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: key }); } catch (_) {}
   ceRender(key);
   ceClose();

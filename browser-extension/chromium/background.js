@@ -275,6 +275,50 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return false;
   }
 
+  // === PHASE_ERASE_OVERLAY_REMOTE ===
+  if (request.action === 'find-erase-overlay') {
+    (async () => {
+      let found = null;
+      try {
+        const tabs = await chrome.tabs.query({});
+        const asks = tabs.map((t) => new Promise((res) => {
+          if (!t.id) { res(null); return; }
+          const u = t.url || '';
+          if (u.startsWith('chrome://') || u.startsWith('chrome-extension://') ||
+              u.startsWith('edge://') || u.startsWith('arc://')) { res(null); return; }
+          const timer = setTimeout(() => res(null), 300);
+          chrome.tabs.sendMessage(t.id, { action: 'erase-overlay-query' }, { frameId: 0 }, (r) => {
+            clearTimeout(timer);
+            if (chrome.runtime.lastError) { res(null); return; }
+            res(r?.open ? t.id : null);
+          });
+        }));
+        const results = await Promise.all(asks);
+        found = results.find((x) => x != null) ?? null;
+      } catch (_) {}
+      sendResponse({ tabId: found });
+    })();
+    return true;
+  }
+
+  if (request.action === 'cancel-erase-overlay') {
+    (async () => {
+      try {
+        if (request.tabId) {
+          await new Promise((res) => {
+            chrome.tabs.sendMessage(request.tabId, { action: 'erase-overlay-cancel' }, { frameId: 0 }, () => {
+              if (chrome.runtime.lastError) {}
+              res();
+            });
+          });
+        }
+      } catch (_) {}
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+  // === END PHASE_ERASE_OVERLAY_REMOTE ===
+
   if (request.action === 'sidepanel-opened' || request.action === 'sidepanel-closed') {
     try {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

@@ -245,6 +245,14 @@
       width: 18px;
       height: 18px;
     }
+    #btn-signout.confirm-pending {
+      color: var(--kc-accent, #BC13FE);
+      opacity: 1;
+      font-family: 'Roboto', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
 
     .sp-clip {
       display: flex;
@@ -1407,11 +1415,11 @@
 
       <!-- === PHASE_CLIP_EFFECT === -->
       <div id="sp-clip-effect-row" class="sp-setting-row">
-        <span class="sp-setting-label">Effect</span>
+        <span class="sp-setting-label">Clip mode</span>
         <div class="kc-dropdown-wrap" id="kc-clip-effect-wrap">
           <button type="button" id="kc-clip-effect-btn" class="kc-dropdown-btn"
                   title="Clip effect" aria-label="Select clip effect"
-                  aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">None</span></button>
+                  aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Instant</span></button>
           <ul id="kc-clip-effect-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
         </div>
       </div>

@@ -197,6 +197,7 @@ function _kcIsLoneModifierKey(event) {
   const k = event && event.key;
   return k === 'Meta' || k === 'Control' || k === 'Shift' || k === 'Alt' || k === 'AltGraph';
 }
+let _kcModChordArmed = false;   // Cmd and Shift are down and nothing else has been
 let _windowFocused = true; // false while the browser window is not focused
 let _sidePanelFocused = false; // true while the KickClip Side Panel has focus
 let _sidePanelOpen = false;
@@ -333,7 +334,7 @@ let _clipEffect = 'none'; // 'none' | 'bg-remove' | 'erase'
 
 function _normalizeClipEffect(value) {
   const v = String(value ?? '').trim();
-  if (v === 'bg-remove') return 'bg-remove';
+  if (v === 'bg-remove') return 'erase';
   if (v === 'erase') return 'erase';
   return 'none';
 }
@@ -356,6 +357,36 @@ function initClipEffectSync() {
 }
 
 initClipEffectSync();
+
+async function _kcToggleClipMode() {
+  if (_kcInflightClip && !_kcInflightClip.done) return;
+  const next = _clipEffect === 'erase' ? 'none' : 'erase';
+  if (next === 'erase') {
+    let signedIn = false;
+    try {
+      const r = await chrome.storage.local.get('kickclipUserId');
+      signedIn = !!r?.kickclipUserId;
+    } catch (_) {}
+    if (!signedIn) {
+      showCoreClipToast({
+        kind: 'error',
+        text: "Couldn't switch to Editor mode.\nClick here to sign in.",
+        align: 'right',
+        duration: 3200,
+        onClick: () => {
+          try { chrome.runtime.sendMessage({ action: 'open-sidepanel' }); } catch (_) {}
+        },
+      });
+      return;
+    }
+  }
+  try { await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: next }); } catch (_) {}
+  showCoreClipToast({
+    kind: 'success',
+    text: next === 'erase' ? 'Clip Mode: Editor' : 'Clip Mode: Instant',
+    icon: false,
+  });
+}
 
 // === PHASE_ACTIVE_TOGGLE ===
 // Master on/off from the toolbar popup. When off: no CoreItem activation, no overlay, and the
@@ -3862,6 +3893,7 @@ async function maybeRemoveBackground(blob) {
 
 let _kcEraseCommitted = null;   // Blob committed by the overlay's Done, or null
 let _kcEraseSetStatus = null;   // overlay status setter while an erase overlay is open
+let _kcEraseCancel = null;
 
 async function maybeEraseClip(blobPromise) {
   if (_clipEffect !== 'erase') return blobPromise;
@@ -3894,7 +3926,19 @@ async function maybeEraseClip(blobPromise) {
     };
 
     const bindStatus = (fn) => { _kcEraseSetStatus = fn; };
-    const out = await mod.showEraseOverlay(blobPromise, inpaintFn, commitFn, bindStatus);
+
+    const bgFn = async (b) => {
+      const sendBlob = await _kcBgEncodeForSend(b);
+      if (!sendBlob) return null;
+      const dataUrl = await _ceBlobToDataURL(sendBlob);
+      const res = await chrome.runtime.sendMessage({ action: 'bg-remove-server', dataUrl });
+      if (!res || !res.ok || !res.dataUrl) return { error: (res && res.error) || 'failed' };
+      return await (await fetch(res.dataUrl)).blob();
+    };
+
+    const p = mod.showEraseOverlay(blobPromise, inpaintFn, commitFn, bindStatus, bgFn);
+    _kcEraseCancel = p.cancelExternal || null;
+    const out = await p;
     if (out.action === 'cancel') {
       _kcFinishClipControl(ctrl, { kind: 'canceled', text: KC_CLIP_CANCELED_TEXT, isCancel: true });
       return null;
@@ -3904,6 +3948,7 @@ async function maybeEraseClip(blobPromise) {
     return null;
   } finally {
     _kcEraseSetStatus = null;
+    _kcEraseCancel = null;
     if (ctrl && !ctrl.done) {
       ctrl.failsafe = setTimeout(() => {
         _kcFinishClipControl(ctrl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
@@ -4709,6 +4754,15 @@ function mountSaveMessageListener() {
       _sidePanelOpen = false;
       return false;
     }
+    if (request?.action === 'erase-overlay-query') {
+      sendResponse({ open: !!_kcEraseCancel });
+      return true;
+    }
+    if (request?.action === 'erase-overlay-cancel') {
+      try { if (_kcEraseCancel) _kcEraseCancel(); } catch (_) {}
+      sendResponse({ ok: true });
+      return true;
+    }
     if (request?.action === 'saved-urls-updated') {
       chrome.runtime.sendMessage({ action: 'get-saved-urls' }, (response) => {
         if (chrome.runtime.lastError) return;
@@ -5038,6 +5092,11 @@ function schedulePreScanScrollDebounced() {
   // above). The keydown listener just reads it; no separate init needed.
 
   document.addEventListener('keydown', async (event) => {
+    if (event.metaKey && event.shiftKey && _kcIsLoneModifierKey(event)) {
+      _kcModChordArmed = true;
+    } else {
+      _kcModChordArmed = false;
+    }
     if (!_activeShortcut) return;
     // PHASE_ACTIVE_TOGGLE: master off → clip shortcut inert (⌘C falls through to the browser).
     if (!_kcActiveEnabled) return;
@@ -5187,6 +5246,15 @@ function schedulePreScanScrollDebounced() {
     } catch (e) {
       // defensive — clip failures shouldn't crash the listener
     }
+  }, true);
+  document.addEventListener('keyup', async (event) => {
+    if (!_kcModChordArmed) return;
+    if (!_kcIsLoneModifierKey(event)) { _kcModChordArmed = false; return; }
+    if (event.metaKey && event.shiftKey) return;   // still holding both
+    _kcModChordArmed = false;
+    if (!_kcActiveEnabled) return;
+    if (IS_IFRAME) return;
+    await _kcToggleClipMode();
   }, true);
   // === END PHASE_KEYDOWN_SHORTCUT ===
   window.addEventListener('resize', () => schedulePreScan(document, false, 'window-resize'), { passive: true });
