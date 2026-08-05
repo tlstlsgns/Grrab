@@ -17,6 +17,8 @@
     .pp-toggle input:checked + .pp-toggle-track::after { transform: translateX(16px); }
     .pp-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
     .pp-row-label { margin-right: auto; font-size: 12px; font-weight: 500; color: #6b7280; }
+    .pp-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; cursor: pointer; }
+    .pp-check input { margin: 0; accent-color: #BC13FE; cursor: pointer; }
     .pp-shortcut { display: flex; align-items: center; gap: 6px; }
     #pp-shortcut-btn { font-size: 12px; font-weight: 500; color: #374151; background: #f9fafb; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; padding: 4px 8px; cursor: pointer; min-width: 60px; text-align: center; white-space: nowrap; }
     #pp-shortcut-btn.recording { color: rgb(99,102,241); border-color: rgba(99,102,241,0.6); background: rgba(99,102,241,0.08); }
@@ -63,9 +65,16 @@
   <div class="pp-row">
     <span class="pp-row-label">Clip Size</span>
     <div class="kc-dropdown-wrap">
-      <button type="button" id="pp-clip-size-btn" class="kc-dropdown-btn" aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Original</span></button>
+      <button type="button" id="pp-clip-size-btn" class="kc-dropdown-btn" aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Auto</span></button>
       <ul id="pp-clip-size-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
     </div>
+  </div>
+  <div class="pp-row">
+    <span class="pp-row-label">Upscale</span>
+    <label class="pp-check">
+      <input type="checkbox" id="pp-upscale-auto" />
+      <span>Auto</span>
+    </label>
   </div>
   <div class="pp-row">
     <span class="pp-row-label">Clip mode</span>

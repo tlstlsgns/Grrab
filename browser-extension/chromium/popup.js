@@ -79,7 +79,9 @@ onShortcutChange(() => { if (!_recording) getShortcut().then(renderChip); });
 // ─────────── Clip Size dropdown (shares kc_clip_max_dim with the sidepanel) ───────────
 const KC_CLIP_SIZE_KEY = 'kc_clip_max_dim';
 const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600'];
-const KC_CLIP_SIZE_LABELS = { '0': 'Original', '512': '512px', '1024': '1024px', '1600': '1600px' };
+// Displayed names differ from stored values: '0' shows as Auto (no resize — deliver
+// whatever came out of upscaling). The value stays 0 so existing settings need no migration.
+const KC_CLIP_SIZE_LABELS = { '0': 'Auto', '512': '512px', '1024': '1024px', '1600': '1600px' };
 const csBtn = document.getElementById('pp-clip-size-btn');
 const csMenu = document.getElementById('pp-clip-size-menu');
 let _csOpen = false;
@@ -88,7 +90,7 @@ let _csOutside = null;
 function csNormalize(v) { if (v === '2880' || v === 2880) return '1600'; const s = String(v ?? '').trim(); return KC_CLIP_SIZE_VALUES.includes(s) ? s : '0'; }
 function csRender(value) {
   const key = csNormalize(value);
-  csBtn.innerHTML = '<span class="kc-dropdown-btn-label">' + (KC_CLIP_SIZE_LABELS[key] || 'Original') + '</span>';
+  csBtn.innerHTML = '<span class="kc-dropdown-btn-label">' + (KC_CLIP_SIZE_LABELS[key] || 'Auto') + '</span>';
   csBtn.dataset.size = key;
   csBtn.setAttribute('aria-expanded', _csOpen ? 'true' : 'false');
   csMenu.innerHTML = '';
@@ -125,6 +127,23 @@ try {
 } catch (_) { csRender('0'); }
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes[KC_CLIP_SIZE_KEY]) csRender(String(Number(changes[KC_CLIP_SIZE_KEY].newValue) || 0));
+});
+
+// ─────────── Upscale Auto checkbox (shares kc_upscale_auto with the sidepanel) ───────────
+const KC_UPSCALE_AUTO_KEY = 'kc_upscale_auto';
+const upscaleAuto = document.getElementById('pp-upscale-auto');
+try {
+  chrome.storage.local.get(KC_UPSCALE_AUTO_KEY).then((r) => {
+    upscaleAuto.checked = !(r && r[KC_UPSCALE_AUTO_KEY] === false); // default ON when unset
+  });
+} catch (_) { upscaleAuto.checked = true; }
+upscaleAuto.addEventListener('change', () => {
+  try { chrome.storage.local.set({ [KC_UPSCALE_AUTO_KEY]: !!upscaleAuto.checked }); } catch (_) {}
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes[KC_UPSCALE_AUTO_KEY]) {
+    upscaleAuto.checked = (changes[KC_UPSCALE_AUTO_KEY].newValue !== false);
+  }
 });
 
 // ─────────── Clip Effect dropdown (shares kc_clip_effect with the sidepanel) ───────────

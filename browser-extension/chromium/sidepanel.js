@@ -187,13 +187,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // === END PHASE_UPLOAD_FORMAT ===
 
 // === PHASE_CLIP_SIZE ===
-// Clip image size: target longest-edge (px) written to kc_clip_max_dim (0 = original).
+// Clip image size: target longest-edge (px) written to kc_clip_max_dim (0 = auto, no resize).
 // Read by coreEntry (clipboard) + save path. Custom dropdown mirroring the upload-format
 // control so the button style + toggle icon match (shared .kc-dropdown-* classes).
 const KC_CLIP_SIZE_KEY = 'kc_clip_max_dim';
 const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600'];
+// Displayed names differ from stored values: '0' shows as Auto (no resize — deliver
+// whatever came out of upscaling). The value stays 0 so existing settings need no migration.
 const KC_CLIP_SIZE_LABELS = {
-  '0': 'Original',
+  '0': 'Auto',
   '512': '512px',
   '1024': '1024px',
   '1600': '1600px',
@@ -214,7 +216,7 @@ function _renderClipSizeUI(value) {
   const btn = document.getElementById('kc-clip-size-btn');
   const menu = document.getElementById('kc-clip-size-menu');
   if (!btn || !menu) return;
-  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_CLIP_SIZE_LABELS[key] || 'Original'}</span>`;
+  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_CLIP_SIZE_LABELS[key] || 'Auto'}</span>`;
   btn.dataset.size = key;
   btn.setAttribute('aria-expanded', _kcClipSizeMenuOpen ? 'true' : 'false');
   menu.innerHTML = '';
@@ -305,6 +307,29 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes[KC_CLIP_SIZE_KEY]) return;
   _renderClipSizeUI(String(Number(changes[KC_CLIP_SIZE_KEY].newValue) || 0));
 });
+
+const KC_UPSCALE_AUTO_KEY = 'kc_upscale_auto';
+const spUpscaleAuto = document.getElementById('sp-upscale-auto');
+
+async function _loadUpscaleAutoSetting() {
+  try {
+    const r = await chrome.storage.local.get(KC_UPSCALE_AUTO_KEY);
+    if (spUpscaleAuto) spUpscaleAuto.checked = (r?.[KC_UPSCALE_AUTO_KEY] !== false); // default ON when unset
+  } catch (_) {
+    if (spUpscaleAuto) spUpscaleAuto.checked = true;
+  }
+}
+
+spUpscaleAuto?.addEventListener('change', () => {
+  try { chrome.storage.local.set({ [KC_UPSCALE_AUTO_KEY]: !!spUpscaleAuto.checked }); } catch (_) {}
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes[KC_UPSCALE_AUTO_KEY]) return;
+  if (spUpscaleAuto) spUpscaleAuto.checked = (changes[KC_UPSCALE_AUTO_KEY].newValue !== false);
+});
+
+_loadUpscaleAutoSetting();
 // === END PHASE_CLIP_SIZE ===
 
 // === PHASE_CLIP_EFFECT ===
