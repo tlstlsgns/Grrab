@@ -5,32 +5,44 @@ ort.env.wasm.numThreads = Math.min(8, (self.navigator && navigator.hardwareConcu
 
 const SR_MODEL_PATH = 'vendor/models/realesr-general-x4v3.onnx';
 const SR_SCALE = 4;
-// SR input width cap = max((targetWidth / SR_SCALE) * SR_INPUT_HEADROOM, SR_INPUT_MIN_CAP_W).
-// SR_INPUT_HEADROOM: 1.0 = fastest (model's native 4x point, input≈target/4);
-// raise to 1.5–2.0 for more detail (slower).
-const SR_INPUT_HEADROOM = 1.5;
-// Absolute floor for the SR input width. Without this, small targets (e.g. 512)
-// would yield a tiny formula cap (target/4 * 1.5 = 192 for 512), forcing modest
-// sources like 284px to be pre-downscaled to 192px and badly damaging quality —
-// the SR model can't recover detail that was discarded before inference. The
-// floor ensures small/medium sources reach the SR at full size; only sources
-// larger than SR_INPUT_MIN_CAP_W are pre-downscaled, and only down to this
-// floor. 384 = the established quality/speed sweet spot (~1s inference).
-const SR_INPUT_MIN_CAP_W = 384;
-// Absolute ceiling for the SR input width, independent of the target. Cost scales with input
-// pixels: measured on a 1200px source, a 600px input takes about 6.7s and a 720px input
-// about 10.1s against a 10s client timeout. With 1600 the largest preset the formula caps at
-// 600 and this ceiling is not reached; it remains as a guard if a larger preset is ever
-// added.
-const SR_INPUT_MAX_CAP_W = 720;
+// Ceiling on pixels handed to the model. Measured end to end through this function in the
+// offscreen document on WebGPU: 200k took 4.2s, 400k 6.0s, 500k 7.5s and 700k 11.3s. A
+// real clip adds about 1.5s for encoding and the message round trip, against a ten-second
+// timeout — so 400k lands near 7.5s with room for a slow moment.
+//
+// Inference is only part of it. At 400k input the model returns a 9.6-megapixel image,
+// which is then resized to the clip width and composited with the source alpha; that
+// canvas work costs about as much as the inference.
+//
+// WASM is roughly three times slower throughout, so its ceiling is set well below a
+// third of the WebGPU one. It has not been measured at these sizes directly — a clip at
+// 200k took 9.1 seconds, which left almost no margin, and 150k is the conservative
+// response. Worth measuring properly if anyone reports failures without a GPU.
+const SR_MAX_PIXELS_WEBGPU = 400000;
+const SR_MAX_PIXELS_WASM = 150000;
 
 let _srSession = null;
 let _srProviders = null;
+let _srForceWasm = false;
 
 async function _createSrSession() {
   const buf = await (await fetch(chrome.runtime.getURL(SR_MODEL_PATH))).arrayBuffer();
-  // realesr-general-x4v3 has dynamic output shapes that the WebGPU EP mishandles
-  // ("Shape mismatch attempting to re-use buffer"); WASM runs it correctly.
+  // WebGPU is roughly three times faster than WASM on this model, measured in the
+  // offscreen document across every input size the clip path produces. It failed until
+  // the model's output dimensions were renamed: the export declared them with the same
+  // symbols as the input, so the EP tried to reuse a buffer a quarter of the size it
+  // needed. Anything without WebGPU falls through to WASM, which is slower but correct.
+  if (!_srForceWasm && typeof navigator !== 'undefined' && navigator.gpu) {
+    try {
+      const s = await ort.InferenceSession.create(buf, {
+        executionProviders: ['webgpu'], graphOptimizationLevel: 'all',
+      });
+      _srProviders = 'webgpu';
+      return s;
+    } catch (e) {
+      console.log('[KICKCLIP-LOG] SR webgpu unavailable, using wasm', String(e && e.message || e));
+    }
+  }
   const s = await ort.InferenceSession.create(buf, {
     executionProviders: ['wasm'], graphOptimizationLevel: 'all',
   });
@@ -53,6 +65,11 @@ export async function getSrSession() {
 
 export async function warmUpSr() {
   try { await getSrSession(); } catch (_) {}
+}
+
+export async function getSrMaxPixels() {
+  await getSrSession();
+  return _srProviders === 'webgpu' ? SR_MAX_PIXELS_WEBGPU : SR_MAX_PIXELS_WASM;
 }
 
 // RGB float32 NCHW [1,3,H,W], 0-1 (this export is channels-first; pixel/255, no mean/std).
@@ -102,11 +119,24 @@ async function _outputTensorToBlob(out) {
 // 4x upscale a PNG/image blob. Returns a 4x PNG blob, or null on failure.
 export async function superResolveBlob(blob) {
   try {
-    const session = await getSrSession();
+    let session = await getSrSession();
     const bitmap = await createImageBitmap(blob);
     const { tensor } = _bitmapToInputTensor(bitmap);
     bitmap.close?.();
-    const res = await session.run({ [session.inputNames[0]]: tensor });
+    let res;
+    try {
+      res = await session.run({ [session.inputNames[0]]: tensor });
+    } catch (runErr) {
+      if (_srProviders === 'webgpu') {
+        console.log('[KICKCLIP-LOG] SR webgpu run failed, retrying wasm', String(runErr && runErr.message || runErr));
+        _srSession = null;
+        _srForceWasm = true;
+        session = await getSrSession();
+        res = await session.run({ [session.inputNames[0]]: tensor });
+      } else {
+        throw runErr;
+      }
+    }
     const outTensor = res[session.outputNames[0]];
     const outBlob = await _outputTensorToBlob(outTensor);
     return outBlob;
@@ -134,81 +164,70 @@ async function _fitBlobToWidth(blob, targetWidth) {
   return await canvas.convertToBlob({ type: 'image/png' });
 }
 
-// PHASE_CLIP_SIZE_ALPHA: reapply the source image's alpha onto the (opaque) SR
-// output so transparency and soft shadows survive the SR pass. The SR model is
-// RGB-only and forces output alpha=255; with the white-composite at input, a
-// transparent PNG would otherwise come out opaque on white. The source alpha is
-// bilinearly upscaled to the SR output size and written into the output's alpha
-// channel. Fully opaque sources are detected and returned unchanged.
-async function _reapplySourceAlpha(srBlob, sourceBlob) {
-  try {
-    const [srBmp, srcBmp] = await Promise.all([
-      createImageBitmap(srBlob),
-      createImageBitmap(sourceBlob),
-    ]);
-    const w = srBmp.width, h = srBmp.height;
+// Fit SR output to target width and restore source alpha in one canvas pass.
+async function _fitAndRestoreAlpha(srBlob, sourceBlob, targetWidth) {
+  const srBmp = await createImageBitmap(srBlob);
+  const w = (targetWidth && targetWidth > 0) ? targetWidth : srBmp.width;
+  const h = Math.max(1, Math.round(srBmp.height * (w / srBmp.width)));
 
-    // Upscale the source alpha to the SR output size (bilinear via drawImage).
-    const aCanvas = new OffscreenCanvas(w, h);
-    const aCtx = aCanvas.getContext('2d');
-    aCtx.imageSmoothingEnabled = true;
-    aCtx.imageSmoothingQuality = 'high';
-    aCtx.drawImage(srcBmp, 0, 0, w, h);
-    srcBmp.close?.();
-    const srcData = aCtx.getImageData(0, 0, w, h).data;
-
-    // Fully opaque source → nothing to restore; keep the SR output as-is.
-    let hasTransparency = false;
-    for (let i = 3; i < srcData.length; i += 4) {
-      if (srcData[i] !== 255) { hasTransparency = true; break; }
+  const srcBmp = await createImageBitmap(sourceBlob);
+  let hasAlpha = false;
+  if (srcBmp.width > 0 && srcBmp.height > 0) {
+    const aCanvas = new OffscreenCanvas(srcBmp.width, srcBmp.height);
+    const aCtx = aCanvas.getContext('2d', { willReadFrequently: true });
+    aCtx.drawImage(srcBmp, 0, 0);
+    const nativeData = aCtx.getImageData(0, 0, srcBmp.width, srcBmp.height).data;
+    for (let i = 3; i < nativeData.length; i += 4) {
+      if (nativeData[i] !== 255) { hasAlpha = true; break; }
     }
-    if (!hasTransparency) { srBmp.close?.(); return srBlob; }
-
-    // Overwrite the SR output's alpha channel with the upscaled source alpha.
-    const oCanvas = new OffscreenCanvas(w, h);
-    const oCtx = oCanvas.getContext('2d');
-    oCtx.drawImage(srBmp, 0, 0, w, h);
-    srBmp.close?.();
-    const outImg = oCtx.getImageData(0, 0, w, h);
-    const od = outImg.data;
-    for (let i = 3; i < od.length; i += 4) od[i] = srcData[i];
-    oCtx.putImageData(outImg, 0, 0);
-    return await oCanvas.convertToBlob({ type: 'image/png' });
-  } catch (_) {
-    return srBlob; // on any failure, keep the SR output unchanged
   }
+
+  const canvas = new OffscreenCanvas(w, h);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  if (hasAlpha) {
+    ctx.drawImage(srcBmp, 0, 0, w, h);
+    const srcData = ctx.getImageData(0, 0, w, h).data;
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(srBmp, 0, 0, w, h);
+    const out = ctx.getImageData(0, 0, w, h);
+    for (let i = 3; i < out.data.length; i += 4) out.data[i] = srcData[i];
+    ctx.putImageData(out, 0, 0);
+  } else {
+    ctx.drawImage(srBmp, 0, 0, w, h);
+  }
+
+  srBmp.close?.();
+  srcBmp.close?.();
+  return await canvas.convertToBlob({ type: 'image/png' });
 }
 
 // SR (4x) then fit to exact target WIDTH. Returns PNG blob, or null on failure.
 export async function superResolveToWidth(blob, targetWidth) {
   try {
-    // Cap SR input near the 4x model's native point to cut compute ~ (srcW/capW)^2.
-    // Only DOWNSCALE the input (never upscale before SR — that would feed a blurry image).
+    const maxPixels = await getSrMaxPixels();
+    const bmp = await createImageBitmap(blob);
+    const sw = bmp.width || 1, sh = bmp.height || 1;
+    bmp.close?.();
+
     let input = blob;
-    if (targetWidth && targetWidth > 0) {
-      const capW = Math.min(
-        Math.max(
-          Math.ceil((targetWidth / SR_SCALE) * SR_INPUT_HEADROOM),
-          SR_INPUT_MIN_CAP_W
-        ),
-        SR_INPUT_MAX_CAP_W
-      );
-      const bmp = await createImageBitmap(blob);
-      const sw = bmp.width || 1; bmp.close?.();
-      if (sw > capW) input = await _fitBlobToWidth(blob, capW);
+    let fitW = sw, fitH = sh;
+    if (sw * sh > maxPixels) {
+      const shrink = Math.sqrt(maxPixels / (sw * sh));
+      fitW = Math.max(1, Math.floor(sw * shrink));
+      fitH = Math.max(1, Math.round(sh * (fitW / sw)));
+      input = await _fitBlobToWidth(blob, fitW);
     }
+    console.log('[KICKCLIP-LOG] SR input', {
+      ep: _srProviders, src: `${sw}x${sh}`, fit: `${fitW}x${fitH}`,
+      px: fitW * fitH, max: maxPixels,
+    });
+
     const up = await superResolveBlob(input);
     if (!up) return null;
-    // PHASE_CLIP_SIZE_ALPHA: restore the original alpha onto the opaque SR
-    // output (no-op for opaque sources) so transparency + soft shadows survive.
-    let _result;
-    if (!targetWidth || targetWidth <= 0) {
-      _result = await _reapplySourceAlpha(up, blob);
-    } else {
-      const fitted = await _fitBlobToWidth(up, targetWidth);
-      _result = await _reapplySourceAlpha(fitted, blob);
-    }
-    return _result;
+    return await _fitAndRestoreAlpha(up, blob, targetWidth);
   } catch (e) {
     console.log('[KICKCLIP-LOG] SR-to-width failed', e);
     return null;

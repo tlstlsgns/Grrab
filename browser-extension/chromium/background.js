@@ -735,6 +735,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })();
     return true;
   }
+  if (request.action === 'sr-max-pixels') {
+    (async () => {
+      try {
+        await ensureOffscreen();
+        const res = await chrome.runtime.sendMessage({
+          target: 'offscreen', action: 'sr-max-pixels',
+        });
+        sendResponse(res || { ok: false });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
   // === END PHASE_CLIP_SIZE ===
 
   // === PHASE_BG_REMOVE_SERVER ===

@@ -1,4 +1,4 @@
-import { superResolveToWidth, warmUpSr } from './superResolve.js'; // PHASE_CLIP_SIZE
+import { superResolveToWidth, warmUpSr, getSrMaxPixels } from './superResolve.js'; // PHASE_CLIP_SIZE
 import { inpaintWithMask } from './inpaint.js'; // PHASE_ERASE
 
 const toDataURL = (blob) => new Promise((res, rej) => {
@@ -22,7 +22,19 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
         const blob = await (await fetch(msg.dataUrl)).blob();
         const up = await superResolveToWidth(blob, msg.targetWidth);
         if (!up) { sendResponse({ ok: false, error: 'sr-null' }); return; }
-        sendResponse({ ok: true, dataUrl: await toDataURL(up) });
+        const outDataUrl = await toDataURL(up);
+        sendResponse({ ok: true, dataUrl: outDataUrl });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+  if (msg.action === 'sr-max-pixels') {
+    (async () => {
+      try {
+        const px = await getSrMaxPixels();
+        sendResponse({ ok: true, px });
       } catch (e) {
         sendResponse({ ok: false, error: String(e) });
       }
