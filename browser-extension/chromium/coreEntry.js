@@ -303,10 +303,13 @@ initShortcutSync();
 
 // === PHASE_CLIP_SIZE ===
 // Cache kc_clip_max_dim: target longest-edge (px) for clipped images.
-// 0 = original (no resize). Presets: 512 / 1024 / 1600 / 2880. Upscaling allowed
+// 0 = auto (no resize). Presets: 512 / 1024 / 1600. Upscaling allowed
 // (presets are targets, not caps) per product decision.
 const KC_CLIP_MAXDIM_KEY = 'kc_clip_max_dim';
 let _clipMaxDim = 0;
+
+const KC_UPSCALE_AUTO_KEY = 'kc_upscale_auto';
+let _upscaleAuto = true;
 
 function initClipSizeSync() {
   (async () => {
@@ -325,7 +328,25 @@ function initClipSizeSync() {
   } catch (_) {}
 }
 
+function initUpscaleAutoSync() {
+  (async () => {
+    try {
+      const r = await chrome.storage.local.get(KC_UPSCALE_AUTO_KEY);
+      _upscaleAuto = (r?.[KC_UPSCALE_AUTO_KEY] !== false); // default ON when unset
+    } catch (_) {
+      _upscaleAuto = true;
+    }
+  })();
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes[KC_UPSCALE_AUTO_KEY]) return;
+      _upscaleAuto = (changes[KC_UPSCALE_AUTO_KEY].newValue !== false);
+    });
+  } catch (_) {}
+}
+
 initClipSizeSync();
+initUpscaleAutoSync();
 // === END PHASE_CLIP_SIZE ===
 
 // === PHASE_CLIP_EFFECT ===
@@ -435,6 +456,7 @@ const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
 const KC_CLIP_UPSCALING_TEXT = 'Upscaling image…';
 const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
 const KC_CLIP_SR_FALLBACK_TEXT = 'Upscaling failed — original image clipped';
+const KC_CLIP_SR_TOO_LARGE_TEXT = "Image is beyond the upscaler's range.\nClipped at original size.";
 const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
 const KC_CLIP_BG_FALLBACK_TEXT = 'Background removal failed — original clipped';
 const KC_CLIP_BG_SIGNIN_TEXT = 'Sign in to remove backgrounds';
@@ -556,7 +578,7 @@ function _kcClipCursorWait(on) {
 // Terminal transition for a clip control: 'success' | 'error' | 'canceled'.
 // No-op if already done, so a cancel cannot be overwritten by a later
 // success/error resolution (and a resolution cannot undo a cancel).
-function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = false } = {}) {
+function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = false, align, duration } = {}) {
   if (!ctrl || ctrl.done) return;
   ctrl.done = true;
   if (isCancel) {
@@ -567,8 +589,13 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
   ctrl.failsafe = null;
   const finalText = text || (kind === 'success' ? KC_CLIP_DEFAULT_SUCCESS_TEXT : KC_CLIP_DEFAULT_ERROR_TEXT);
   try {
-    if (!ctrl.toast) ctrl.toast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT });
-    if (ctrl.toast) ctrl.toast.update({ kind, text: finalText });
+    if (align != null || duration != null) {
+      try { if (ctrl.toast) ctrl.toast.dismiss(); } catch (_) {}
+      showCoreClipToast({ kind, text: finalText, align: align || 'left', duration: duration ?? 3200 });
+    } else {
+      if (!ctrl.toast) ctrl.toast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT });
+      if (ctrl.toast) ctrl.toast.update({ kind, text: finalText });
+    }
   } catch (_) {}
   // === PHASE_CLIP_OS_NOTIFY ===
   // Tear down the away-detection listeners armed in _kcBeginClipControl.
@@ -584,7 +611,7 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
     // PHASE_CLIP_PROGRESS_TEXT: treat an SR-fallback terminal (gray 'canceled' kind but
     // a real clip of the original image) like a completed clip for the away path, so an
     // away user still gets a completion banner carrying the fallback text.
-    const _terminalDone = (kind === 'success') || !!ctrl._srFallback;
+    const _terminalDone = (kind === 'success') || !!ctrl._srFallback || !!ctrl._srTooLarge;
     if (ctrl.osLoadingShown && ctrl.osNotifId) {
       // A loading "Clipping…" OS notification is already up (user left mid-clip).
       if (_terminalDone && away) {
@@ -3325,7 +3352,9 @@ async function saveActiveCoreItem(request = {}) {
                 // PHASE_CLIP_PROGRESS_TEXT: SR upscaling attempted but fell back to the
                 // original image (timeout/failure) -> neutral 'canceled' VISUAL kind only;
                 // ctrl.cancelled stays false so the original image still saves.
-                if (request.clipControl._srFallback) {
+                if (request.clipControl._srTooLarge) {
+                  _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_TOO_LARGE_TEXT, align: 'right', duration: 3200 });
+                } else if (request.clipControl._srFallback) {
                   _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_FALLBACK_TEXT });
                 } else if (request.clipControl._bgFallback) {
                   const _bgReason = request.clipControl._bgReason || '';
@@ -3503,7 +3532,7 @@ async function saveActiveCoreItem(request = {}) {
     // For 'origin' nothing is uploaded and img_url stays the remote URL.
     const clipSize = _clipMaxDim > 0 ? `${_clipMaxDim}px` : 'origin';
     let clipImageBase64 = '';
-    if (_clipMaxDim > 0 && clipAdjustedBlob) {
+    if ((_clipMaxDim > 0 || _upscaleAuto) && clipAdjustedBlob) {
       try {
         clipImageBase64 = await _ceBlobToDataURL(clipAdjustedBlob);
       } catch (_) { clipImageBase64 = ''; }
@@ -3748,20 +3777,26 @@ function _ceBlobToDataURL(blob) {
 }
 
 // === PHASE_CLIP_SIZE ===
-// Clip-size = target WIDTH (kc_clip_max_dim). EXACT-SIZE semantics: the output
-// width always equals _clipMaxDim, regardless of source.
-//   srcW === target → no-op (return original).
-//   srcW  >  target → local canvas downscale (fast, content-script side, no SR).
-//   srcW  <  target → SR upscale via offscreen ORT (4x model + fit to target).
-// SR is dev-only (offscreen+wasm); in prod the round-trip fails and we keep
-// the original. Every failure/timeout path returns the original blob (no blur).
-// The prior srcW > SR_INPUT_MAX_WIDTH gate is removed: superResolve's own capW
-// (max(target/4*1.5, 384)) bounds the actual SR inference input, so sources
-// between capW and target are downscaled inside SR before inference and finish
-// in reasonable time even at the 1600px target.
+// Upscale (when _upscaleAuto) and clip-size resize (_clipMaxDim) are separate
+// decisions. SR runs at native 4x output (targetWidth: 0 to offscreen); the
+// content script fits to _clipMaxDim afterward when set. Pixel ceiling from
+// offscreen governs whether SR is attempted at all.
+
+// Cached SR input ceiling (px). Stale after offscreen teardown if the execution
+// provider changes — deliberate: offscreen caps input itself; only the quarter
+// test may be slightly wrong.
+let _srMaxPixels = null;
+
+async function _kcGetSrMaxPixels() {
+  if (_srMaxPixels) return _srMaxPixels;
+  try {
+    const res = await chrome.runtime.sendMessage({ action: 'sr-max-pixels' });
+    if (res && res.ok && res.px > 0) { _srMaxPixels = res.px; return _srMaxPixels; }
+  } catch (_) {}
+  return 150000;
+}
 
 // Fast local downscale (canvas, high-quality smoothing). No SR / no offscreen.
-// Used on the srcW > target path for the exact-size semantics.
 async function _kcDownscaleClipBlobToWidth(blob, targetWidth) {
   try {
     const bmp = await createImageBitmap(blob);
@@ -3782,7 +3817,32 @@ async function _kcDownscaleClipBlobToWidth(blob, targetWidth) {
       canvas.toBlob((b) => b ? res(b) : rej(new Error('toBlob null')), 'image/png')
     );
   } catch (_) {
-    return blob; // any failure: keep original (no blur risk)
+    return blob;
+  }
+}
+
+// Canvas resize to exact target width — enlarges or shrinks (no SR).
+async function _kcFitClipBlobToWidth(blob, targetWidth) {
+  try {
+    const bmp = await createImageBitmap(blob);
+    const sw = bmp.width || 1, sh = bmp.height || 1;
+    if (sw === targetWidth) { bmp.close?.(); return blob; }
+    const dw = targetWidth;
+    const dh = Math.max(1, Math.round(sh * (targetWidth / sw)));
+    const canvas = (typeof OffscreenCanvas !== 'undefined')
+      ? new OffscreenCanvas(dw, dh)
+      : Object.assign(document.createElement('canvas'), { width: dw, height: dh });
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bmp, 0, 0, dw, dh);
+    bmp.close?.();
+    if (canvas.convertToBlob) return await canvas.convertToBlob({ type: 'image/png' });
+    return await new Promise((res, rej) =>
+      canvas.toBlob((b) => b ? res(b) : rej(new Error('toBlob null')), 'image/png')
+    );
+  } catch (_) {
+    return blob;
   }
 }
 
@@ -3799,6 +3859,12 @@ function _kcMarkSrFallback() { // PHASE_CLIP_PROGRESS_TEXT
     if (ctrl) ctrl._srFallback = true;
   } catch (_) {}
 }
+function _kcMarkSrTooLarge() {
+  try {
+    const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+    if (ctrl) ctrl._srTooLarge = true;
+  } catch (_) {}
+}
 function _kcMarkBgFallback(reason) { // PHASE_CLIP_EFFECT
   try {
     const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
@@ -3806,33 +3872,43 @@ function _kcMarkBgFallback(reason) { // PHASE_CLIP_EFFECT
   } catch (_) {}
 }
 async function maybeUpscaleClip(blob) {
-  let _srAttempted = false; // PHASE_CLIP_PROGRESS_TEXT
+  let _srAttempted = false;
   try {
-    if (!blob || !_clipMaxDim || _clipMaxDim <= 0) return blob;
+    if (!blob) return blob;
+
     const bitmap = await createImageBitmap(blob);
-    const srcW = bitmap.width || 1;
+    const srcW = bitmap.width || 1, srcH = bitmap.height || 1;
     bitmap.close?.();
-    if (srcW === _clipMaxDim) return blob;
-    if (srcW > _clipMaxDim) {
-      _kcMorphClipLoadingText(KC_CLIP_RESIZING_TEXT); // PHASE_CLIP_PROGRESS_TEXT
-      return await _kcDownscaleClipBlobToWidth(blob, _clipMaxDim);
+    const srcPx = srcW * srcH;
+
+    let out = blob;
+
+    if (_upscaleAuto) {
+      const ceiling = await _kcGetSrMaxPixels();
+      if (srcPx / 4 > ceiling) {
+        _kcMarkSrTooLarge();
+      } else {
+        _srAttempted = true;
+        _kcMorphClipLoadingText(KC_CLIP_UPSCALING_TEXT);
+        const dataUrl = await _ceBlobToDataURL(blob);
+        const ask = chrome.runtime.sendMessage({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
+        const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), 10000));
+        const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
+        if (res && res.ok && res.dataUrl) {
+          out = await (await fetch(res.dataUrl)).blob();
+        } else {
+          _kcMarkSrFallback();
+        }
+      }
     }
-    // srcW < target: SR upscale path (offscreen). Timeout sized for the worst
-    // observed case (cold start + 600px input on multi-thread wasm ≈ 5–6s)
-    // with margin. On failure or timeout we return the original blob (no blur).
-    _srAttempted = true; // PHASE_CLIP_PROGRESS_TEXT
-    _kcMorphClipLoadingText(KC_CLIP_UPSCALING_TEXT); // PHASE_CLIP_PROGRESS_TEXT
-    const dataUrl = await _ceBlobToDataURL(blob);
-    const ask = chrome.runtime.sendMessage({ action: 'sr-upscale', dataUrl, targetWidth: _clipMaxDim });
-    const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), 10000));
-    const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
-    if (res && res.ok && res.dataUrl) {
-      return await (await fetch(res.dataUrl)).blob();
+
+    if (_clipMaxDim > 0) {
+      _kcMorphClipLoadingText(KC_CLIP_RESIZING_TEXT);
+      out = await _kcFitClipBlobToWidth(out, _clipMaxDim);
     }
-    _kcMarkSrFallback(); // PHASE_CLIP_PROGRESS_TEXT: SR timed out / failed -> original clipped
-    return blob;
+    return out;
   } catch (_) {
-    if (_srAttempted) _kcMarkSrFallback(); // PHASE_CLIP_PROGRESS_TEXT
+    if (_srAttempted) _kcMarkSrFallback();
     return blob;
   }
 }
