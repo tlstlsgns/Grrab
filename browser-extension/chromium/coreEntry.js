@@ -3971,13 +3971,20 @@ let _kcEraseCommitted = null;   // Blob committed by the overlay's Done, or null
 let _kcEraseSetStatus = null;   // overlay status setter while an erase overlay is open
 let _kcEraseCancel = null;
 
-async function maybeEraseClip(blobPromise) {
-  if (_clipEffect !== 'erase') return blobPromise;
+async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
+  if (_clipEffect !== 'erase') return pipelinePromise;
   _kcEraseCommitted = null;
   const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
   if (ctrl && ctrl.failsafe) { clearTimeout(ctrl.failsafe); ctrl.failsafe = null; }
   try { if (ctrl && ctrl.toast) { ctrl.toast.dismiss(); ctrl.toast = null; } } catch (_) {}
   _kcClipCursorWait(false);
+
+  // Video clips may fall back to a tab screenshot after canvas taint; wait for
+  // capture to finish before opening the overlay so the screenshot does not
+  // include it. Image clips skip this — they never take a screenshot.
+  if (ctrl && ctrl._isVideo) {
+    try { await rawBlobPromise; } catch (_) {}
+  }
 
   try {
     const mod = await import(chrome.runtime.getURL('eraseOverlay.js'));
@@ -4012,7 +4019,7 @@ async function maybeEraseClip(blobPromise) {
       return await (await fetch(res.dataUrl)).blob();
     };
 
-    const p = mod.showEraseOverlay(blobPromise, inpaintFn, commitFn, bindStatus, bgFn);
+    const p = mod.showEraseOverlay(pipelinePromise, inpaintFn, commitFn, bindStatus, bgFn);
     _kcEraseCancel = p.cancelExternal || null;
     const out = await p;
     if (out.action === 'cancel') {
@@ -4046,10 +4053,11 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
   const pipelinePromise = Promise.resolve(blobPromise)
     .then((b) => (b ? maybeUpscaleClip(b) : b)) // PHASE_CLIP_SIZE
     .then((b) => (b ? maybeRemoveBackground(b) : b)); // PHASE_CLIP_EFFECT
-  // PHASE_CLIP_EFFECT: erase opens its overlay at gesture time rather than after the
-  // pipeline, so the user sees it immediately and the finished image arrives into it.
+  // PHASE_CLIP_EFFECT: erase opens after video capture (screenshot fallback must
+  // not include the overlay) or immediately for images; upscaling runs in the
+  // caller's pipelinePromise, passed through unchanged.
   const adjustedBlobPromise = (_clipEffect === 'erase')
-    ? maybeEraseClip(pipelinePromise)
+    ? maybeEraseClip(pipelinePromise, blobPromise)
     : pipelinePromise;
   // The thumbnail is what the side panel card displays, and Firestore keeps it
   // permanently, so it must come from the adjusted blob rather than the raw one.
@@ -4683,6 +4691,8 @@ function performSyncClipboardWrite(state) {
         .catch(() => null);
       const blobPromise = combinedPromise.then((r) => r?.blob || null);
       const dataUrlPromise = combinedPromise.then((r) => r?.dataUrl || null);
+      const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+      if (ctrl) ctrl._isVideo = true;
       return attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise);
     }
   }
@@ -4737,6 +4747,8 @@ function performSyncClipboardWrite(state) {
         .catch(() => null);
       const blobPromise = combinedPromise.then((r) => r?.blob || null);
       const dataUrlPromise = combinedPromise.then((r) => r?.dataUrl || null);
+      const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+      if (ctrl) ctrl._isVideo = true;
       return attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise);
     }
     // === PHASE_IMG_DOMINANT_NO_URL_CLIP ===
