@@ -2073,6 +2073,21 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
       }
     } catch (_) { /* defensive — reorder still happened */ }
     // === END PHASE_DEDUP_IMAGE_UPDATE ===
+    const pendingCard = matchedDataCard;
+    if (pendingCard) {
+      pendingCard.dataset.updatePending = '1';
+      pendingCard.classList.add('kc-update-pending');
+      if (pendingCard._updatePendingTimer) {
+        clearTimeout(pendingCard._updatePendingTimer);
+      }
+      pendingCard._updatePendingTimer = setTimeout(() => {
+        if (pendingCard && pendingCard.dataset.updatePending) {
+          delete pendingCard.dataset.updatePending;
+          pendingCard.classList.remove('kc-update-pending');
+        }
+        pendingCard._updatePendingTimer = null;
+      }, 15000);
+    }
     // Server save-url is still called by coreEntry.js. Server
     // dedup handles the data side; this client path handles only
     // the visual reorder + image update.
@@ -4123,6 +4138,14 @@ function reconcileSnapshotSilently(snap) {
       if (mCard) {
         if (mItem.img_url) mCard.dataset.imgUrl = mItem.img_url;
         kcCardItemByEl.set(mCard, mItem);
+        if (mCard.dataset.updatePending) {
+          if (mCard._updatePendingTimer) {
+            clearTimeout(mCard._updatePendingTimer);
+            mCard._updatePendingTimer = null;
+          }
+          delete mCard.dataset.updatePending;
+          mCard.classList.remove('kc-update-pending');
+        }
       }
       return;
     }

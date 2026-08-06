@@ -1048,9 +1048,36 @@
       font-family: 'Roboto', sans-serif;
       font-size: 9px;
       font-weight: 500;
+      padding-left: var(--space-100);
     }
     .data-card-header.delete-pending .data-card-clip {
       display: none;
+    }
+
+    /* Dedup re-clip: header loading until Firestore modified lands */
+    .data-card.kc-update-pending .data-card-header > * {
+      visibility: hidden;
+    }
+    .data-card.kc-update-pending .data-card-header::after {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 50%;
+      margin-top: -6px;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(0, 0, 0, 0.12);
+      border-top-color: #6b7280;
+      border-radius: 50%;
+      animation: data-card-spin 0.7s linear infinite;
+    }
+    .data-card.kc-update-pending {
+      pointer-events: none;
+    }
+    .card-container:has(.data-card.kc-update-pending) .card-wrapper {
+      pointer-events: none;
+      border-color: var(--border-default);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
     /* === PHASE_CARD_CLIPBOARD_COPY === */
