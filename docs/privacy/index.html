@@ -99,7 +99,7 @@
     <h1 class="pp-title">Grrab Privacy Policy</h1>
     <p class="meta">
   <strong>Effective Date:</strong> May 11, 2026<br>
-  <strong>Last Updated:</strong> August 3, 2026
+  <strong>Last Updated:</strong> August 6, 2026
 </p>
   </div>
 
@@ -132,7 +132,7 @@
 
 <h3>2.2 Saved Item Metadata</h3>
 <ul>
-  <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so Grrab can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, a content de-duplication identifier (a stable reference such as a video source URL or a post ID, used to avoid saving the same item twice), the detected platform label (e.g. the social network a saved item came from), an internal correlation ID (a short random string that matches an optimistically-shown card to its stored record), and the organizational folder you assigned (if any) for items you explicitly save.</li>
+  <li><strong>What:</strong> URLs, page titles, image URLs, image preview data (the thumbnail your browser already rendered on the source page, stored so Grrab can display the preview in the side panel when the original image URL is unreachable), content category (Img or SNS), domain name, timestamps, a content de-duplication identifier (a stable reference such as a video source URL or a post ID, used to avoid saving the same item twice), the detected platform label (e.g. the social network a saved item came from), an internal correlation ID (a short random string that matches an optimistically-shown card to its stored record), the organizational folder you assigned (if any), and three flags recording what was done to the image (whether its background was removed, whether anything was erased, and whether upscaling was on), for items you explicitly save.</li>
   <li><strong>When collected:</strong> Only when you press the save shortcut on a page.</li>
   <li><strong>How collected:</strong> Via a content script that runs only at the moment of save, reading the active page's URL, title, and (if you saved an image) the image URL.</li>
   <li><strong>Why:</strong> To store and organize your clips so you can find them later in the Grrab side panel.</li>
@@ -183,9 +183,9 @@
 
 <h3>2.7 Clipped Image (size adjustment, image processing, and storage)</h3>
 <ul>
-  <li><strong>What:</strong> The image you clip, adjusted to your chosen clip size. If the source image is larger than your clip size it is downscaled; if it is smaller, it is enlarged using a super-resolution machine-learning model. This produced image is stored so Grrab can show it as the saved item's preview in the side panel.</li>
+  <li><strong>What:</strong> The image you clip. When Upscale is on, it is enlarged using a super-resolution machine-learning model. It is then resized to your chosen clip size, or left as it is if you chose Auto. This produced image is stored so Grrab can display it as the saved item's preview in the side panel.</li>
   <li><strong>On-device processing:</strong> Upscaling and Erase run <strong>entirely on your device</strong> using models bundled with the extension (executed in a background offscreen document via WebAssembly). Those images are <strong>not</strong> sent anywhere.</li>
-  <li><strong>Background removal:</strong> If you select the Remove background effect, the clipped image <strong>is sent</strong> to Grrab's backend and forwarded to <strong>fal.ai</strong>, which runs the model. Before sending, the image is reduced to at most 2048 pixels on its longest side and encoded as JPEG. This feature requires you to be signed in and is limited to 200 removals per day. See Section 5.3.</li>
+  <li><strong>Background removal:</strong> If you select the Remove background effect, the clipped image <strong>is sent</strong> to Grrab's backend and forwarded to <strong>fal.ai</strong>, which runs the model. Before sending, the image is reduced to at most 2048 pixels wide and encoded as JPEG. This feature requires you to be signed in and is limited to 200 removals per day. See Section 5.3.</li>
   <li><strong>Not retained:</strong> Grrab's backend passes the image through without storing it; only your account identifier and whether the call succeeded are logged. fal.ai does not retain the image after processing.</li>
   <li><strong>When:</strong> Only when you save an image clip while signed in.</li>
   <li><strong>Where stored:</strong> The resulting clip image is uploaded to <strong>Firebase Storage (Google Cloud)</strong> under your user account, so it can serve as the item's preview — independently of, and in addition to, any local-folder or Google Drive copy you chose as your save destination.</li>
@@ -251,7 +251,7 @@
 
 <h3>5.3 fal.ai (only if you use Background removal)</h3>
 <ul>
-  <li><strong>What is shared:</strong> The clipped image you asked to have its background removed, reduced to at most 2048 pixels on its longest side.</li>
+  <li><strong>What is shared:</strong> The clipped image you asked to have its background removed, reduced to at most 2048 pixels wide.</li>
   <li><strong>Purpose:</strong> Running the background-removal model.</li>
   <li><strong>Retention:</strong> fal.ai does not retain the image after processing. Grrab's backend relays it without storing it.</li>
   <li><strong>When:</strong> Only when you select the Remove background effect and are signed in. Limited to 200 removals per day.</li>
