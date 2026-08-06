@@ -134,15 +134,15 @@ const KC_UPSCALE_AUTO_KEY = 'kc_upscale_auto';
 const upscaleAuto = document.getElementById('pp-upscale-auto');
 try {
   chrome.storage.local.get(KC_UPSCALE_AUTO_KEY).then((r) => {
-    upscaleAuto.checked = !(r && r[KC_UPSCALE_AUTO_KEY] === false); // default ON when unset
+    upscaleAuto.checked = (r?.[KC_UPSCALE_AUTO_KEY] === true); // default OFF when unset
   });
-} catch (_) { upscaleAuto.checked = true; }
+} catch (_) { upscaleAuto.checked = false; }
 upscaleAuto.addEventListener('change', () => {
   try { chrome.storage.local.set({ [KC_UPSCALE_AUTO_KEY]: !!upscaleAuto.checked }); } catch (_) {}
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes[KC_UPSCALE_AUTO_KEY]) {
-    upscaleAuto.checked = (changes[KC_UPSCALE_AUTO_KEY].newValue !== false);
+    upscaleAuto.checked = (changes[KC_UPSCALE_AUTO_KEY].newValue === true);
   }
 });
 

@@ -309,7 +309,7 @@ const KC_CLIP_MAXDIM_KEY = 'kc_clip_max_dim';
 let _clipMaxDim = 0;
 
 const KC_UPSCALE_AUTO_KEY = 'kc_upscale_auto';
-let _upscaleAuto = true;
+let _upscaleAuto = false;
 
 function initClipSizeSync() {
   (async () => {
@@ -332,15 +332,15 @@ function initUpscaleAutoSync() {
   (async () => {
     try {
       const r = await chrome.storage.local.get(KC_UPSCALE_AUTO_KEY);
-      _upscaleAuto = (r?.[KC_UPSCALE_AUTO_KEY] !== false); // default ON when unset
+      _upscaleAuto = (r?.[KC_UPSCALE_AUTO_KEY] === true); // default OFF when unset
     } catch (_) {
-      _upscaleAuto = true;
+      _upscaleAuto = false;
     }
   })();
   try {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local' || !changes[KC_UPSCALE_AUTO_KEY]) return;
-      _upscaleAuto = (changes[KC_UPSCALE_AUTO_KEY].newValue !== false);
+      _upscaleAuto = (changes[KC_UPSCALE_AUTO_KEY].newValue === true);
     });
   } catch (_) {}
 }

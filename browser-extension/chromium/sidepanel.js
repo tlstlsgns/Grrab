@@ -314,9 +314,9 @@ const spUpscaleAuto = document.getElementById('sp-upscale-auto');
 async function _loadUpscaleAutoSetting() {
   try {
     const r = await chrome.storage.local.get(KC_UPSCALE_AUTO_KEY);
-    if (spUpscaleAuto) spUpscaleAuto.checked = (r?.[KC_UPSCALE_AUTO_KEY] !== false); // default ON when unset
+    if (spUpscaleAuto) spUpscaleAuto.checked = (r?.[KC_UPSCALE_AUTO_KEY] === true); // default OFF when unset
   } catch (_) {
-    if (spUpscaleAuto) spUpscaleAuto.checked = true;
+    if (spUpscaleAuto) spUpscaleAuto.checked = false;
   }
 }
 
@@ -326,7 +326,7 @@ spUpscaleAuto?.addEventListener('change', () => {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes[KC_UPSCALE_AUTO_KEY]) return;
-  if (spUpscaleAuto) spUpscaleAuto.checked = (changes[KC_UPSCALE_AUTO_KEY].newValue !== false);
+  if (spUpscaleAuto) spUpscaleAuto.checked = (changes[KC_UPSCALE_AUTO_KEY].newValue === true);
 });
 
 _loadUpscaleAutoSetting();
