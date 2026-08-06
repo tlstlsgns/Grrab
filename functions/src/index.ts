@@ -121,6 +121,7 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     img_thumbnail_b64,
     origin_source,
     clip_image_base64, clip_size,
+    is_bgremoved, is_erased, is_upscaled,
   } = req.body;
 
   const isValidString = (v: unknown) => typeof v === "string" && (v as string).trim().length > 0;
@@ -253,6 +254,9 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     if (clientSenderRaw) baseFields.sender = clientSenderRaw;
     if (clientScreenshotPaddingRaw > 0) baseFields.screenshot_padding = clientScreenshotPaddingRaw;
     if (clientTempIdRaw) baseFields.temp_id = clientTempIdRaw;
+    if (typeof is_bgremoved === "boolean") baseFields.is_bgremoved = is_bgremoved;
+    if (typeof is_erased === "boolean") baseFields.is_erased = is_erased;
+    if (typeof is_upscaled === "boolean") baseFields.is_upscaled = is_upscaled;
 
     // Determine the target doc up front so the clip-image Storage upload can
     // use its id for the object path, and the resulting storage URL is written
