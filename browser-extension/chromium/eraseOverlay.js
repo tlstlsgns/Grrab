@@ -31,7 +31,7 @@ let pointerInside = false;
  * @param {(blob: Blob) => void} [commitFn]
  * @param {(setter: (text: string) => void) => void} [bindStatus]
  * @param {(blob: Blob) => Promise<Blob|{error: string}|null>} [bgFn]
- * @returns {Promise<{ action: 'done'|'cancel', blob: Blob|null }>}
+ * @returns {Promise<{ action: 'done'|'cancel', blob: Blob|null, modified?: boolean, bgRemoved?: boolean, erased?: boolean }>}
  */
 export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
   let finishRef = null;
@@ -51,6 +51,8 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
     const history = [];
     let bgApplied = false;
     const bgHistory = [];
+    let eraseApplied = false;
+    const eraseHistory = [];
     let busy = false;
     let scale = 1;
     let srcW = 0;
@@ -547,6 +549,9 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
         blob: action === 'cancel'
           ? (loading ? null : originalBlob)
           : current,
+        modified: current !== originalBlob,
+        bgRemoved: current !== originalBlob && bgApplied,
+        erased: current !== originalBlob && eraseApplied,
       });
     }
     finishRef = finish;
@@ -798,6 +803,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
       updateUi();
       current = history.pop();
       bgApplied = bgHistory.length > 0 ? bgHistory.pop() : false;
+      eraseApplied = eraseHistory.length > 0 ? eraseHistory.pop() : false;
       draft = null;
       selections = [];
       activeStroke = null;
@@ -823,8 +829,10 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
       updateUi();
       history.push(current);
       bgHistory.push(bgApplied);
+      eraseHistory.push(eraseApplied);
       current = originalBlob;
       bgApplied = false;
+      eraseApplied = false;
       draft = null;
       selections = [];
       activeStroke = null;
@@ -910,7 +918,9 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
         statusOverride = '';
         history.push(current);
         bgHistory.push(bgApplied);
+        eraseHistory.push(eraseApplied);
         current = out;
+        eraseApplied = true;
         draft = null;
         selections = [];
         activeStroke = null;
@@ -950,6 +960,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
         if (out instanceof Blob) {
           history.push(current);
           bgHistory.push(bgApplied);
+          eraseHistory.push(eraseApplied);
           current = out;
           bgApplied = true;
           draft = null;

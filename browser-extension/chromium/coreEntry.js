@@ -456,7 +456,7 @@ const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
 const KC_CLIP_UPSCALING_TEXT = 'Upscaling image…';
 const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
 const KC_CLIP_SR_FALLBACK_TEXT = 'Upscaling failed — original image clipped';
-const KC_CLIP_SR_TOO_LARGE_TEXT = "Image is beyond the upscaler's range.\nClipped at original size.";
+const KC_CLIP_SR_TOO_LARGE_TEXT = "Beyond the upscaler's range.\nOriginal image clipped";
 const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
 const KC_CLIP_BG_FALLBACK_TEXT = 'Background removal failed — original clipped';
 const KC_CLIP_BG_SIGNIN_TEXT = 'Sign in to remove backgrounds';
@@ -651,7 +651,7 @@ function _kcBeginClipControl() {
   if (_kcInflightClip && !_kcInflightClip.done) {
     _kcFinishClipControl(_kcInflightClip, { kind: 'canceled', text: KC_CLIP_CANCELED_TEXT, isCancel: true });
   }
-  const ctrl = { seq: ++_kcClipSeq, cancelled: false, done: false, abortReject: null, toast: null, failsafe: null };
+  const ctrl = { seq: ++_kcClipSeq, cancelled: false, done: false, abortReject: null, toast: null, failsafe: null, upscaleAuto: _upscaleAuto };
   try { ctrl.toast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT }); } catch (_) { ctrl.toast = null; }
   ctrl.failsafe = setTimeout(() => {
     _kcFinishClipControl(ctrl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
@@ -3353,7 +3353,7 @@ async function saveActiveCoreItem(request = {}) {
                 // original image (timeout/failure) -> neutral 'canceled' VISUAL kind only;
                 // ctrl.cancelled stays false so the original image still saves.
                 if (request.clipControl._srTooLarge) {
-                  _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_TOO_LARGE_TEXT, align: 'right', duration: 3200 });
+                  _kcFinishClipControl(request.clipControl, { kind: 'success', text: KC_CLIP_SR_TOO_LARGE_TEXT, duration: 3200 });
                 } else if (request.clipControl._srFallback) {
                   _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_FALLBACK_TEXT });
                 } else if (request.clipControl._bgFallback) {
@@ -3523,6 +3523,9 @@ async function saveActiveCoreItem(request = {}) {
         }
       }
     } catch (_) { /* defensive — leave originSource empty */ }
+    if (_clipEffect === 'erase' && _kcEraseModified && originSource) {
+      originSource = `${originSource}#kc-edit-${Date.now()}`;
+    }
     // === END PHASE_ORIGIN_SOURCE ===
 
     // === PHASE_CLIP_IMAGE_STORAGE ===
@@ -3563,6 +3566,9 @@ async function saveActiveCoreItem(request = {}) {
       ...(userId ? { userId } : {}),
       ...(meta?.category      ? { category:       meta.category }      : {}),
       ...(meta?.platform      ? { platform:        meta.platform }      : {}),
+      is_bgremoved: _clipEffect === 'erase' && _kcEraseBgRemoved,
+      is_erased: _clipEffect === 'erase' && _kcEraseErased,
+      is_upscaled: !!(request?.clipControl ? request.clipControl.upscaleAuto : _upscaleAuto),
     };
 
     // === PHASE_CLIP_CANCEL ===
@@ -3968,12 +3974,18 @@ async function maybeRemoveBackground(blob) {
 }
 
 let _kcEraseCommitted = null;   // Blob committed by the overlay's Done, or null
+let _kcEraseModified = false;   // overlay reported pixel change from original
+let _kcEraseBgRemoved = false;  // overlay reported background removal on final blob
+let _kcEraseErased = false;     // overlay reported inpaint erase on final blob
 let _kcEraseSetStatus = null;   // overlay status setter while an erase overlay is open
 let _kcEraseCancel = null;
 
 async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
   if (_clipEffect !== 'erase') return pipelinePromise;
   _kcEraseCommitted = null;
+  _kcEraseModified = false;
+  _kcEraseBgRemoved = false;
+  _kcEraseErased = false;
   const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
   if (ctrl && ctrl.failsafe) { clearTimeout(ctrl.failsafe); ctrl.failsafe = null; }
   try { if (ctrl && ctrl.toast) { ctrl.toast.dismiss(); ctrl.toast = null; } } catch (_) {}
@@ -4026,6 +4038,9 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
       _kcFinishClipControl(ctrl, { kind: 'canceled', text: KC_CLIP_CANCELED_TEXT, isCancel: true });
       return null;
     }
+    _kcEraseModified = !!out.modified;
+    _kcEraseBgRemoved = !!out.bgRemoved;
+    _kcEraseErased = !!out.erased;
     return out.blob;
   } catch (_) {
     return null;
