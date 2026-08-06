@@ -8,6 +8,9 @@ const toDataURL = (blob) => new Promise((res, rej) => {
   r.readAsDataURL(blob);
 });
 
+let _srBusy = false;
+let _inpaintBusy = false;
+
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   if (msg?.target !== 'offscreen') return;
   // === PHASE_CLIP_SIZE ===
@@ -17,6 +20,8 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
     return;
   }
   if (msg.action === 'sr-upscale-run') {
+    if (_srBusy) { sendResponse({ ok: false, error: 'busy' }); return true; }
+    _srBusy = true;
     (async () => {
       try {
         const blob = await (await fetch(msg.dataUrl)).blob();
@@ -26,6 +31,8 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
         sendResponse({ ok: true, dataUrl: outDataUrl });
       } catch (e) {
         sendResponse({ ok: false, error: String(e) });
+      } finally {
+        _srBusy = false;
       }
     })();
     return true;
@@ -44,6 +51,8 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   // === END PHASE_CLIP_SIZE ===
   // === PHASE_ERASE ===
   if (msg.action === 'inpaint-run') {
+    if (_inpaintBusy) { sendResponse({ ok: false, error: 'busy' }); return true; }
+    _inpaintBusy = true;
     (async () => {
       try {
         const blob = await (await fetch(msg.dataUrl)).blob();
@@ -53,6 +62,8 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
         sendResponse({ ok: true, dataUrl: await toDataURL(out) });
       } catch (e) {
         sendResponse({ ok: false, error: String(e) });
+      } finally {
+        _inpaintBusy = false;
       }
     })();
     return true;
