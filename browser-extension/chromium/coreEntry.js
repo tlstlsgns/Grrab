@@ -651,6 +651,13 @@ function _kcBeginClipControl() {
   if (_kcInflightClip && !_kcInflightClip.done) {
     _kcFinishClipControl(_kcInflightClip, { kind: 'canceled', text: KC_CLIP_CANCELED_TEXT, isCancel: true });
   }
+  // Clear sticky Editor flags from a prior clip. maybeEraseClip runs later on the
+  // erase path and resets/sets these again from the overlay result; Instant clips
+  // never enter maybeEraseClip, so without this the previous Done's _kcEraseModified
+  // would stay true into the upload gate.
+  _kcEraseModified = false;
+  _kcEraseBgRemoved = false;
+  _kcEraseErased = false;
   const ctrl = { seq: ++_kcClipSeq, cancelled: false, done: false, abortReject: null, toast: null, failsafe: null, upscaleAuto: _upscaleAuto };
   try { ctrl.toast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT }); } catch (_) { ctrl.toast = null; }
   ctrl.failsafe = setTimeout(() => {
@@ -3519,7 +3526,10 @@ async function saveActiveCoreItem(request = {}) {
           // decoupled from the final imgUrl field (PHASE_ORIGIN_SOURCE_DECOUPLE),
           // preserving existing dedup values.
           originSource = resolvedImageUrl;
-          if (originSource.startsWith('data:')) originSource = '';
+          if (!originSource || originSource.startsWith('data:')) {
+            originSource = String(dominantEl?.currentSrc || dominantEl?.src || '').trim();
+          }
+          if (!originSource) originSource = String(meta?.image?.url || '').trim();
         }
       }
     } catch (_) { /* defensive — leave originSource empty */ }
@@ -3535,7 +3545,8 @@ async function saveActiveCoreItem(request = {}) {
     // For 'origin' nothing is uploaded and img_url stays the remote URL.
     const clipSize = _clipMaxDim > 0 ? `${_clipMaxDim}px` : 'origin';
     let clipImageBase64 = '';
-    if ((_clipMaxDim > 0 || _upscaleAuto || _kcEraseModified) && clipAdjustedBlob) {
+    if ((_clipMaxDim > 0 || _upscaleAuto || (_clipEffect === 'erase' && _kcEraseModified))
+        && clipAdjustedBlob) {
       try {
         clipImageBase64 = await _ceBlobToDataURL(clipAdjustedBlob);
       } catch (_) { clipImageBase64 = ''; }
