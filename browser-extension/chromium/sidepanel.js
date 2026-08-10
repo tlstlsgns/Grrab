@@ -2158,6 +2158,21 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
   // Add to displayedItemIds so loadData() won't duplicate it
   displayedItemIds.add(tempId);
 
+  // Block copy/upload until Firestore 'added' promotes this card (same
+  // spinner + pointer-events lock as the dedup re-clip pending path).
+  if (card) {
+    card.dataset.updatePending = '1';
+    card.classList.add('kc-update-pending');
+    if (card._updatePendingTimer) clearTimeout(card._updatePendingTimer);
+    card._updatePendingTimer = setTimeout(() => {
+      if (card && card.dataset.updatePending) {
+        delete card.dataset.updatePending;
+        card.classList.remove('kc-update-pending');
+      }
+      card._updatePendingTimer = null;
+    }, 15000);
+  }
+
   // Run entrance animation
   animateEntrance(container, wrapper);
 
@@ -4198,6 +4213,15 @@ function reconcileSnapshotSilently(snap) {
     }
 
     kcCardItemByEl.set(existingCard, item);
+
+    if (existingCard.dataset.updatePending) {
+      if (existingCard._updatePendingTimer) {
+        clearTimeout(existingCard._updatePendingTimer);
+        existingCard._updatePendingTimer = null;
+      }
+      delete existingCard.dataset.updatePending;
+      existingCard.classList.remove('kc-update-pending');
+    }
 
     // Remove optimistic marker so this container is treated as a
     // real-rendered card by any future code path.

@@ -3535,7 +3535,7 @@ async function saveActiveCoreItem(request = {}) {
     // For 'origin' nothing is uploaded and img_url stays the remote URL.
     const clipSize = _clipMaxDim > 0 ? `${_clipMaxDim}px` : 'origin';
     let clipImageBase64 = '';
-    if ((_clipMaxDim > 0 || _upscaleAuto) && clipAdjustedBlob) {
+    if ((_clipMaxDim > 0 || _upscaleAuto || _kcEraseModified) && clipAdjustedBlob) {
       try {
         clipImageBase64 = await _ceBlobToDataURL(clipAdjustedBlob);
       } catch (_) { clipImageBase64 = ''; }
