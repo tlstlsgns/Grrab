@@ -1984,9 +1984,9 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
 
   // Race guard: skip when an in-flight optimistic card already matches.
   // On match, update the optimistic card's displayed image to the new clip's
-  // thumbnail/img_url (B1+C from origin_source dedup decisions). Server-side
-  // persistence is left to the in-flight first save; the second clip skips
-  // its own server call (current pattern, no extra cost).
+  // thumbnail/img_url (B1+C from origin_source dedup decisions). The panel only
+  // suppresses the duplicate card; coreEntry skips the duplicate save-url POST
+  // while the first request for the same url+origin_source is still in flight.
   if (incomingOriginSource) {
     for (const [, entry] of optimisticCards.entries()) {
       if ((entry.url || '') !== incomingUrl) continue;

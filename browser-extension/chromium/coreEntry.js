@@ -221,6 +221,11 @@ const METADATA_TOOLTIP_ID = 'kickclip-metadata-tooltip';
 const SAVE_FEEDBACK_KC_MIN_MS = 80;
 
 let _savedUrlSet = new Set(); // saved URLs
+// In-flight save-url POSTs keyed by url + origin_source. The clip control is
+// marked done when the clipboard settles — before the POST — so a second clip
+// of the same image can start while the first request is still travelling.
+// The server cannot see the first doc yet, so without this gate it creates two.
+const _kcInflightSaves = new Set();
 
 /**
  * Synchronously checks _savedUrlSet (kept fresh via get-saved-urls / saved-urls-updated).
@@ -3614,17 +3619,26 @@ async function saveActiveCoreItem(request = {}) {
     }
 
     if (isSignedIn()) {
-      const response = await fetch(`${KC_SERVER_URL}/api/v1/save-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`save failed: ${response.status}`);
+      const saveKey = `${url}\u0000${originSource}`;
+      if (originSource && _kcInflightSaves.has(saveKey)) {
+        return { success: false, reason: 'duplicate-in-flight' };
       }
+      if (originSource) _kcInflightSaves.add(saveKey);
+      try {
+        const response = await fetch(`${KC_SERVER_URL}/api/v1/save-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      return { success: true, payload };
+        if (!response.ok) {
+          throw new Error(`save failed: ${response.status}`);
+        }
+
+        return { success: true, payload };
+      } finally {
+        if (originSource) _kcInflightSaves.delete(saveKey);
+      }
     }
 
     // === PHASE_ANON_CLIP_TELEMETRY ===
