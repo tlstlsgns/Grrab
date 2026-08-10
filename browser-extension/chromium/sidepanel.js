@@ -1799,8 +1799,9 @@ function createDataCard(item) {
 
   let mainContentHtml;
   if (thumbUrl) {
+    const isAlpha = thumbUrl.startsWith('data:image/png');
     mainContentHtml = `
-      <div class="data-card-imgcontainer">
+      <div class="data-card-imgcontainer${isAlpha ? ' kc-alpha' : ''}">
         <img src="${getProxiedImageUrl(thumbUrl)}" alt="${escapedTitle}" class="data-card-image">
       </div>`;
   } else {
@@ -3850,6 +3851,7 @@ function updateCardImage(cardEl, newImgUrl) {
     if (!imgContainer || !imgEl) return;
     const trimmed = String(newImgUrl || '').trim();
     if (!trimmed) return;
+    imgContainer.classList.toggle('kc-alpha', trimmed.startsWith('data:image/png'));
     const proxiedUrl = getProxiedImageUrl(trimmed);
     const preloader = new Image();
     preloader.onload = () => {
