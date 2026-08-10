@@ -82,7 +82,16 @@ async function uploadBase64ImageToStorage(
     const filePath = `${prefix}/${userId}/${itemId}.${ext}`;
     const bucket = getStorage();
     const file = bucket.file(filePath);
-    await file.save(buffer, {metadata: {contentType: mimeType}});
+    await file.save(buffer, {
+      metadata: {
+        contentType: mimeType,
+        // The object path is derived from the document id, so re-uploading for the same item
+        // replaces it and the URL does not change. Without this, a client that already has the
+        // old bytes keeps them until Google's default expiry — a re-clip at a different size
+        // would look like it had not happened.
+        cacheControl: "public, max-age=0, must-revalidate",
+      },
+    });
     try {
       await file.makePublic();
     } catch {/* ignore ACL errors */}
