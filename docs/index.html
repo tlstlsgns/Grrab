@@ -50,6 +50,7 @@
     --font-mono:'SF Mono','SFMono-Regular',Menlo,Monaco,Consolas,monospace;
     --font-display-weight-hero:800; --font-display-weight-feature:700; --font-display-weight-cta:700;
     --display-sm:28px; --display-md:40px; --display-lg:56px; --display-xl:72px;
+    --display-hero:46px;
     --tracking-tight:-0.03em;
     /* ── radii ── */
     --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-2xl:24px; --radius-pill:999px;
@@ -605,9 +606,6 @@
     #top > div{ display:flex !important; justify-content:flex-start !important; }
     #top > div > .btn-ghost{ display:none !important; }
 
-    /* hide the floating-tile interactive stage (the section wrapping #stage) */
-    section:has(#stage){ display:none !important; }
-
     /* stack ALL three rows to 1 col (Row B's inspire-grid was NOT stacking before) */
     .grrab-rowA{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowA > div:last-child{ gap:14px !important; }
@@ -757,11 +755,11 @@
 
 <!-- ══ HERO ══ -->
 <section id="top" style="max-width:960px;margin:0 auto;padding:100px 32px 64px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;">
-  <h1 class="hero-h1" style="font-family:var(--font-display);font-weight:var(--font-display-weight-hero);font-size:var(--display-lg);line-height:1.25;letter-spacing:var(--tracking-tight);color:var(--ink-strong);margin:0;">
-    <span class="hero-h1-lead">Every design starts with hunting</span><br>reference after reference.
+  <h1 class="hero-h1" style="font-family:var(--font-display);font-weight:var(--font-display-weight-hero);font-size:var(--display-hero);line-height:1.25;letter-spacing:var(--tracking-tight);color:var(--ink-strong);margin:0;">
+    <span class="hero-h1-lead">finding, editing, copying...</span><br>Every web image, right on the page.
   </h1>
-  <p class="hero-sub" style="font-size:32px;line-height:1.25;color:var(--ink-700);max-width:32ch;margin:0;font-weight:600;">
-    Grab any image, never low-res<br>— in one shortcut.
+  <p class="hero-sub" style="font-size:28px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:600;">
+    Photoshop in your browser — in one shortcut.
   </p>
   <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
     <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc"><img src="/assets/landing/icons/chrome.svg" alt="" aria-hidden="true" width="20" height="20">Add to Chrome</a>
@@ -769,9 +767,14 @@
   </div>
 </section>
 
-<!-- ══ INTERACTIVE STAGE — grab a tile (open, frameless) ══ -->
+<!-- ══ HERO VIDEO ══ -->
 <section style="max-width:var(--container-max);margin:0 auto;padding:8px 32px 80px;">
-  <div id="stage" style="position:relative;width:100%;height:460px;"></div>
+  <video id="heroVideo"
+         src="/assets/landing/video/rowA_demo.mp4"
+         poster="/assets/landing/img/rowA_demo_poster.webp"
+         autoplay muted loop playsinline preload="metadata"
+         aria-label="Grrab clipping an image from a gallery page"
+         style="display:block;width:100%;height:auto;border-radius:var(--radius-2xl);"></video>
 </section>
 
 <!-- ══ FEATURES ══ -->
@@ -1158,78 +1161,6 @@
       }
     }
   } catch (e) {}
-
-  /* ─────────────────────────── HERO FLOATING TILES ─────────────────────────── */
-  var tilesConfig = [
-    {id:1,x:"1%", y:"9%", w:172,h:192,z:3,grad:"url('/assets/landing/img/hero-1.webp') center/cover",anim:"gfloatA",dur:7.0,delay:0},
-    {id:2,x:"15%",y:"48%",w:150,h:150,z:5,grad:"url('/assets/landing/img/hero-2.webp') center/cover",anim:"gfloatB",dur:8.2,delay:0.6},
-    {id:3,x:"27%",y:"3%", w:160,h:128,z:2,grad:"url('/assets/landing/img/hero-3.webp') center/cover",anim:"gfloatC",dur:9.0,delay:0.2},
-    {id:4,x:"40%",y:"40%",w:156,h:176,z:4,grad:"url('/assets/landing/img/hero-4.webp') center/cover",anim:"gfloatB",dur:7.6,delay:1.0},
-    {id:5,x:"55%",y:"7%", w:150,h:160,z:3,grad:"url('/assets/landing/img/hero-5.webp') center/cover",anim:"gfloatA",dur:8.6,delay:0.4},
-    {id:6,x:"66%",y:"46%",w:160,h:150,z:5,grad:"url('/assets/landing/img/hero-6.webp') center/cover",anim:"gfloatC",dur:7.9,delay:0.8},
-    {id:7,x:"80%",y:"13%",w:166,h:182,z:2,grad:"url('/assets/landing/img/hero-7.webp') center/cover",anim:"gfloatB",dur:8.4,delay:0.3}
-  ];
-  var stage = document.getElementById("stage");
-  var badge = document.getElementById("grabBadge");
-  var toast = document.getElementById("grabToast");
-  var hoveredId = null, grabbingId = null, grabT = null, toastT = null;
-  var placeholderSvg = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.16)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
-
-  tilesConfig.forEach(function(t){
-    var outer = document.createElement("div");
-    outer.style.cssText = "position:absolute;left:"+t.x+";top:"+t.y+";width:"+t.w+"px;height:"+t.h+"px;z-index:"+t.z+";will-change:transform;";
-    if(!reduceMotion){ outer.style.animation = t.anim+" "+t.dur+"s ease-in-out "+t.delay+"s infinite"; }
-    outer.className = "float-tile";
-
-    var inner = document.createElement("div");
-    inner.style.cssText = "position:relative;width:100%;height:100%;border-radius:12px;background:"+t.grad+";border:1px solid rgba(0,0,0,0.06);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);transform:scale(1);transition:transform .18s cubic-bezier(.25,.1,.25,1),box-shadow .15s ease;cursor:url("+CURSOR+") 3 2, auto;";
-    inner.innerHTML = placeholderSvg;
-
-    function setActive(on){
-      if(on){
-        inner.style.boxShadow = "0 0 0 2px #BC13FE, 0 10px 28px rgba(188,19,254,0.30)";
-        inner.style.transform = "scale(1.04)";
-        outer.style.animationPlayState = "paused";
-        outer.style.zIndex = "20";
-      } else if(grabbingId !== t.id){
-        inner.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
-        inner.style.transform = "scale(1)";
-        outer.style.animationPlayState = "running";
-        outer.style.zIndex = String(t.z);
-      }
-    }
-    outer.addEventListener("mouseenter", function(){ hoveredId = t.id; setActive(true); badge.style.opacity = "1"; });
-    outer.addEventListener("mouseleave", function(){ if(hoveredId===t.id) hoveredId=null; setActive(false); badge.style.opacity = "0"; });
-    outer.addEventListener("mousemove", function(e){ badge.style.left = e.clientX+"px"; badge.style.top = e.clientY+"px"; });
-    outer.addEventListener("click", function(){ grab(t.id, inner, outer); });
-
-    outer.appendChild(inner);
-    stage.appendChild(outer);
-    t._inner = inner; t._outer = outer;
-  });
-
-  function grab(id, inner, outer){
-    if(grabbingId !== null) return;
-    grabbingId = id;
-    if(inner){ inner.style.transform = "scale(1.11)"; }
-    // toast
-    toast.classList.add("show");
-    clearTimeout(grabT); clearTimeout(toastT);
-    grabT = setTimeout(function(){
-      grabbingId = null;
-      if(inner){ inner.style.transform = (hoveredId===id) ? "scale(1.04)" : "scale(1)"; }
-      if(outer && hoveredId!==id){ outer.style.animationPlayState="running"; }
-    }, 260);
-    toastT = setTimeout(function(){ toast.classList.remove("show"); }, 1700);
-  }
-
-  document.addEventListener("keydown", function(e){
-    var isCopy = (e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C");
-    if(isCopy && hoveredId !== null){
-      var t = tilesConfig.filter(function(x){return x.id===hoveredId;})[0];
-      if(t) grab(t.id, t._inner, t._outer);
-    }
-  });
 
   /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
   var inspireConfig = [
