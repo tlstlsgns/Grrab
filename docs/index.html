@@ -92,9 +92,9 @@
   .grab-toast.show{opacity:1;transform:translateY(0);}
 
   /* All three feature headings share one size. Row A's column is the narrowest, so
-     36px is the ceiling that keeps its single-line heading from wrapping. Set it here
+     30px is the ceiling that keeps its single-line heading from wrapping. Set it here
      only — do not reintroduce a font-size on the individual h2 elements. */
-  .feature-h2{font-size:clamp(24px,3.1vw,36px);}
+  .feature-h2{font-size:clamp(24px,3.1vw,30px);}
 
   /* Hero line 1 is longer than line 2, so it is scaled down until both lines measure
      the same width. The value is a ratio of the h1 size, not a fixed px, so it holds
@@ -109,84 +109,30 @@
   .rowA-mockup-wrap{position:relative;width:100%;height:auto;overflow:hidden;
     aspect-ratio:1920/1080;align-self:center;order:2;
     border-radius:var(--radius-xl);box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);}
-  .rowA-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
-    background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
-    border-radius:0 24px 0 0;container-type:inline-size;}
-  .rowA-chrome{display:flex;align-items:center;gap:6px;width:100%;height:50px;flex-shrink:0;
+  .rowC-chrome{display:flex;align-items:center;gap:6px;width:100%;height:50px;flex-shrink:0;
     padding:10px 18px 10px 0;}
-  .rowA-urlbar{display:flex;align-items:center;flex:1;height:30px;min-width:0;align-self:center;
+  .rowC-urlbar{display:flex;align-items:center;flex:1;height:30px;min-width:0;align-self:center;
     background:var(--surface);border:1px solid var(--border);border-left:0;border-radius:0 70px 70px 0;}
-  .rowA-urlbar-line{flex:1;height:3.5px;border-radius:10px;background:var(--border);min-width:0;}
-  .rowA-urlbar-star{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
+  .rowC-urlbar-line{flex:1;height:3.5px;border-radius:10px;background:var(--border);min-width:0;}
+  .rowC-urlbar-star{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
     height:30px;padding-left:12px;padding-right:16px;}
-  .rowA-urlbar-star-icon{width:15px;height:15px;display:block;flex-shrink:0;}
-  .rowA-profile{display:flex;align-items:center;justify-content:flex-end;gap:13px;
+  .rowC-urlbar-star-icon{width:15px;height:15px;display:block;flex-shrink:0;}
+  .rowC-profile{display:flex;align-items:center;justify-content:flex-end;gap:13px;
     height:100%;flex-shrink:0;}
-  .rowA-profile-pill{display:flex;align-items:center;gap:2px;height:30px;
+  .rowC-profile-pill{display:flex;align-items:center;gap:2px;height:30px;
     border:0.5px solid var(--border-strong);border-radius:30px;overflow:hidden;flex-shrink:0;}
-  .rowA-profile-logo{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+  .rowC-profile-logo{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
     background:var(--surface);border-radius:20px;padding:0 5px 1px;flex-shrink:0;}
-  .rowA-profile-logo img{width:20px;height:auto;object-fit:contain;display:block;}
-  .rowA-profile-ext{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+  .rowC-profile-logo img{width:20px;height:auto;object-fit:contain;display:block;}
+  .rowC-profile-ext{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
     padding:0 6px 1px;flex-shrink:0;}
-  .rowA-profile-ext-icon{width:16px;height:16px;display:block;}
-  .rowA-profile-sep{width:1px;height:20px;background:var(--border-strong);flex-shrink:0;}
-  .rowA-profile-avatar{width:20px;height:20px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
+  .rowC-profile-ext-icon{width:16px;height:16px;display:block;}
+  .rowC-profile-sep{width:1px;height:20px;background:var(--border-strong);flex-shrink:0;}
+  .rowC-profile-avatar{width:20px;height:20px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
     border:0.3px solid rgba(115,122,136,.3);}
-  .rowA-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
-  .rowA-profile-menu{width:20px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-  .rowA-profile-menu-icon{width:100%;height:100%;display:block;object-fit:contain;}
-  .rowA-viewport{position:relative;display:flex;flex-direction:row;justify-content:flex-end;align-items:flex-start;flex:1;min-height:0;width:100%;}
-  .rowA-body{flex:1;min-width:0;height:100%;display:flex;flex-direction:row;align-items:flex-start;justify-content:flex-start;
-    padding:15px;background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);
-    border-radius:0 8px 0 0;overflow:hidden;}
-  .rowA-gallery{display:flex;gap:10px;flex:0 0 auto;width:488px;}
-  .rowA-gallery-col{display:flex;flex-direction:column;gap:10px;width:156px;flex:0 0 156px;}
-  .rowA-tile{position:relative;width:156px;height:156px;border-radius:8px;overflow:hidden;flex-shrink:0;}
-  .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .rowA-tile--dim{opacity:.5;}
-  .rowA-tile--active{position:relative;overflow:visible;opacity:1;box-shadow:0 0 22px 0 var(--accent-bright);}
-  .rowA-popup-wrap{width:0;flex-shrink:0;align-self:stretch;display:flex;flex-direction:column;align-items:flex-end;position:relative;}
-  .rowA-popup{position:absolute;top:6px;right:6px;width:254px;display:flex;flex-direction:column;
-    padding-top:6px;background:var(--surface);border:1px solid var(--border-strong);border-radius:7px;
-    box-shadow:0 0 2px 0 rgba(0,0,0,.5);overflow:hidden;
-    font-family:'Instrument Sans',var(--font-sans);}
-  .rowA-popup-header{display:flex;flex-direction:column;gap:8px;padding:8px 16px;
-    border-bottom:0.3px solid rgba(0,0,0,.25);}
-  .rowA-popup-titlebar{display:flex;align-items:flex-start;gap:1px;width:222px;}
-  .rowA-popup-title{flex:1;font-weight:700;font-size:clamp(8px,calc(16 / 520 * 100cqw),16px);line-height:1.2;color:var(--ink-strong);}
-  .rowA-popup-switch{position:relative;display:flex;align-items:center;justify-content:flex-end;
-    width:40px;height:20px;padding:2px;border-radius:30px;background:var(--accent-bright);flex-shrink:0;
-    box-shadow:inset 0 0 4px 0 rgba(0,0,0,.25);}
-  .rowA-popup-switch-knob{width:16px;height:16px;border-radius:20px;background:var(--surface);flex-shrink:0;}
-  .rowA-popup-desc{font-weight:600;font-size:clamp(8px,calc(10 / 520 * 100cqw),10px);line-height:1.2;color:#737A88;white-space:nowrap;}
-  .rowA-popup-row{display:flex;align-items:center;justify-content:space-between;
-    padding:12px 16px;border-bottom:0.3px solid rgba(0,0,0,.25);}
-  .rowA-popup-row-label{font-weight:600;font-size:clamp(8px,calc(12 / 520 * 100cqw),12px);line-height:1;color:#737A88;white-space:nowrap;}
-  .rowA-popup-row-value{display:flex;align-items:center;flex-shrink:0;width:70px;height:29px;}
-  .rowA-popup-kbd{display:flex;align-items:center;justify-content:center;min-width:49px;height:29px;
-    padding:7px 13px 5px;border:1px solid rgba(0,0,0,.2);border-radius:4px;
-    font-weight:600;font-size:clamp(8px,calc(11 / 520 * 100cqw),11px);line-height:1;color:#737A88;white-space:nowrap;}
-  .rowA-popup-refresh{display:flex;align-items:center;justify-content:center;width:21px;height:29px;flex-shrink:0;}
-  .rowA-popup-refresh-icon{width:6px;height:6px;display:block;transform:rotate(-90deg) scaleY(-1);}
-  .rowA-popup-size-toggle{display:flex;align-items:center;justify-content:center;gap:3px;
-    width:70px;height:29px;padding:6px 8px;border:1px solid rgba(0,0,0,.2);border-radius:4px;}
-  .rowA-popup-size{font-weight:600;font-size:clamp(8px,calc(12 / 520 * 100cqw),12px);line-height:1;letter-spacing:-0.5px;color:#737A88;text-align:center;}
-  .rowA-popup-size-chevron{width:6.547px;height:3.793px;display:block;flex-shrink:0;}
-  .rowA-popup-footer{display:flex;align-items:center;justify-content:center;padding:12px 16px;}
-  .rowA-popup-btn{display:flex;align-items:center;justify-content:center;flex:1;width:222px;height:28px;
-    padding:8px;background:var(--accent-bright);border:1px solid rgba(0,0,0,.2);border-radius:4px;}
-  .rowA-popup-btn-line{flex:1;font-weight:600;font-size:clamp(8px,calc(12 / 520 * 100cqw),12px);line-height:1;text-align:center;color:#fff;}
-  .rowA-cursor{position:absolute;left:78px;top:48.33px;width:70.792px;height:104.728px;display:flex;flex-direction:column;gap:6px;
-    align-items:flex-start;pointer-events:none;}
-  .rowA-badge-wrap{display:flex;flex-direction:column;align-items:flex-end;width:100%;}
-  .rowA-badge{display:inline-flex;align-items:center;justify-content:center;
-    flex-shrink:0;font-family:'Instrument Sans',var(--font-sans);font-weight:700;
-    font-size:16px;line-height:1;color:#fff;background:var(--accent-bright);
-    padding:8px 13px;border-radius:10px;
-    box-shadow:0 4px 16px rgba(207,0,255,.35);white-space:nowrap;}
-  .rowA-pointer{width:55.527px;height:55.625px;flex-shrink:0;}
-  .rowA-pointer-icon{width:100%;height:100%;display:block;object-fit:contain;}
+  .rowC-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
+  .rowC-profile-menu{width:20px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .rowC-profile-menu-icon{width:100%;height:100%;display:block;object-fit:contain;}
   .rowA-video{position:absolute;inset:0;width:100%;height:100%;
     object-fit:cover;object-position:top left;display:block;
     border-radius:var(--radius-xl);background:var(--surface-key);}
@@ -203,10 +149,8 @@
     font-family:var(--font-display);font-weight:700;font-size:18px;
     letter-spacing:-0.01em;color:var(--accent-bright);}
   .rowA-step-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
-  .rowA-step-kbd{display:inline-flex;align-items:center;justify-content:center;
-    font-family:var(--font-sans);font-weight:700;font-size:15px;line-height:1;
-    letter-spacing:.01em;color:#fff;background:var(--accent);
-    border-radius:7px;padding:5px 9px;}
+  .rowA-step-kbd{font-family:inherit;font-size:inherit;font-weight:700;
+    letter-spacing:.01em;color:var(--accent);}
 
   /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
   .rowC-mockup-wrap{position:relative;width:100%;height:100%;overflow:hidden;
@@ -622,7 +566,6 @@
     .rowA-step-icon img{ width:19px !important; height:19px !important; }
     .rowA-step-title{ font-size:16px !important; }
     .rowA-step-desc{ font-size:13.5px !important; }
-    .rowA-step-kbd{ font-size:13px !important; padding:4px 7px !important; }
     .grrab-rowC{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowC > div:last-child{ gap:14px !important; }
     .grrab-rowC > div:last-child > div:last-child{ display:none !important; }
@@ -684,27 +627,27 @@
     .browser-profile-grrab .yt-slot-img{ width:18px !important; height:18px !important;
       object-fit:contain !important; }
 
-    /* Row A/C chrome (.rowA-chrome) — no url text; inject domain */
-    .rowA-urlbar-star{ display:none !important; }
-    .rowA-urlbar-line{ display:none !important; }
-    .rowA-profile-ext,
-    .rowA-profile-sep,
-    .rowA-profile-avatar,
-    .rowA-profile-menu{ display:none !important; }
+    /* Row C chrome (.rowC-chrome) — no url text; inject domain */
+    .rowC-urlbar-star{ display:none !important; }
+    .rowC-urlbar-line{ display:none !important; }
+    .rowC-profile-ext,
+    .rowC-profile-sep,
+    .rowC-profile-avatar,
+    .rowC-profile-menu{ display:none !important; }
 
-    .rowA-chrome{ height:40px !important; padding:0 12px !important; gap:8px !important; }
+    .rowC-chrome{ height:40px !important; padding:0 12px !important; gap:8px !important; }
 
-    .rowA-urlbar{ height:26px !important; padding:0 12px !important; flex:1 !important;
+    .rowC-urlbar{ height:26px !important; padding:0 12px !important; flex:1 !important;
       background:var(--surface) !important; border:1px solid var(--border) !important;
       border-left:1px solid var(--border) !important;
       border-radius:999px !important; display:flex !important; align-items:center !important; }
-    .rowA-urlbar::before{ content:"grrab.app"; font-family:var(--font-sans);
+    .rowC-urlbar::before{ content:"grrab.app"; font-family:var(--font-sans);
       font-size:11px; color:var(--ink-700); white-space:nowrap; }
 
-    .rowA-profile{ gap:0 !important; }
-    .rowA-profile-pill{ border:0 !important; background:transparent !important; gap:0 !important; }
-    .rowA-profile-logo{ width:22px !important; height:22px !important; }
-    .rowA-profile-logo img{ width:22px !important; height:auto !important; }
+    .rowC-profile{ gap:0 !important; }
+    .rowC-profile-pill{ border:0 !important; background:transparent !important; gap:0 !important; }
+    .rowC-profile-logo{ width:22px !important; height:22px !important; }
+    .rowC-profile-logo img{ width:22px !important; height:auto !important; }
 
     /* FINAL CTA + footer: reduce horizontal padding to 20px */
     section[style*="accent-wash"] > div{ padding:54px 20px !important; }
@@ -794,8 +737,8 @@
     <!-- LEFT: heading + description + 3-step usage list -->
     <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Grab the image in one click</h2>
-        <p style="font-size:22px;line-height:1.25;color:var(--ink-700);max-width:38ch;margin:0;font-weight:500;">AI-upscaled to 3k, straight to your clipboard.</p>
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Instant upscale.</h2>
+        <p style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>— it lands on your clipboard, upscaled.</p>
       </div>
 
       <div class="rowA-steps">
@@ -809,7 +752,7 @@
         <div class="rowA-step">
           <span class="rowA-step-icon"><img src="/assets/landing/icons/rowA/icon_keydown.svg" alt=""></span>
           <span class="rowA-step-text">
-            <span class="rowA-step-title">Step 2: Press the shortcut&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd></span>
+            <span class="rowA-step-title">Step 2: Press the shortcut</span>
             <span class="rowA-step-desc">Press the shortcut when the right image highlighted. It is copied to clipboard.</span>
           </span>
         </div>
@@ -864,28 +807,28 @@
     <!-- RIGHT: side-panel screenshot placeholder -->
     <div class="rowC-mockup-wrap">
         <div class="rowC-window">
-          <div class="rowA-chrome">
-            <div class="rowA-urlbar">
-              <div class="rowA-urlbar-line"></div>
-              <div class="rowA-urlbar-star">
-                <img class="rowA-urlbar-star-icon" src="assets/landing/icons/rowA/icon_star.svg" alt="" width="15" height="15">
+          <div class="rowC-chrome">
+            <div class="rowC-urlbar">
+              <div class="rowC-urlbar-line"></div>
+              <div class="rowC-urlbar-star">
+                <img class="rowC-urlbar-star-icon" src="assets/landing/icons/rowA/icon_star.svg" alt="" width="15" height="15">
               </div>
             </div>
-            <div class="rowA-profile">
-              <div class="rowA-profile-pill">
-                <div class="rowA-profile-logo">
+            <div class="rowC-profile">
+              <div class="rowC-profile-pill">
+                <div class="rowC-profile-logo">
                   <img src="assets/landing/grrab-logo.svg" alt="Grrab">
                 </div>
-                <div class="rowA-profile-ext">
-                  <img class="rowA-profile-ext-icon" src="assets/landing/icons/rowA/icon_ext.svg" alt="" width="16" height="16">
+                <div class="rowC-profile-ext">
+                  <img class="rowC-profile-ext-icon" src="assets/landing/icons/rowA/icon_ext.svg" alt="" width="16" height="16">
                 </div>
               </div>
-              <div class="rowA-profile-sep"></div>
-              <div class="rowA-profile-avatar">
+              <div class="rowC-profile-sep"></div>
+              <div class="rowC-profile-avatar">
                 <img src="assets/landing/img/example_profile.webp" alt="">
               </div>
-              <div class="rowA-profile-menu">
-                <img class="rowA-profile-menu-icon" src="assets/landing/icons/rowA/icon_menubar.svg" alt="">
+              <div class="rowC-profile-menu">
+                <img class="rowC-profile-menu-icon" src="assets/landing/icons/rowA/icon_menubar.svg" alt="">
               </div>
             </div>
           </div>
