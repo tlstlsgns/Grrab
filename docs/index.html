@@ -108,30 +108,30 @@
      rows grow with it. The header keeps its fixed --rowA-u height; only .rowA-body
      and the tiles take up the extra space. */
   .rowA-mockup-wrap{position:relative;width:100%;aspect-ratio:473/305;}
-  .rowC-chrome{display:flex;align-items:center;gap:6px;width:100%;height:50px;flex-shrink:0;
+  .rowD-chrome{display:flex;align-items:center;gap:6px;width:100%;height:50px;flex-shrink:0;
     padding:10px 18px 10px 0;}
-  .rowC-urlbar{display:flex;align-items:center;flex:1;height:30px;min-width:0;align-self:center;
+  .rowD-urlbar{display:flex;align-items:center;flex:1;height:30px;min-width:0;align-self:center;
     background:var(--surface);border:1px solid var(--border);border-left:0;border-radius:0 70px 70px 0;}
-  .rowC-urlbar-line{flex:1;height:3.5px;border-radius:10px;background:var(--border);min-width:0;}
-  .rowC-urlbar-star{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
+  .rowD-urlbar-line{flex:1;height:3.5px;border-radius:10px;background:var(--border);min-width:0;}
+  .rowD-urlbar-star{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
     height:30px;padding-left:12px;padding-right:16px;}
-  .rowC-urlbar-star-icon{width:15px;height:15px;display:block;flex-shrink:0;}
-  .rowC-profile{display:flex;align-items:center;justify-content:flex-end;gap:13px;
+  .rowD-urlbar-star-icon{width:15px;height:15px;display:block;flex-shrink:0;}
+  .rowD-profile{display:flex;align-items:center;justify-content:flex-end;gap:13px;
     height:100%;flex-shrink:0;}
-  .rowC-profile-pill{display:flex;align-items:center;gap:2px;height:30px;
+  .rowD-profile-pill{display:flex;align-items:center;gap:2px;height:30px;
     border:0.5px solid var(--border-strong);border-radius:30px;overflow:hidden;flex-shrink:0;}
-  .rowC-profile-logo{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+  .rowD-profile-logo{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
     background:var(--surface);border-radius:20px;padding:0 5px 1px;flex-shrink:0;}
-  .rowC-profile-logo img{width:20px;height:auto;object-fit:contain;display:block;}
-  .rowC-profile-ext{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+  .rowD-profile-logo img{width:20px;height:auto;object-fit:contain;display:block;}
+  .rowD-profile-ext{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
     padding:0 6px 1px;flex-shrink:0;}
-  .rowC-profile-ext-icon{width:16px;height:16px;display:block;}
-  .rowC-profile-sep{width:1px;height:20px;background:var(--border-strong);flex-shrink:0;}
-  .rowC-profile-avatar{width:20px;height:20px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
+  .rowD-profile-ext-icon{width:16px;height:16px;display:block;}
+  .rowD-profile-sep{width:1px;height:20px;background:var(--border-strong);flex-shrink:0;}
+  .rowD-profile-avatar{width:20px;height:20px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
     border:0.3px solid rgba(115,122,136,.3);}
-  .rowC-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
-  .rowC-profile-menu{width:20px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-  .rowC-profile-menu-icon{width:100%;height:100%;display:block;object-fit:contain;}
+  .rowD-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
+  .rowD-profile-menu{width:20px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .rowD-profile-menu-icon{width:100%;height:100%;display:block;object-fit:contain;}
   /* ── Row A — mockup rebuilt from the Figma frame (1× = 593×434) ──
      Every internal dimension is expressed against --rowA-u, one Figma pixel, so the
      whole mockup scales with its column instead of needing a breakpoint per element. */
@@ -219,29 +219,29 @@
     letter-spacing:.01em;color:var(--accent);}
 
   /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
-  .rowC-mockup-wrap{position:relative;width:100%;height:100%;overflow:hidden;
+  .rowD-mockup-wrap{position:relative;width:100%;height:100%;overflow:hidden;
     border-radius:0 var(--radius-2xl) 0 0;box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);order:2;}
   /* Row B is the odd one out: mockup left, text right. Its mockup wrapper has no
      class, so it is addressed positionally. */
   .grrab-inspire-grid > div:last-child{order:-1;}
-  .rowC-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+  .rowD-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
     background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
     border-radius:0 var(--radius-2xl) 0 0;container-type:inline-size;}
-  .rowC-viewport{position:relative;display:flex;flex-direction:row;justify-content:flex-end;align-items:flex-start;
+  .rowD-viewport{position:relative;display:flex;flex-direction:row;justify-content:flex-end;align-items:flex-start;
     flex:1;min-height:0;width:100%;gap:6px;padding:0 6px;overflow:hidden;}
-  .rowC-body{display:flex;flex-direction:column;align-items:flex-end;gap:12px;
+  .rowD-body{display:flex;flex-direction:column;align-items:flex-end;gap:12px;
     width:520px;height:100%;margin-left:-243px;padding:12px;flex-shrink:0;
     background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);
     border-radius:0 8px 0 0;overflow:hidden;}
-  .rowC-topbar{display:flex;align-items:center;width:100%;padding:6px 0;opacity:.3;flex-shrink:0;}
-  .rowC-search{display:flex;align-items:center;justify-content:flex-end;flex:1;height:30px;min-width:0;
+  .rowD-topbar{display:flex;align-items:center;width:100%;padding:6px 0;opacity:.3;flex-shrink:0;}
+  .rowD-search{display:flex;align-items:center;justify-content:flex-end;flex:1;height:30px;min-width:0;
     padding:4px 12px;background:#E5E5E1;border-radius:8px;overflow:hidden;}
-  .rowC-search-icon--close{width:8px;height:8px;display:block;flex-shrink:0;}
-  .rowC-gallery{display:flex;gap:10px;width:100%;opacity:.3;flex-shrink:0;}
-  .rowC-gallery-col{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;}
-  .rowC-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;flex-shrink:0;}
-  .rowC-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:8px;}
-  .rowC-sidepanel{display:flex;flex-direction:column;gap:4px;width:231px;height:100%;flex-shrink:0;
+  .rowD-search-icon--close{width:8px;height:8px;display:block;flex-shrink:0;}
+  .rowD-gallery{display:flex;gap:10px;width:100%;opacity:.3;flex-shrink:0;}
+  .rowD-gallery-col{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;}
+  .rowD-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;flex-shrink:0;}
+  .rowD-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:8px;}
+  .rowD-sidepanel{display:flex;flex-direction:column;gap:4px;width:231px;height:100%;flex-shrink:0;
     padding:10px 6px 0;background:var(--surface);border-top:1px solid var(--border);
     border-left:1px solid var(--border);border-right:1px solid var(--border);
     border-radius:8px 8px 0 0;overflow:hidden;
@@ -632,15 +632,15 @@
       margin-left:0.35em !important;
       vertical-align:middle !important;
     }
-    .grrab-rowC{ grid-template-columns:1fr !important; gap:24px !important; }
-    .grrab-rowC > div:last-child{ gap:14px !important; }
-    .grrab-rowC > div:last-child > div:last-child{ display:none !important; }
+    .grrab-rowD{ grid-template-columns:1fr !important; gap:24px !important; }
+    .grrab-rowD > div:last-child{ gap:14px !important; }
+    .grrab-rowD > div:last-child > div:last-child{ display:none !important; }
     .grrab-inspire-grid{ grid-template-columns:1fr !important; align-items:start !important; gap:24px !important; }
     .grrab-inspire-grid > div:last-child{ min-height:auto !important; height:auto !important; }
 
     /* text/heading FIRST, mockup below. All three rows now need an explicit order
        here: A and C push the mockup down, B cancels its desktop mockup-left order. */
-    .rowC-mockup-wrap{ order:2 !important; }
+    .rowD-mockup-wrap{ order:2 !important; }
     .grrab-inspire-grid > div:last-child{ order:0 !important; }
 
     /* ---- uniform-scale mockups (option A) ----
@@ -660,9 +660,9 @@
     .rowA-compare{ display:none !important; }
 
     /* Row C — ref 520×554 */
-    .rowC-mockup-wrap{ position:relative !important; width:100% !important;
+    .rowD-mockup-wrap{ position:relative !important; width:100% !important;
       height:calc((100vw - 40px) * 554 / 520) !important; overflow:hidden !important; }
-    .rowC-window{ position:absolute !important; inset:auto !important; top:0 !important;
+    .rowD-window{ position:absolute !important; inset:auto !important; top:0 !important;
       left:0 !important; width:520px !important; height:554px !important;
       transform-origin:top left; transform:scale(calc((100vw - 40px) / 520px)) !important; }
 
@@ -698,27 +698,27 @@
     .browser-profile-grrab .yt-slot-img{ width:18px !important; height:18px !important;
       object-fit:contain !important; }
 
-    /* Row C chrome (.rowC-chrome) — no url text; inject domain */
-    .rowC-urlbar-star{ display:none !important; }
-    .rowC-urlbar-line{ display:none !important; }
-    .rowC-profile-ext,
-    .rowC-profile-sep,
-    .rowC-profile-avatar,
-    .rowC-profile-menu{ display:none !important; }
+    /* Row C chrome (.rowD-chrome) — no url text; inject domain */
+    .rowD-urlbar-star{ display:none !important; }
+    .rowD-urlbar-line{ display:none !important; }
+    .rowD-profile-ext,
+    .rowD-profile-sep,
+    .rowD-profile-avatar,
+    .rowD-profile-menu{ display:none !important; }
 
-    .rowC-chrome{ height:40px !important; padding:0 12px !important; gap:8px !important; }
+    .rowD-chrome{ height:40px !important; padding:0 12px !important; gap:8px !important; }
 
-    .rowC-urlbar{ height:26px !important; padding:0 12px !important; flex:1 !important;
+    .rowD-urlbar{ height:26px !important; padding:0 12px !important; flex:1 !important;
       background:var(--surface) !important; border:1px solid var(--border) !important;
       border-left:1px solid var(--border) !important;
       border-radius:999px !important; display:flex !important; align-items:center !important; }
-    .rowC-urlbar::before{ content:"grrab.app"; font-family:var(--font-sans);
+    .rowD-urlbar::before{ content:"grrab.app"; font-family:var(--font-sans);
       font-size:11px; color:var(--ink-700); white-space:nowrap; }
 
-    .rowC-profile{ gap:0 !important; }
-    .rowC-profile-pill{ border:0 !important; background:transparent !important; gap:0 !important; }
-    .rowC-profile-logo{ width:22px !important; height:22px !important; }
-    .rowC-profile-logo img{ width:22px !important; height:auto !important; }
+    .rowD-profile{ gap:0 !important; }
+    .rowD-profile-pill{ border:0 !important; background:transparent !important; gap:0 !important; }
+    .rowD-profile-logo{ width:22px !important; height:22px !important; }
+    .rowD-profile-logo img{ width:22px !important; height:auto !important; }
 
     /* FINAL CTA + footer: reduce horizontal padding to 20px */
     section[style*="accent-wash"] > div{ padding:54px 20px !important; }
@@ -733,8 +733,8 @@
     .feature-h2{ font-size:24px !important; }
 
     /* side padding now 16px each → 100vw-32px in the mockup scale math */
-    .rowC-mockup-wrap{ height:calc((100vw - 32px) * 554 / 520) !important; }
-    .rowC-window{ transform:scale(calc((100vw - 32px) / 520px)) !important; }
+    .rowD-mockup-wrap{ height:calc((100vw - 32px) * 554 / 520) !important; }
+    .rowD-window{ transform:scale(calc((100vw - 32px) / 520px)) !important; }
     #inspirePanes{ height:calc((100vw - 32px) * 1080 / 1920) !important; }
     .browser-frame{ transform:scale(calc((100vw - 32px) / 645px)) !important; }
 
@@ -886,62 +886,62 @@
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
   <!-- Row C — media left, text + fanned card stack right -->
-  <div class="grrab-rowC" style="display:grid;grid-template-columns:1.05fr 1fr;gap:72px;align-items:stretch;">
+  <div class="grrab-rowD" style="display:grid;grid-template-columns:1.05fr 1fr;gap:72px;align-items:stretch;">
     <!-- RIGHT: side-panel screenshot placeholder -->
-    <div class="rowC-mockup-wrap">
-        <div class="rowC-window">
-          <div class="rowC-chrome">
-            <div class="rowC-urlbar">
-              <div class="rowC-urlbar-line"></div>
-              <div class="rowC-urlbar-star">
-                <img class="rowC-urlbar-star-icon" src="assets/landing/icons/rowA/icon_star.svg" alt="" width="15" height="15">
+    <div class="rowD-mockup-wrap">
+        <div class="rowD-window">
+          <div class="rowD-chrome">
+            <div class="rowD-urlbar">
+              <div class="rowD-urlbar-line"></div>
+              <div class="rowD-urlbar-star">
+                <img class="rowD-urlbar-star-icon" src="assets/landing/icons/rowA/icon_star.svg" alt="" width="15" height="15">
               </div>
             </div>
-            <div class="rowC-profile">
-              <div class="rowC-profile-pill">
-                <div class="rowC-profile-logo">
+            <div class="rowD-profile">
+              <div class="rowD-profile-pill">
+                <div class="rowD-profile-logo">
                   <img src="assets/landing/grrab-logo.svg" alt="Grrab">
                 </div>
-                <div class="rowC-profile-ext">
-                  <img class="rowC-profile-ext-icon" src="assets/landing/icons/rowA/icon_ext.svg" alt="" width="16" height="16">
+                <div class="rowD-profile-ext">
+                  <img class="rowD-profile-ext-icon" src="assets/landing/icons/rowA/icon_ext.svg" alt="" width="16" height="16">
                 </div>
               </div>
-              <div class="rowC-profile-sep"></div>
-              <div class="rowC-profile-avatar">
+              <div class="rowD-profile-sep"></div>
+              <div class="rowD-profile-avatar">
                 <img src="assets/landing/img/example_profile.webp" alt="">
               </div>
-              <div class="rowC-profile-menu">
-                <img class="rowC-profile-menu-icon" src="assets/landing/icons/rowA/icon_menubar.svg" alt="">
+              <div class="rowD-profile-menu">
+                <img class="rowD-profile-menu-icon" src="assets/landing/icons/rowA/icon_menubar.svg" alt="">
               </div>
             </div>
           </div>
-          <div class="rowC-viewport">
-            <div class="rowC-body">
+          <div class="rowD-viewport">
+            <div class="rowD-body">
               <!-- TODO: Row C gallery + card images are placeholders; wire finals later -->
-              <div class="rowC-topbar">
-                <div class="rowC-search">
-                  <img class="rowC-search-icon--close" src="assets/landing/icons/rowC/icon_close.svg" alt="">
+              <div class="rowD-topbar">
+                <div class="rowD-search">
+                  <img class="rowD-search-icon--close" src="assets/landing/icons/rowD/icon_close.svg" alt="">
                 </div>
               </div>
-              <div class="rowC-gallery">
-                <div class="rowC-gallery-col">
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-1.webp" alt=""></div>
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-2.webp" alt=""></div>
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-3.webp" alt=""></div>
+              <div class="rowD-gallery">
+                <div class="rowD-gallery-col">
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-1.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-2.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-3.webp" alt=""></div>
                 </div>
-                <div class="rowC-gallery-col">
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-4.webp" alt=""></div>
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-5.webp" alt=""></div>
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-6.webp" alt=""></div>
+                <div class="rowD-gallery-col">
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-4.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-5.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-6.webp" alt=""></div>
                 </div>
-                <div class="rowC-gallery-col">
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-7.webp" alt=""></div>
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-1.webp" alt=""></div>
-                  <div class="rowC-tile rowC-tile--dim"><img src="assets/landing/img/hero-2.webp" alt=""></div>
+                <div class="rowD-gallery-col">
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-7.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-1.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-2.webp" alt=""></div>
                 </div>
               </div>
             </div>
-            <div class="rowC-sidepanel">
+            <div class="rowD-sidepanel">
               <div class="sidepanel-top">
                 <div class="sidepanel-header">
                   <div class="sidepanel-logo">
@@ -949,8 +949,8 @@
                     <span class="sidepanel-logo-name">Grrab</span>
                   </div>
                   <div class="sidepanel-ctrl">
-                    <img class="sidepanel-ctrl-icon sidepanel-ctrl-icon--pin" src="assets/landing/icons/rowC/icon_pin.svg" alt="">
-                    <img class="sidepanel-ctrl-icon sidepanel-ctrl-icon--close" src="assets/landing/icons/rowC/icon_close.svg" alt="">
+                    <img class="sidepanel-ctrl-icon sidepanel-ctrl-icon--pin" src="assets/landing/icons/rowD/icon_pin.svg" alt="">
+                    <img class="sidepanel-ctrl-icon sidepanel-ctrl-icon--close" src="assets/landing/icons/rowD/icon_close.svg" alt="">
                   </div>
                 </div>
                 <div class="sidepanel-section">
@@ -962,7 +962,7 @@
                       <span class="sidepanel-profile-name">name@example.com</span>
                     </div>
                     <div class="sidepanel-profile-signout">
-                      <img class="sidepanel-signout-icon" src="assets/landing/icons/rowC/icon_signout.svg" alt="">
+                      <img class="sidepanel-signout-icon" src="assets/landing/icons/rowD/icon_signout.svg" alt="">
                     </div>
                   </div>
                   <div class="sidepanel-clip">
@@ -971,7 +971,7 @@
                       <div class="sidepanel-clip-row-value">
                         <span class="sidepanel-kbd">⌘C</span>
                         <span class="sidepanel-refresh">
-                          <img class="sidepanel-refresh-icon" src="assets/landing/icons/rowC/icon_refresh.svg" alt="">
+                          <img class="sidepanel-refresh-icon" src="assets/landing/icons/rowD/icon_refresh.svg" alt="">
                         </span>
                       </div>
                     </div>
@@ -981,7 +981,7 @@
                       <div class="sidepanel-clip-row-value">
                         <span class="sidepanel-size-toggle">
                           <span class="sidepanel-size-value">3k</span>
-                          <img class="sidepanel-chevron" src="assets/landing/icons/rowC/icon_chevron.svg" alt="">
+                          <img class="sidepanel-chevron" src="assets/landing/icons/rowD/icon_chevron.svg" alt="">
                         </span>
                       </div>
                     </div>
@@ -991,18 +991,18 @@
               <div class="sidepanel-main">
                 <div class="sidepanel-directory">
                   <div class="sidepanel-directory-bar">
-                    <img class="sidepanel-directory-icon" src="assets/landing/icons/rowC/icon_folder.svg" alt="">
+                    <img class="sidepanel-directory-icon" src="assets/landing/icons/rowD/icon_folder.svg" alt="">
                     <span class="sidepanel-directory-name">My_folder</span>
                   </div>
                   <div class="sidepanel-directory-file">
                     <span class="sidepanel-directory-file-type">PNG</span>
-                    <img class="sidepanel-chevron" src="assets/landing/icons/rowC/icon_chevron.svg" alt="">
+                    <img class="sidepanel-chevron" src="assets/landing/icons/rowD/icon_chevron.svg" alt="">
                   </div>
                 </div>
                 <div class="sidepanel-gallery">
                   <div class="sidepanel-gallery-top">
-                    <img class="sidepanel-upload-icon" src="assets/landing/icons/rowC/icon_upload.svg" alt="">
-                    <img class="sidepanel-delete-icon" src="assets/landing/icons/rowC/icon_delete.svg" alt="">
+                    <img class="sidepanel-upload-icon" src="assets/landing/icons/rowD/icon_upload.svg" alt="">
+                    <img class="sidepanel-delete-icon" src="assets/landing/icons/rowD/icon_delete.svg" alt="">
                   </div>
                   <div class="sidepanel-gallery-row">
                     <div class="sidepanel-gallery-time">
@@ -1014,18 +1014,18 @@
                       <div class="sidepanel-card sidepanel-card--active">
                         <div class="sidepanel-card-header">
                           <div class="sidepanel-card-header-link">
-                            <img class="sidepanel-card-link-icon" src="assets/landing/icons/rowC/icon_link.svg" alt="">
+                            <img class="sidepanel-card-link-icon" src="assets/landing/icons/rowD/icon_link.svg" alt="">
                           </div>
                           <div class="sidepanel-card-header-meta">
                             <span class="sidepanel-card-meta-line">Pinterest</span>
                             <div class="sidepanel-card-meta-btn">
-                              <img class="sidepanel-card-copy-icon" src="assets/landing/icons/rowC/icon_copy.svg" alt="">
-                              <img class="sidepanel-card-cancel-icon" src="assets/landing/icons/rowC/icon_cancel.svg" alt="">
+                              <img class="sidepanel-card-copy-icon" src="assets/landing/icons/rowD/icon_copy.svg" alt="">
+                              <img class="sidepanel-card-cancel-icon" src="assets/landing/icons/rowD/icon_cancel.svg" alt="">
                             </div>
                           </div>
                         </div>
                         <div class="sidepanel-card-thumb"><img src="assets/landing/img/hero-1.webp" alt=""></div>
-                        <img class="sidepanel-card-pointer" src="assets/landing/icons/rowC/icon_pointer.svg" alt="">
+                        <img class="sidepanel-card-pointer" src="assets/landing/icons/rowD/icon_pointer.svg" alt="">
                       </div>
                       <div class="sidepanel-card sidepanel-card--dim">
                         <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
@@ -1286,7 +1286,7 @@
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>'},
     {id:"pinterest",label:"Pinterest.",desc:"Clip any pin straight to your library.",    previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023", preview:"/assets/landing/img/pinterest_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 0-2.9l1.2-4.9s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.2-.8 3.4-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-2-1.3-3.4-3.7-3.4a4.2 4.2 0 0 0-4.4 4.2c0 .8.2 1.4.6 1.8.2.2.2.3.1.5l-.2.8c0 .3-.2.3-.5.2-1.3-.5-1.9-2-1.9-3.6 0-2.7 2.3-5.9 6.7-5.9 3.6 0 5.9 2.6 5.9 5.3 0 3.6-2 6.4-5 6.4-1 0-2-.6-2.3-1.2l-.6 2.5c-.2.8-.7 1.7-1 2.3A10 10 0 1 0 12 2Z"/></svg>'},
-    {id:"video",    label:"Video.",     desc:"Capture the current frame from any video.", previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowB/video-main.webp",
+    {id:"video",    label:"Video.",     desc:"Capture the current frame from any video.", previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowC/video-main.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><polygon points="10.5 9.2 15.5 12 10.5 14.8" fill="currentColor" stroke="none"/></svg>'}
   ];
   var activeInspire = "youtube";
@@ -1364,53 +1364,53 @@
               '<div class="yt-feed">'+
                 '<div class="yt-videos">'+
                   '<div class="yt-video-card">'+
-                    '<div class="yt-thumb yt-thumb--glow"><img src="/assets/landing/img/rowB/image-1.webp" alt=""><span class="mock-pointer" style="left:58%;top:42%;"><img src="/assets/landing/icons/rowB/video/icon_cursor.svg" alt=""></span></div>'+
+                    '<div class="yt-thumb yt-thumb--glow"><img src="/assets/landing/img/rowC/image-1.webp" alt=""><span class="mock-pointer" style="left:58%;top:42%;"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-2.webp" alt=""></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-2.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-3.webp" alt=""></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-3.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                 '</div>'+
                 '<div class="yt-shorts-section">'+
                   '<div class="yt-shorts-label"><img class="yt-shorts-icon" src="/assets/landing/icons/icon_main_shorts.svg" alt="">Shorts</div>'+
                   '<div class="yt-shorts">'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-1.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-2.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-3.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-4.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowB/shorts-5.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-1.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-2.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-3.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-4.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-5.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
                   '</div>'+
                 '</div>'+
                 '<div class="yt-videos">'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-4.webp" alt=""></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-4.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-5.webp" alt=""></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-5.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-6.webp" alt=""></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-6.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                 '</div>'+
                 '<div class="yt-videos">'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-7.webp" alt=""></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-7.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-8.webp" alt=""></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-8.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowB/image-9.webp" alt=""></div>'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-9.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                 '</div>'+
@@ -1431,7 +1431,7 @@
   function igFeedCardHtml(dim, glow, img){
     var cardClass = 'ig-feed-card'+(dim?' ig-feed-card--dim':'');
     var thumbClass = 'ig-feed-thumb'+(glow?' ig-feed-thumb--glow':'');
-    var pointerHtml = glow ? '<span class="mock-pointer" style="left:52%;top:36%;"><img src="/assets/landing/icons/rowB/video/icon_cursor.svg" alt=""></span>' : '';
+    var pointerHtml = glow ? '<span class="mock-pointer" style="left:52%;top:36%;"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span>' : '';
     var ig = '/assets/landing/icons/instagram/';
     return '<div class="'+cardClass+'">'+
       '<div class="ig-feed">'+
@@ -1490,8 +1490,8 @@
         '</div>'+
       '</aside>'+
       '<div class="ig-main">'+
-        igFeedCardHtml(false, true, '/assets/landing/img/rowB/ig-image-1.webp')+   // glow(active)
-        igFeedCardHtml(true, false, '/assets/landing/img/rowB/ig-image-2.webp')+   // dim
+        igFeedCardHtml(false, true, '/assets/landing/img/rowC/ig-image-1.webp')+   // glow(active)
+        igFeedCardHtml(true, false, '/assets/landing/img/rowC/ig-image-2.webp')+   // dim
       '</div>'+
     '</div>';
   }
@@ -1510,7 +1510,7 @@
     if(dim === 30) cls += ' pin-feed-card--dim';
     else if(dim === 50) cls += ' pin-feed-card--dim50';
     if(glow) cls += ' pin-feed-card--glow';
-    var pointerHtml = glow ? '<span class="mock-pointer" style="left:42%;top:44%;"><img src="/assets/landing/icons/rowB/video/icon_cursor.svg" alt=""></span>' : '';
+    var pointerHtml = glow ? '<span class="mock-pointer" style="left:42%;top:44%;"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span>' : '';
     return '<div class="'+cls+'" style="aspect-ratio:'+ratio+'">'+(img?'<img src="'+img+'" alt="">':'')+pointerHtml+'</div>';
   }
 
@@ -1541,32 +1541,32 @@
         '</div>'+
         '<div class="pin-feed">'+
           pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowB/pin-image-1.webp'),
-            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowB/pin-image-2.webp'),
-            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowB/pin-image-3.webp'),
-            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowB/pin-image-13.webp'),
-            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowB/pin-image-14.webp')
+            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowC/pin-image-1.webp'),
+            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowC/pin-image-2.webp'),
+            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowC/pin-image-3.webp'),
+            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowC/pin-image-13.webp'),
+            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowC/pin-image-14.webp')
           ])+
           pinFeedColHtml(false, [
-            pinFeedCardHtml('115.25/132',    0,  true,  '/assets/landing/img/rowB/pin-image-4.webp'),
-            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowB/pin-image-5.webp'),
-            pinFeedCardHtml('115.25/115.25', 30, false, '/assets/landing/img/rowB/pin-image-6.webp'),
-            pinFeedCardHtml('115.25/188',    50, false, '/assets/landing/img/rowB/pin-image-15.webp'),
-            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowB/pin-image-16.webp')
+            pinFeedCardHtml('115.25/132',    0,  true,  '/assets/landing/img/rowC/pin-image-4.webp'),
+            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowC/pin-image-5.webp'),
+            pinFeedCardHtml('115.25/115.25', 30, false, '/assets/landing/img/rowC/pin-image-6.webp'),
+            pinFeedCardHtml('115.25/188',    50, false, '/assets/landing/img/rowC/pin-image-15.webp'),
+            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowC/pin-image-16.webp')
           ])+
           pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/188',    50, false, '/assets/landing/img/rowB/pin-image-7.webp'),
-            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowB/pin-image-8.webp'),
-            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowB/pin-image-9.webp'),
-            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowB/pin-image-17.webp'),
-            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowB/pin-image-18.webp')
+            pinFeedCardHtml('115.25/188',    50, false, '/assets/landing/img/rowC/pin-image-7.webp'),
+            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowC/pin-image-8.webp'),
+            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowC/pin-image-9.webp'),
+            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowC/pin-image-17.webp'),
+            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowC/pin-image-18.webp')
           ])+
           pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowB/pin-image-10.webp'),
-            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowB/pin-image-11.webp'),
-            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowB/pin-image-12.webp'),
-            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowB/pin-image-19.webp'),
-            pinFeedCardHtml('115.25/115.25', 30, false, '/assets/landing/img/rowB/pin-image-20.webp')
+            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowC/pin-image-10.webp'),
+            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowC/pin-image-11.webp'),
+            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowC/pin-image-12.webp'),
+            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowC/pin-image-19.webp'),
+            pinFeedCardHtml('115.25/115.25', 30, false, '/assets/landing/img/rowC/pin-image-20.webp')
           ])+
         '</div>'+
       '</div>'+
@@ -1613,41 +1613,41 @@
              '<div class="vid-main">'+
                '<div class="vid-topbar">'+
                  '<span class="vid-sidebar-menu"><img src="/assets/landing/icons/icon_menubar.svg" alt=""></span>'+
-                 '<span class="vid-logo"><img src="/assets/landing/icons/rowB/video/icon_logo.svg" alt=""></span>'+
+                 '<span class="vid-logo"><img src="/assets/landing/icons/rowC/video/icon_logo.svg" alt=""></span>'+
                  '<div class="vid-search-wrap">'+
                    '<div class="vid-search">'+
                      '<div class="vid-search-input"><span class="vid-search-text">Search</span></div>'+
-                     '<div class="vid-search-btn"><img src="/assets/landing/icons/rowB/video/icon_search.svg" alt=""></div>'+
+                     '<div class="vid-search-btn"><img src="/assets/landing/icons/rowC/video/icon_search.svg" alt=""></div>'+
                    '</div>'+
                  '</div>'+
                  '<div class="vid-topbar-right"></div>'+
                '</div>'+
                '<div class="vid-screen">'+
                  '<div class="vid-screen-video vid-screen-video--glow">'+
-                   '<img src="/assets/landing/img/rowB/video-main.webp" alt="">'+
-                   '<span class="mock-pointer" style="left:calc(450.61 / 645 * 100cqw);top:calc(149 / 645 * 100cqw);"><img src="/assets/landing/icons/rowB/video/icon_cursor.svg" alt=""></span>'+
+                   '<img src="/assets/landing/img/rowC/video-main.webp" alt="">'+
+                   '<span class="mock-pointer" style="left:calc(450.61 / 645 * 100cqw);top:calc(149 / 645 * 100cqw);"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span>'+
                  '</div>'+
                  '<div class="vid-screen-controller">'+
                    '<div class="vid-control-playbar"><div class="vid-playbar-played"><span class="vid-playbar-point"></span></div></div>'+
                    '<div class="vid-control-container">'+
                      '<div class="vid-control-left">'+
-                       '<span class="vid-control-playbtn"><img src="/assets/landing/icons/rowB/video/icon_playbtn.svg" alt=""></span>'+
+                       '<span class="vid-control-playbtn"><img src="/assets/landing/icons/rowC/video/icon_playbtn.svg" alt=""></span>'+
                        '<div class="vid-control-etc">'+
-                         '<img class="vid-icon-volume" src="/assets/landing/icons/rowB/video/icon_volume.svg" alt="">'+
+                         '<img class="vid-icon-volume" src="/assets/landing/icons/rowC/video/icon_volume.svg" alt="">'+
                          '<div class="vid-control-time"><span>0:00</span><span>/</span><span>15:01</span></div>'+
                        '</div>'+
                        '<div class="vid-control-chapter">'+
                          '<span class="vid-chapter-label">Intro</span>'+
-                         '<img class="vid-icon-chapter" src="/assets/landing/icons/rowB/video/icon_chapter.svg" alt="">'+
+                         '<img class="vid-icon-chapter" src="/assets/landing/icons/rowC/video/icon_chapter.svg" alt="">'+
                        '</div>'+
                      '</div>'+
                      '<div class="vid-control-right">'+
                        '<div class="vid-control-setting">'+
-                         '<span class="vid-setting-relay"><img src="/assets/landing/icons/rowB/video/icon_relay.svg" alt=""></span>'+
-                         '<img class="vid-icon-transcription" src="/assets/landing/icons/rowB/video/icon_transcription.svg" alt="">'+
-                         '<img class="vid-icon-setting" src="/assets/landing/icons/rowB/video/icon_setting.svg" alt="">'+
-                         '<img class="vid-icon-view" src="/assets/landing/icons/rowB/video/icon_view.svg" alt="">'+
-                         '<img class="vid-icon-size" src="/assets/landing/icons/rowB/video/icon_size.svg" alt="">'+
+                         '<span class="vid-setting-relay"><img src="/assets/landing/icons/rowC/video/icon_relay.svg" alt=""></span>'+
+                         '<img class="vid-icon-transcription" src="/assets/landing/icons/rowC/video/icon_transcription.svg" alt="">'+
+                         '<img class="vid-icon-setting" src="/assets/landing/icons/rowC/video/icon_setting.svg" alt="">'+
+                         '<img class="vid-icon-view" src="/assets/landing/icons/rowC/video/icon_view.svg" alt="">'+
+                         '<img class="vid-icon-size" src="/assets/landing/icons/rowC/video/icon_size.svg" alt="">'+
                        '</div>'+
                      '</div>'+
                    '</div>'+
@@ -1668,13 +1668,13 @@
                      '</div>'+
                      '<div class="vid-meta-action">'+
                        '<div class="vid-action-react">'+
-                         '<span class="vid-react-good"><img src="/assets/landing/icons/rowB/video/icon_react_good.svg" alt=""></span>'+
+                         '<span class="vid-react-good"><img src="/assets/landing/icons/rowC/video/icon_react_good.svg" alt=""></span>'+
                          '<span class="vid-react-separator"></span>'+
-                         '<span class="vid-react-bad"><img src="/assets/landing/icons/rowB/video/icon_react_bad.svg" alt=""></span>'+
+                         '<span class="vid-react-bad"><img src="/assets/landing/icons/rowC/video/icon_react_bad.svg" alt=""></span>'+
                        '</div>'+
-                       '<div class="vid-action-share"><img src="/assets/landing/icons/rowB/video/icon_share.svg" alt=""><span class="vid-action-label">Share</span></div>'+
-                       '<div class="vid-action-save"><img src="/assets/landing/icons/rowB/video/icon_save.svg" alt=""><span class="vid-action-label">Save</span></div>'+
-                       '<div class="vid-action-more"><img src="/assets/landing/icons/rowB/video/icon_more.svg" alt=""></div>'+
+                       '<div class="vid-action-share"><img src="/assets/landing/icons/rowC/video/icon_share.svg" alt=""><span class="vid-action-label">Share</span></div>'+
+                       '<div class="vid-action-save"><img src="/assets/landing/icons/rowC/video/icon_save.svg" alt=""><span class="vid-action-label">Save</span></div>'+
+                       '<div class="vid-action-more"><img src="/assets/landing/icons/rowC/video/icon_more.svg" alt=""></div>'+
                      '</div>'+
                    '</div>'+
                  '</div>'+
@@ -1713,10 +1713,10 @@
                    '<span class="vid-addition-chip vid-addition-chip--idle">Related</span>'+
                  '</div>'+
                  '<div class="vid-addition-list">'+
-                   vidRelatedCardHtml('/assets/landing/img/rowB/video-image-1.webp')+
-                   vidRelatedCardHtml('/assets/landing/img/rowB/video-image-2.webp')+
-                   vidRelatedCardHtml('/assets/landing/img/rowB/video-image-3.webp')+
-                   vidRelatedCardHtml('/assets/landing/img/rowB/video-image-4.webp')+
+                   vidRelatedCardHtml('/assets/landing/img/rowC/video-image-1.webp')+
+                   vidRelatedCardHtml('/assets/landing/img/rowC/video-image-2.webp')+
+                   vidRelatedCardHtml('/assets/landing/img/rowC/video-image-3.webp')+
+                   vidRelatedCardHtml('/assets/landing/img/rowC/video-image-4.webp')+
                  '</div>'+
                '</div>'+
              '</div>'+
