@@ -103,12 +103,11 @@
      wording changes. */
   .hero-h1-lead{font-size:0.84em;}
 
-  /* ── Row A — gallery mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
-  /* Row A video sits shorter than the text column (16:9 vs the row height).
-     align-self controls where the slack goes: center | start | end. */
-  .rowA-mockup-wrap{position:relative;width:100%;height:auto;overflow:hidden;
-    aspect-ratio:1920/1080;align-self:center;order:2;
-    border-radius:var(--radius-xl);box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);}
+  /* ── Row A — gallery mockup (responsive; cqw basis = Figma 1× frame 593px) ── */
+  /* The mockup stretches to the row height set by the text column, so the gallery
+     rows grow with it. The header keeps its fixed --rowA-u height; only .rowA-body
+     and the tiles take up the extra space. */
+  .rowA-mockup-wrap{position:relative;width:100%;aspect-ratio:473/305;}
   .rowC-chrome{display:flex;align-items:center;gap:6px;width:100%;height:50px;flex-shrink:0;
     padding:10px 18px 10px 0;}
   .rowC-urlbar{display:flex;align-items:center;flex:1;height:30px;min-width:0;align-self:center;
@@ -133,22 +132,89 @@
   .rowC-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
   .rowC-profile-menu{width:20px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
   .rowC-profile-menu-icon{width:100%;height:100%;display:block;object-fit:contain;}
-  .rowA-video{position:absolute;inset:0;width:100%;height:100%;
-    object-fit:cover;object-position:top left;display:block;
-    border-radius:var(--radius-xl);background:var(--surface-key);}
-  .rowA-steps{display:flex;flex-direction:column;gap:10px;width:100%;}
-  .rowA-step{display:flex;align-items:flex-start;gap:14px;width:100%;
-    padding:16px 18px;border-radius:12px;background:var(--surface-subtle);
-    border:1px solid var(--border);}
-  .rowA-step-icon{flex-shrink:0;width:40px;height:40px;border-radius:10px;
-    display:inline-flex;align-items:center;justify-content:center;
-    background:var(--surface);border:1px solid var(--border);}
-  .rowA-step-icon img{width:22px;height:22px;display:block;object-fit:contain;}
-  .rowA-step-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
-  .rowA-step-title{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
-    font-family:var(--font-display);font-weight:700;font-size:18px;
-    letter-spacing:-0.01em;color:var(--accent-bright);}
-  .rowA-step-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
+  /* ── Row A — mockup rebuilt from the Figma frame (1× = 593×434) ──
+     Every internal dimension is expressed against --rowA-u, one Figma pixel, so the
+     whole mockup scales with its column instead of needing a breakpoint per element. */
+  .rowA-window{position:absolute;inset:0;display:flex;flex-direction:row;align-items:stretch;
+    container-type:inline-size;--rowA-u:calc(100cqw / 593);}
+  .rowA-chrome{display:flex;flex-direction:column;align-items:flex-start;
+    width:100%;flex:1 1 auto;
+    background:#DFDFDF;border-top:1px solid #E6E7EB;border-right:1px solid #E6E7EB;
+    border-radius:0 calc(14 * var(--rowA-u)) 0 0;
+    filter:drop-shadow(calc(4 * var(--rowA-u)) 0 calc(2 * var(--rowA-u)) rgba(0,0,0,.25));}
+  .rowA-header{display:flex;align-items:center;gap:calc(6 * var(--rowA-u));width:100%;
+    height:calc(30 * var(--rowA-u));flex-shrink:0;
+    padding:calc(6 * var(--rowA-u)) calc(18 * var(--rowA-u)) calc(6 * var(--rowA-u)) 0;}
+  .rowA-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding-right:calc(23 * var(--rowA-u));background:#FEFEFE;border:1px solid #E6E7EB;
+    border-radius:0 calc(70 * var(--rowA-u)) calc(70 * var(--rowA-u)) 0;}
+  .rowA-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--rowA-u));
+    border-radius:calc(10 * var(--rowA-u));background:#DEE1E6;}
+  .rowA-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(18 * var(--rowA-u));height:calc(18 * var(--rowA-u));
+    padding:calc(2 * var(--rowA-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--rowA-u));}
+  .rowA-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  .rowA-body{display:flex;flex:1;min-height:0;width:100%;align-items:flex-start;justify-content:flex-end;}
+  .rowA-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;
+    gap:calc(10 * var(--rowA-u));padding:calc(10 * var(--rowA-u));width:100%;height:100%;
+    background:var(--surface);border-radius:0 calc(14 * var(--rowA-u)) 0 0;}
+  .rowA-tile{position:relative;border-radius:calc(8 * var(--rowA-u));overflow:hidden;
+    background:var(--surface-key);}
+  .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .rowA-tile--dim{opacity:.5;}
+  .rowA-tile--active{opacity:1;box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
+  .rowA-tile{cursor:pointer;transition:box-shadow .18s cubic-bezier(.25,.1,.25,1);}
+  .rowA-tile--dim:hover{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
+  .rowA-tip{position:fixed;left:0;top:0;z-index:60;pointer-events:none;opacity:0;
+    font-family:var(--font-sans);font-weight:700;font-size:13px;line-height:1;color:#fff;
+    background:var(--accent-bright);padding:6px 9px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 4px 16px rgba(207,0,255,.35);transition:opacity .12s ease;}
+  .rowA-tip.show{opacity:1;}
+  .rowA-pallette{position:relative;display:flex;align-items:center;justify-content:center;
+    width:100%;height:auto;align-self:stretch;
+    padding:calc(5 * var(--rowA-u));box-sizing:border-box;
+    container-type:size;--rowA-u:calc(100cqh / 340);}
+  .rowA-pallette::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:
+      linear-gradient(to right, rgba(207,0,255,.2) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(207,0,255,.2) 1px, transparent 1px);
+    background-size:calc(10 * var(--rowA-u)) calc(10 * var(--rowA-u));
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%),
+      linear-gradient(to bottom, transparent 0, #000 10%, #000 90%, transparent 100%);
+    mask-image:
+      linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%),
+      linear-gradient(to bottom, transparent 0, #000 10%, #000 90%, transparent 100%);
+    -webkit-mask-composite:source-in;mask-composite:intersect;}
+  .rowA-preview{position:relative;z-index:1;display:none;
+    flex-direction:column;align-items:center;gap:calc(6 * var(--rowA-u));
+    width:calc(212 * var(--rowA-u));height:calc(312 * var(--rowA-u));}
+  .rowA-compare{position:relative;z-index:1;width:100%;height:100%;overflow:hidden;
+    cursor:ew-resize;user-select:none;touch-action:none;
+    background:var(--surface-key);box-shadow:0 calc(4 * var(--rowA-u)) calc(18 * var(--rowA-u)) rgba(0,0,0,.12);}
+  .rowA-compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+    pointer-events:none;}
+  .rowA-compare-before{position:absolute;inset:0;clip-path:inset(0 50% 0 0);
+    -webkit-clip-path:inset(0 50% 0 0);}
+  .rowA-compare-handle{position:absolute;top:0;bottom:0;left:50%;width:calc(3 * var(--rowA-u));
+    background:var(--accent-bright);transform:translateX(-50%);pointer-events:none;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.5);}
+  .rowA-compare-knob{width:calc(40 * var(--rowA-u));height:calc(40 * var(--rowA-u));border-radius:50%;
+    background:#fff;border:calc(2 * var(--rowA-u)) solid var(--accent-bright);
+    box-shadow:0 calc(4 * var(--rowA-u)) calc(16 * var(--rowA-u)) rgba(207,0,255,.28);
+    display:flex;align-items:center;justify-content:center;color:var(--accent-bright);flex-shrink:0;}
+  .rowA-compare-knob svg{width:calc(18 * var(--rowA-u));height:calc(18 * var(--rowA-u));display:block;}
+  .rowA-compare-knob svg + svg{margin-left:calc(-8 * var(--rowA-u));}
+  .rowA-toast{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+    gap:calc(6 * var(--rowA-u));padding:calc(5 * var(--rowA-u)) calc(10 * var(--rowA-u));
+    background:var(--accent-bright);border-radius:calc(6 * var(--rowA-u));
+    filter:drop-shadow(0 0 calc(2 * var(--rowA-u)) rgba(0,0,0,.25));}
+  .rowA-toast-icon{width:calc(12.5 * var(--rowA-u));height:calc(15 * var(--rowA-u));display:block;flex-shrink:0;}
+  .rowA-toast-text{font-family:var(--font-sans);font-weight:600;line-height:1;color:#fff;
+    font-size:calc(12 * var(--rowA-u));white-space:nowrap;}
+  .rowA-image{flex:1;min-height:0;width:100%;overflow:hidden;}
+  .rowA-image img{width:100%;height:100%;object-fit:cover;display:block;}
   .rowA-step-kbd{font-family:inherit;font-size:inherit;font-weight:700;
     letter-spacing:.01em;color:var(--accent);}
 
@@ -550,9 +616,15 @@
     #top > div{ display:flex !important; justify-content:flex-start !important; }
     #top > div > .btn-ghost{ display:none !important; }
 
-    /* stack ALL three rows to 1 col (Row B's inspire-grid was NOT stacking before) */
-    .grrab-rowA{ grid-template-columns:1fr !important; gap:24px !important; }
-    .grrab-rowA > div:last-child{ gap:14px !important; }
+    /* Row A does NOT stack: the chrome and the palette sit side by side and
+       together reassemble the Figma frame (281 + 312 = 593 wide, 434 tall). */
+    .grrab-rowA{ grid-template-columns:281fr 312fr !important;
+      grid-template-areas:"head head" "mock pal" !important;
+      column-gap:0 !important; row-gap:24px !important; }
+    .grrab-rowA > div:first-child{ display:contents !important; }
+    .grrab-rowA > div:first-child > div:first-child{ grid-area:head !important; }
+    .rowA-mockup-wrap{ grid-area:mock !important; }
+    .rowA-pallette{ grid-area:pal !important; }
     .grrab-rowA .feature-h2 kbd{
       font-size:0.62em !important;
       padding:0.28em 0.5em !important;
@@ -560,12 +632,6 @@
       margin-left:0.35em !important;
       vertical-align:middle !important;
     }
-    .rowA-steps{ gap:8px !important; }
-    .rowA-step{ padding:14px 14px !important; gap:12px !important; }
-    .rowA-step-icon{ width:34px !important; height:34px !important; }
-    .rowA-step-icon img{ width:19px !important; height:19px !important; }
-    .rowA-step-title{ font-size:16px !important; }
-    .rowA-step-desc{ font-size:13.5px !important; }
     .grrab-rowC{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowC > div:last-child{ gap:14px !important; }
     .grrab-rowC > div:last-child > div:last-child{ display:none !important; }
@@ -574,7 +640,6 @@
 
     /* text/heading FIRST, mockup below. All three rows now need an explicit order
        here: A and C push the mockup down, B cancels its desktop mockup-left order. */
-    .rowA-mockup-wrap{ order:2 !important; }
     .rowC-mockup-wrap{ order:2 !important; }
     .grrab-inspire-grid > div:last-child{ order:0 !important; }
 
@@ -584,9 +649,15 @@
        reserves the scaled height. Internal cqw stays 1× (window keeps its fixed ref
        width as its own container). */
 
-    /* Row A — ref 520×496 */
+    /* Row A — the wrapper now holds the chrome alone, so it takes the chrome's
+       own Figma ratio; the palette stretches to match its row height. */
     .rowA-mockup-wrap{ position:relative !important; width:100% !important;
-      height:calc((100vw - 40px) * 1080 / 1920) !important; overflow:hidden !important; }
+      aspect-ratio:281/434 !important; height:auto !important; }
+    .rowA-window{ --rowA-u:calc(100cqw / 281) !important; }
+    .rowA-pallette{ aspect-ratio:auto !important; height:100% !important;
+      padding:0 !important; --rowA-u:calc(100cqh / 434) !important; }
+    .rowA-preview{ display:flex !important; }
+    .rowA-compare{ display:none !important; }
 
     /* Row C — ref 520×554 */
     .rowC-mockup-wrap{ position:relative !important; width:100% !important;
@@ -662,7 +733,6 @@
     .feature-h2{ font-size:24px !important; }
 
     /* side padding now 16px each → 100vw-32px in the mockup scale math */
-    .rowA-mockup-wrap{ height:calc((100vw - 32px) * 1080 / 1920) !important; }
     .rowC-mockup-wrap{ height:calc((100vw - 32px) * 554 / 520) !important; }
     .rowC-window{ transform:scale(calc((100vw - 32px) / 520px)) !important; }
     #inspirePanes{ height:calc((100vw - 32px) * 1080 / 1920) !important; }
@@ -723,46 +793,59 @@
 <!-- ══ FEATURES ══ -->
 <section id="how" style="max-width:var(--container-max);margin:0 auto;padding:104px 32px;display:flex;flex-direction:column;gap:120px;">
 
-  <!-- Row A — media left, text + comparison slider right -->
+  <!-- Row A — text + browser mockup left, before/after slider right -->
   <div class="grrab-rowA" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
-    <!-- RIGHT: product demo video -->
-    <div class="rowA-mockup-wrap">
-      <video class="rowA-video"
-             src="/assets/landing/video/rowA_demo.mp4"
-             poster="/assets/landing/img/rowA_demo_poster.webp"
-             autoplay muted loop playsinline preload="metadata"
-             aria-label="Grrab clipping an image from a gallery page"></video>
-    </div>
-
-    <!-- LEFT: heading + description + 3-step usage list -->
+    <!-- LEFT: heading + description + browser mockup -->
     <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
       <div style="display:flex;flex-direction:column;gap:14px;">
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Instant upscale.</h2>
         <p style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>— it lands on your clipboard, upscaled.</p>
       </div>
 
-      <div class="rowA-steps">
-        <div class="rowA-step">
-          <span class="rowA-step-icon"><img src="/assets/landing/icons/rowA/icon_pointer.svg" alt=""></span>
-          <span class="rowA-step-text">
-            <span class="rowA-step-title">Step 1: Hover</span>
-            <span class="rowA-step-desc">Move your cursor over any image on the web to highlight extractable elements.</span>
-          </span>
+      <div class="rowA-mockup-wrap">
+        <div class="rowA-window">
+          <div class="rowA-chrome">
+            <div class="rowA-header">
+              <div class="rowA-urlbar"><div class="rowA-urlbar-line"></div></div>
+              <div class="rowA-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
+            </div>
+            <div class="rowA-body">
+              <div class="rowA-gallery">
+                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
+                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
+                <div class="rowA-tile rowA-tile--active"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
+                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
+                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
+                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
+                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="rowA-step">
-          <span class="rowA-step-icon"><img src="/assets/landing/icons/rowA/icon_keydown.svg" alt=""></span>
-          <span class="rowA-step-text">
-            <span class="rowA-step-title">Step 2: Press the shortcut</span>
-            <span class="rowA-step-desc">Press the shortcut when the right image highlighted. It is copied to clipboard.</span>
-          </span>
+      </div>
+    </div>
+
+    <div class="rowA-pallette">
+      <div class="rowA-compare" id="rowACompare">
+        <img id="rowACompareAfter" src="/assets/landing/img/rowA/rowA-image-4-after.webp" alt="">
+        <div class="rowA-compare-before" id="rowACompareBefore">
+          <img id="rowACompareBeforeImg" src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt="">
         </div>
-        <div class="rowA-step">
-          <span class="rowA-step-icon"><img src="/assets/landing/icons/rowA/icon_paste.svg" alt=""></span>
-          <span class="rowA-step-text">
-            <span class="rowA-step-title">Step 3: Paste it</span>
-            <span class="rowA-step-desc">Paste it to anywhere you want.</span>
-          </span>
+        <div class="rowA-compare-handle" id="rowACompareHandle">
+          <div class="rowA-compare-knob">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
         </div>
+      </div>
+      <div class="rowA-preview">
+        <div class="rowA-toast">
+          <img class="rowA-toast-icon" src="/assets/landing/icons/rowA/icon_copy.svg" alt="">
+          <span class="rowA-toast-text">Image copied</span>
+        </div>
+        <div class="rowA-image"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
       </div>
     </div>
   </div>
@@ -1076,6 +1159,7 @@
 
 <!-- cursor-follow badge + grab toast (portaled at body level) -->
 <div id="grabBadge" class="grab-badge">Press <strong>⌘C</strong> to Clip</div>
+<div id="rowATip" class="rowA-tip" aria-hidden="true">⌘C</div>
 <div style="position:fixed;top:20px;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;">
   <div id="grabToast" class="grab-toast">Clipped to clipboard</div>
 </div>
@@ -1093,7 +1177,7 @@
      detection it uses, so the page never shows a shortcut the visitor
      cannot press. Failing open leaves the macOS text in place. */
   var KC_SHORTCUT_SELECTOR =
-    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
+    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
   try {
     var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
                 navigator.userAgent.indexOf("Mac") !== -1;
@@ -1104,6 +1188,95 @@
       }
     }
   } catch (e) {}
+
+  /* ─────────────────────────── ROW A — GALLERY ─────────────────────────── */
+  var rowAGallery = document.querySelector(".rowA-gallery");
+  var rowAPreviewImg = document.querySelector(".rowA-image img");
+  var rowATip = document.getElementById("rowATip");
+  var rowACompare = document.getElementById("rowACompare");
+  var rowACompareBefore = document.getElementById("rowACompareBefore");
+  var rowACompareBeforeImg = document.getElementById("rowACompareBeforeImg");
+  var rowACompareAfter = document.getElementById("rowACompareAfter");
+  var rowACompareHandle = document.getElementById("rowACompareHandle");
+
+  if (rowAGallery && rowAPreviewImg) {
+    var rowATiles = [].slice.call(rowAGallery.querySelectorAll(".rowA-tile"));
+    var rowAHovered = null;
+
+    var rowAActivate = function(tile){
+      if(!tile) return;
+      var img = tile.querySelector("img");
+      if(!img) return;
+      for(var i = 0; i < rowATiles.length; i++){
+        rowATiles[i].classList.remove("rowA-tile--active");
+        rowATiles[i].classList.add("rowA-tile--dim");
+      }
+      tile.classList.remove("rowA-tile--dim");
+      tile.classList.add("rowA-tile--active");
+      var beforeSrc = img.getAttribute("src");
+      rowAPreviewImg.setAttribute("src", beforeSrc);
+      if(rowACompareBeforeImg && rowACompareAfter){
+        rowACompareBeforeImg.setAttribute("src", beforeSrc);
+        rowACompareAfter.setAttribute("src", beforeSrc.replace("-before.webp", "-after.webp"));
+      }
+      if(rowATip) rowATip.classList.remove("show");
+    };
+
+    var rowATipHide = function(){ if(rowATip) rowATip.classList.remove("show"); };
+
+    rowATiles.forEach(function(tile){
+      tile.addEventListener("mouseenter", function(){
+        rowAHovered = tile;
+        if(rowATip && !tile.classList.contains("rowA-tile--active")) rowATip.classList.add("show");
+      });
+      tile.addEventListener("mousemove", function(e){
+        if(!rowATip) return;
+        rowATip.style.left = (e.clientX + 14) + "px";
+        rowATip.style.top  = (e.clientY + 18) + "px";
+      });
+      tile.addEventListener("mouseleave", function(){
+        if(rowAHovered === tile) rowAHovered = null;
+        rowATipHide();
+      });
+      tile.addEventListener("click", function(){ rowAActivate(tile); });
+    });
+
+    document.addEventListener("keydown", function(e){
+      var isCopy = (e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C");
+      if(isCopy && rowAHovered) rowAActivate(rowAHovered);
+    });
+  }
+
+  /* ──────────────────── ROW A — BEFORE/AFTER SLIDER ──────────────────── */
+  if (rowACompare && rowACompareBefore && rowACompareHandle) {
+    var rowACompareDragging = false;
+
+    var rowASetComparePos = function(clientX){
+      var r = rowACompare.getBoundingClientRect();
+      if(!r.width) return;
+      var p = ((clientX - r.left) / r.width) * 100;
+      p = Math.max(0, Math.min(100, p));
+      var clip = "inset(0 " + (100 - p) + "% 0 0)";
+      rowACompareBefore.style.clipPath = clip;
+      rowACompareBefore.style.webkitClipPath = clip;
+      rowACompareHandle.style.left = p + "%";
+    };
+
+    rowACompare.addEventListener("pointerdown", function(e){
+      rowACompareDragging = true;
+      try { rowACompare.setPointerCapture(e.pointerId); } catch(_){}
+      rowASetComparePos(e.clientX);
+    });
+    rowACompare.addEventListener("pointermove", function(e){
+      if(rowACompareDragging) rowASetComparePos(e.clientX);
+    });
+    rowACompare.addEventListener("pointerup", function(e){
+      rowACompareDragging = false;
+      try { rowACompare.releasePointerCapture(e.pointerId); } catch(_){}
+    });
+    rowACompare.addEventListener("pointercancel", function(){ rowACompareDragging = false; });
+    rowACompare.addEventListener("pointerleave", function(){ rowACompareDragging = false; });
+  }
 
   /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
   var inspireConfig = [
