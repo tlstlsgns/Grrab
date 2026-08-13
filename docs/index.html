@@ -218,6 +218,150 @@
   .rowA-step-kbd{font-family:inherit;font-size:inherit;font-weight:700;
     letter-spacing:.01em;color:var(--accent);}
 
+  /* ── Row B — step cards + an empty mockup slot ──
+     The card rules are the ones Row A used before its rebuild, renamed to rowB-*. */
+  .rowB-cards{display:flex;flex-direction:column;gap:10px;width:100%;}
+  .rowB-card{display:flex;align-items:flex-start;gap:14px;width:100%;
+    padding:16px 18px;border-radius:12px;background:transparent;
+    border:none;border-left:3px solid transparent;
+    text-align:left;font:inherit;cursor:pointer;outline:none;
+    -webkit-appearance:none;appearance:none;
+    transition:background .15s ease,border-color .15s ease;}
+  .rowB-card--active{background:var(--accent-06);border-left-color:#BC13FE;}
+  .rowB-card-icon{flex-shrink:0;width:40px;height:40px;border-radius:10px;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:var(--surface-subtle);border:1px solid var(--border);
+    transition:background .15s ease,border-color .15s ease;}
+  .rowB-card--active .rowB-card-icon{background:var(--accent-10);border-color:var(--accent-20);}
+  .rowB-card-icon img{width:22px;height:22px;display:block;object-fit:contain;}
+  .rowB-card-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .rowB-card-title{font-family:var(--font-display);font-weight:700;font-size:18px;
+    letter-spacing:-0.01em;color:var(--ink-strong);}
+  .rowB-card-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
+  #inspireList svg{width:20px;height:20px;display:block;}
+  .rowB-mockup-wrap{position:relative;width:100%;align-self:start;aspect-ratio:593/434;}
+  .rowB-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+    container-type:inline-size;--rowB-u:calc(100cqw / 593);
+    background:#DFDFDF;border-top:1px solid #E6E7EB;border-right:1px solid #E6E7EB;
+    border-radius:calc(3 * var(--rowB-u));box-shadow:0 0 calc(4 * var(--rowB-u)) 0 rgba(0,0,0,.25);}
+  .rowB-header{display:flex;align-items:center;gap:calc(6 * var(--rowB-u));width:100%;
+    height:calc(30 * var(--rowB-u));flex-shrink:0;
+    padding:calc(6 * var(--rowB-u)) calc(18 * var(--rowB-u)) calc(6 * var(--rowB-u)) calc(10 * var(--rowB-u));}
+  .rowB-header .browser-traffic{height:calc(18 * var(--rowB-u));gap:calc(5 * var(--rowB-u));
+    padding:0 calc(6 * var(--rowB-u)) 0 0;border-radius:0 0 calc(4 * var(--rowB-u)) 0;}
+  .rowB-header .browser-dot{width:calc(8 * var(--rowB-u));height:calc(8 * var(--rowB-u));}
+  .rowB-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding:0 calc(23 * var(--rowB-u)) 0 calc(10 * var(--rowB-u));
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--rowB-u));}
+  .rowB-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--rowB-u));
+    border-radius:calc(10 * var(--rowB-u));background:#DEE1E6;}
+  .rowB-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(18 * var(--rowB-u));height:calc(18 * var(--rowB-u));
+    padding:calc(2 * var(--rowB-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--rowB-u));}
+  .rowB-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  .rowB-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
+    background:var(--surface);border-radius:calc(14 * var(--rowB-u));}
+  .rowB-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    width:calc(30 * var(--rowB-u));gap:calc(24 * var(--rowB-u));
+    padding-top:calc(16 * var(--rowB-u));border-right:0.5px solid #C8C8C0;}
+  .rowB-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
+  .rowB-sidebar-icon{display:block;object-fit:contain;}
+  .rowB-sidebar-icon--home{width:calc(10 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
+  .rowB-sidebar-icon--category{width:calc(11 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
+  .rowB-sidebar-icon--add{width:calc(10 * var(--rowB-u));height:calc(10 * var(--rowB-u));}
+  .rowB-sidebar-icon--notification{width:calc(10 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
+  .rowB-sidebar-icon--message{width:calc(12 * var(--rowB-u));height:calc(12 * var(--rowB-u));}
+  .rowB-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    gap:calc(10 * var(--rowB-u));padding:calc(10 * var(--rowB-u));flex:1;min-width:0;height:100%;
+    background:var(--surface);border-radius:0 calc(14 * var(--rowB-u)) 0 0;}
+  .rowB-tile{position:relative;border-radius:calc(8 * var(--rowB-u));overflow:hidden;
+    background:var(--surface-key);}
+  .rowB-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .rowB-tile--dim{opacity:.5;}
+  .rowB-tile--tall{grid-row:span 2;}
+  .rowB-tile{transition:box-shadow .25s ease,opacity .25s ease;}
+  .rowB-tile--hot{opacity:1;box-shadow:0 0 calc(13 * var(--rowB-u)) 0 var(--accent-bright);}
+  .rowB-cursor{position:absolute;left:0;top:0;z-index:3;pointer-events:none;
+    width:calc(26 * var(--rowB-u));height:calc(26 * var(--rowB-u));opacity:0;
+    transition:transform .75s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  .rowB-cursor--on{opacity:1;}
+  .rowB-cursor img{width:100%;height:100%;display:block;}
+  .rowB-tip{position:absolute;left:calc(18 * var(--rowB-u));top:calc(-20 * var(--rowB-u));
+    display:inline-flex;align-items:center;white-space:nowrap;
+    padding:calc(4 * var(--rowB-u)) calc(8 * var(--rowB-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--rowB-u));
+    font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
+    font-size:calc(11 * var(--rowB-u));
+    opacity:0;transition:opacity .3s ease;}
+  .rowB-tip--in{opacity:1;transition:none;}
+  .rowB-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;
+    justify-content:center;background:rgba(0,0,0,.8);
+    opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .rowB-overlay--on{opacity:1;}
+  .rowB-overlay-figure{position:relative;display:flex;margin:0;
+    max-width:62%;max-height:64%;
+    -webkit-user-select:none;user-select:none;}
+  .rowB-overlay-figure img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
+  .rowB-overlay-img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+    object-fit:contain;border-radius:calc(8 * var(--rowB-u));}
+  .rowB-overlay-after{position:absolute;left:0;top:0;width:100%;height:100%;display:block;
+    object-fit:contain;border-radius:calc(8 * var(--rowB-u));z-index:2;
+    clip-path:inset(0 0 0 100%);-webkit-clip-path:inset(0 0 0 100%);
+    transition:clip-path 1.4s ease,-webkit-clip-path 1.4s ease;}
+  .rowB-overlay-after--in{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0);}
+  .rowB-overlay-after--alpha{background-color:#ffffff;
+    background-image:
+      linear-gradient(45deg,#D9D9D9 25%,transparent 25%,transparent 75%,#D9D9D9 75%),
+      linear-gradient(45deg,#D9D9D9 25%,transparent 25%,transparent 75%,#D9D9D9 75%);
+    background-size:calc(10 * var(--rowB-u)) calc(10 * var(--rowB-u));
+    background-position:0 0,calc(5 * var(--rowB-u)) calc(5 * var(--rowB-u));}
+  .rowB-overlay-btn{position:absolute;right:0;bottom:calc(100% + 12 * var(--rowB-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));
+    padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
+    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
+    transition:background .15s ease;}
+  .rowB-overlay-btn img{width:calc(11 * var(--rowB-u));height:calc(11 * var(--rowB-u));display:block;
+    filter:brightness(0) invert(1);}
+  .rowB-overlay-btn--press{background:#5C1580;}
+  .rowB-overlay-act{position:absolute;top:calc(100% + 12 * var(--rowB-u));
+    display:inline-flex;align-items:center;
+    padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
+    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
+    opacity:0;transition:opacity .35s ease;}
+  .rowB-overlay-act--clip{right:0;}
+  .rowB-overlay-act--in{opacity:1;}
+  .rowB-slider-clip{position:absolute;inset:0;z-index:3;display:none;
+    overflow:hidden;pointer-events:none;border-radius:calc(8 * var(--rowB-u));}
+  .rowB-slider-handle{position:absolute;top:0;bottom:0;left:0;
+    width:calc(2 * var(--rowB-u));background:var(--accent-bright);
+    transform:translateX(-50%);display:flex;pointer-events:none;
+    align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.5);}
+  .rowB-slider-knob{flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    width:calc(30 * var(--rowB-u));height:calc(30 * var(--rowB-u));border-radius:50%;
+    background:#fff;border:calc(1.5 * var(--rowB-u)) solid var(--accent-bright);
+    box-shadow:0 calc(3 * var(--rowB-u)) calc(12 * var(--rowB-u)) rgba(207,0,255,.28);
+    color:var(--accent-bright);}
+  .rowB-slider-knob svg{width:calc(13 * var(--rowB-u));height:calc(13 * var(--rowB-u));display:block;}
+  .rowB-slider-knob svg + svg{margin-left:calc(-6 * var(--rowB-u));}
+  .rowB-chrome--live{cursor:url("/assets/landing/icons/rowB/icon_cursor_24.svg") 2 1, auto;}
+  .rowB-overlay--live{pointer-events:auto;}
+  .rowB-overlay--live .rowB-overlay-figure{cursor:ew-resize;touch-action:none;}
+  .rowB-overlay--live .rowB-overlay-btn,
+  .rowB-overlay--live .rowB-overlay-act{cursor:url("/assets/landing/icons/rowB/icon_cursor_24.svg") 2 1, auto;}
+  .rowB-overlay--live .rowB-overlay-after{transition:none;will-change:clip-path;}
+  .rowB-overlay--live .rowB-slider-clip{display:block;}
+  .rowB-slider-clip--wipe{display:block;}
+  .rowB-slider-clip--wipe .rowB-slider-knob{display:none;}
+  .rowB-slider-clip--wipe .rowB-slider-handle{transition:left 1.4s ease;}
+  .rowB-marquee{position:absolute;left:0;top:0;width:0;height:0;display:none;z-index:1;
+    border:1px solid #BC13FE;background:rgba(188,19,254,.18);pointer-events:none;}
+  .rowB-marquee--on{display:block;}
+
   /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
   .rowD-mockup-wrap{position:relative;width:100%;height:100%;overflow:hidden;
     border-radius:0 var(--radius-2xl) 0 0;box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);order:2;}
@@ -632,6 +776,14 @@
       margin-left:0.35em !important;
       vertical-align:middle !important;
     }
+    .grrab-rowB{ grid-template-columns:1fr !important; gap:24px !important; }
+    .grrab-rowB > div:first-child{ gap:14px !important; }
+    .rowB-cards{ gap:8px !important; }
+    .rowB-card{ padding:14px 14px !important; gap:12px !important; }
+    .rowB-card-icon{ width:34px !important; height:34px !important; }
+    .rowB-card-icon img{ width:19px !important; height:19px !important; }
+    .rowB-card-title{ font-size:16px !important; }
+    .rowB-card-desc{ font-size:13.5px !important; }
     .grrab-rowD{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowD > div:last-child{ gap:14px !important; }
     .grrab-rowD > div:last-child > div:last-child{ display:none !important; }
@@ -853,7 +1005,84 @@
   <!-- divider A / B -->
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
-  <!-- Row B — interactive source switcher -->
+  <!-- Row B — text + step cards left, mockup slot right (mockup not built yet) -->
+  <div class="grrab-rowB" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
+    <!-- LEFT: heading + description + step cards -->
+    <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Photoshop, right in the browser.</h2>
+        <p style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Clean up backgrounds, texts, and objects<br>— right where you found the image.</p>
+      </div>
+
+      <div class="rowB-cards">
+        <button type="button" class="rowB-card rowB-card--active">
+          <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_removebg.svg" alt=""></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Remove Background</span><span class="rowB-card-desc">description for removebg.</span></span>
+        </button>
+        <button type="button" class="rowB-card">
+          <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_erase.svg" alt=""></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Erase Texts</span><span class="rowB-card-desc">description for erase1.</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="rowB-mockup-wrap">
+      <div class="rowB-chrome">
+        <div class="rowB-header">
+          <div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>
+          <div class="rowB-urlbar"><div class="rowB-urlbar-line"></div></div>
+          <div class="rowB-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
+        </div>
+        <div class="rowB-body">
+          <div class="rowB-sidebar">
+          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--home" src="/assets/landing/icons/rowB/icon_home.svg" alt=""></div>
+          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--category" src="/assets/landing/icons/rowB/icon_category.svg" alt=""></div>
+          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--add" src="/assets/landing/icons/rowB/icon_add.svg" alt=""></div>
+          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--notification" src="/assets/landing/icons/rowB/icon_notification.svg" alt=""></div>
+          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--message" src="/assets/landing/icons/rowB/icon_message.svg" alt=""></div>
+          </div>
+          <div class="rowB-gallery">
+            <div class="rowB-tile rowB-tile--dim rowB-tile--tall"><img src="/assets/landing/img/rowB/rowB-image-1-before.webp" alt=""></div>
+            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-3-before.webp" alt=""></div>
+            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-6-before.webp" alt=""></div>
+            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-4-before.webp" alt=""></div>
+            <div class="rowB-tile rowB-tile--dim rowB-tile--tall"><img src="/assets/landing/img/rowB/rowB-image-7-before.webp" alt=""></div>
+            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-2-before.webp" alt=""></div>
+            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-5-before.webp" alt=""></div>
+          </div>
+          <span class="rowB-cursor" id="rowBCursor" aria-hidden="true">
+            <span class="rowB-tip" id="rowBTip">⌘C</span>
+            <img src="/assets/landing/icons/rowB/icon_cursor.svg" alt="">
+          </span>
+          <div class="rowB-overlay" id="rowBOverlay" aria-hidden="true">
+            <figure class="rowB-overlay-figure">
+              <img class="rowB-overlay-img" id="rowBOverlayImg" src="/assets/landing/img/rowB/rowB-image-1-before.webp" alt="" draggable="false">
+              <img class="rowB-overlay-after" id="rowBOverlayAfter" src="/assets/landing/img/rowB/rowB-image-1-after.webp" alt="" draggable="false">
+              <span class="rowB-marquee" id="rowBMarquee"></span>
+              <span class="rowB-overlay-btn" id="rowBOverlayBtn">
+                <img id="rowBOverlayBtnIcon" src="/assets/landing/icons/rowB/icon_removebg.svg" alt="">
+                <span id="rowBOverlayBtnLabel">Remove BG</span>
+              </span>
+              <span class="rowB-slider-clip">
+                <span class="rowB-slider-handle" id="rowBHandle">
+                  <span class="rowB-slider-knob">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </span>
+                </span>
+              </span>
+              <span class="rowB-overlay-act rowB-overlay-act--clip" id="rowBActClip">Clip</span>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- divider B / C -->
+  <div style="width:100%;height:1px;background:#E5E7EB;"></div>
+
+  <!-- Row C — interactive source switcher -->
   <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:1.18fr 0.82fr;gap:48px;align-items:stretch;">
     <!-- RIGHT: heading + subhead + source list -->
     <div style="display:flex;flex-direction:column;gap:24px;">
@@ -882,10 +1111,10 @@
     </div>
   </div>
 
-  <!-- divider B / C -->
+  <!-- divider C / D -->
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
-  <!-- Row C — media left, text + fanned card stack right -->
+  <!-- Row D — media left, text + fanned card stack right -->
   <div class="grrab-rowD" style="display:grid;grid-template-columns:1.05fr 1fr;gap:72px;align-items:stretch;">
     <!-- RIGHT: side-panel screenshot placeholder -->
     <div class="rowD-mockup-wrap">
@@ -1177,7 +1406,7 @@
      detection it uses, so the page never shows a shortcut the visitor
      cannot press. Failing open leaves the macOS text in place. */
   var KC_SHORTCUT_SELECTOR =
-    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
+    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip, .rowB-tip, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
   try {
     var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
                 navigator.userAgent.indexOf("Mac") !== -1;
@@ -1276,6 +1505,308 @@
     });
     rowACompare.addEventListener("pointercancel", function(){ rowACompareDragging = false; });
     rowACompare.addEventListener("pointerleave", function(){ rowACompareDragging = false; });
+  }
+
+  /* ──────────────────── ROW B — EDIT-MODE DEMO ──────────────────── */
+  var rowBChrome = document.querySelector(".rowB-chrome");
+  var rowBBody = document.querySelector(".rowB-body");
+  var rowBFigure = document.querySelector(".rowB-overlay-figure");
+  var rowBHandle = document.getElementById("rowBHandle");
+  var rowBClip = document.querySelector(".rowB-slider-clip");
+  var rowBCursor = document.getElementById("rowBCursor");
+  var rowBTip = document.getElementById("rowBTip");
+  var rowBOverlay = document.getElementById("rowBOverlay");
+  var rowBOverlayImg = document.getElementById("rowBOverlayImg");
+  var rowBOverlayAfter = document.getElementById("rowBOverlayAfter");
+  var rowBOverlayBtn = document.getElementById("rowBOverlayBtn");
+  var rowBActs = [].slice.call(document.querySelectorAll(".rowB-overlay-act"));
+  var rowBMarquee = document.getElementById("rowBMarquee");
+  var rowBOverlayBtnIcon = document.getElementById("rowBOverlayBtnIcon");
+  var rowBOverlayBtnLabel = document.getElementById("rowBOverlayBtnLabel");
+  var rowBCards = [].slice.call(document.querySelectorAll(".rowB-card"));
+  var rowBTiles = [].slice.call(document.querySelectorAll(".rowB-tile"));
+
+  if (rowBBody && rowBCursor && rowBOverlay && rowBOverlayImg && rowBCards.length && rowBTiles.length) {
+    var rowBSteps = [
+      { tile:0, img:"/assets/landing/img/rowB/rowB-image-1-before.webp",
+        icon:"/assets/landing/icons/rowB/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:4, img:"/assets/landing/img/rowB/rowB-image-7-before.webp",
+        icon:"/assets/landing/icons/rowB/icon_erase.svg", label:"Erase",
+        box:{ l:0.39, t:0.38, r:0.59, b:0.65 } }
+    ];
+    var rowBTimers = [];
+    var rowBRaf = 0;
+    var rowBCurrent = 0;
+    var rowBLive = false;
+    var rowBDone = false;
+    var rowBSplitDragging = false;
+    var rowBReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    var rowBClearTimers = function(){
+      for (var i = 0; i < rowBTimers.length; i++) clearTimeout(rowBTimers[i]);
+      rowBTimers = [];
+    };
+    var rowBAt = function(ms, fn){ rowBTimers.push(setTimeout(fn, ms)); };
+
+    var rowBHotOnly = function(tile){
+      for (var i = 0; i < rowBTiles.length; i++){
+        if (rowBTiles[i] === tile) rowBTiles[i].classList.add("rowB-tile--hot");
+        else rowBTiles[i].classList.remove("rowB-tile--hot");
+      }
+    };
+
+    var rowBTrack = function(durationMs){
+      var started = Date.now();
+      var tick = function(){
+        var r = rowBCursor.getBoundingClientRect();
+        var under = document.elementFromPoint(r.left, r.top);
+        rowBHotOnly(under && under.closest ? under.closest(".rowB-tile") : null);
+        if (Date.now() - started < durationMs) rowBRaf = requestAnimationFrame(tick);
+        else rowBRaf = 0;
+      };
+      rowBRaf = requestAnimationFrame(tick);
+    };
+
+    var rowBMoveTo = function(x, y){
+      rowBCursor.style.transform = "translate(" + x + "px," + y + "px)";
+    };
+    var rowBPointIn = function(el){
+      var bb = rowBBody.getBoundingClientRect(), r = el.getBoundingClientRect();
+      return { x: r.left - bb.left + r.width / 2, y: r.top - bb.top + r.height / 2 };
+    };
+    var rowBBoxPoint = function(fx, fy){
+      var bb = rowBBody.getBoundingClientRect(), r = rowBOverlayImg.getBoundingClientRect();
+      return { x: r.left - bb.left + r.width * fx, y: r.top - bb.top + r.height * fy };
+    };
+    var rowBDragTrack = function(box, durationMs){
+      var started = Date.now();
+      var tick = function(){
+        var fr = rowBOverlayImg.getBoundingClientRect();
+        var cr = rowBCursor.getBoundingClientRect();
+        if (fr.width && fr.height) {
+          var w = Math.max(0, Math.min((cr.left - fr.left) / fr.width, 1) - box.l);
+          var h = Math.max(0, Math.min((cr.top - fr.top) / fr.height, 1) - box.t);
+          rowBMarquee.style.width = (w * 100) + "%";
+          rowBMarquee.style.height = (h * 100) + "%";
+        }
+        if (Date.now() - started < durationMs) rowBRaf = requestAnimationFrame(tick);
+        else rowBRaf = 0;
+      };
+      rowBRaf = requestAnimationFrame(tick);
+    };
+    var rowBPress = function(){
+      if (!rowBOverlayBtn) return;
+      rowBOverlayBtn.classList.add("rowB-overlay-btn--press");
+      rowBAt(200, function(){ rowBOverlayBtn.classList.remove("rowB-overlay-btn--press"); });
+    };
+    var rowBReveal = function(){
+      if (rowBMarquee) rowBMarquee.classList.remove("rowB-marquee--on");
+      if (rowBClip) rowBClip.classList.add("rowB-slider-clip--wipe");
+      if (rowBHandle) {
+        rowBHandle.style.transition = "none";
+        rowBHandle.style.left = "100%";
+        void rowBHandle.offsetWidth;
+        rowBHandle.style.transition = "";
+        rowBHandle.style.left = "0%";
+      }
+      if (rowBOverlayAfter) rowBOverlayAfter.classList.add("rowB-overlay-after--in");
+    };
+    var rowBShowActs = function(){
+      for (var i = 0; i < rowBActs.length; i++) rowBActs[i].classList.add("rowB-overlay-act--in");
+    };
+    var rowBSetSplit = function(f){
+      if (!rowBOverlayAfter) return;
+      f = Math.max(0, Math.min(1, f));
+      var clip = "inset(0 0 0 " + (f * 100) + "%)";
+      rowBOverlayAfter.style.clipPath = clip;
+      rowBOverlayAfter.style.webkitClipPath = clip;
+      if (rowBHandle) rowBHandle.style.left = (f * 100) + "%";
+    };
+    var rowBEnterLive = function(){
+      rowBLive = true;
+      rowBDone = true;
+      rowBCursor.classList.remove("rowB-cursor--on");
+      if (rowBClip) rowBClip.classList.remove("rowB-slider-clip--wipe");
+      if (rowBHandle) rowBHandle.style.transition = "";
+      if (rowBChrome) rowBChrome.classList.add("rowB-chrome--live");
+      rowBOverlay.classList.add("rowB-overlay--live");
+      rowBSetSplit(0);
+    };
+
+    var rowBReset = function(){
+      if (rowBRaf) { cancelAnimationFrame(rowBRaf); rowBRaf = 0; }
+      rowBLive = false;
+      rowBSplitDragging = false;
+      if (rowBChrome) rowBChrome.classList.remove("rowB-chrome--live");
+      rowBOverlay.classList.remove("rowB-overlay--live");
+      if (rowBClip) rowBClip.classList.remove("rowB-slider-clip--wipe");
+      if (rowBHandle) {
+        rowBHandle.style.transition = "none";
+        rowBHandle.style.left = "0%";
+      }
+      rowBOverlay.classList.remove("rowB-overlay--on");
+      rowBCursor.classList.remove("rowB-cursor--on");
+      if (rowBTip) rowBTip.classList.remove("rowB-tip--in");
+      if (rowBOverlayBtn) rowBOverlayBtn.classList.remove("rowB-overlay-btn--press");
+      if (rowBOverlayAfter) {
+        rowBOverlayAfter.style.clipPath = "";
+        rowBOverlayAfter.style.webkitClipPath = "";
+        rowBOverlayAfter.style.transition = "none";
+        rowBOverlayAfter.classList.remove("rowB-overlay-after--in");
+        void rowBOverlayAfter.offsetWidth;
+        rowBOverlayAfter.style.transition = "";
+      }
+      if (rowBMarquee) {
+        rowBMarquee.classList.remove("rowB-marquee--on");
+        rowBMarquee.style.width = "0%";
+        rowBMarquee.style.height = "0%";
+      }
+      for (var i = 0; i < rowBActs.length; i++) rowBActs[i].classList.remove("rowB-overlay-act--in");
+      for (var i = 0; i < rowBTiles.length; i++) rowBTiles[i].classList.remove("rowB-tile--hot");
+    };
+
+    var rowBPlay = function(index){
+      var step = rowBSteps[index];
+      if (!step) return;
+      var tile = rowBTiles[step.tile];
+      if (!tile) return;
+      rowBClearTimers();
+      rowBReset();
+      rowBCurrent = index;
+      rowBDone = false;
+
+      rowBOverlayImg.setAttribute("src", step.img);
+      if (rowBOverlayAfter) {
+        rowBOverlayAfter.setAttribute("src", step.img.replace("-before.webp", "-after.webp"));
+        if (step.alpha) rowBOverlayAfter.classList.add("rowB-overlay-after--alpha");
+        else rowBOverlayAfter.classList.remove("rowB-overlay-after--alpha");
+      }
+      if (rowBOverlayBtnIcon) rowBOverlayBtnIcon.setAttribute("src", step.icon);
+      if (rowBOverlayBtnLabel) rowBOverlayBtnLabel.textContent = step.label;
+      for (var c = 0; c < rowBCards.length; c++){
+        if (c === index) rowBCards[c].classList.add("rowB-card--active");
+        else rowBCards[c].classList.remove("rowB-card--active");
+      }
+
+      if (rowBReduce && rowBReduce.matches) {
+        tile.classList.add("rowB-tile--hot");
+        rowBOverlay.classList.add("rowB-overlay--on");
+        rowBReveal();
+        rowBShowActs();
+        rowBEnterLive();
+        return;
+      }
+
+      var b = rowBBody.getBoundingClientRect();
+      if (!b.width || !b.height) return;
+      rowBCursor.style.transition = "none";
+      rowBCursor.style.transform = "translate(" + (b.width * 0.86) + "px," + (b.height * 0.92) + "px)";
+      void rowBCursor.offsetWidth;
+      rowBCursor.style.transition = "";
+
+      rowBAt(60, function(){
+        var bb = rowBBody.getBoundingClientRect(), t = tile.getBoundingClientRect();
+        if (!bb.width || !t.width) return;
+        rowBCursor.classList.add("rowB-cursor--on");
+        rowBCursor.style.transform = "translate(" + (t.left - bb.left + t.width / 2) + "px," +
+                                                   (t.top - bb.top + t.height / 2) + "px)";
+        rowBTrack(790);
+      });
+      rowBAt(880, function(){
+        if (rowBRaf) { cancelAnimationFrame(rowBRaf); rowBRaf = 0; }
+        rowBHotOnly(tile);
+      });
+      rowBAt(1180, function(){ if (rowBTip) rowBTip.classList.add("rowB-tip--in"); });
+      rowBAt(1520, function(){ if (rowBTip) rowBTip.classList.remove("rowB-tip--in"); });
+      rowBAt(1820, function(){ rowBOverlay.classList.add("rowB-overlay--on"); });
+
+      if (!step.box) {
+        rowBAt(2100, function(){
+          if (!rowBOverlayBtn) return;
+          var p = rowBPointIn(rowBOverlayBtn);
+          rowBMoveTo(p.x, p.y);
+        });
+        rowBAt(2900, rowBPress);
+        rowBAt(3120, rowBReveal);
+        rowBAt(4560, rowBShowActs);
+        rowBAt(5010, rowBEnterLive);
+      } else {
+        rowBAt(2100, function(){
+          var p = rowBBoxPoint(step.box.l, step.box.t);
+          rowBMoveTo(p.x, p.y);
+        });
+        rowBAt(2800, function(){
+          if (!rowBMarquee) return;
+          rowBMarquee.style.left = (step.box.l * 100) + "%";
+          rowBMarquee.style.top = (step.box.t * 100) + "%";
+          rowBMarquee.style.width = "0%";
+          rowBMarquee.style.height = "0%";
+          rowBMarquee.classList.add("rowB-marquee--on");
+          var p = rowBBoxPoint(step.box.r, step.box.b);
+          rowBMoveTo(p.x, p.y);
+          rowBDragTrack(step.box, 820);
+        });
+        rowBAt(3650, function(){
+          if (rowBRaf) { cancelAnimationFrame(rowBRaf); rowBRaf = 0; }
+          if (!rowBMarquee) return;
+          rowBMarquee.style.width = ((step.box.r - step.box.l) * 100) + "%";
+          rowBMarquee.style.height = ((step.box.b - step.box.t) * 100) + "%";
+        });
+        rowBAt(3850, function(){
+          if (!rowBOverlayBtn) return;
+          var p = rowBPointIn(rowBOverlayBtn);
+          rowBMoveTo(p.x, p.y);
+        });
+        rowBAt(4650, rowBPress);
+        rowBAt(4870, rowBReveal);
+        rowBAt(6310, rowBShowActs);
+        rowBAt(6760, rowBEnterLive);
+      }
+    };
+
+    rowBCards.forEach(function(card, i){
+      card.addEventListener("click", function(){ rowBPlay(i); });
+    });
+
+    if (rowBFigure) {
+      var rowBSplitFrom = function(clientX){
+        var r = rowBOverlayImg.getBoundingClientRect();
+        if (!r.width) return;
+        rowBSetSplit((clientX - r.left) / r.width);
+      };
+      rowBFigure.addEventListener("dragstart", function(e){ e.preventDefault(); });
+      var rowBOnChrome = function(target){
+        return !!(target && target.closest &&
+          target.closest(".rowB-overlay-btn, .rowB-overlay-act"));
+      };
+      rowBFigure.addEventListener("pointerdown", function(e){
+        if (!rowBLive) return;
+        if (rowBOnChrome(e.target)) return;
+        e.preventDefault();
+        rowBSplitDragging = true;
+        try { rowBFigure.setPointerCapture(e.pointerId); } catch(_){}
+        rowBSplitFrom(e.clientX);
+      });
+      rowBFigure.addEventListener("pointermove", function(e){
+        if (rowBLive && rowBSplitDragging) rowBSplitFrom(e.clientX);
+      });
+      rowBFigure.addEventListener("pointerup", function(e){
+        rowBSplitDragging = false;
+        try { rowBFigure.releasePointerCapture(e.pointerId); } catch(_){}
+      });
+      rowBFigure.addEventListener("pointercancel", function(){ rowBSplitDragging = false; });
+    }
+
+    var rowBRow = document.querySelector(".grrab-rowB");
+    if (rowBRow && "IntersectionObserver" in window) {
+      new IntersectionObserver(function(entries){
+        for (var i = 0; i < entries.length; i++){
+          if (rowBDone) continue;
+          if (entries[i].isIntersecting) rowBPlay(rowBCurrent);
+          else { rowBClearTimers(); rowBReset(); }
+        }
+      }, { threshold: 0.6 }).observe(rowBRow);
+    }
   }
 
   /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
@@ -1743,14 +2274,13 @@
     // list row
     var row = document.createElement("button");
     row.type = "button";
-    row.style.cssText = "display:flex;align-items:flex-start;gap:14px;width:100%;text-align:left;cursor:pointer;font:inherit;padding:16px 18px;border-radius:12px;background:transparent;border:none;border-left:3px solid transparent;outline:none;-webkit-appearance:none;appearance:none;transition:background .15s ease,border-color .15s ease;";
+    row.style.cssText = "display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;font:inherit;padding:14px 16px;border-radius:10px;background:transparent;border:none;outline:none;-webkit-appearance:none;appearance:none;transition:background .15s ease;";
     var iconWrap = document.createElement("span");
-    iconWrap.style.cssText = "flex-shrink:0;width:40px;height:40px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-faint);background:var(--surface-subtle);border:1px solid var(--border);transition:color .15s ease,background .15s ease,border-color .15s ease;";
+    iconWrap.style.cssText = "flex-shrink:0;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-muted);transition:color .15s ease;";
     iconWrap.innerHTML = it.icon;
     var txt = document.createElement("span");
-    txt.style.cssText = "display:flex;flex-direction:column;gap:3px;text-align:left;";
-    txt.innerHTML = '<span style="font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:-0.01em;color:var(--ink-strong);">'+it.label+'</span>'+
-                    '<span style="font-size:14.5px;line-height:1.45;color:var(--ink-muted);">'+it.desc+'</span>';
+    txt.style.cssText = "font-size:17px;line-height:1.45;color:var(--ink-muted);min-width:0;text-align:left;";
+    txt.innerHTML = '<strong style="font-weight:700;color:var(--ink-strong);">'+it.label+'</strong> '+it.desc;
     row.appendChild(iconWrap); row.appendChild(txt);
     row.addEventListener("mouseenter", function(){ activate(it.id); });
     row.addEventListener("focus", function(){ activate(it.id); });
@@ -1785,11 +2315,8 @@
     inspireConfig.forEach(function(it){
       var on = it.id === id;
       var row = rowEls[it.id], iw = iconWrapEls[it.id], pane = paneEls[it.id];
-      row.style.background = on ? "var(--accent-06)" : "transparent";
-      row.style.borderLeftColor = on ? "#BC13FE" : "transparent";
-      iw.style.color = on ? "var(--accent)" : "var(--ink-faint)";
-      iw.style.background = on ? "var(--accent-10)" : "var(--surface-subtle)";
-      iw.style.borderColor = on ? "var(--accent-20)" : "var(--border)";
+      row.style.background = on ? "var(--surface-subtle)" : "transparent";
+      iw.style.color = on ? "var(--accent)" : "var(--ink-muted)";
       pane.style.opacity = on ? "1" : "0";
       pane.style.transform = on ? "scale(1)" : "scale(1.015)";
       pane.style.pointerEvents = on ? "auto" : "none";
