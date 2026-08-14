@@ -218,6 +218,176 @@
   .rowA-step-kbd{font-family:inherit;font-size:inherit;font-weight:700;
     letter-spacing:.01em;color:var(--accent);}
 
+  /* ── HERO — the Row B mockup at hero scale, on a desktop wallpaper ──
+     The stage keeps the old video's 16:9 footprint; the window sits centred on it at
+     the Figma frame's own 593:434, so its height matches what the video occupied. */
+  .hero-stage{position:relative;width:100%;aspect-ratio:1920/1080;container-type:size;
+    overflow:hidden;border-radius:28px;background:var(--surface-key);}
+  /* 28px, not --radius-2xl's 24: the window's own corner reaches 12 * --hero-u * 1.7
+     = 27.0px at full zoom, and anything smaller here lets the wallpaper show through
+     the wedge outside that curve. Raise it if either the zoom or the 12 changes. */
+  /* The camera holds the wallpaper AND both windows, so zooming it moves the whole
+     scene together. Its numbers come from the layout: the window is 105cqh wide and
+     the stage 177.78cqh (16:9), so the window is 59.06% of the stage and its centre
+     sits at 2.8125 + 59.0625/2 = 32.34375%, and bringing that centre to the stage's
+     needs 50 - 32.34375 = 17.65625%. Filling the width exactly would need 1.693122;
+     1.7 is used instead so the window overshoots each side by about 2px and the
+     stage clips it, rather than leaving a sub-pixel seam. The camera handles the
+     width only: height is the window's own job, animating 59% -> 90% on the same
+     curve and timing. The camera's scale multiplies the height too, so an exact fill
+     would be 100 / 1.7 = 58.8235%; 59 is used so the window overshoots top and
+     bottom by about 1px and the stage clips it, the same trade the 1.7 makes on the
+     sides. The two animations must never be retimed apart. */
+  .hero-camera{position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:flex-start;gap:2.5cqh;
+    background-image:url("/assets/landing/img/macbook-wallpaper.webp");
+    background-size:cover;background-position:center;background-repeat:no-repeat;
+    transform-origin:32.34375% 50%;
+    animation:heroZoomOut 2.2s cubic-bezier(.4,0,.2,1) both;
+    animation-play-state:paused;}
+  @keyframes heroZoomOut{
+    from{transform:translateX(17.65625%) scale(1.7);}
+    to{transform:none;}}
+  @keyframes heroWindowShrink{
+    from{height:59%;}
+    to{height:90%;}}
+  .hero-stage--zoomout .hero-camera,
+  .hero-stage--zoomout .hero-mockup-wrap{animation-play-state:running;}
+  @media (prefers-reduced-motion:reduce){
+    .hero-camera{animation:none;}
+    .hero-mockup-wrap{animation:none;}
+  }
+  .hero-mockup-wrap{position:relative;height:90%;width:105cqh;
+    flex-shrink:0;margin-left:5cqh;
+    animation:heroWindowShrink 2.2s cubic-bezier(.4,0,.2,1) both;
+    animation-play-state:paused;}
+  .hero-canvas{flex:1;min-width:0;align-self:stretch;overflow:hidden;
+    display:flex;flex-direction:column;
+    container-type:size;--hero-u:calc(90cqh / 434);
+    background:#DFDFDF;border-top:1px solid #E6E7EB;
+    border-radius:calc(12 * var(--hero-u)) 0 0 0;}
+  .hero-canvas-body{flex:1;min-height:0;width:100%;background:#000000;}
+  /* The unit is 90% of the STAGE's height, not the window's own, and .hero-chrome is
+     deliberately not a container so cqh resolves against the stage. The window's
+     height animates 59% -> 90%, so a unit derived from it would grow as the camera
+     shrank and everything inside would barely change size. This is the same
+     expression .hero-canvas uses, and at rest both give 575 / 434 = 1.325. */
+  .hero-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+    --hero-u:calc(90cqh / 434);
+    /* The overlay's buttons use their own unit, the main one divided by the camera's
+       1.7. That makes them render at the zoomed-in frame exactly the size they used
+       to reach at rest. The 1.7 is the same number as the scale in heroZoomOut and
+       must be changed with it. */
+    --hero-btn-u:calc(var(--hero-u) / 1.7);
+    background:#DFDFDF;
+    border-radius:calc(12 * var(--hero-u));box-shadow:0 0 calc(4 * var(--hero-u)) 0 rgba(0,0,0,.25);}
+  .hero-header{display:flex;align-items:center;gap:calc(4.5 * var(--hero-u));width:100%;
+    height:calc(22 * var(--hero-u));flex-shrink:0;
+    padding:calc(4.5 * var(--hero-u)) calc(13 * var(--hero-u)) calc(4.5 * var(--hero-u)) calc(7.5 * var(--hero-u));}
+  .hero-header .browser-traffic{height:calc(13 * var(--hero-u));gap:calc(3.5 * var(--hero-u));
+    padding:0 calc(4.5 * var(--hero-u)) 0 0;border-radius:0 0 calc(3 * var(--hero-u)) 0;}
+  .hero-header .browser-dot{width:calc(6 * var(--hero-u));height:calc(6 * var(--hero-u));}
+  .hero-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding:0 calc(17 * var(--hero-u)) 0 calc(7.5 * var(--hero-u));
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--hero-u));}
+  .hero-urlbar-line{flex:1;min-width:0;height:calc(2 * var(--hero-u));
+    border-radius:calc(10 * var(--hero-u));background:#DEE1E6;}
+  .hero-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(13 * var(--hero-u));height:calc(13 * var(--hero-u));
+    padding:calc(1.5 * var(--hero-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--hero-u));}
+  .hero-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  .hero-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;overflow:hidden;
+    margin:0 1px 1px;
+    background:var(--surface);border-radius:calc(4 * var(--hero-u));}
+  .hero-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    width:calc(30 * var(--hero-u));gap:calc(24 * var(--hero-u));
+    padding-top:calc(16 * var(--hero-u));border-right:0.5px solid #C8C8C0;}
+  .hero-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
+  .hero-sidebar-icon{display:block;object-fit:contain;}
+  .hero-sidebar-icon--home{width:calc(10 * var(--hero-u));height:calc(11 * var(--hero-u));}
+  .hero-sidebar-icon--category{width:calc(11 * var(--hero-u));height:calc(11 * var(--hero-u));}
+  .hero-sidebar-icon--add{width:calc(10 * var(--hero-u));height:calc(10 * var(--hero-u));}
+  .hero-sidebar-icon--notification{width:calc(10 * var(--hero-u));height:calc(11 * var(--hero-u));}
+  .hero-sidebar-icon--message{width:calc(12 * var(--hero-u));height:calc(12 * var(--hero-u));}
+  .hero-gallery{display:grid;grid-template-columns:repeat(4,1fr);align-content:start;
+    gap:calc(10 * var(--hero-u));padding:calc(10 * var(--hero-u));flex:1;min-width:0;height:100%;
+    background:var(--surface);border-radius:0 calc(14 * var(--hero-u)) 0 0;}
+  .hero-tile{position:relative;border-radius:calc(8 * var(--hero-u));overflow:hidden;
+    aspect-ratio:174.333/121.333;
+    background:var(--surface-key);transition:box-shadow .25s ease,opacity .25s ease;}
+  .hero-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .hero-tile--dim{opacity:.5;}
+  .hero-tile--tall{grid-row:span 2;aspect-ratio:174.333/252.667;}
+  .hero-tile--hot{opacity:1;box-shadow:0 0 calc(13 * var(--hero-u)) 0 var(--accent-bright);}
+  .hero-cursor{position:absolute;left:0;top:0;z-index:3;pointer-events:none;
+    width:calc(26 * var(--hero-u));height:calc(26 * var(--hero-u));opacity:0;
+    transition:transform .75s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  .hero-cursor--on{opacity:1;}
+  .hero-cursor img{width:100%;height:100%;display:block;}
+  .hero-tip{position:absolute;left:calc(18 * var(--hero-u));top:calc(-20 * var(--hero-u));
+    display:inline-flex;align-items:center;white-space:nowrap;
+    padding:calc(4 * var(--hero-u)) calc(8 * var(--hero-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--hero-u));
+    font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
+    font-size:calc(11 * var(--hero-u));
+    opacity:0;transition:opacity .3s ease;}
+  .hero-tip--in{opacity:1;transition:none;}
+  .hero-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;
+    justify-content:center;background:rgba(0,0,0,.8);
+    opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .hero-overlay--on{opacity:1;}
+  /* aspect-ratio pins the figure to the image's own 2000x1333. Without it the box
+     takes 62% x 64% of a body whose proportions change with the zoom, so object-fit
+     leaves side gaps — invisible on the before image, but painted by the after
+     image's checkerboard. */
+  .hero-overlay-figure{position:relative;display:flex;margin:0;
+    max-width:62%;max-height:64%;aspect-ratio:2000/1333;
+    -webkit-user-select:none;user-select:none;}
+  .hero-overlay-figure img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
+  .hero-overlay-img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+    object-fit:contain;border-radius:calc(8 * var(--hero-u));}
+  .hero-overlay-after{position:absolute;left:0;top:0;width:100%;height:100%;display:block;
+    object-fit:contain;border-radius:calc(8 * var(--hero-u));z-index:2;
+    clip-path:inset(0 0 0 100%);-webkit-clip-path:inset(0 0 0 100%);
+    transition:clip-path 1.4s ease,-webkit-clip-path 1.4s ease;}
+  .hero-overlay-after--in{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0);}
+  .hero-overlay-after--alpha{background-color:#ffffff;
+    background-image:
+      linear-gradient(45deg,#D9D9D9 25%,transparent 25%,transparent 75%,#D9D9D9 75%),
+      linear-gradient(45deg,#D9D9D9 25%,transparent 25%,transparent 75%,#D9D9D9 75%);
+    background-size:calc(10 * var(--hero-u)) calc(10 * var(--hero-u));
+    background-position:0 0,calc(5 * var(--hero-u)) calc(5 * var(--hero-u));}
+  .hero-overlay-btn{position:absolute;right:0;bottom:calc(100% + 12 * var(--hero-btn-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--hero-btn-u));
+    padding:calc(6 * var(--hero-btn-u)) calc(11 * var(--hero-btn-u));
+    background:#BC13FE;border:1px solid #BC13FE;border-radius:calc(6 * var(--hero-btn-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--hero-btn-u));color:#f0f0f0;white-space:nowrap;
+    transition:background .15s ease,border-color .15s ease;}
+  .hero-overlay-btn img{width:calc(11 * var(--hero-btn-u));height:calc(11 * var(--hero-btn-u));display:block;
+    filter:brightness(0) invert(1);}
+  .hero-overlay-btn--hover{background:#7C1FA8;}
+  /* --press must sit after --hover: the cursor is still on the button while it is
+     held down, so both classes are present and the later rule has to win.
+     border-color rather than border:none, so the box does not shrink by 2px on press. */
+  .hero-overlay-btn--press{background:#8A8A8E;border-color:transparent;}
+  .hero-spinner{position:absolute;left:50%;top:50%;z-index:3;
+    width:calc(28 * var(--hero-btn-u));height:calc(28 * var(--hero-btn-u));
+    margin:calc(-14 * var(--hero-btn-u)) 0 0 calc(-14 * var(--hero-btn-u));
+    border:calc(3 * var(--hero-btn-u)) solid rgba(255,255,255,.35);
+    border-top-color:#BC13FE;border-radius:50%;
+    display:none;animation:heroSpin .8s linear infinite;}
+  .hero-spinner--on{display:block;}
+  @keyframes heroSpin{to{transform:rotate(360deg);}}
+  .hero-overlay-act{position:absolute;top:calc(100% + 12 * var(--hero-btn-u));right:0;
+    display:inline-flex;align-items:center;
+    padding:calc(6 * var(--hero-btn-u)) calc(11 * var(--hero-btn-u));
+    background:#BC13FE;border:1px solid #BC13FE;border-radius:calc(6 * var(--hero-btn-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--hero-btn-u));color:#f0f0f0;white-space:nowrap;
+    opacity:0;transition:opacity .35s ease;}
+  .hero-overlay-act--in{opacity:1;}
+
   /* ── Row B — step cards + an empty mockup slot ──
      The card rules are the ones Row A used before its rebuild, renamed to rowB-*. */
   .rowB-cards{display:flex;flex-direction:column;gap:10px;width:100%;}
@@ -318,17 +488,28 @@
   .rowB-overlay-btn{position:absolute;right:0;bottom:calc(100% + 12 * var(--rowB-u));
     display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));
     padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
-    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
+    background:#BC13FE;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
     font-family:var(--font-sans);font-weight:600;line-height:1.4;
     font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
-    transition:background .15s ease;}
+    transition:background .15s ease,border-color .15s ease;}
   .rowB-overlay-btn img{width:calc(11 * var(--rowB-u));height:calc(11 * var(--rowB-u));display:block;
     filter:brightness(0) invert(1);}
-  .rowB-overlay-btn--press{background:#5C1580;}
+  .rowB-overlay-btn--hover{background:#7C1FA8;}
+  /* --press must sit after --hover: the cursor is still on the button while it is
+     held down, so both classes are present and the later rule has to win.
+     border-color rather than border:none, so the box does not shrink by 2px on press. */
+  .rowB-overlay-btn--press{background:#8A8A8E;border-color:transparent;}
+  .rowB-spinner{position:absolute;left:50%;top:50%;z-index:3;
+    width:calc(28 * var(--rowB-u));height:calc(28 * var(--rowB-u));
+    margin:calc(-14 * var(--rowB-u)) 0 0 calc(-14 * var(--rowB-u));
+    border:calc(3 * var(--rowB-u)) solid rgba(255,255,255,.35);
+    border-top-color:#BC13FE;border-radius:50%;
+    display:none;animation:heroSpin .8s linear infinite;}
+  .rowB-spinner--on{display:block;}
   .rowB-overlay-act{position:absolute;top:calc(100% + 12 * var(--rowB-u));
     display:inline-flex;align-items:center;
     padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
-    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
+    background:#BC13FE;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
     font-family:var(--font-sans);font-weight:600;line-height:1.4;
     font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
     opacity:0;transition:opacity .35s ease;}
@@ -932,14 +1113,64 @@
   </div>
 </section>
 
-<!-- ══ HERO VIDEO ══ -->
+<!-- ══ HERO MOCKUP ══ -->
 <section style="max-width:var(--container-max);margin:0 auto;padding:8px 32px 80px;">
-  <video id="heroVideo"
-         src="/assets/landing/video/rowA_demo.mp4"
-         poster="/assets/landing/img/rowA_demo_poster.webp"
-         autoplay muted loop playsinline preload="metadata"
-         aria-label="Grrab clipping an image from a gallery page"
-         style="display:block;width:100%;height:auto;border-radius:var(--radius-2xl);"></video>
+  <div class="hero-stage">
+    <div class="hero-camera">
+    <div class="hero-mockup-wrap">
+      <div class="hero-chrome">
+        <div class="hero-header">
+          <div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>
+          <div class="hero-urlbar"><div class="hero-urlbar-line"></div></div>
+          <div class="hero-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
+        </div>
+        <div class="hero-body">
+          <div class="hero-sidebar">
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--home" src="/assets/landing/icons/hero/icon_home.svg" alt=""></div>
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--category" src="/assets/landing/icons/hero/icon_category.svg" alt=""></div>
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--add" src="/assets/landing/icons/hero/icon_add.svg" alt=""></div>
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--notification" src="/assets/landing/icons/hero/icon_notification.svg" alt=""></div>
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--message" src="/assets/landing/icons/hero/icon_message.svg" alt=""></div>
+          </div>
+          <div class="hero-gallery">
+            <div class="hero-tile hero-tile--dim hero-tile--tall"><img src="/assets/landing/img/hero-image-1-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim"><img src="/assets/landing/img/hero-image-3-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim"><img src="/assets/landing/img/hero-image-6-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim"><img src="/assets/landing/img/hero-image-5-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim"><img src="/assets/landing/img/hero-image-4-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim hero-tile--tall"><img src="/assets/landing/img/hero-image-7-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim"><img src="/assets/landing/img/hero-image-3-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim"><img src="/assets/landing/img/hero-image-2-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim"><img src="/assets/landing/img/hero-image-5-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--dim"><img src="/assets/landing/img/hero-image-1-before.webp" alt=""></div>
+          </div>
+          <span class="hero-cursor" id="heroCursor" aria-hidden="true">
+            <span class="hero-tip" id="heroTip">⌘C</span>
+            <img src="/assets/landing/icons/hero/icon_cursor.svg" alt="">
+          </span>
+          <div class="hero-overlay" id="heroOverlay" aria-hidden="true">
+            <figure class="hero-overlay-figure">
+              <img class="hero-overlay-img" id="heroOverlayImg" src="/assets/landing/img/hero-image-1-before.webp" alt="" draggable="false">
+              <img class="hero-overlay-after" id="heroOverlayAfter" src="/assets/landing/img/hero-image-1-after.webp" alt="" draggable="false">
+              <span class="hero-overlay-btn" id="heroOverlayBtn">
+                <img src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
+                <span>Remove BG</span>
+              </span>
+              <span class="hero-spinner" id="heroSpinner" aria-hidden="true"></span>
+              <span class="hero-overlay-act" id="heroActClip">Clip</span>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-canvas">
+      <div class="hero-header">
+        <div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>
+      </div>
+      <div class="hero-canvas-body"></div>
+    </div>
+    </div>
+  </div>
 </section>
 
 <!-- ══ FEATURES ══ -->
@@ -1071,6 +1302,7 @@
                   </span>
                 </span>
               </span>
+              <span class="rowB-spinner" id="rowBSpinner" aria-hidden="true"></span>
               <span class="rowB-overlay-act rowB-overlay-act--clip" id="rowBActClip">Clip</span>
             </figure>
           </div>
@@ -1406,7 +1638,7 @@
      detection it uses, so the page never shows a shortcut the visitor
      cannot press. Failing open leaves the macOS text in place. */
   var KC_SHORTCUT_SELECTOR =
-    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip, .rowB-tip, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
+    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip, .rowB-tip, .hero-tip, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
   try {
     var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
                 navigator.userAgent.indexOf("Mac") !== -1;
@@ -1507,6 +1739,132 @@
     rowACompare.addEventListener("pointerleave", function(){ rowACompareDragging = false; });
   }
 
+  /* ──────────────────── HERO — ZOOM-OUT TRIGGER ──────────────────── */
+  var heroStage = document.querySelector(".hero-stage");
+
+  if (heroStage) {
+    /* The two zoom animations are declared paused so the very first painted frame is
+       already the zoomed-in one. Adding the class is what starts them, which is how a
+       sequence will later hand off to the pull-back instead of a fixed delay. */
+    var heroZoomOut = function(){ heroStage.classList.add("hero-stage--zoomout"); };
+    var heroReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    if (heroReduce && heroReduce.matches) heroZoomOut();
+    else setTimeout(heroZoomOut, 7400);
+  }
+
+  /* ──────────────────── HERO — EDIT-MODE SEQUENCE ──────────────────── */
+  var heroBody = document.querySelector(".hero-body");
+  var heroCursor = document.getElementById("heroCursor");
+  var heroTip = document.getElementById("heroTip");
+  var heroOverlay = document.getElementById("heroOverlay");
+  var heroOverlayAfter = document.getElementById("heroOverlayAfter");
+  var heroOverlayBtn = document.getElementById("heroOverlayBtn");
+  var heroSpinner = document.getElementById("heroSpinner");
+  var heroActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
+  var heroTiles = [].slice.call(document.querySelectorAll(".hero-tile"));
+
+  if (heroBody && heroCursor && heroOverlay && heroTiles.length) {
+    var heroTimers = [];
+    var heroRaf = 0;
+    var heroAt = function(ms, fn){ heroTimers.push(setTimeout(fn, ms)); };
+
+    /* Positions come from offsetLeft/offsetTop, walking up to .hero-body, rather than
+       from getBoundingClientRect. The camera scales this whole subtree, so a screen
+       rect would be 1.7x the value the cursor's own transform needs; offsets are
+       layout pixels and stay correct at any zoom. */
+    var heroCentreIn = function(el){
+      var x = 0, y = 0, n = el;
+      while (n && n !== heroBody) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+      return { x: x + el.offsetWidth / 2, y: y + el.offsetHeight / 2 };
+    };
+    var heroMoveTo = function(p){
+      heroCursor.style.transform = "translate(" + p.x + "px," + p.y + "px)";
+    };
+
+    var heroHotOnly = function(tile){
+      for (var i = 0; i < heroTiles.length; i++){
+        if (heroTiles[i] === tile) heroTiles[i].classList.add("hero-tile--hot");
+        else heroTiles[i].classList.remove("hero-tile--hot");
+      }
+    };
+
+    /* Hit testing DOES use getBoundingClientRect with elementFromPoint, because that
+       pair works in viewport space and is unaffected by the transform either way. */
+    var heroTrack = function(durationMs){
+      var started = Date.now();
+      var tick = function(){
+        var r = heroCursor.getBoundingClientRect();
+        var under = document.elementFromPoint(r.left, r.top);
+        heroHotOnly(under && under.closest ? under.closest(".hero-tile") : null);
+        if (Date.now() - started < durationMs) heroRaf = requestAnimationFrame(tick);
+        else heroRaf = 0;
+      };
+      heroRaf = requestAnimationFrame(tick);
+    };
+
+    /* The press is NOT released on a timer any more. It stays down for as long as the
+       spinner runs, which is what makes the button read as busy rather than as a
+       click that already finished. heroReveal is the single point where both end. */
+    var heroHover = function(){
+      if (heroOverlayBtn) heroOverlayBtn.classList.add("hero-overlay-btn--hover");
+    };
+    var heroPress = function(){
+      if (heroOverlayBtn) heroOverlayBtn.classList.add("hero-overlay-btn--press");
+      if (heroSpinner) heroSpinner.classList.add("hero-spinner--on");
+    };
+    var heroReveal = function(){
+      if (heroSpinner) heroSpinner.classList.remove("hero-spinner--on");
+      if (heroOverlayBtn) heroOverlayBtn.classList.remove("hero-overlay-btn--press");
+      if (heroOverlayAfter) heroOverlayAfter.classList.add("hero-overlay-after--in");
+    };
+    var heroShowActs = function(){
+      for (var i = 0; i < heroActs.length; i++) heroActs[i].classList.add("hero-overlay-act--in");
+    };
+
+    var heroPlay = function(){
+      var tile = heroTiles[0];
+      if (!tile || !heroBody.offsetWidth) return;
+      if (heroOverlayAfter) heroOverlayAfter.classList.add("hero-overlay-after--alpha");
+
+      heroCursor.style.transition = "none";
+      heroCursor.style.transform = "translate(" + (heroBody.offsetWidth * 0.86) + "px," +
+                                                  (heroBody.offsetHeight * 0.92) + "px)";
+      void heroCursor.offsetWidth;
+      heroCursor.style.transition = "";
+
+      heroAt(60, function(){
+        heroCursor.classList.add("hero-cursor--on");
+        heroMoveTo(heroCentreIn(tile));
+        heroTrack(790);
+      });
+      heroAt(880, function(){
+        if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
+        heroHotOnly(tile);
+      });
+      heroAt(1180, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
+      heroAt(1520, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
+      heroAt(1820, function(){ heroOverlay.classList.add("hero-overlay--on"); });
+      heroAt(2100, function(){
+        if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
+      });
+      heroAt(2850, heroHover);
+      heroAt(3250, heroPress);
+      heroAt(4250, heroReveal);
+      heroAt(5690, heroShowActs);
+    };
+
+    if (heroReduce && heroReduce.matches) {
+      heroHotOnly(heroTiles[0]);
+      if (heroOverlayAfter) heroOverlayAfter.classList.add("hero-overlay-after--alpha");
+      heroOverlay.classList.add("hero-overlay--on");
+      heroReveal();
+      heroShowActs();
+    } else {
+      heroPlay();
+    }
+  }
+
   /* ──────────────────── ROW B — EDIT-MODE DEMO ──────────────────── */
   var rowBChrome = document.querySelector(".rowB-chrome");
   var rowBBody = document.querySelector(".rowB-body");
@@ -1521,6 +1879,7 @@
   var rowBOverlayBtn = document.getElementById("rowBOverlayBtn");
   var rowBActs = [].slice.call(document.querySelectorAll(".rowB-overlay-act"));
   var rowBMarquee = document.getElementById("rowBMarquee");
+  var rowBSpinner = document.getElementById("rowBSpinner");
   var rowBOverlayBtnIcon = document.getElementById("rowBOverlayBtnIcon");
   var rowBOverlayBtnLabel = document.getElementById("rowBOverlayBtnLabel");
   var rowBCards = [].slice.call(document.querySelectorAll(".rowB-card"));
@@ -1594,12 +1953,19 @@
       };
       rowBRaf = requestAnimationFrame(tick);
     };
+    /* The press is NOT released on a timer any more. It stays down for as long as the
+       spinner runs, which is what makes the button read as busy rather than as a
+       click that already finished. rowBReveal is the single point where both end. */
+    var rowBHover = function(){
+      if (rowBOverlayBtn) rowBOverlayBtn.classList.add("rowB-overlay-btn--hover");
+    };
     var rowBPress = function(){
-      if (!rowBOverlayBtn) return;
-      rowBOverlayBtn.classList.add("rowB-overlay-btn--press");
-      rowBAt(200, function(){ rowBOverlayBtn.classList.remove("rowB-overlay-btn--press"); });
+      if (rowBOverlayBtn) rowBOverlayBtn.classList.add("rowB-overlay-btn--press");
+      if (rowBSpinner) rowBSpinner.classList.add("rowB-spinner--on");
     };
     var rowBReveal = function(){
+      if (rowBSpinner) rowBSpinner.classList.remove("rowB-spinner--on");
+      if (rowBOverlayBtn) rowBOverlayBtn.classList.remove("rowB-overlay-btn--press");
       if (rowBMarquee) rowBMarquee.classList.remove("rowB-marquee--on");
       if (rowBClip) rowBClip.classList.add("rowB-slider-clip--wipe");
       if (rowBHandle) {
@@ -1626,6 +1992,9 @@
       rowBLive = true;
       rowBDone = true;
       rowBCursor.classList.remove("rowB-cursor--on");
+      /* The hover goes with the cursor. Live mode is a handover, not a reset, so
+         rowBReset's own removal never runs on this path. */
+      if (rowBOverlayBtn) rowBOverlayBtn.classList.remove("rowB-overlay-btn--hover");
       if (rowBClip) rowBClip.classList.remove("rowB-slider-clip--wipe");
       if (rowBHandle) rowBHandle.style.transition = "";
       if (rowBChrome) rowBChrome.classList.add("rowB-chrome--live");
@@ -1647,7 +2016,11 @@
       rowBOverlay.classList.remove("rowB-overlay--on");
       rowBCursor.classList.remove("rowB-cursor--on");
       if (rowBTip) rowBTip.classList.remove("rowB-tip--in");
-      if (rowBOverlayBtn) rowBOverlayBtn.classList.remove("rowB-overlay-btn--press");
+      if (rowBOverlayBtn) {
+        rowBOverlayBtn.classList.remove("rowB-overlay-btn--press");
+        rowBOverlayBtn.classList.remove("rowB-overlay-btn--hover");
+      }
+      if (rowBSpinner) rowBSpinner.classList.remove("rowB-spinner--on");
       if (rowBOverlayAfter) {
         rowBOverlayAfter.style.clipPath = "";
         rowBOverlayAfter.style.webkitClipPath = "";
@@ -1726,10 +2099,11 @@
           var p = rowBPointIn(rowBOverlayBtn);
           rowBMoveTo(p.x, p.y);
         });
-        rowBAt(2900, rowBPress);
-        rowBAt(3120, rowBReveal);
-        rowBAt(4560, rowBShowActs);
-        rowBAt(5010, rowBEnterLive);
+        rowBAt(2850, rowBHover);
+        rowBAt(3250, rowBPress);
+        rowBAt(4250, rowBReveal);
+        rowBAt(5690, rowBShowActs);
+        rowBAt(6140, rowBEnterLive);
       } else {
         rowBAt(2100, function(){
           var p = rowBBoxPoint(step.box.l, step.box.t);
@@ -1757,10 +2131,11 @@
           var p = rowBPointIn(rowBOverlayBtn);
           rowBMoveTo(p.x, p.y);
         });
-        rowBAt(4650, rowBPress);
-        rowBAt(4870, rowBReveal);
-        rowBAt(6310, rowBShowActs);
-        rowBAt(6760, rowBEnterLive);
+        rowBAt(4600, rowBHover);
+        rowBAt(5000, rowBPress);
+        rowBAt(6000, rowBReveal);
+        rowBAt(7440, rowBShowActs);
+        rowBAt(7890, rowBEnterLive);
       }
     };
 
