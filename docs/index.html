@@ -95,6 +95,10 @@
      30px is the ceiling that keeps its single-line heading from wrapping. Set it here
      only — do not reintroduce a font-size on the individual h2 elements. */
   .feature-h2{font-size:clamp(24px,3.1vw,30px);}
+  /* Sits directly above each row's heading, inside the same 14px-gap box, so the space
+     between label and heading is the parent's rather than a margin of its own. */
+  .feature-label{font-family:var(--font-sans);font-size:13px;font-weight:700;
+    letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin:0;}
 
   /* Hero line 1 is longer than line 2, so it is scaled down until both lines measure
      the same width. The value is a ratio of the h1 size, not a fixed px, so it holds
@@ -107,7 +111,22 @@
   /* The mockup stretches to the row height set by the text column, so the gallery
      rows grow with it. The header keeps its fixed --rowA-u height; only .rowA-body
      and the tiles take up the extra space. */
-  .rowA-mockup-wrap{position:relative;width:100%;aspect-ratio:473/305;}
+  /* 591/470 rather than the Figma frame's 473/305: in the 1.25fr column this is what
+     holds the row at the 470 Rows B and C are pinned to. The window stretches about 10%
+     taller than its own proportions as a result. */
+  /* --rowA-u moves here from .rowA-window, which the gallery-only markup no longer has.
+     The divisor stays 593: this element is the same width the window was, so the unit
+     keeps its value and nothing inside the gallery changes size. */
+  /* Fixed height rather than a ratio: below the capped container the ratio made all
+     three rows shrink with the viewport. 470 holds them level from 820px up, where the
+     mobile block takes over anyway. */
+  .rowA-mockup-wrap{position:relative;width:100%;height:470px;
+    container-type:inline-size;--rowA-u:calc(100cqw / 593);}
+  /* Row A alone puts its heading on the right. Done with order rather than by moving the
+     markup, because the heading column has no class of its own and the mobile rules find
+     it with :first-child — which order does not disturb. On mobile the column becomes
+     display:contents, where order has no effect, so this is desktop-only by nature. */
+  .grrab-rowA > div:first-child{order:1;}
   .rowD-chrome{display:flex;align-items:center;gap:6px;width:100%;height:50px;flex-shrink:0;
     padding:10px 18px 10px 0;}
   .rowD-urlbar{display:flex;align-items:center;flex:1;height:30px;min-width:0;align-self:center;
@@ -155,23 +174,53 @@
     padding:calc(2 * var(--rowA-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--rowA-u));}
   .rowA-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
   .rowA-body{display:flex;flex:1;min-height:0;width:100%;align-items:flex-start;justify-content:flex-end;}
-  .rowA-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;
+  /* Three independent columns rather than one grid: a grid cannot move a column on its
+     own, and each of these will scroll at its own speed and direction. */
+  .rowA-gallery{display:flex;flex-direction:row;overflow:hidden;
     gap:calc(10 * var(--rowA-u));padding:calc(10 * var(--rowA-u));width:100%;height:100%;
-    background:var(--surface);border-radius:0 calc(14 * var(--rowA-u)) 0 0;}
+    background:var(--surface);}
+  /* align-self:flex-start, not flex-shrink. The gallery is a ROW, so shrink acts on
+     width; what squeezed the column to the gallery's 450 was align-items:stretch on the
+     cross axis. The keyframes move by a percentage OF THE COLUMN, so a squeezed column
+     travelled a third of a set and the loop reset mid-image.
+     flex:1 must stay exactly as it is — it means 1 1 0, and that zero basis is what
+     makes the three columns split the width evenly. */
+  .rowA-col{display:flex;flex-direction:column;flex:1;min-width:0;align-self:flex-start;
+    gap:calc(10 * var(--rowA-u));
+    animation:rowAScrollDown 60s linear infinite;}
+  .rowA-col:nth-child(2){animation-name:rowAScrollUp;}
+  /* 31/20 is 1.55, the comparison's proportions, as a whole-number ratio. */
+  .rowA-col .rowA-tile{aspect-ratio:31/20;flex-shrink:0;}
+  .rowA-col:hover{animation-play-state:paused;}
+  /* 50.51 rather than 50: ten tiles have nine gaps between them, but one set is five
+     tiles AND five gaps — the gap leading into the copy belongs to the set. The figure
+     holds at any width because --rowA-u sizes the tile and the gap together. */
+  @keyframes rowAScrollDown{
+    from{transform:translateY(-50.51%);}
+    to{transform:translateY(0);}}
+  @keyframes rowAScrollUp{
+    from{transform:translateY(0);}
+    to{transform:translateY(-50.51%);}}
+  @media (prefers-reduced-motion:reduce){
+    .rowA-col{animation:none;}
+  }
   .rowA-tile{position:relative;border-radius:calc(8 * var(--rowA-u));overflow:hidden;
     background:var(--surface-key);}
   .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .rowA-tile--dim{opacity:.5;}
   .rowA-tile--active{opacity:1;box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
   .rowA-tile{cursor:pointer;transition:box-shadow .18s cubic-bezier(.25,.1,.25,1);}
-  .rowA-tile--dim:hover{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
+  .rowA-tile:hover{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
   .rowA-tip{position:fixed;left:0;top:0;z-index:60;pointer-events:none;opacity:0;
     font-family:var(--font-sans);font-weight:700;font-size:13px;line-height:1;color:#fff;
     background:var(--accent-bright);padding:6px 9px;border-radius:6px;white-space:nowrap;
     box-shadow:0 4px 16px rgba(207,0,255,.35);transition:opacity .12s ease;}
   .rowA-tip.show{opacity:1;}
+  /* flex:1 replaces align-self:stretch now that this is a flex child of the heading
+     column rather than a grid child of the row. It still receives its height rather than
+     setting it, which is what container-type:size needs. */
   .rowA-pallette{position:relative;display:flex;align-items:center;justify-content:center;
-    width:100%;height:auto;align-self:stretch;
+    width:100%;height:auto;flex:1;min-height:0;
     padding:calc(5 * var(--rowA-u));box-sizing:border-box;
     container-type:size;--rowA-u:calc(100cqh / 340);}
   .rowA-pallette::before{content:"";position:absolute;inset:0;pointer-events:none;
@@ -480,7 +529,7 @@
      820px, where everything stacks. The extra ~7px over the Figma height goes to the
      gallery, which is flex:1, and its 1fr rows pass it to the tiles. --rowB-u stays
      width-based, so the header, sidebar and icons keep their size. */
-  .rowB-mockup-wrap{position:relative;width:100%;align-self:stretch;aspect-ratio:591/440;}
+  .rowB-mockup-wrap{position:relative;width:100%;align-self:stretch;height:470px;}
   .rowB-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
     container-type:inline-size;--rowB-u:calc(100cqw / 593);
     background:#DFDFDF;border-top:1px solid #E6E7EB;border-right:1px solid #E6E7EB;
@@ -1048,6 +1097,57 @@
   @keyframes gfloatB{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-10px) rotate(1.3deg)}}
   @keyframes gfloatC{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(.9deg)}}
 
+  /* Below the capped container Row B is drawn at its full width and scaled down whole,
+     so the heading, the cards and the mockup shrink together. Everything else on the
+     page still reflows the usual way — this is a trial on one row. */
+  @media (max-width:1199px) and (min-width:821px){
+    .rowA-scale-wrap{
+      height:calc(470px * (100vw - 64px) / 1136);
+      overflow:hidden;
+    }
+    .grrab-rowA{
+      width:1136px !important;
+      transform-origin:top left;
+      transform:scale(calc((100vw - 64px) / 1136px));
+    }
+    .rowC-scale-wrap{
+      height:calc(470px * (100vw - 64px) / 1136);
+      overflow:hidden;
+    }
+    .grrab-inspire-grid{
+      width:1136px !important;
+      transform-origin:top left;
+      transform:scale(calc((100vw - 64px) / 1136px));
+    }
+    /* Row D is 551 tall where the others are 470 — the only number that differs. */
+    .rowD-scale-wrap{
+      height:calc(551px * (100vw - 64px) / 1136);
+      overflow:hidden;
+    }
+    .grrab-rowD{
+      width:1136px !important;
+      transform-origin:top left;
+      transform:scale(calc((100vw - 64px) / 1136px));
+    }
+    /* The ratio is written out in both places rather than held in a custom property.
+       An unregistered variable substitutes as untyped tokens, so scale(var(--x)) and
+       calc(470px * var(--x)) were both invalid and silently dropped — only the width,
+       which did not use it, applied. The mobile block below does it the same way. */
+    .rowB-scale-wrap{
+      height:calc(470px * (100vw - 64px) / 1136);
+      overflow:hidden;
+    }
+    .grrab-rowB{
+      width:1136px !important;
+      transform-origin:top left;
+      /* 1136px, not 1136: scale() takes a unitless number, and a length divided by a
+         plain number is still a length. Dividing by a length cancels the unit. The
+         height rule above divides by a bare 1136 for the opposite reason — it needs a
+         length out. */
+      transform:scale(calc((100vw - 64px) / 1136px));
+    }
+  }
+
   @media (max-width:820px){
     /* header + hero + section chrome */
     header > div{ padding:14px 20px !important; }
@@ -1108,7 +1208,7 @@
        own Figma ratio; the palette stretches to match its row height. */
     .rowA-mockup-wrap{ position:relative !important; width:100% !important;
       aspect-ratio:281/434 !important; height:auto !important; }
-    .rowA-window{ --rowA-u:calc(100cqw / 281) !important; }
+    .rowA-mockup-wrap{ --rowA-u:calc(100cqw / 281) !important; }
     .rowA-pallette{ aspect-ratio:auto !important; height:100% !important;
       padding:0 !important; --rowA-u:calc(100cqh / 434) !important; }
     .rowA-preview{ display:flex !important; }
@@ -1302,70 +1402,92 @@
 <section id="how" style="max-width:var(--container-max);margin:0 auto;padding:104px 32px;display:flex;flex-direction:column;gap:120px;">
 
   <!-- Row A — text + browser mockup left, before/after slider right -->
-  <div class="grrab-rowA" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
+  <div class="rowA-scale-wrap">
+  <div class="grrab-rowA" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:72px;align-items:stretch;">
     <!-- LEFT: heading + description + browser mockup -->
     <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
       <div style="display:flex;flex-direction:column;gap:14px;">
+        <p class="feature-label">ONE-CLICK</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Instant upscale.</h2>
         <p style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>— it lands on your clipboard, upscaled.</p>
       </div>
 
-      <div class="rowA-mockup-wrap">
-        <div class="rowA-window">
-          <div class="rowA-chrome">
-            <div class="rowA-header">
-              <div class="rowA-urlbar"><div class="rowA-urlbar-line"></div></div>
-              <div class="rowA-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
-            </div>
-            <div class="rowA-body">
-              <div class="rowA-gallery">
-                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
-                <div class="rowA-tile rowA-tile--active"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
-                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
-                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
-                <div class="rowA-tile rowA-tile--dim"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
-              </div>
+      <div class="rowA-pallette">
+        <div class="rowA-compare" id="rowACompare">
+          <img id="rowACompareAfter" src="/assets/landing/img/rowA/rowA-image-4-after.webp" alt="">
+          <div class="rowA-compare-before" id="rowACompareBefore">
+            <img id="rowACompareBeforeImg" src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt="">
+          </div>
+          <div class="rowA-compare-handle" id="rowACompareHandle">
+            <div class="rowA-compare-knob">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </div>
           </div>
+        </div>
+        <div class="rowA-preview">
+          <div class="rowA-toast">
+            <img class="rowA-toast-icon" src="/assets/landing/icons/rowA/icon_copy.svg" alt="">
+            <span class="rowA-toast-text">Image copied</span>
+          </div>
+          <div class="rowA-image"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
         </div>
       </div>
     </div>
 
-    <div class="rowA-pallette">
-      <div class="rowA-compare" id="rowACompare">
-        <img id="rowACompareAfter" src="/assets/landing/img/rowA/rowA-image-4-after.webp" alt="">
-        <div class="rowA-compare-before" id="rowACompareBefore">
-          <img id="rowACompareBeforeImg" src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt="">
+    <div class="rowA-mockup-wrap">
+      <div class="rowA-gallery">
+        <div class="rowA-col">
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
         </div>
-        <div class="rowA-compare-handle" id="rowACompareHandle">
-          <div class="rowA-compare-knob">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </div>
+        <div class="rowA-col">
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
         </div>
-      </div>
-      <div class="rowA-preview">
-        <div class="rowA-toast">
-          <img class="rowA-toast-icon" src="/assets/landing/icons/rowA/icon_copy.svg" alt="">
-          <span class="rowA-toast-text">Image copied</span>
+        <div class="rowA-col">
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
+          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
         </div>
-        <div class="rowA-image"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
       </div>
     </div>
+  </div>
   </div>
 
   <!-- divider A / B -->
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
   <!-- Row B — text + step cards left, mockup slot right (mockup not built yet) -->
+  <div class="rowB-scale-wrap">
   <div class="grrab-rowB" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
     <!-- LEFT: heading + description + step cards -->
     <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
       <div style="display:flex;flex-direction:column;gap:14px;">
+        <p class="feature-label">EDIT</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Photoshop, right in the browser.</h2>
         <p style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Clean up backgrounds, texts, and objects<br>— right where you found the image.</p>
       </div>
@@ -1440,15 +1562,18 @@
       </div>
     </div>
   </div>
+  </div>
 
   <!-- divider B / C -->
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
   <!-- Row C — interactive source switcher -->
+  <div class="rowC-scale-wrap">
   <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
     <!-- LEFT: heading + subhead + source list -->
     <div style="display:flex;flex-direction:column;gap:24px;">
       <div style="display:flex;flex-direction:column;gap:14px;">
+        <p class="feature-label">SUPPORTS</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Any image on the web</h2>
         <p style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Even from Instagram posts, YouTube thumbnails — any source that inspires you.</p>
       </div>
@@ -1458,7 +1583,7 @@
     <!-- RIGHT: framed visual with crossfade. 591/440 matches Row A's height at the
          capped container width, in place of the video's own 1920/1080 — so the preview
          is stretched vertically by about a third. -->
-    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);aspect-ratio:591/440;align-self:stretch;">
+    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);height:470px;align-self:stretch;">
       <div id="inspireTabHeader" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;flex-shrink:0;">
         <span style="display:flex;gap:5px;flex-shrink:0;">
           <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>
@@ -1474,11 +1599,13 @@
       <div id="inspirePanes" style="position:relative;height:auto;"></div>
     </div>
   </div>
+  </div>
 
   <!-- divider C / D -->
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
   <!-- Row D — media left, text + fanned card stack right -->
+  <div class="rowD-scale-wrap">
   <div class="grrab-rowD" style="display:grid;grid-template-columns:1.05fr 1fr;gap:72px;align-items:stretch;">
     <!-- RIGHT: side-panel screenshot placeholder -->
     <div class="rowD-mockup-wrap">
@@ -1700,8 +1827,11 @@
 
     <!-- LEFT: heading + description + fanned card stack -->
     <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;height:100%;">
-      <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every image clip,<br>saved and organized.</h2>
-      <p style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <p class="feature-label">SIDE PANEL</p>
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every image clip,<br>saved and organized.</h2>
+        <p style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
+      </div>
 
       <!-- Fanned card stack (static collage) -->
       <div style="position:relative;width:100%;height:360px;">
@@ -1745,6 +1875,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 
 </section>
@@ -2393,13 +2524,23 @@
     var rowBMoveTo = function(x, y){
       rowBCursor.style.transform = "translate(" + x + "px," + y + "px)";
     };
+    /* offsetLeft, not getBoundingClientRect. Below 1200px the row is scaled, so a screen
+       rect already carries that factor — and the cursor's translate() is then scaled by
+       it again, landing at about 0.68 of the intended distance. Offsets are layout
+       pixels and the transform applies to them exactly once. */
+    var rowBOffsetIn = function(el){
+      var x = 0, y = 0, n = el;
+      while (n && n !== rowBBody) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+      return { x: x, y: y };
+    };
     var rowBPointIn = function(el){
-      var bb = rowBBody.getBoundingClientRect(), r = el.getBoundingClientRect();
-      return { x: r.left - bb.left + r.width / 2, y: r.top - bb.top + r.height / 2 };
+      var o = rowBOffsetIn(el);
+      return { x: o.x + el.offsetWidth / 2, y: o.y + el.offsetHeight / 2 };
     };
     var rowBBoxPoint = function(fx, fy){
-      var bb = rowBBody.getBoundingClientRect(), r = rowBOverlayImg.getBoundingClientRect();
-      return { x: r.left - bb.left + r.width * fx, y: r.top - bb.top + r.height * fy };
+      var o = rowBOffsetIn(rowBOverlayImg);
+      return { x: o.x + rowBOverlayImg.offsetWidth * fx,
+               y: o.y + rowBOverlayImg.offsetHeight * fy };
     };
     var rowBDragTrack = function(box, durationMs){
       var started = Date.now();
@@ -2534,19 +2675,18 @@
         return;
       }
 
-      var b = rowBBody.getBoundingClientRect();
-      if (!b.width || !b.height) return;
+      if (!rowBBody.offsetWidth || !rowBBody.offsetHeight) return;
       rowBCursor.style.transition = "none";
-      rowBCursor.style.transform = "translate(" + (b.width * 0.86) + "px," + (b.height * 0.92) + "px)";
+      rowBCursor.style.transform = "translate(" + (rowBBody.offsetWidth * 0.86) + "px," +
+                                                  (rowBBody.offsetHeight * 0.92) + "px)";
       void rowBCursor.offsetWidth;
       rowBCursor.style.transition = "";
 
       rowBAt(60, function(){
-        var bb = rowBBody.getBoundingClientRect(), t = tile.getBoundingClientRect();
-        if (!bb.width || !t.width) return;
+        if (!tile.offsetWidth) return;
         rowBCursor.classList.add("rowB-cursor--on");
-        rowBCursor.style.transform = "translate(" + (t.left - bb.left + t.width / 2) + "px," +
-                                                   (t.top - bb.top + t.height / 2) + "px)";
+        var p = rowBPointIn(tile);
+        rowBMoveTo(p.x, p.y);
         rowBTrack(790);
       });
       rowBAt(880, function(){
