@@ -473,7 +473,14 @@
     letter-spacing:-0.01em;color:var(--ink-strong);}
   .rowB-card-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
   #inspireList svg{width:20px;height:20px;display:block;}
-  .rowB-mockup-wrap{position:relative;width:100%;align-self:start;aspect-ratio:593/434;}
+  /* 591/440 rather than the Figma frame's 593/434: at --container-max the 1.25fr column
+     is 591px and Row A stands 440 tall, so this makes the two rows match exactly at any
+     viewport of 1200px or more, where the container is capped. Below that Row A's height
+     comes from its text wrapping and cannot be tracked by a ratio; the rows diverge until
+     820px, where everything stacks. The extra ~7px over the Figma height goes to the
+     gallery, which is flex:1, and its 1fr rows pass it to the tiles. --rowB-u stays
+     width-based, so the header, sidebar and icons keep their size. */
+  .rowB-mockup-wrap{position:relative;width:100%;align-self:stretch;aspect-ratio:591/440;}
   .rowB-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
     container-type:inline-size;--rowB-u:calc(100cqw / 593);
     background:#DFDFDF;border-top:1px solid #E6E7EB;border-right:1px solid #E6E7EB;
@@ -494,7 +501,7 @@
     padding:calc(2 * var(--rowB-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--rowB-u));}
   .rowB-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
   .rowB-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
-    background:var(--surface);border-radius:calc(14 * var(--rowB-u));}
+    background:var(--surface);border-radius:calc(8 * var(--rowB-u));}
   .rowB-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
     width:calc(30 * var(--rowB-u));gap:calc(24 * var(--rowB-u));
     padding-top:calc(16 * var(--rowB-u));border-right:0.5px solid #C8C8C0;}
@@ -623,9 +630,6 @@
   /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
   .rowD-mockup-wrap{position:relative;width:100%;height:100%;overflow:hidden;
     border-radius:0 var(--radius-2xl) 0 0;box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);order:2;}
-  /* Row B is the odd one out: mockup left, text right. Its mockup wrapper has no
-     class, so it is addressed positionally. */
-  .grrab-inspire-grid > div:last-child{order:-1;}
   .rowD-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
     background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
     border-radius:0 var(--radius-2xl) 0 0;container-type:inline-size;}
@@ -643,131 +647,165 @@
   .rowD-gallery-col{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;}
   .rowD-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;flex-shrink:0;}
   .rowD-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:8px;}
-  .rowD-sidepanel{display:flex;flex-direction:column;gap:4px;width:231px;height:100%;flex-shrink:0;
-    padding:10px 6px 0;background:var(--surface);border-top:1px solid var(--border);
-    border-left:1px solid var(--border);border-right:1px solid var(--border);
-    border-radius:8px 8px 0 0;overflow:hidden;
+  .rowD-sidepanel{display:flex;flex-direction:column;width:320px;height:100%;flex-shrink:0;
+    padding:13.85px 8.31px 0;background:var(--surface);border-top:1.39px solid var(--border);
+    border-left:1.39px solid var(--border);border-right:1.39px solid var(--border);
+    border-radius:11.08px 11.08px 0 0;overflow:hidden;
     font-family:'Instrument Sans',var(--font-sans);}
-  .sidepanel-top{display:flex;flex-direction:column;gap:10px;width:219px;flex-shrink:0;}
-  .sidepanel-header{display:flex;align-items:center;gap:10px;height:10px;padding:0 4px;width:219px;}
-  .sidepanel-logo{display:flex;align-items:center;gap:3px;flex:1;min-width:0;}
-  .sidepanel-logo-icon{width:12px;height:10px;display:block;object-fit:contain;flex-shrink:0;}
-  .sidepanel-logo-name{font-weight:700;font-size:8px;line-height:1.2;color:var(--ink-strong);white-space:nowrap;}
-  .sidepanel-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0;height:5px;}
+  .sidepanel-top{display:flex;flex-direction:column;gap:13.85px;width:303.38px;flex-shrink:0;}
+  .sidepanel-header{display:flex;align-items:center;gap:13.85px;height:13.85px;padding:0 5.54px;width:303.38px;}
+  .sidepanel-logo{display:flex;align-items:center;gap:4.16px;flex:1;min-width:0;}
+  .sidepanel-logo-icon{width:16.62px;height:13.85px;display:block;object-fit:contain;flex-shrink:0;}
+  .sidepanel-logo-name{font-weight:700;font-size:11.08px;line-height:1.2;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-ctrl{display:flex;align-items:center;gap:11.08px;flex-shrink:0;height:6.93px;}
   .sidepanel-ctrl-icon{display:block;flex-shrink:0;}
-  .sidepanel-ctrl-icon--pin{width:5px;height:5px;}
-  .sidepanel-ctrl-icon--close{width:4px;height:4px;}
-  .sidepanel-section{display:flex;flex-direction:column;gap:7px;width:219px;}
-  .sidepanel-profile{display:flex;align-items:flex-end;justify-content:space-between;padding:0 4px;width:100%;}
-  .sidepanel-profile-user{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-  .sidepanel-profile-avatar{width:17px;height:17px;border-radius:50%;overflow:hidden;flex-shrink:0;
-    border:0.3px solid rgba(115,122,136,.3);}
+  .sidepanel-ctrl-icon--pin{width:6.93px;height:6.93px;}
+  .sidepanel-ctrl-icon--close{width:5.54px;height:5.54px;}
+  .sidepanel-section{display:flex;flex-direction:column;gap:6.93px;width:303.38px;}
+  .sidepanel-profile{display:flex;align-items:flex-end;justify-content:space-between;padding:0 5.54px;width:100%;}
+  .sidepanel-profile-user{display:flex;align-items:center;gap:5.54px;flex-shrink:0;}
+  .sidepanel-profile-avatar{width:23.55px;height:23.55px;border-radius:50%;overflow:hidden;flex-shrink:0;
+    border:0.42px solid rgba(115,122,136,.3);}
   .sidepanel-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
-  .sidepanel-profile-name{font-weight:500;font-size:7px;line-height:1.2;color:#737A88;opacity:.7;white-space:nowrap;}
+  .sidepanel-profile-name{font-weight:500;font-size:9.7px;line-height:1.2;color:#737A88;opacity:.7;white-space:nowrap;}
   .sidepanel-profile-signout{display:flex;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
-  .sidepanel-signout-icon{width:10px;height:10px;display:block;}
+  .sidepanel-signout-icon{width:13.85px;height:13.85px;display:block;}
   .sidepanel-clip{display:flex;flex-direction:column;width:100%;}
   .sidepanel-clip-row{display:flex;align-items:center;justify-content:space-between;
-    height:24px;padding:5px 4px 5px 7px;}
-  .sidepanel-clip-row-label{font-weight:600;font-size:7px;line-height:1;color:var(--ink-strong);white-space:nowrap;}
-  .sidepanel-clip-row-value{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+    height:33.25px;padding:6.93px 5.54px 6.93px 9.7px;}
+  /* 500 and #6b7280 are the extension's own .sp-setting-label, read from
+     browser-extension/dist/prod/sidepanel.html L418-420. Only the size is scaled down:
+     the real one is 16.62px against this mockup's 9.7px. */
+  .sidepanel-clip-row-label{font-weight:500;font-size:9.7px;line-height:1;color:#6b7280;white-space:nowrap;}
+  .sidepanel-clip-row-value{display:flex;align-items:center;gap:2.77px;flex-shrink:0;}
   .sidepanel-kbd{display:flex;align-items:center;justify-content:center;
-    padding:4px 6px;border:0.7px solid rgba(0,0,0,.2);border-radius:3px;
-    font-weight:600;font-size:7px;line-height:1;color:#737A88;white-space:nowrap;}
-  .sidepanel-refresh{width:10px;height:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .sidepanel-refresh-icon{width:4px;height:4px;display:block;transform:rotate(-90deg) scaleY(-1);}
-  .sidepanel-clip-sep{width:100%;height:0.3px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
-  .sidepanel-size-toggle{display:flex;align-items:center;justify-content:center;gap:3px;
-    width:47px;padding:6px 5px;border:0.7px solid rgba(0,0,0,.2);border-radius:3px;}
-  .sidepanel-size-value{flex:1;font-weight:500;font-size:7px;line-height:1;letter-spacing:-0.5px;
+    padding:4.16px 6.93px;border:0.97px solid rgba(0,0,0,.2);border-radius:4.16px;
+    font-weight:600;font-size:9.7px;line-height:1;color:#737A88;white-space:nowrap;}
+  .sidepanel-refresh{width:13.85px;height:13.85px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .sidepanel-refresh-icon{width:5.54px;height:5.54px;display:block;transform:rotate(-90deg) scaleY(-1);}
+  .sidepanel-clip-sep{width:100%;height:0.42px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
+  /* The extension leaves this a native checkbox with only accent-color set, so there is
+     nothing to copy for the unchecked look. Border matches .sidepanel-kbd, the nearest
+     bordered control in this mockup. */
+  .sidepanel-check{display:flex;align-items:center;gap:4.16px;flex-shrink:0;}
+  .sidepanel-check-box{width:8.31px;height:8.31px;border:0.97px solid rgba(0,0,0,.2);border-radius:1.39px;
+    background:#FFFFFF;flex-shrink:0;display:block;}
+  .sidepanel-check-label{font-weight:500;font-size:9.7px;line-height:1;color:#6b7280;white-space:nowrap;}
+  .sidepanel-size-toggle{display:flex;align-items:center;justify-content:center;gap:4.16px;
+    width:65.11px;padding:4.16px 6.93px;border:0.97px solid rgba(0,0,0,.2);border-radius:4.16px;}
+  .sidepanel-size-value{flex:1;font-weight:500;font-size:9.7px;line-height:1;letter-spacing:-0.69px;
     color:#737A88;text-align:center;white-space:nowrap;}
-  .sidepanel-chevron{width:4px;height:2px;display:block;flex-shrink:0;}
-  .sidepanel-main{display:flex;flex-direction:column;width:219px;flex:1;min-height:0;overflow:hidden;
-    background:var(--surface-ios);border-top:1px solid rgba(0,0,0,.2);}
-  .sidepanel-directory{display:flex;align-items:center;gap:6px;width:100%;padding:5px 4px 5px 5px;
-    background:#F5F5F5;border-bottom:0.5px solid rgba(0,0,0,.2);flex-shrink:0;}
-  .sidepanel-directory-bar{display:flex;align-items:center;gap:3px;flex:1;min-width:0;
-    padding:4px 7px;background:#F6EBF7;border:1px solid var(--accent-bright);border-radius:3px;}
-  .sidepanel-directory-icon{width:9px;height:8px;display:block;flex-shrink:0;}
-  .sidepanel-directory-name{font-weight:500;font-size:8px;line-height:1.2;letter-spacing:0.28px;
+  .sidepanel-chevron{width:5.54px;height:2.77px;display:block;flex-shrink:0;}
+  .sidepanel-main{display:flex;flex-direction:column;width:303.38px;flex:1;min-height:0;overflow:hidden;
+    background:var(--surface-ios);border-top:1.39px solid rgba(0,0,0,.2);}
+  .sidepanel-directory{display:flex;align-items:center;gap:8.31px;width:100%;padding:6.93px 5.54px 6.93px 6.93px;
+    background:#F5F5F5;border-bottom:0.69px solid rgba(0,0,0,.2);flex-shrink:0;}
+  .sidepanel-directory-bar{display:flex;align-items:center;gap:4.16px;flex:1;min-width:0;
+    padding:5.54px 9.7px;background:#F6EBF7;border:1.39px solid var(--accent-bright);border-radius:4.16px;}
+  .sidepanel-directory-icon{width:12.47px;height:11.08px;display:block;flex-shrink:0;}
+  .sidepanel-directory-name{font-weight:500;font-size:11.08px;line-height:1.2;letter-spacing:0.39px;
     color:var(--accent-bright);white-space:nowrap;}
-  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:3px;
-    width:47px;height:100%;padding:0 5px;border:0.7px solid rgba(0,0,0,.2);border-radius:3px;flex-shrink:0;}
-  .sidepanel-directory-file-type{flex:1;font-weight:500;font-size:7px;line-height:1.2;
-    letter-spacing:-0.245px;color:#737A88;text-align:center;white-space:nowrap;}
+  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:4.16px;
+    width:65.11px;height:100%;padding:0 6.93px;border:0.97px solid rgba(0,0,0,.2);border-radius:4.16px;flex-shrink:0;}
+  .sidepanel-directory-file-type{flex:1;font-weight:500;font-size:9.7px;line-height:1.2;
+    letter-spacing:-0.34px;color:#737A88;text-align:center;white-space:nowrap;}
   .sidepanel-gallery{display:flex;flex-direction:column;width:100%;flex:1;min-height:0;overflow:hidden;}
-  .sidepanel-gallery-top{display:flex;align-items:center;justify-content:flex-end;gap:5px;
-    padding:4px 8px;opacity:.2;flex-shrink:0;}
-  .sidepanel-upload-icon{width:9px;height:9px;display:block;}
-  .sidepanel-delete-icon{width:10px;height:11px;display:block;}
+  .sidepanel-gallery-top{display:flex;align-items:center;justify-content:flex-end;gap:6.93px;
+    padding:5.54px 11.08px;opacity:.2;flex-shrink:0;}
+  .sidepanel-upload-icon{width:12.47px;height:12.47px;display:block;}
+  .sidepanel-delete-icon{width:13.85px;height:15.24px;display:block;}
   .sidepanel-gallery-row{display:flex;flex-direction:column;width:100%;flex-shrink:0;}
-  .sidepanel-gallery-time{display:flex;align-items:center;justify-content:center;gap:8px;
-    height:16px;padding:0 4px;opacity:.3;flex-shrink:0;}
-  .sidepanel-gallery-time-line{flex:1;height:0;border-top:0.5px solid rgba(0,0,0,.25);}
-  .sidepanel-gallery-time-label{font-weight:500;font-size:6px;line-height:1.7;color:var(--ink-strong);white-space:nowrap;}
-  .sidepanel-gallery-grid{display:flex;flex-wrap:wrap;gap:2px;padding:0 1px;width:100%;}
-  .sidepanel-card{display:flex;flex-direction:column;width:71px;height:80px;flex-shrink:0;
-    background:var(--surface);border-radius:2px;overflow:visible;position:relative;}
-  .sidepanel-card--active{border:1px solid var(--accent-bright);
-    box-shadow:0 2px 4px 0 rgba(0,0,0,.25);}
-  .sidepanel-card--dim{border:1px solid var(--border-strong);}
-  .sidepanel-card-header{display:flex;align-items:center;height:13px;width:100%;flex-shrink:0;}
+  .sidepanel-gallery-time{display:flex;align-items:center;justify-content:center;gap:11.08px;
+    height:22.16px;padding:0 5.54px;opacity:.3;flex-shrink:0;}
+  .sidepanel-gallery-time-line{flex:1;height:0;border-top:0.69px solid rgba(0,0,0,.25);}
+  .sidepanel-gallery-time-label{font-weight:500;font-size:8.31px;line-height:1.7;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-gallery-grid{display:flex;flex-wrap:wrap;gap:2.77px;padding:0 1.39px;width:100%;}
+  .sidepanel-card{display:flex;flex-direction:column;width:98.35px;height:110.82px;flex-shrink:0;
+    background:var(--surface);border-radius:2.77px;overflow:visible;position:relative;}
+  .sidepanel-card--active{border:1.39px solid var(--accent-bright);
+    box-shadow:0 2.77px 5.54px 0 rgba(0,0,0,.25);}
+  .sidepanel-card--dim{border:1.39px solid var(--border-strong);}
+  .sidepanel-card-header{display:flex;align-items:center;height:18.01px;width:100%;flex-shrink:0;}
   .sidepanel-card-header-link{display:flex;align-items:center;justify-content:center;
-    width:13px;height:13px;background:var(--accent-bright);flex-shrink:0;}
-  .sidepanel-card-link-icon{width:6px;height:6px;display:block;}
-  .sidepanel-card-header-meta{display:flex;align-items:center;gap:10px;flex:1;min-width:0;
-    padding:2px 5px 0 2px;height:100%;}
-  .sidepanel-card-meta-line{font-weight:700;font-size:5px;line-height:1.8;color:var(--accent-bright);white-space:nowrap;}
-  .sidepanel-card-meta-btn{display:flex;align-items:center;justify-content:flex-end;gap:3px;flex:1;min-width:0;}
-  .sidepanel-card-copy-icon{width:6px;height:6px;display:block;flex-shrink:0;}
-  .sidepanel-card-cancel-icon{width:4px;height:4px;display:block;flex-shrink:0;}
-  .sidepanel-card-header--dim{padding:2px 5px 0;}
+    width:18.01px;height:18.01px;background:var(--accent-bright);flex-shrink:0;}
+  .sidepanel-card-link-icon{width:8.31px;height:8.31px;display:block;}
+  .sidepanel-card-header-meta{display:flex;align-items:center;gap:13.85px;flex:1;min-width:0;
+    padding:2.77px 6.93px 0 2.77px;height:100%;}
+  .sidepanel-card-meta-line{font-weight:700;font-size:6.93px;line-height:1.8;color:var(--accent-bright);white-space:nowrap;}
+  .sidepanel-card-meta-btn{display:flex;align-items:center;justify-content:flex-end;gap:4.16px;flex:1;min-width:0;}
+  .sidepanel-card-copy-icon{width:8.31px;height:8.31px;display:block;flex-shrink:0;}
+  .sidepanel-card-cancel-icon{width:5.54px;height:5.54px;display:block;flex-shrink:0;}
+  .sidepanel-card-header--dim{padding:2.77px 6.93px 0;}
   .sidepanel-card-thumb{flex:1;min-height:0;width:100%;overflow:hidden;position:relative;}
   .sidepanel-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .sidepanel-card-pointer{position:absolute;left:74.65%;top:calc(13px + 35px);width:18px;height:18px;
+  .sidepanel-card-pointer{position:absolute;left:74.65%;top:calc(18.01px + 48.48px);width:24.94px;height:24.94px;
     transform:translateY(-50%);pointer-events:none;z-index:2;}
 
   /* ── Row B — browser mockup shell (responsive; cqw basis = Figma 1× frame 645px) ── */
   #inspirePanes{flex:1;min-height:0;}
+  /* Hovering a mockup hands control to the visitor: the built-in active tile and its
+     pointer step aside, and the frame takes the same cursor the hero's live mode uses.
+     Both the glow and the pointer are addressed by class rather than removed from the
+     DOM, so leaving restores them with nothing to rebuild. */
+  #inspirePanes.inspire-hover{cursor:url("/assets/landing/icons/hero/icon_cursor_24.svg") 2 1, auto;}
+  #inspirePanes.inspire-hover .mock-pointer{display:none;}
+  /* :not(:hover) on the tile that OWNS the glow, not on the glowing element itself: in
+     YouTube and Instagram the glow sits on a child, so the hover has to be tested on the
+     card. Without this the id in #inspirePanes outweighed the hover rule below and the
+     authored active tile stayed dark when you pointed at it. */
+  #inspirePanes.inspire-hover .yt-video-card:not(:hover) .yt-thumb--glow,
+  #inspirePanes.inspire-hover .yt-short-card:not(:hover) .yt-thumb--glow,
+  #inspirePanes.inspire-hover .ig-feed-card:not(:hover) .ig-feed-thumb--glow,
+  #inspirePanes.inspire-hover .pin-feed-card--glow:not(:hover),
+  #inspirePanes.inspire-hover .vid-screen-video--glow:not(:hover){box-shadow:none;}
+
+  /* Per-tile hover — glow only. Nothing is faded any more, here or at rest: the mockups
+     are meant to read as a real browser, and a real feed does not dim the tiles you are
+     not pointing at. The four sources still need separate selectors because their tiles
+     and glow targets are named differently, and in YouTube and Instagram the glow sits
+     on a CHILD of the tile that receives the hover. */
+  .inspire-hover .yt-video-card:hover .yt-thumb,
+  .inspire-hover .yt-short-card:hover .yt-thumb{box-shadow:0 0 calc(13 / 645 * 100cqw) 0 var(--accent-bright);}
+  .inspire-hover .ig-feed-card:hover .ig-feed-thumb{box-shadow:0 0 calc(20 / 645 * 100cqw) 0 #BC13FE;}
+  .inspire-hover .pin-feed-card:hover{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 #CF00FF;}
+  .inspire-hover .vid-screen-video:hover{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 var(--accent-bright);}
   .browser-mockup-wrap{width:100%;height:100%;overflow:hidden;background:var(--surface);position:relative;align-self:stretch;}
-  .browser-frame{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;background:var(--surface);font-family:var(--font-sans);container-type:inline-size;container-name:ytmock;}
-  .browser-chrome{display:flex;flex-direction:column;flex-shrink:0;width:100%;height:28px;background:#fff;}
-  .browser-tabs{display:flex;align-items:flex-end;width:100%;height:13px;flex-shrink:0;}
+  .browser-frame{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;background:#DFDFDF;font-family:var(--font-sans);container-type:inline-size;container-name:ytmock;}
+  /* rowC-header replaces the old two-tier .browser-chrome with Row B's single bar.
+     Every number is Row B's multiplied by 593/645 — its frame width over this one — so
+     the bar renders at the same on-screen size in both mockups. */
+  .rowC-header{display:flex;align-items:center;gap:calc(5.52 / 645 * 100cqw);width:100%;
+    height:calc(27.58 / 645 * 100cqw);flex-shrink:0;
+    padding:calc(5.52 / 645 * 100cqw) calc(16.55 / 645 * 100cqw) calc(5.52 / 645 * 100cqw) calc(9.19 / 645 * 100cqw);}
+  .rowC-header .browser-traffic{height:calc(16.55 / 645 * 100cqw);gap:calc(4.6 / 645 * 100cqw);
+    padding:0 calc(5.52 / 645 * 100cqw) 0 0;border-radius:0 0 calc(3.68 / 645 * 100cqw) 0;
+    background:#DEE1E6;}
+  .rowC-header .browser-dot{width:calc(7.36 / 645 * 100cqw);height:calc(7.36 / 645 * 100cqw);}
+  .rowC-urlbar{display:flex;align-items:center;gap:calc(4.6 / 645 * 100cqw);flex:1;min-width:0;height:100%;
+    padding:0 calc(21.14 / 645 * 100cqw) 0 calc(9.19 / 645 * 100cqw);
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(64.34 / 645 * 100cqw);}
+  .rowC-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(16.55 / 645 * 100cqw);height:calc(16.55 / 645 * 100cqw);
+    padding:calc(1.84 / 645 * 100cqw) 0;background:#E1E1E2;border-radius:calc(18.38 / 645 * 100cqw);}
+  .rowC-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  /* The tab parts were sized for an 11px tab strip; inside a 27.58px urlbar they need to
+     grow. Scoped to .rowC-urlbar so the shared .browser-tab-* rules are untouched. */
+  /* line-height:1 rather than the shared rule's 1.2: this label is always one line, and
+     a taller line box only adds space above and below the glyphs. The bar centres it
+     either way — measured 3.17 above, 3.19 below — so this is about the box hugging the
+     text, not about moving it. */
+  .rowC-urlbar .browser-tab-label{font-size:calc(8 / 645 * 100cqw);color:#5F6267;line-height:1;}
   .browser-traffic{display:flex;align-items:center;justify-content:center;gap:3px;height:13px;padding:0 4px;background:#DEE1E6;border-radius:0 0 4px 0;flex-shrink:0;}
   .browser-dot{width:4.5px;height:4.5px;border-radius:50%;flex-shrink:0;}
   .browser-dot--red{background:#FF5F57;}
   .browser-dot--yellow{background:#FEBC2E;}
   .browser-dot--green{background:#28C840;}
-  .browser-tab-container{width:73px;height:13px;background:#DEE1E6;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;flex-shrink:0;box-sizing:border-box;}
-  .browser-tab{width:100%;height:11px;margin-top:0;background:#FFFFFF;border-radius:4px 4px 0 0;display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;padding:2.5px 3.5px 4px 2.5px;box-sizing:border-box;flex-shrink:0;}
   .browser-tab-platform{display:flex;flex-direction:row;align-items:center;gap:2.5px;flex-shrink:0;}
   .browser-tab-favicon{width:5px;height:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .browser-tab-favicon .yt-slot-img{width:5px;height:4px;object-fit:contain;}
   .browser-tab-label{font-family:var(--font-sans);font-size:5px;font-weight:500;color:#000;line-height:1.2;white-space:nowrap;}
-  .browser-tab-close{width:2.5px;height:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .browser-tab-close .yt-slot-img{width:2.5px;height:2.5px;object-fit:contain;}
-  .browser-tabs-spacer{flex:1;height:13px;background:#DEE1E6;border-radius:0 0 0 4px;}
-  .browser-tabs-spacer::before{content:'';display:block;width:100%;height:11px;margin-top:2px;padding:4px 5px;border-radius:16px 16px 0 0;background:#DEE1E6;box-sizing:border-box;}
-  .browser-navbar{display:flex;align-items:center;width:100%;height:15px;gap:6px;padding:2px 5.5px;flex-shrink:0;}
-  .browser-navbtns{display:flex;align-items:center;gap:7.2px;height:11px;flex-shrink:0;}
-  .browser-navbtn{width:4px;height:4px;opacity:.7;display:block;flex-shrink:0;}
-  .browser-urlbar{flex:1;display:flex;align-items:center;gap:3px;height:11px;padding:0 5px;background:#F2F3F5;border-radius:70px;min-width:0;}
-  .browser-url-lock{width:3px;height:4px;flex-shrink:0;display:block;}
-  .browser-url-text{font-size:5px;font-weight:500;color:var(--ink-strong);white-space:nowrap;line-height:1.2;}
-  .browser-profile{display:flex;align-items:center;justify-content:flex-end;height:11px;flex-shrink:0;}
-  .browser-profile-bar{display:flex;align-items:center;gap:6px;height:11px;flex-shrink:0;}
-  .browser-profile-pill{display:flex;align-items:center;gap:1px;height:11px;border:max(0.5px,0.3px) solid #D7D7D7;border-radius:30px;overflow:hidden;flex-shrink:0;}
-  .browser-profile-grrab{width:11px;height:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 2px 1px;background:#EEE;border-radius:20px;box-sizing:border-box;flex-shrink:0;}
-  .browser-profile-grrab .yt-slot-img{width:7px;height:5.82px;object-fit:cover;}
-  .browser-profile-ext{width:11px;height:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 2.3px 1px;box-sizing:border-box;flex-shrink:0;}
-  .browser-profile-ext .yt-slot-img{width:6.4px;height:6.4px;object-fit:contain;}
-  .browser-profile-sep{width:0.5px;height:6.5px;background:#D7D7D7;flex-shrink:0;}
-  .browser-profile-avatar{width:6.5px;height:6.5px;border:max(0.5px,0.3px) solid rgba(115,122,136,.3);border-radius:30px;overflow:hidden;flex-shrink:0;display:block;}
-  .browser-profile-avatar .yt-slot-img{width:100%;height:100%;object-fit:cover;border-radius:30px;}
-  .browser-profile-menu{width:14px;height:11px;display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;}
-  .browser-profile-menu .yt-slot-img{width:1px;height:4px;object-fit:contain;}
   .yt-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
-  .yt-body{display:flex;flex:1;min-height:0;background:var(--surface);}
+  .yt-body{display:flex;flex:1;min-height:0;background:var(--surface);overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
   .yt-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 0 8px;}
   .yt-sidebar-menu{width:100%;height:19px;display:flex;align-items:center;justify-content:center;}
   .yt-sidebar-menu-icon{width:6px;height:5px;display:block;flex-shrink:0;}
@@ -794,7 +832,7 @@
   .yt-feed{flex:1;min-height:0;display:flex;flex-direction:column;gap:calc(12 / 645 * 100cqw);padding:calc(12 / 645 * 100cqw) calc(8 / 645 * 100cqw);overflow:hidden;}
   .yt-videos{display:flex;gap:calc(6 / 645 * 100cqw);flex-shrink:0;width:100%;}
   .yt-video-card{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(4 / 645 * 100cqw);aspect-ratio:197.33/131;}
-  .yt-video-card--dim{opacity:.3;}
+
   .yt-thumb{position:relative;background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);border-radius:calc(5 / 645 * 100cqw);flex:1;min-height:0;overflow:hidden;}
   .yt-thumb--glow{box-shadow:0 0 calc(13 / 645 * 100cqw) 0 var(--accent-bright);}
   .yt-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
@@ -804,7 +842,7 @@
   .yt-meta-lines{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(3 / 645 * 100cqw);padding:calc(2 / 645 * 100cqw) 0;justify-content:center;}
   .yt-meta-line{height:calc(5 / 645 * 100cqw);border-radius:calc(10 / 645 * 100cqw);background:#D7D8DD;}
   .yt-meta-line--short{width:calc(45 / 645 * 100cqw);height:calc(4 / 645 * 100cqw);}
-  .yt-shorts-section{display:flex;flex-direction:column;gap:calc(6 / 645 * 100cqw);flex-shrink:0;opacity:.3;width:100%;}
+  .yt-shorts-section{display:flex;flex-direction:column;gap:calc(6 / 645 * 100cqw);flex-shrink:0;width:100%;}
   .yt-shorts-label{display:flex;align-items:center;gap:calc(2 / 645 * 100cqw);font-size:clamp(8px,calc(5 / 645 * 100cqw),11px);font-weight:700;color:var(--ink-strong);}
   .yt-shorts-icon{width:calc(5 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);flex-shrink:0;object-fit:contain;}
   .yt-shorts{display:flex;gap:calc(6 / 645 * 100cqw);width:100%;}
@@ -812,7 +850,7 @@
 
   /* ── Row B — Instagram-in-browser mockup body (responsive content; fixed sidebar rail) ── */
   .ig-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
-  .ig-body{display:flex;flex:1;min-height:0;align-items:center;background:#FFFFFF;}
+  .ig-body{display:flex;flex:1;min-height:0;align-items:center;background:#FFFFFF;overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
   .ig-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:stretch;gap:9px;height:100%;}
   .ig-logo{width:100%;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .ig-logo .ig-slot-img{width:12px;height:12px;}
@@ -832,7 +870,7 @@
   .ig-sidebar-footer{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:15px;padding-bottom:20px;opacity:.5;width:100%;flex-shrink:0;}
   .ig-main{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:hidden;}
   .ig-feed-card{display:flex;flex-direction:column;width:100%;max-width:223px;aspect-ratio:225/326.063;gap:calc(10 / 645 * 100cqw);padding:calc(6 / 645 * 100cqw) calc(12 / 645 * 100cqw);background:#FFFFFF;flex-shrink:0;box-sizing:border-box;}
-  .ig-feed-card--dim{opacity:.3;}
+
   .ig-feed{display:flex;flex-direction:column;align-items:flex-start;gap:calc(12 / 645 * 100cqw);width:100%;flex:1;min-height:0;}
   .ig-feed-header{display:flex;align-items:center;gap:calc(10 / 645 * 100cqw);padding:0 calc(1 / 645 * 100cqw);width:100%;box-sizing:border-box;flex-shrink:0;}
   .ig-feed-profile{display:flex;align-items:center;gap:calc(4 / 645 * 100cqw);flex:1;min-width:0;}
@@ -849,7 +887,7 @@
   .ig-feed-thumb--glow{box-shadow:0 0 calc(20 / 645 * 100cqw) 0 #BC13FE;}
   .ig-feed-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .ig-meta{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:calc(6 / 645 * 100cqw);padding:0 calc(1 / 645 * 100cqw);width:100%;opacity:.3;box-sizing:border-box;flex-shrink:0;}
-  .ig-feed-card--dim .ig-meta{opacity:1;}
+
   .ig-chips-wrap{display:flex;align-items:center;justify-content:space-between;padding:0 calc(1 / 645 * 100cqw);width:100%;box-sizing:border-box;}
   .ig-chips-left{display:flex;align-items:center;gap:calc(8 / 645 * 100cqw);flex-shrink:0;}
   .ig-chips-right{display:flex;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
@@ -867,7 +905,7 @@
 
   /* ── Row B — Pinterest-in-browser mockup body (responsive content; fixed sidebar + topbar heights) ── */
   .pin-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
-  .pin-body{display:flex;flex:1;min-height:0;overflow:hidden;background:#FFFFFF;box-shadow:calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) rgba(0,0,0,.25);}
+  .pin-body{display:flex;flex:1;min-height:0;overflow:hidden;background:#FFFFFF;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;box-shadow:calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) rgba(0,0,0,.25);}
   .pin-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:9px;height:100%;border-right:0.5px solid #C8C8C0;box-sizing:border-box;}
   .pin-logo{width:100%;height:43px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .pin-logo .pin-slot-img{width:13px;height:13px;}
@@ -890,16 +928,20 @@
   .pin-search-skeleton{width:100%;max-width:187px;height:calc(2 / 645 * 100cqw);background:rgba(98,98,90,.5);opacity:.3;border-radius:calc(10 / 645 * 100cqw);flex-shrink:0;}
   .pin-feed{display:flex;flex-direction:row;align-items:flex-start;gap:calc(5 / 645 * 100cqw);padding:calc(4 / 645 * 100cqw);width:100%;flex-shrink:0;box-sizing:border-box;}
   .pin-feed-col{display:flex;flex-direction:column;align-items:stretch;gap:calc(5 / 645 * 100cqw);flex:1;min-width:0;}
-  .pin-feed-col--faint{opacity:.3;}
+
   .pin-feed-card{position:relative;width:100%;border-radius:calc(8 / 645 * 100cqw);background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;overflow:hidden;}
-  .pin-feed-card--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 #CF00FF;opacity:1;}
+  .pin-feed-card--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 #CF00FF;}
   .pin-feed-card img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .pin-feed-card--dim{opacity:.3;}
-  .pin-feed-card--dim50{opacity:.5;}
+
+
 
   /* ── Row B — Video mockup (Figma .browser-frame 645x442, body 645x414) ── */
-  .vid-body{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;background:#FFFFFF;overflow:hidden;}
-  .vid-main{display:flex;flex-direction:column;width:100%;height:100%;flex-shrink:0;background:#0F0F0F;overflow:hidden;}
+  .vid-body{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;background:#FFFFFF;overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
+  /* Fixed to the frame's own scale rather than height:100%. With 100% it swallowed the
+     whole body, so the row's extra height went to .vid-screen and stretched the video;
+     .vid-bottom was left at 5px. 334 is the measured 336 converted to the 645 basis the
+     rest of this mockup uses, so .vid-bottom now takes the remainder. */
+  .vid-main{display:flex;flex-direction:column;width:100%;height:calc(334 / 645 * 100cqw);flex-shrink:0;background:#0F0F0F;overflow:hidden;}
   .vid-bottom{display:flex;flex-direction:row;align-items:flex-start;flex:1;min-height:0;width:100%;gap:calc(10 / 645 * 100cqw);padding:calc(5 / 645 * 100cqw) calc(10 / 645 * 100cqw) 0;box-sizing:border-box;overflow:hidden;}
   .vid-topbar{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(27 / 645 * 100cqw);padding:calc(4 / 645 * 100cqw);flex-shrink:0;gap:calc(4 / 645 * 100cqw);}
   .vid-sidebar-menu{width:calc(19 / 645 * 100cqw);height:calc(19 / 645 * 100cqw);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -942,9 +984,13 @@
   /* Cursor size: Figma is 55.527 x 55.625. The multiplier below is the only value to
      tune — the child <img> is 100%/100%, so it follows. left/top anchor the SVG's tip
      at the top-left corner, so scaling does not move where it points. */
+  /* 34.2 is back-derived, not a Figma number: the hero renders its cursor at 26 *
+     --hero-u = 34.4px once zoomed out, and this frame is 649 wide against a 645 basis,
+     so 34.2 units lands at the same on-screen size. All three mockups share one SVG
+     (md5 33e3cbf0), so only the size differs. Square, because the SVG is 67x67. */
   .mock-pointer{position:absolute;
-    width:calc(55.527 * 0.7 / 645 * 100cqw);
-    height:calc(55.625 * 0.7 / 645 * 100cqw);
+    width:calc(34.2 / 645 * 100cqw);
+    height:calc(34.2 / 645 * 100cqw);
     z-index:3;pointer-events:none;}
   .mock-pointer img{width:100%;height:100%;display:block;}
   .vid-meta{display:flex;flex-direction:column;width:100%;}
@@ -975,7 +1021,7 @@
   .vid-addition-chip--active{background:#000000;color:#FFFFFF;}
   .vid-addition-chip--idle{background:#EAEAEA;color:#000000;}
   .vid-addition-card{display:flex;flex-direction:row;gap:calc(4 / 645 * 100cqw);width:100%;}
-  .vid-addition-card--dim{opacity:.3;}
+
   .vid-card-thumb{width:calc(96 / 645 * 100cqw);aspect-ratio:197.333 / 111;border-radius:calc(5 / 645 * 100cqw);overflow:hidden;flex-shrink:0;}
   .vid-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
   .vid-card-meta-lines{display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0;height:calc(16 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) 0;box-sizing:border-box;}
@@ -1048,10 +1094,9 @@
     .grrab-inspire-grid{ grid-template-columns:1fr !important; align-items:start !important; gap:24px !important; }
     .grrab-inspire-grid > div:last-child{ min-height:auto !important; height:auto !important; }
 
-    /* text/heading FIRST, mockup below. All three rows now need an explicit order
-       here: A and C push the mockup down, B cancels its desktop mockup-left order. */
+    /* text/heading FIRST, mockup below. Only Row D needs an explicit order now that
+       every row puts its text first in the DOM. */
     .rowD-mockup-wrap{ order:2 !important; }
-    .grrab-inspire-grid > div:last-child{ order:0 !important; }
 
     /* ---- uniform-scale mockups (option A) ----
        Each mockup renders at a fixed REFERENCE size, then scales to fit the mobile
@@ -1084,29 +1129,6 @@
       transform-origin:top left; transform:scale(calc((100vw - 40px) / 645px)) !important; }
 
     /* ===== minimal mobile mockup chrome (Obsidian-style) ===== */
-    /* Row B chrome (.browser-chrome) — real lock+domain already present */
-    .browser-tabs{ display:none !important; }
-    .browser-navbtns{ display:none !important; }
-    .browser-profile-ext,
-    .browser-profile-sep,
-    .browser-profile-avatar,
-    .browser-profile-menu{ display:none !important; }
-
-    .browser-chrome{ height:auto !important; background:transparent !important; }
-    .browser-navbar{ height:40px !important; padding:0 12px !important; gap:8px !important; }
-
-    .browser-urlbar{ height:26px !important; padding:0 10px !important; gap:5px !important;
-      background:var(--surface) !important; border:1px solid var(--border) !important;
-      border-radius:999px !important; }
-    .browser-url-lock{ width:8px !important; height:10px !important; }
-    .browser-url-text{ font-size:11px !important; color:var(--ink-700) !important; }
-
-    .browser-profile, .browser-profile-bar, .browser-profile-pill{
-      border:0 !important; background:transparent !important; overflow:visible !important; }
-    .browser-profile-grrab{ width:22px !important; height:22px !important; padding:0 !important;
-      background:transparent !important; border-radius:50% !important; }
-    .browser-profile-grrab .yt-slot-img{ width:18px !important; height:18px !important;
-      object-fit:contain !important; }
 
     /* Row C chrome (.rowD-chrome) — no url text; inject domain */
     .rowD-urlbar-star{ display:none !important; }
@@ -1423,8 +1445,8 @@
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
 
   <!-- Row C — interactive source switcher -->
-  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:1.18fr 0.82fr;gap:48px;align-items:stretch;">
-    <!-- RIGHT: heading + subhead + source list -->
+  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
+    <!-- LEFT: heading + subhead + source list -->
     <div style="display:flex;flex-direction:column;gap:24px;">
       <div style="display:flex;flex-direction:column;gap:14px;">
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Any image on the web</h2>
@@ -1433,8 +1455,10 @@
       <div id="inspireList" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
 
-    <!-- LEFT: framed visual with crossfade -->
-    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);aspect-ratio:1920/1080;align-self:center;">
+    <!-- RIGHT: framed visual with crossfade. 591/440 matches Row A's height at the
+         capped container width, in place of the video's own 1920/1080 — so the preview
+         is stretched vertically by about a third. -->
+    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);aspect-ratio:591/440;align-self:stretch;">
       <div id="inspireTabHeader" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;flex-shrink:0;">
         <span style="display:flex;gap:5px;flex-shrink:0;">
           <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>
@@ -1494,19 +1518,19 @@
               </div>
               <div class="rowD-gallery">
                 <div class="rowD-gallery-col">
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-1.webp" alt=""></div>
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-2.webp" alt=""></div>
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-3.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-1.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-2.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-3.webp" alt=""></div>
                 </div>
                 <div class="rowD-gallery-col">
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-4.webp" alt=""></div>
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-5.webp" alt=""></div>
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-6.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-4.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-5.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-6.webp" alt=""></div>
                 </div>
                 <div class="rowD-gallery-col">
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-7.webp" alt=""></div>
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-1.webp" alt=""></div>
-                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/hero-2.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-7.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-1.webp" alt=""></div>
+                  <div class="rowD-tile rowD-tile--dim"><img src="assets/landing/img/rowD/rowD-image-2.webp" alt=""></div>
                 </div>
               </div>
             </div>
@@ -1549,7 +1573,27 @@
                       <span class="sidepanel-clip-row-label">Clip Size</span>
                       <div class="sidepanel-clip-row-value">
                         <span class="sidepanel-size-toggle">
-                          <span class="sidepanel-size-value">3k</span>
+                          <span class="sidepanel-size-value">Auto</span>
+                          <img class="sidepanel-chevron" src="assets/landing/icons/rowD/icon_chevron.svg" alt="">
+                        </span>
+                      </div>
+                    </div>
+                    <hr class="sidepanel-clip-sep">
+                    <div class="sidepanel-clip-row">
+                      <span class="sidepanel-clip-row-label">Upscale</span>
+                      <div class="sidepanel-clip-row-value">
+                        <span class="sidepanel-check">
+                          <span class="sidepanel-check-box"></span>
+                          <span class="sidepanel-check-label">Auto</span>
+                        </span>
+                      </div>
+                    </div>
+                    <hr class="sidepanel-clip-sep">
+                    <div class="sidepanel-clip-row">
+                      <span class="sidepanel-clip-row-label">Clip mode</span>
+                      <div class="sidepanel-clip-row-value">
+                        <span class="sidepanel-size-toggle">
+                          <span class="sidepanel-size-value">Instant</span>
                           <img class="sidepanel-chevron" src="assets/landing/icons/rowD/icon_chevron.svg" alt="">
                         </span>
                       </div>
@@ -1593,16 +1637,16 @@
                             </div>
                           </div>
                         </div>
-                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/hero-1.webp" alt=""></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowD/rowD-image-1.webp" alt=""></div>
                         <img class="sidepanel-card-pointer" src="assets/landing/icons/rowD/icon_pointer.svg" alt="">
                       </div>
                       <div class="sidepanel-card sidepanel-card--dim">
                         <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
-                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/hero-2.webp" alt=""></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowD/rowD-image-2.webp" alt=""></div>
                       </div>
                       <div class="sidepanel-card sidepanel-card--dim">
                         <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
-                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/hero-3.webp" alt=""></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowD/rowD-image-3.webp" alt=""></div>
                       </div>
                     </div>
                   </div>
@@ -1615,19 +1659,19 @@
                     <div class="sidepanel-gallery-grid">
                       <div class="sidepanel-card sidepanel-card--dim">
                         <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
-                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/hero-4.webp" alt=""></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowD/rowD-image-4.webp" alt=""></div>
                       </div>
                       <div class="sidepanel-card sidepanel-card--dim">
                         <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
-                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/hero-5.webp" alt=""></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowD/rowD-image-5.webp" alt=""></div>
                       </div>
                       <div class="sidepanel-card sidepanel-card--dim">
                         <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
-                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/hero-6.webp" alt=""></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowD/rowD-image-6.webp" alt=""></div>
                       </div>
                       <div class="sidepanel-card sidepanel-card--dim">
                         <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
-                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/hero-7.webp" alt=""></div>
+                        <div class="sidepanel-card-thumb"><img src="assets/landing/img/rowD/rowD-image-7.webp" alt=""></div>
                       </div>
                       <div class="sidepanel-card sidepanel-card--dim">
                         <div class="sidepanel-card-header sidepanel-card-header--dim"><span class="sidepanel-card-meta-line">youtube</span></div>
@@ -1665,33 +1709,39 @@
           <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
             <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">google</span>
           </div>
-          <div style="flex:1;background:url('/assets/landing/img/hero-4.webp') center/cover no-repeat;"></div>
+          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-4.webp') center/cover no-repeat;"></div>
         </div>
         <div style="position:absolute;left:66px;top:66px;width:132px;height:75%;transform:rotate(-13deg);z-index:2;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 12px 28px rgba(0,0,0,.13);display:flex;flex-direction:column;">
           <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
             <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">instagram</span>
           </div>
-          <div style="flex:1;background:url('/assets/landing/img/hero-3.webp') center/cover no-repeat;"></div>
+          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-3.webp') center/cover no-repeat;"></div>
         </div>
         <div style="position:absolute;left:132px;top:24px;width:150px;height:90%;transform:rotate(-6deg);z-index:3;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 14px 32px rgba(0,0,0,.14);display:flex;flex-direction:column;">
           <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
             <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">youtube</span>
           </div>
-          <div style="flex:1;background:url('/assets/landing/img/hero-2.webp') center/cover no-repeat;"></div>
+          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-2.webp') center/cover no-repeat;"></div>
         </div>
         <!-- front / active card -->
         <div style="position:absolute;right:2%;top:0;width:368px;max-width:64%;z-index:10;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:2px solid #BC13FE;box-shadow:0 22px 48px rgba(188,19,254,.26);display:flex;flex-direction:column;height:100%;">
-          <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);">
-            <span style="flex-shrink:0;width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:#fff;background:#BC13FE;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8h8v8"></path><path d="M16 8 6 18"></path></svg>
+          <!-- Same layout and parts as .sidepanel-card--active's header: the link icon, the
+               source name, then copy and cancel. Written inline at this card's own size
+               rather than reusing those classes, because everything here is inline and the
+               sidepanel's 8px icons would be invisible at 368px wide. -->
+          <div style="display:flex;align-items:stretch;background:var(--surface);">
+            <span style="flex-shrink:0;align-self:stretch;aspect-ratio:1;background:var(--accent-bright);display:inline-flex;align-items:center;justify-content:center;">
+              <img src="assets/landing/icons/rowD/icon_link.svg" alt="" style="width:46%;height:46%;display:block;">
             </span>
-            <span style="font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">Pinterest</span>
-            <span style="margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--ink-muted);">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <span style="display:flex;align-items:center;gap:9px;flex:1;min-width:0;padding:9px 11px 9px 9px;">
+            <span style="font-family:var(--font-sans);font-size:15px;font-weight:700;letter-spacing:-0.01em;color:var(--accent-bright);">Pinterest</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+              <img src="assets/landing/icons/rowD/icon_copy.svg" alt="" style="width:17px;height:17px;display:block;flex-shrink:0;">
+              <img src="assets/landing/icons/rowD/icon_cancel.svg" alt="" style="width:11px;height:11px;display:block;flex-shrink:0;">
+            </span>
             </span>
           </div>
-          <div style="flex:1;background:url('/assets/landing/img/hero-1.webp') center/cover no-repeat;"></div>
+          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-1.webp') center/cover no-repeat;"></div>
         </div>
       </div>
     </div>
@@ -2619,35 +2669,18 @@
   var rowEls = {}, paneEls = {}, iconWrapEls = {};
 
   function browserChromeHtml(opts){
-    return '<div class="browser-chrome">'+
-            '<div class="browser-tabs">'+
-              '<div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>'+
-              '<div class="browser-tab-container">'+
-                '<div class="browser-tab">'+
-                  '<div class="browser-tab-platform">'+
-                    '<span class="browser-tab-favicon"><img class="yt-slot-img" src="'+opts.favicon+'" alt=""></span>'+
-                    '<span class="browser-tab-label">'+opts.label+'</span>'+
-                  '</div>'+
-                  '<span class="browser-tab-close"><img class="yt-slot-img" src="/assets/landing/icons/icon_close.svg" alt=""></span>'+
-                '</div>'+
-              '</div>'+
-              '<div class="browser-tabs-spacer"></div>'+
-            '</div>'+
-            '<div class="browser-navbar">'+
-              '<div class="browser-navbtns"><span class="browser-navbtn browser-navbtn--back"><img class="yt-slot-img" src="/assets/landing/icons/icon_prev.svg" alt=""></span><span class="browser-navbtn browser-navbtn--fwd"><img class="yt-slot-img" src="/assets/landing/icons/icon_next.svg" alt=""></span><span class="browser-navbtn browser-navbtn--reload"><img class="yt-slot-img" src="/assets/landing/icons/icon_refresh.svg" alt=""></span></div>'+
-              '<div class="browser-urlbar"><span class="browser-url-lock"><img class="yt-slot-img" src="/assets/landing/icons/icon_lock.svg" alt=""></span><span class="browser-url-text">'+opts.url+'</span></div>'+
-              '<div class="browser-profile">'+
-                '<div class="browser-profile-bar">'+
-                  '<div class="browser-profile-pill">'+
-                    '<span class="browser-profile-grrab"><img class="yt-slot-img" src="/assets/landing/grrab-logo.svg" alt=""></span>'+
-                    '<span class="browser-profile-ext"><img class="yt-slot-img" src="/assets/landing/icons/icon_extension.svg" alt=""></span>'+
-                  '</div>'+
-                  '<span class="browser-profile-sep"></span>'+
-                  '<span class="browser-profile-avatar"><img class="yt-slot-img" src="/assets/landing/img/example_profile.webp" alt=""></span>'+
-                '</div>'+
-                '<span class="browser-profile-menu"><img class="yt-slot-img" src="/assets/landing/icons/icon_menubar.svg" alt=""></span>'+
+    /* opts.url is no longer used: Row B's bar has no URL text. favicon and label move
+       into the urlbar, which is the only place a source is now named. */
+    return '<div class="rowC-header">'+
+            '<div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>'+
+            '<div class="rowC-urlbar">'+
+              /* No favicon: the urlbar shows the address alone. opts.favicon joins
+                 opts.url as a field the callers still pass and nothing reads. */
+              '<div class="browser-tab-platform">'+
+                '<span class="browser-tab-label">'+opts.label+'</span>'+
               '</div>'+
             '</div>'+
+            '<div class="rowC-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>'+
           '</div>';
   }
 
@@ -2743,7 +2776,7 @@
   function youtubeMockupHtml(){
     return browserMockupHtml({
       favicon: '/assets/landing/icons/favicon_youtube.webp',
-      label: 'YouTube',
+      label: 'youtube.com',
       url: 'youtube.com',
       bodyHtml: youtubeBodyHtml()
     });
@@ -2820,7 +2853,7 @@
   function instagramMockupHtml(){
     return browserMockupHtml({
       favicon: '/assets/landing/icons/instagram/favicon_instagram.webp',
-      label: 'Instagram',
+      label: 'instagram.com',
       url: 'instagram.com',
       bodyHtml: igBodyHtml()
     });
@@ -2828,15 +2861,14 @@
 
   function pinFeedCardHtml(ratio, dim, glow, img){
     var cls = 'pin-feed-card';
-    if(dim === 30) cls += ' pin-feed-card--dim';
-    else if(dim === 50) cls += ' pin-feed-card--dim50';
+    if(dim) cls += ' pin-feed-card--dim';
     if(glow) cls += ' pin-feed-card--glow';
     var pointerHtml = glow ? '<span class="mock-pointer" style="left:42%;top:44%;"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span>' : '';
     return '<div class="'+cls+'" style="aspect-ratio:'+ratio+'">'+(img?'<img src="'+img+'" alt="">':'')+pointerHtml+'</div>';
   }
 
-  function pinFeedColHtml(faint, cards){
-    return '<div class="pin-feed-col'+(faint?' pin-feed-col--faint':'')+'">'+cards.join('')+'</div>';
+  function pinFeedColHtml(cards){
+    return '<div class="pin-feed-col">'+cards.join('')+'</div>';
   }
 
   function pinBodyHtml(){
@@ -2861,33 +2893,33 @@
           '</div>'+
         '</div>'+
         '<div class="pin-feed">'+
-          pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowC/pin-image-1.webp'),
-            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowC/pin-image-2.webp'),
-            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowC/pin-image-3.webp'),
-            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowC/pin-image-13.webp'),
-            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowC/pin-image-14.webp')
+          pinFeedColHtml([
+            pinFeedCardHtml('115.25/160',    true, false, '/assets/landing/img/rowC/pin-image-1.webp'),
+            pinFeedCardHtml('115.25/102.33', true, false, '/assets/landing/img/rowC/pin-image-2.webp'),
+            pinFeedCardHtml('115.25/169',    true, false, '/assets/landing/img/rowC/pin-image-3.webp'),
+            pinFeedCardHtml('115.25/132',    true, false, '/assets/landing/img/rowC/pin-image-13.webp'),
+            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-14.webp')
           ])+
-          pinFeedColHtml(false, [
-            pinFeedCardHtml('115.25/132',    0,  true,  '/assets/landing/img/rowC/pin-image-4.webp'),
-            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowC/pin-image-5.webp'),
-            pinFeedCardHtml('115.25/115.25', 30, false, '/assets/landing/img/rowC/pin-image-6.webp'),
-            pinFeedCardHtml('115.25/188',    50, false, '/assets/landing/img/rowC/pin-image-15.webp'),
-            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowC/pin-image-16.webp')
+          pinFeedColHtml([
+            pinFeedCardHtml('115.25/132',    false,  true,  '/assets/landing/img/rowC/pin-image-4.webp'),
+            pinFeedCardHtml('115.25/132',    true, false, '/assets/landing/img/rowC/pin-image-5.webp'),
+            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-6.webp'),
+            pinFeedCardHtml('115.25/188',    true, false, '/assets/landing/img/rowC/pin-image-15.webp'),
+            pinFeedCardHtml('115.25/169',    true, false, '/assets/landing/img/rowC/pin-image-16.webp')
           ])+
-          pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/188',    50, false, '/assets/landing/img/rowC/pin-image-7.webp'),
-            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowC/pin-image-8.webp'),
-            pinFeedCardHtml('115.25/115.25', 50, false, '/assets/landing/img/rowC/pin-image-9.webp'),
-            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowC/pin-image-17.webp'),
-            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowC/pin-image-18.webp')
+          pinFeedColHtml([
+            pinFeedCardHtml('115.25/188',    true, false, '/assets/landing/img/rowC/pin-image-7.webp'),
+            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-8.webp'),
+            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-9.webp'),
+            pinFeedCardHtml('115.25/160',    true, false, '/assets/landing/img/rowC/pin-image-17.webp'),
+            pinFeedCardHtml('115.25/102.33', true, false, '/assets/landing/img/rowC/pin-image-18.webp')
           ])+
-          pinFeedColHtml(true, [
-            pinFeedCardHtml('115.25/160',    50, false, '/assets/landing/img/rowC/pin-image-10.webp'),
-            pinFeedCardHtml('115.25/169',    50, false, '/assets/landing/img/rowC/pin-image-11.webp'),
-            pinFeedCardHtml('115.25/102.33', 50, false, '/assets/landing/img/rowC/pin-image-12.webp'),
-            pinFeedCardHtml('115.25/132',    30, false, '/assets/landing/img/rowC/pin-image-19.webp'),
-            pinFeedCardHtml('115.25/115.25', 30, false, '/assets/landing/img/rowC/pin-image-20.webp')
+          pinFeedColHtml([
+            pinFeedCardHtml('115.25/160',    true, false, '/assets/landing/img/rowC/pin-image-10.webp'),
+            pinFeedCardHtml('115.25/169',    true, false, '/assets/landing/img/rowC/pin-image-11.webp'),
+            pinFeedCardHtml('115.25/102.33', true, false, '/assets/landing/img/rowC/pin-image-12.webp'),
+            pinFeedCardHtml('115.25/132',    true, false, '/assets/landing/img/rowC/pin-image-19.webp'),
+            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-20.webp')
           ])+
         '</div>'+
       '</div>'+
@@ -2897,7 +2929,7 @@
   function pinterestMockupHtml(){
     return browserMockupHtml({
       favicon: '/assets/landing/icons/pinterest/favicon_pinterest.webp',
-      label: 'Pinterest',
+      label: 'pinterest.com',
       url: 'pinterest.com',
       bodyHtml: pinBodyHtml()
     });
@@ -3047,7 +3079,7 @@
   function videoMockupHtml(){
     return browserMockupHtml({
       favicon: '/assets/landing/icons/favicon_youtube.webp',
-      label: 'YouTube',
+      label: 'youtube.com/watch/...',
       url: 'youtube.com',
       bodyHtml: vidBodyHtml()
     });
@@ -3080,7 +3112,10 @@
 
     // preview pane
     var pane = document.createElement("div");
-    pane.style.cssText = "position:absolute;inset:0;background:var(--surface);overflow:hidden;opacity:0;transform:scale(1.015);transition:opacity .4s ease,transform .4s ease;pointer-events:none;z-index:1;display:flex;align-items:stretch;justify-content:stretch;";
+    /* Opacity only. The panes used to cross-fade while one scaled from 1.015 to 1, which
+       made the frame appear to squirm — the four headers are now pixel-identical, so any
+       scale difference between the outgoing and incoming pane shows as a wobble. */
+    pane.style.cssText = "position:absolute;inset:0;background:var(--surface);overflow:hidden;opacity:0;transition:opacity .4s ease;pointer-events:none;z-index:1;display:flex;align-items:stretch;justify-content:stretch;";
     pane.innerHTML = mockupHtmlById[it.id]();
     panesEl.appendChild(pane);
     paneEls[it.id] = pane;
@@ -3090,7 +3125,13 @@
     // placeholder logo slot (real brand SVG wired later)
     return '<span data-logo-slot="'+it.id+'" style="width:16px;height:16px;flex-shrink:0;border-radius:4px;background:#fff;border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:9px;letter-spacing:-0.03em;color:'+it.tint+';">'+it.short+'</span>';
   }
+  /* The list rows switch source on mouseenter, so the pointer can leave a mockup for the
+     list and change panes while the hover class is still on. Clearing it here means the
+     incoming source is never shown in a half-hovered state. */
+  function inspireHoverOff(){ panesEl.classList.remove("inspire-hover"); }
+
   function activate(id){
+    inspireHoverOff();
     activeInspire = id;
     var isMockup = !!mockupHtmlById[id];
     tabHeaderEl.style.display = isMockup ? "none" : "flex";
@@ -3108,7 +3149,6 @@
       row.style.background = on ? "var(--surface-subtle)" : "transparent";
       iw.style.color = on ? "var(--accent)" : "var(--ink-muted)";
       pane.style.opacity = on ? "1" : "0";
-      pane.style.transform = on ? "scale(1)" : "scale(1.015)";
       pane.style.pointerEvents = on ? "auto" : "none";
       pane.style.zIndex = on ? "2" : "1";
       if(on){
@@ -3118,6 +3158,9 @@
       }
     });
   }
+  panesEl.addEventListener("mouseenter", function(){ panesEl.classList.add("inspire-hover"); });
+  panesEl.addEventListener("mouseleave", inspireHoverOff);
+
   activate("youtube");
 })();
 </script>
