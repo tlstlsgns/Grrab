@@ -149,8 +149,6 @@
   .rowD-profile-avatar{width:calc(20 / var(--rowD-basis) * 100cqh);height:calc(20 / var(--rowD-basis) * 100cqh);aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
     border:0.3px solid rgba(115,122,136,.3);}
   .rowD-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
-  .rowD-profile-menu{width:calc(20 / var(--rowD-basis) * 100cqh);height:calc(22 / var(--rowD-basis) * 100cqh);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-  .rowD-profile-menu-icon{width:100%;height:100%;display:block;object-fit:contain;}
   /* ── Row A — mockup rebuilt from the Figma frame (1× = 593×434) ──
      Every internal dimension is expressed against --rowA-u, one Figma pixel, so the
      whole mockup scales with its column instead of needing a breakpoint per element. */
@@ -228,7 +226,6 @@
   .rowA-tile{position:relative;border-radius:calc(8 * var(--rowA-u));overflow:hidden;
     background:var(--surface-key);}
   .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .rowA-tile--active{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
   .rowA-tile{transition:box-shadow .18s cubic-bezier(.25,.1,.25,1);}
   .rowA-tile:hover{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
   /* translateY(-100%) rather than subtracting the tooltip's height from top: top sets
@@ -510,7 +507,6 @@
     /* Visible whenever the editor is: the extension shows Clip before any selection is
        made. --in and the code that toggles it are now inert but left alone. */
     opacity:1;transition:opacity .35s ease;}
-  .hero-overlay-act--in{opacity:1;}
   /* Sits opposite the action button, on the same line above the image. The two share
      the 12-unit offset so they stay level however the buttons are scaled. */
   .hero-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--hero-btn-u));
@@ -701,7 +697,6 @@
     font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
     opacity:1;transition:opacity .35s ease;}
   .rowB-overlay-act--clip{right:0;}
-  .rowB-overlay-act--in{opacity:1;}
   .rowB-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--rowB-u));
     display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));}
   .rowB-tool{display:inline-flex;align-items:center;justify-content:center;
@@ -816,11 +811,6 @@
   .sidepanel-kbd{display:flex;align-items:center;justify-content:center;
     padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);
     font-weight:600;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#737A88;white-space:nowrap;}
-  .sidepanel-refresh{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  /* 9.7 matches .sidepanel-kbd's font size, so the icon and the ⌘C beside it read at the
-     same height. The original 5.54 and its rotation were restored faithfully with the row
-     and then judged too small. */
-  .sidepanel-refresh-icon{width:calc(9.7 / var(--rowD-basis) * 100cqh);height:calc(9.7 / var(--rowD-basis) * 100cqh);display:block;}
   .sidepanel-clip-sep{width:100%;height:0.42px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
   /* The extension leaves this a native checkbox with only accent-color set, so there is
      nothing to copy for the unchecked look. Border matches .sidepanel-kbd, the nearest
@@ -939,8 +929,6 @@
   .browser-dot--yellow{background:#FEBC2E;}
   .browser-dot--green{background:#28C840;}
   .browser-tab-platform{display:flex;flex-direction:row;align-items:center;gap:2.5px;flex-shrink:0;}
-  .browser-tab-favicon{width:5px;height:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .browser-tab-favicon .yt-slot-img{width:5px;height:4px;object-fit:contain;}
   .browser-tab-label{font-family:var(--font-sans);font-size:5px;font-weight:500;color:#000;line-height:1.2;white-space:nowrap;}
   .yt-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
   .yt-body{display:flex;flex:1;min-height:0;background:var(--surface);overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
@@ -1330,8 +1318,7 @@
     .rowD-urlbar-line{ display:none !important; }
     .rowD-profile-ext,
     .rowD-profile-sep,
-    .rowD-profile-avatar,
-    .rowD-profile-menu{ display:none !important; }
+    .rowD-profile-avatar{ display:none !important; }
 
     .rowD-chrome{ height:40px !important; padding:0 12px !important; gap:8px !important; }
 
@@ -2019,7 +2006,6 @@
 <script>
 (function(){
   "use strict";
-  var CURSOR = "assets/landing/custom-cursor.svg";
   var reduceMotion = false;
   try { reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){}
 
@@ -2061,12 +2047,6 @@
       if(!tile) return;
       var img = tile.querySelector("img");
       if(!img) return;
-      for(var i = 0; i < rowATiles.length; i++){
-        rowATiles[i].classList.remove("rowA-tile--active");
-        rowATiles[i].classList.add("rowA-tile--dim");
-      }
-      tile.classList.remove("rowA-tile--dim");
-      tile.classList.add("rowA-tile--active");
       var beforeSrc = img.getAttribute("src");
       rowAPreviewImg.setAttribute("src", beforeSrc);
       if(rowACompareBeforeImg && rowACompareAfter){
@@ -2236,9 +2216,6 @@
       if (heroOverlayBtn) heroOverlayBtn.classList.remove("hero-overlay-btn--press");
       if (heroOverlayAfter) heroOverlayAfter.classList.add("hero-overlay-after--in");
     };
-    var heroShowActs = function(){
-      for (var i = 0; i < heroActs.length; i++) heroActs[i].classList.add("hero-overlay-act--in");
-    };
     /* Everything that differs between one editor pass and the next lives here rather
        than being hardcoded in the markup, so a second pass is a config entry instead
        of a second set of elements. The ratios are the images' own: 2000x1333 and
@@ -2275,7 +2252,6 @@
        otherwise already be revealed and Clip already showing. Killing the transition
        around the class removal stops the result rewinding on screen. */
     var heroResetOverlay = function(){
-      for (var i = 0; i < heroActs.length; i++) heroActs[i].classList.remove("hero-overlay-act--in");
       if (heroOverlayAfter) {
         heroOverlayAfter.style.transition = "none";
         heroOverlayAfter.classList.remove("hero-overlay-after--in");
@@ -2630,7 +2606,6 @@
       heroSetStep(heroSteps[0]);
       heroOverlay.classList.add("hero-overlay--on");
       heroReveal();
-      heroShowActs();
       if (heroToast) heroToast.classList.add("hero-toast--in");
       if (heroPaste) heroPasteIn();
       if (heroTipV) heroTipV.classList.remove("hero-tip--in");
@@ -2777,9 +2752,6 @@
       }
       if (rowBOverlayAfter) rowBOverlayAfter.classList.add("rowB-overlay-after--in");
     };
-    var rowBShowActs = function(){
-      for (var i = 0; i < rowBActs.length; i++) rowBActs[i].classList.add("rowB-overlay-act--in");
-    };
     var rowBSetSplit = function(f){
       if (!rowBOverlayAfter) return;
       f = Math.max(0, Math.min(1, f));
@@ -2835,7 +2807,6 @@
         rowBMarquee.style.width = "0%";
         rowBMarquee.style.height = "0%";
       }
-      for (var i = 0; i < rowBActs.length; i++) rowBActs[i].classList.remove("rowB-overlay-act--in");
       for (var i = 0; i < rowBTiles.length; i++) rowBTiles[i].classList.remove("rowB-tile--hot");
     };
 
@@ -2865,7 +2836,6 @@
         tile.classList.add("rowB-tile--hot");
         rowBOverlay.classList.add("rowB-overlay--on");
         rowBReveal();
-        rowBShowActs();
         rowBEnterLive();
         return;
       }
@@ -2901,7 +2871,6 @@
         rowBAt(2850, rowBHover);
         rowBAt(3250, rowBPress);
         rowBAt(4250, rowBReveal);
-        rowBAt(5690, rowBShowActs);
         rowBAt(6140, rowBEnterLive);
       } else {
         rowBAt(2100, function(){
@@ -2934,7 +2903,6 @@
         rowBAt(4600, rowBHover);
         rowBAt(5000, rowBPress);
         rowBAt(6000, rowBReveal);
-        rowBAt(7440, rowBShowActs);
         rowBAt(7890, rowBEnterLive);
       }
     };
@@ -3004,13 +2972,9 @@
   var rowEls = {}, paneEls = {}, iconWrapEls = {};
 
   function browserChromeHtml(opts){
-    /* opts.url is no longer used: Row B's bar has no URL text. favicon and label move
-       into the urlbar, which is the only place a source is now named. */
     return '<div class="rowC-header">'+
             '<div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>'+
             '<div class="rowC-urlbar">'+
-              /* No favicon: the urlbar shows the address alone. opts.favicon joins
-                 opts.url as a field the callers still pass and nothing reads. */
               '<div class="browser-tab-platform">'+
                 '<span class="browser-tab-label">'+opts.label+'</span>'+
               '</div>'+
@@ -3110,9 +3074,7 @@
 
   function youtubeMockupHtml(){
     return browserMockupHtml({
-      favicon: '/assets/landing/icons/favicon_youtube.webp',
       label: 'youtube.com',
-      url: 'youtube.com',
       bodyHtml: youtubeBodyHtml()
     });
   }
@@ -3187,9 +3149,7 @@
 
   function instagramMockupHtml(){
     return browserMockupHtml({
-      favicon: '/assets/landing/icons/instagram/favicon_instagram.webp',
       label: 'instagram.com',
-      url: 'instagram.com',
       bodyHtml: igBodyHtml()
     });
   }
@@ -3263,9 +3223,7 @@
 
   function pinterestMockupHtml(){
     return browserMockupHtml({
-      favicon: '/assets/landing/icons/pinterest/favicon_pinterest.webp',
       label: 'pinterest.com',
-      url: 'pinterest.com',
       bodyHtml: pinBodyHtml()
     });
   }
@@ -3413,9 +3371,7 @@
 
   function videoMockupHtml(){
     return browserMockupHtml({
-      favicon: '/assets/landing/icons/favicon_youtube.webp',
       label: 'youtube.com/watch/...',
-      url: 'youtube.com',
       bodyHtml: vidBodyHtml()
     });
   }
