@@ -573,6 +573,21 @@
   .rowB-card-title{font-family:var(--font-display);font-weight:700;font-size:18px;
     letter-spacing:-0.01em;color:var(--ink-strong);}
   .rowB-card-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
+  /* Row D's cards. Row B's shape without the button: nothing here is clickable, so the
+     active rule, the pointer cursor, the transitions and the 3px left border that marked
+     the active card are all gone. Plain pixels, as Row B's are — --rowD-basis lives
+     inside the sidepanel window and does not reach this column. */
+  .rowD-cards{display:flex;flex-direction:column;gap:10px;width:100%;}
+  .rowD-card{display:flex;align-items:flex-start;gap:14px;width:100%;
+    padding:16px 18px;border-radius:12px;background:transparent;text-align:left;}
+  .rowD-card-icon{flex-shrink:0;width:40px;height:40px;border-radius:10px;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:var(--surface-subtle);border:1px solid var(--border);}
+  .rowD-card-icon img{width:22px;height:22px;display:block;object-fit:contain;}
+  .rowD-card-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .rowD-card-title{font-family:var(--font-display);font-weight:700;font-size:18px;
+    letter-spacing:-0.01em;color:var(--ink-strong);}
+  .rowD-card-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
   #inspireList svg{width:20px;height:20px;display:block;}
   /* 591/440 rather than the Figma frame's 593/434: at --container-max the 1.25fr column
      is 591px and Row A stands 440 tall, so this makes the two rows match exactly at any
@@ -802,7 +817,10 @@
     padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);
     font-weight:600;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#737A88;white-space:nowrap;}
   .sidepanel-refresh{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .sidepanel-refresh-icon{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(5.54 / var(--rowD-basis) * 100cqh);display:block;transform:rotate(-90deg) scaleY(-1);}
+  /* 9.7 matches .sidepanel-kbd's font size, so the icon and the ⌘C beside it read at the
+     same height. The original 5.54 and its rotation were restored faithfully with the row
+     and then judged too small. */
+  .sidepanel-refresh-icon{width:calc(9.7 / var(--rowD-basis) * 100cqh);height:calc(9.7 / var(--rowD-basis) * 100cqh);display:block;}
   .sidepanel-clip-sep{width:100%;height:0.42px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
   /* The extension leaves this a native checkbox with only accent-color set, so there is
      nothing to copy for the unchecked look. Border matches .sidepanel-kbd, the nearest
@@ -1259,6 +1277,12 @@
     .rowB-card-icon img{ width:19px !important; height:19px !important; }
     .rowB-card-title{ font-size:16px !important; }
     .rowB-card-desc{ font-size:13.5px !important; }
+    .rowD-cards{ gap:8px !important; }
+    .rowD-card{ padding:14px 14px !important; gap:12px !important; }
+    .rowD-card-icon{ width:34px !important; height:34px !important; }
+    .rowD-card-icon img{ width:19px !important; height:19px !important; }
+    .rowD-card-title{ font-size:16px !important; }
+    .rowD-card-desc{ font-size:13.5px !important; }
     .grrab-rowD{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowD > div:last-child{ gap:14px !important; }
     .grrab-rowD > div:last-child > div:last-child{ display:none !important; }
@@ -1758,11 +1782,28 @@
                   </div>
                   <div class="sidepanel-clip">
                     <div class="sidepanel-clip-row">
+                      <span class="sidepanel-clip-row-label">Clip Shortcut</span>
+                      <div class="sidepanel-clip-row-value">
+                        <span class="sidepanel-kbd">⌘C</span>
+                      </div>
+                    </div>
+                    <hr class="sidepanel-clip-sep">
+                    <div class="sidepanel-clip-row">
                       <span class="sidepanel-clip-row-label">Clip Size</span>
                       <div class="sidepanel-clip-row-value">
                         <span class="sidepanel-size-toggle">
                           <span class="sidepanel-size-value">Auto</span>
                           <img class="sidepanel-chevron" src="assets/landing/icons/rowD/icon_chevron.svg" alt="">
+                        </span>
+                      </div>
+                    </div>
+                    <hr class="sidepanel-clip-sep">
+                    <div class="sidepanel-clip-row">
+                      <span class="sidepanel-clip-row-label">Upscale</span>
+                      <div class="sidepanel-clip-row-value">
+                        <span class="sidepanel-check">
+                          <span class="sidepanel-check-box"></span>
+                          <span class="sidepanel-check-label">Auto</span>
                         </span>
                       </div>
                     </div>
@@ -1918,6 +1959,21 @@
         <p class="feature-label">SIDE PANEL</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every image clip,<br>saved and organized.</h2>
         <p style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
+      </div>
+
+      <div class="rowD-cards">
+        <div class="rowD-card">
+          <span class="rowD-card-icon"><img src="/assets/landing/icons/rowD/icon_folder_card.svg" alt=""></span>
+          <span class="rowD-card-text"><span class="rowD-card-title">Title</span><span class="rowD-card-desc">description</span></span>
+        </div>
+        <div class="rowD-card">
+          <span class="rowD-card-icon"><img src="/assets/landing/icons/rowD/icon_link_card.svg" alt=""></span>
+          <span class="rowD-card-text"><span class="rowD-card-title">Title</span><span class="rowD-card-desc">description</span></span>
+        </div>
+        <div class="rowD-card">
+          <span class="rowD-card-icon"><img src="/assets/landing/icons/rowD/icon_copy_card.svg" alt=""></span>
+          <span class="rowD-card-text"><span class="rowD-card-title">Title</span><span class="rowD-card-desc">description</span></span>
+        </div>
       </div>
 
     </div>
