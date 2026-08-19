@@ -127,29 +127,29 @@
      it with :first-child — which order does not disturb. On mobile the column becomes
      display:contents, where order has no effect, so this is desktop-only by nature. */
   .grrab-rowA > div:first-child{order:1;}
-  .rowD-chrome{display:flex;align-items:center;gap:6px;width:100%;height:50px;flex-shrink:0;
-    padding:10px 18px 10px 0;}
-  .rowD-urlbar{display:flex;align-items:center;flex:1;height:30px;min-width:0;align-self:center;
-    background:var(--surface);border:1px solid var(--border);border-left:0;border-radius:0 70px 70px 0;}
-  .rowD-urlbar-line{flex:1;height:3.5px;border-radius:10px;background:var(--border);min-width:0;}
+  .rowD-chrome{display:flex;align-items:center;gap:calc(6 / var(--rowD-basis) * 100cqh);width:100%;height:calc(50 / var(--rowD-basis) * 100cqh);flex-shrink:0;
+    padding:calc(10 / var(--rowD-basis) * 100cqh) calc(18 / var(--rowD-basis) * 100cqh) calc(10 / var(--rowD-basis) * 100cqh) 0;}
+  .rowD-urlbar{display:flex;align-items:center;flex:1;height:calc(30 / var(--rowD-basis) * 100cqh);min-width:0;align-self:center;
+    background:var(--surface);border:1px solid var(--border);border-left:0;border-radius:0 calc(70 / var(--rowD-basis) * 100cqh) calc(70 / var(--rowD-basis) * 100cqh) 0;}
+  .rowD-urlbar-line{flex:1;height:calc(3.5 / var(--rowD-basis) * 100cqh);border-radius:calc(10 / var(--rowD-basis) * 100cqh);background:var(--border);min-width:0;}
   .rowD-urlbar-star{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
-    height:30px;padding-left:12px;padding-right:16px;}
-  .rowD-urlbar-star-icon{width:15px;height:15px;display:block;flex-shrink:0;}
-  .rowD-profile{display:flex;align-items:center;justify-content:flex-end;gap:13px;
+    height:calc(30 / var(--rowD-basis) * 100cqh);padding-left:calc(12 / var(--rowD-basis) * 100cqh);padding-right:calc(16 / var(--rowD-basis) * 100cqh);}
+  .rowD-urlbar-star-icon{width:calc(15 / var(--rowD-basis) * 100cqh);height:calc(15 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .rowD-profile{display:flex;align-items:center;justify-content:flex-end;gap:calc(13 / var(--rowD-basis) * 100cqh);
     height:100%;flex-shrink:0;}
-  .rowD-profile-pill{display:flex;align-items:center;gap:2px;height:30px;
-    border:0.5px solid var(--border-strong);border-radius:30px;overflow:hidden;flex-shrink:0;}
-  .rowD-profile-logo{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
-    background:var(--surface);border-radius:20px;padding:0 5px 1px;flex-shrink:0;}
-  .rowD-profile-logo img{width:20px;height:auto;object-fit:contain;display:block;}
-  .rowD-profile-ext{display:flex;align-items:center;justify-content:center;width:30px;height:30px;
-    padding:0 6px 1px;flex-shrink:0;}
-  .rowD-profile-ext-icon{width:16px;height:16px;display:block;}
-  .rowD-profile-sep{width:1px;height:20px;background:var(--border-strong);flex-shrink:0;}
-  .rowD-profile-avatar{width:20px;height:20px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
+  .rowD-profile-pill{display:flex;align-items:center;gap:calc(2 / var(--rowD-basis) * 100cqh);height:calc(30 / var(--rowD-basis) * 100cqh);
+    border:0.5px solid var(--border-strong);border-radius:calc(30 / var(--rowD-basis) * 100cqh);overflow:hidden;flex-shrink:0;}
+  .rowD-profile-logo{display:flex;align-items:center;justify-content:center;width:calc(30 / var(--rowD-basis) * 100cqh);height:calc(30 / var(--rowD-basis) * 100cqh);
+    background:var(--surface);border-radius:calc(20 / var(--rowD-basis) * 100cqh);padding:0 calc(5 / var(--rowD-basis) * 100cqh) calc(1 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .rowD-profile-logo img{width:calc(20 / var(--rowD-basis) * 100cqh);height:auto;object-fit:contain;display:block;}
+  .rowD-profile-ext{display:flex;align-items:center;justify-content:center;width:calc(30 / var(--rowD-basis) * 100cqh);height:calc(30 / var(--rowD-basis) * 100cqh);
+    padding:0 calc(6 / var(--rowD-basis) * 100cqh) calc(1 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .rowD-profile-ext-icon{width:calc(16 / var(--rowD-basis) * 100cqh);height:calc(16 / var(--rowD-basis) * 100cqh);display:block;}
+  .rowD-profile-sep{width:calc(1 / var(--rowD-basis) * 100cqh);height:calc(20 / var(--rowD-basis) * 100cqh);background:var(--border-strong);flex-shrink:0;}
+  .rowD-profile-avatar{width:calc(20 / var(--rowD-basis) * 100cqh);height:calc(20 / var(--rowD-basis) * 100cqh);aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
     border:0.3px solid rgba(115,122,136,.3);}
   .rowD-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
-  .rowD-profile-menu{width:20px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .rowD-profile-menu{width:calc(20 / var(--rowD-basis) * 100cqh);height:calc(22 / var(--rowD-basis) * 100cqh);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
   .rowD-profile-menu-icon{width:100%;height:100%;display:block;object-fit:contain;}
   /* ── Row A — mockup rebuilt from the Figma frame (1× = 593×434) ──
      Every internal dimension is expressed against --rowA-u, one Figma pixel, so the
@@ -176,17 +176,35 @@
   .rowA-body{display:flex;flex:1;min-height:0;width:100%;align-items:flex-start;justify-content:flex-end;}
   /* Three independent columns rather than one grid: a grid cannot move a column on its
      own, and each of these will scroll at its own speed and direction. */
-  .rowA-gallery{display:flex;flex-direction:row;overflow:hidden;
-    gap:calc(10 * var(--rowA-u));padding:calc(10 * var(--rowA-u));width:100%;height:100%;
-    background:var(--surface);}
+  /* justify-content:flex-end is what makes the overflow fall on the left: three columns
+     at their new width need 713.8 where there is 571.1, and the surplus has to go
+     somewhere. Anchored right, the first column is the one cut.
+     Two masks, intersected: one fades the top and bottom, the other the left. The right
+     edge is not faded — the last column ends at the padding and is not cut. The -webkit-
+     pair is not decoration: Safari has no unprefixed mask-composite and spells intersect
+     as source-in. */
+  .rowA-gallery{display:flex;flex-direction:row;overflow:hidden;justify-content:flex-end;
+    cursor:url("/assets/landing/icons/hero/icon_cursor_24.svg") 2 1, auto;
+    gap:calc(12.5 * var(--rowA-u));padding:calc(10 * var(--rowA-u));width:100%;height:100%;
+    background:var(--surface);
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
+                       linear-gradient(to right, transparent 0, #000 8%, #000 100%);
+    -webkit-mask-composite:source-in;
+    mask-image:linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
+               linear-gradient(to right, transparent 0, #000 8%, #000 100%);
+    mask-composite:intersect;}
   /* align-self:flex-start, not flex-shrink. The gallery is a ROW, so shrink acts on
      width; what squeezed the column to the gallery's 450 was align-items:stretch on the
      cross axis. The keyframes move by a percentage OF THE COLUMN, so a squeezed column
      travelled a third of a set and the loop reset mid-image.
      flex:1 must stay exactly as it is — it means 1 1 0, and that zero basis is what
      makes the three columns split the width evenly. */
-  .rowA-col{display:flex;flex-direction:column;flex:1;min-width:0;align-self:flex-start;
-    gap:calc(10 * var(--rowA-u));
+  /* A fixed width, not flex:1. flex:1 divides the available room between the three
+     columns, so they could never total more than the gallery — and overflowing is the
+     point. 230 units is 1.25x the 183.7 they were sharing. */
+  .rowA-col{display:flex;flex-direction:column;flex:0 0 auto;width:calc(230 * var(--rowA-u));
+    min-width:0;align-self:flex-start;
+    gap:calc(12.5 * var(--rowA-u));
     animation:rowAScrollDown 60s linear infinite;}
   .rowA-col:nth-child(2){animation-name:rowAScrollUp;}
   /* 31/20 is 1.55, the comparison's proportions, as a whole-number ratio. */
@@ -195,23 +213,29 @@
   /* 50.51 rather than 50: ten tiles have nine gaps between them, but one set is five
      tiles AND five gaps — the gap leading into the copy belongs to the set. The figure
      holds at any width because --rowA-u sizes the tile and the gap together. */
+  /* 50.39, down from 50.51: the tile's height is its width over 1.55 while the gap is a
+     plain multiple of the unit, so growing both by 1.25 does not keep the ratio between
+     them. One set is now 803.1 of a 1593.7 column. */
   @keyframes rowAScrollDown{
-    from{transform:translateY(-50.51%);}
+    from{transform:translateY(-50.39%);}
     to{transform:translateY(0);}}
   @keyframes rowAScrollUp{
     from{transform:translateY(0);}
-    to{transform:translateY(-50.51%);}}
+    to{transform:translateY(-50.39%);}}
   @media (prefers-reduced-motion:reduce){
     .rowA-col{animation:none;}
   }
   .rowA-tile{position:relative;border-radius:calc(8 * var(--rowA-u));overflow:hidden;
     background:var(--surface-key);}
   .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .rowA-tile--dim{opacity:.5;}
-  .rowA-tile--active{opacity:1;box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
-  .rowA-tile{cursor:pointer;transition:box-shadow .18s cubic-bezier(.25,.1,.25,1);}
+  .rowA-tile--active{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
+  .rowA-tile{transition:box-shadow .18s cubic-bezier(.25,.1,.25,1);}
   .rowA-tile:hover{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
+  /* translateY(-100%) rather than subtracting the tooltip's height from top: top sets
+     the upper edge, so a fixed number would go stale if the type or padding changed.
+     The -8 in the script is then only the gap above the pointer. */
   .rowA-tip{position:fixed;left:0;top:0;z-index:60;pointer-events:none;opacity:0;
+    transform:translateY(-100%);
     font-family:var(--font-sans);font-weight:700;font-size:13px;line-height:1;color:#fff;
     background:var(--accent-bright);padding:6px 9px;border-radius:6px;white-space:nowrap;
     box-shadow:0 4px 16px rgba(207,0,255,.35);transition:opacity .12s ease;}
@@ -220,8 +244,7 @@
      column rather than a grid child of the row. It still receives its height rather than
      setting it, which is what container-type:size needs. */
   .rowA-pallette{position:relative;display:flex;align-items:center;justify-content:center;
-    width:100%;height:auto;flex:1;min-height:0;
-    padding:calc(5 * var(--rowA-u));box-sizing:border-box;
+    width:100%;height:auto;flex:1;min-height:0;box-sizing:border-box;
     container-type:size;--rowA-u:calc(100cqh / 340);}
   .rowA-pallette::before{content:"";position:absolute;inset:0;pointer-events:none;
     background-image:
@@ -287,7 +310,11 @@
      would be 100 / 1.7 = 58.8235%; 59 is used so the window overshoots top and
      bottom by about 1px and the stage clips it, the same trade the 1.7 makes on the
      sides. The two animations must never be retimed apart. */
-  .hero-camera{position:absolute;inset:0;
+  /* overflow:hidden so the cursor cannot extend the document. At 26000 it is sent 400px
+     right with the canvas, which put it outside the stage and produced a horizontal
+     scrollbar; removing that scrollbar at reset moved the whole page 32px, which read as
+     the zoom-in ending badly. */
+  .hero-camera{position:absolute;inset:0;overflow:hidden;
     display:flex;align-items:center;justify-content:flex-start;gap:2.5cqh;
     --hero-u:calc(90cqh / 434);
     background-image:url("/assets/landing/img/macbook-wallpaper.webp");
@@ -298,6 +325,26 @@
   @keyframes heroZoomOut{
     from{transform:translateX(17.65625%) scale(1.7);}
     to{transform:none;}}
+  /* The reverse of heroZoomOut and heroWindowShrink, at the same 1.4s so the return
+     mirrors the opening. A class cannot simply be removed to animate back — that
+     reverts instantly — so the journey needs its own keyframes. */
+  /* translateX, matching heroZoomOut's from exactly. A pixel matrix was tried here to
+     stop a 32px vertical jump, but that jump came from a two-argument translate written
+     from memory rather than from the file — translateX has no y component, so both axes
+     agree. And a percentage is what keeps the endpoint correct at every width; the matrix
+     was measured at 1646px and overshot by 53px at 900. */
+  @keyframes heroZoomIn{
+    from{transform:none;}
+    to{transform:translateX(17.65625%) scale(1.7);}}
+  @keyframes heroWindowGrow{
+    from{height:90%;}
+    to{height:59%;}}
+  .hero-stage--zoomin .hero-camera{
+    animation:heroZoomIn 1.4s cubic-bezier(.4,0,.2,1) both;
+    animation-play-state:running;}
+  .hero-stage--zoomin .hero-mockup-wrap{
+    animation:heroWindowGrow 1.4s cubic-bezier(.4,0,.2,1) both;
+    animation-play-state:running;}
   @keyframes heroWindowShrink{
     from{height:59%;}
     to{height:90%;}}
@@ -460,7 +507,9 @@
     background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--hero-btn-u));
     font-family:var(--font-sans);font-weight:600;line-height:1.4;
     font-size:calc(11 * var(--hero-btn-u));color:#f0f0f0;white-space:nowrap;
-    opacity:0;transition:opacity .35s ease;}
+    /* Visible whenever the editor is: the extension shows Clip before any selection is
+       made. --in and the code that toggles it are now inert but left alone. */
+    opacity:1;transition:opacity .35s ease;}
   .hero-overlay-act--in{opacity:1;}
   /* Sits opposite the action button, on the same line above the image. The two share
      the 12-unit offset so they stay level however the buttons are scaled. */
@@ -485,7 +534,10 @@
   /* The last leg of the cursor's travel is slower than its usual .75s so the drift to
      the canvas reads as unhurried. It deliberately outlasts the 1.4s pull-back: the
      camera settles first and the pointer keeps gliding. */
-  .hero-cursor--slow{transition:transform 2.2s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  /* 1.4s to match the zoom-out. The two start together at 7000 — heroClipDone fires the
+     camera and sends the cursor to the canvas in the same tick — and now they finish
+     together too, at 8400. */
+  .hero-cursor--slow{transition:transform 1.4s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
   .hero-toast{position:absolute;z-index:4;
     top:calc(10 * var(--hero-btn-u));right:calc(10 * var(--hero-btn-u));
     display:inline-flex;align-items:center;gap:calc(5 * var(--hero-btn-u));
@@ -632,7 +684,7 @@
     background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
     font-family:var(--font-sans);font-weight:600;line-height:1.4;
     font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
-    opacity:0;transition:opacity .35s ease;}
+    opacity:1;transition:opacity .35s ease;}
   .rowB-overlay-act--clip{right:0;}
   .rowB-overlay-act--in{opacity:1;}
   .rowB-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--rowB-u));
@@ -677,117 +729,136 @@
   .rowB-marquee--on{display:block;}
 
   /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
-  .rowD-mockup-wrap{position:relative;width:100%;height:100%;overflow:hidden;
-    border-radius:0 var(--radius-2xl) 0 0;box-shadow:28px -20px 72px 0 rgba(0,0,0,.10);order:2;}
+  /* No order: the DOM already puts the mockup first, so removing it is what moves the
+     mockup to the left. 545px rather than 100% keeps the panel the size it is now — the
+     column grew from 545 to 591 and the mockup would otherwise have grown with it. The
+     46px left over sits to its right, which suits a panel whose shadow reaches left. */
+  /* An explicit height, not 100%. Row D's height used to come from the fanned cards; with
+     those gone, height:100% resolved against a flex box sized by its tallest child — the
+     346px card — and the row collapsed to that. 551 is the same figure .rowD-scale-wrap
+     multiplies by; the two must move together. */
+  .rowD-mockup-wrap{position:relative;width:380px;height:551px;overflow:hidden;
+    border-radius:0 var(--radius-2xl) 0 0;}
+  /* 0.8 from the top-left. The wrapper keeps its 545x551 box because a transform does
+     not change layout, so the panel simply occupies less of it. container-type is
+     unaffected for the same reason — the cqw units inside keep their values and the
+     contents scale with the window instead of reflowing. */
   .rowD-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
     background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
-    border-radius:0 var(--radius-2xl) 0 0;container-type:inline-size;}
+    /* size, not inline-size: the panel is now measured from the window's height, and
+       inline-size only exposes cqw. Safe here because the window is inset:0 inside a
+       fixed 300x551 wrapper, so its size never depends on its contents. */
+    border-radius:0 var(--radius-2xl) 0 0;container-type:size;
+    /* The divisor for every dimension inside. At 545 — this element's own width — the
+       panel renders at 1:1. 681.25 is 545 / 0.8, which shrinks everything inside to
+       four fifths while the window itself stays 545 wide. */
+    --rowD-basis:688.75;}
   .rowD-viewport{position:relative;display:flex;flex-direction:row;justify-content:flex-end;align-items:flex-start;
-    flex:1;min-height:0;width:100%;gap:6px;padding:0 6px;overflow:hidden;}
-  .rowD-body{display:flex;flex-direction:column;align-items:flex-end;gap:12px;
-    width:520px;height:100%;margin-left:-243px;padding:12px;flex-shrink:0;
+    flex:1;min-height:0;width:100%;gap:calc(6 / var(--rowD-basis) * 100cqh);padding:0 calc(6 / var(--rowD-basis) * 100cqh);overflow:hidden;}
+  .rowD-body{display:flex;flex-direction:column;align-items:flex-end;gap:calc(12 / var(--rowD-basis) * 100cqh);
+    width:calc(520 / var(--rowD-basis) * 100cqh);height:100%;margin-left:calc(-243 / var(--rowD-basis) * 100cqh);padding:calc(12 / var(--rowD-basis) * 100cqh);flex-shrink:0;
     background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);
-    border-radius:0 8px 0 0;overflow:hidden;}
-  .rowD-topbar{display:flex;align-items:center;width:100%;padding:6px 0;opacity:.3;flex-shrink:0;}
-  .rowD-search{display:flex;align-items:center;justify-content:flex-end;flex:1;height:30px;min-width:0;
-    padding:4px 12px;background:#E5E5E1;border-radius:8px;overflow:hidden;}
-  .rowD-search-icon--close{width:8px;height:8px;display:block;flex-shrink:0;}
-  .rowD-gallery{display:flex;gap:10px;width:100%;opacity:.3;flex-shrink:0;}
-  .rowD-gallery-col{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;}
-  .rowD-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:8px;overflow:hidden;flex-shrink:0;}
-  .rowD-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:8px;}
-  .rowD-sidepanel{display:flex;flex-direction:column;width:320px;height:100%;flex-shrink:0;
-    padding:13.85px 8.31px 0;background:var(--surface);border-top:1.39px solid var(--border);
+    border-radius:0 calc(8 / var(--rowD-basis) * 100cqh) 0 0;overflow:hidden;}
+  .rowD-topbar{display:flex;align-items:center;width:100%;padding:calc(6 / var(--rowD-basis) * 100cqh) 0;opacity:.3;flex-shrink:0;}
+  .rowD-search{display:flex;align-items:center;justify-content:flex-end;flex:1;height:calc(30 / var(--rowD-basis) * 100cqh);min-width:0;
+    padding:calc(4 / var(--rowD-basis) * 100cqh) calc(12 / var(--rowD-basis) * 100cqh);background:#E5E5E1;border-radius:calc(8 / var(--rowD-basis) * 100cqh);overflow:hidden;}
+  .rowD-search-icon--close{width:calc(8 / var(--rowD-basis) * 100cqh);height:calc(8 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .rowD-gallery{display:flex;gap:calc(10 / var(--rowD-basis) * 100cqh);width:100%;opacity:.3;flex-shrink:0;}
+  .rowD-gallery-col{display:flex;flex-direction:column;gap:calc(10 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
+  .rowD-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:calc(8 / var(--rowD-basis) * 100cqh);overflow:hidden;flex-shrink:0;}
+  .rowD-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:calc(8 / var(--rowD-basis) * 100cqh);}
+  .rowD-sidepanel{display:flex;flex-direction:column;width:calc(320 / var(--rowD-basis) * 100cqh);height:100%;flex-shrink:0;
+    padding:calc(13.85 / var(--rowD-basis) * 100cqh) calc(8.31 / var(--rowD-basis) * 100cqh) 0;background:var(--surface);border-top:1.39px solid var(--border);
     border-left:1.39px solid var(--border);border-right:1.39px solid var(--border);
-    border-radius:11.08px 11.08px 0 0;overflow:hidden;
+    border-radius:calc(11.08 / var(--rowD-basis) * 100cqh) calc(11.08 / var(--rowD-basis) * 100cqh) 0 0;overflow:hidden;
     font-family:'Instrument Sans',var(--font-sans);}
-  .sidepanel-top{display:flex;flex-direction:column;gap:13.85px;width:303.38px;flex-shrink:0;}
-  .sidepanel-header{display:flex;align-items:center;gap:13.85px;height:13.85px;padding:0 5.54px;width:303.38px;}
-  .sidepanel-logo{display:flex;align-items:center;gap:4.16px;flex:1;min-width:0;}
-  .sidepanel-logo-icon{width:16.62px;height:13.85px;display:block;object-fit:contain;flex-shrink:0;}
-  .sidepanel-logo-name{font-weight:700;font-size:11.08px;line-height:1.2;color:var(--ink-strong);white-space:nowrap;}
-  .sidepanel-ctrl{display:flex;align-items:center;gap:11.08px;flex-shrink:0;height:6.93px;}
+  .sidepanel-top{display:flex;flex-direction:column;gap:calc(13.85 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .sidepanel-header{display:flex;align-items:center;gap:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-logo{display:flex;align-items:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
+  .sidepanel-logo-icon{width:calc(16.62 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;object-fit:contain;flex-shrink:0;}
+  .sidepanel-logo-name{font-weight:700;font-size:calc(11.08 / var(--rowD-basis) * 100cqh);line-height:1.2;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-ctrl{display:flex;align-items:center;gap:calc(11.08 / var(--rowD-basis) * 100cqh);flex-shrink:0;height:calc(6.93 / var(--rowD-basis) * 100cqh);}
   .sidepanel-ctrl-icon{display:block;flex-shrink:0;}
-  .sidepanel-ctrl-icon--pin{width:6.93px;height:6.93px;}
-  .sidepanel-ctrl-icon--close{width:5.54px;height:5.54px;}
-  .sidepanel-section{display:flex;flex-direction:column;gap:6.93px;width:303.38px;}
-  .sidepanel-profile{display:flex;align-items:flex-end;justify-content:space-between;padding:0 5.54px;width:100%;}
-  .sidepanel-profile-user{display:flex;align-items:center;gap:5.54px;flex-shrink:0;}
-  .sidepanel-profile-avatar{width:23.55px;height:23.55px;border-radius:50%;overflow:hidden;flex-shrink:0;
+  .sidepanel-ctrl-icon--pin{width:calc(6.93 / var(--rowD-basis) * 100cqh);height:calc(6.93 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-ctrl-icon--close{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(5.54 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-section{display:flex;flex-direction:column;gap:calc(6.93 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-profile{display:flex;align-items:flex-end;justify-content:space-between;padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);width:100%;}
+  .sidepanel-profile-user{display:flex;align-items:center;gap:calc(5.54 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .sidepanel-profile-avatar{width:calc(23.55 / var(--rowD-basis) * 100cqh);height:calc(23.55 / var(--rowD-basis) * 100cqh);border-radius:50%;overflow:hidden;flex-shrink:0;
     border:0.42px solid rgba(115,122,136,.3);}
   .sidepanel-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
-  .sidepanel-profile-name{font-weight:500;font-size:9.7px;line-height:1.2;color:#737A88;opacity:.7;white-space:nowrap;}
+  .sidepanel-profile-name{font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1.2;color:#737A88;opacity:.7;white-space:nowrap;}
   .sidepanel-profile-signout{display:flex;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
-  .sidepanel-signout-icon{width:13.85px;height:13.85px;display:block;}
+  .sidepanel-signout-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;}
   .sidepanel-clip{display:flex;flex-direction:column;width:100%;}
   .sidepanel-clip-row{display:flex;align-items:center;justify-content:space-between;
-    height:33.25px;padding:6.93px 5.54px 6.93px 9.7px;}
+    height:calc(33.25 / var(--rowD-basis) * 100cqh);padding:calc(6.93 / var(--rowD-basis) * 100cqh) calc(5.54 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) calc(9.7 / var(--rowD-basis) * 100cqh);}
   /* 500 and #6b7280 are the extension's own .sp-setting-label, read from
      browser-extension/dist/prod/sidepanel.html L418-420. Only the size is scaled down:
      the real one is 16.62px against this mockup's 9.7px. */
-  .sidepanel-clip-row-label{font-weight:500;font-size:9.7px;line-height:1;color:#6b7280;white-space:nowrap;}
-  .sidepanel-clip-row-value{display:flex;align-items:center;gap:2.77px;flex-shrink:0;}
+  .sidepanel-clip-row-label{font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#6b7280;white-space:nowrap;}
+  .sidepanel-clip-row-value{display:flex;align-items:center;gap:calc(2.77 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
   .sidepanel-kbd{display:flex;align-items:center;justify-content:center;
-    padding:4.16px 6.93px;border:0.97px solid rgba(0,0,0,.2);border-radius:4.16px;
-    font-weight:600;font-size:9.7px;line-height:1;color:#737A88;white-space:nowrap;}
-  .sidepanel-refresh{width:13.85px;height:13.85px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .sidepanel-refresh-icon{width:5.54px;height:5.54px;display:block;transform:rotate(-90deg) scaleY(-1);}
+    padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);
+    font-weight:600;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#737A88;white-space:nowrap;}
+  .sidepanel-refresh{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .sidepanel-refresh-icon{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(5.54 / var(--rowD-basis) * 100cqh);display:block;transform:rotate(-90deg) scaleY(-1);}
   .sidepanel-clip-sep{width:100%;height:0.42px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
   /* The extension leaves this a native checkbox with only accent-color set, so there is
      nothing to copy for the unchecked look. Border matches .sidepanel-kbd, the nearest
      bordered control in this mockup. */
-  .sidepanel-check{display:flex;align-items:center;gap:4.16px;flex-shrink:0;}
-  .sidepanel-check-box{width:8.31px;height:8.31px;border:0.97px solid rgba(0,0,0,.2);border-radius:1.39px;
+  .sidepanel-check{display:flex;align-items:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .sidepanel-check-box{width:calc(8.31 / var(--rowD-basis) * 100cqh);height:calc(8.31 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(1.39 / var(--rowD-basis) * 100cqh);
     background:#FFFFFF;flex-shrink:0;display:block;}
-  .sidepanel-check-label{font-weight:500;font-size:9.7px;line-height:1;color:#6b7280;white-space:nowrap;}
-  .sidepanel-size-toggle{display:flex;align-items:center;justify-content:center;gap:4.16px;
-    width:65.11px;padding:4.16px 6.93px;border:0.97px solid rgba(0,0,0,.2);border-radius:4.16px;}
-  .sidepanel-size-value{flex:1;font-weight:500;font-size:9.7px;line-height:1;letter-spacing:-0.69px;
+  .sidepanel-check-label{font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#6b7280;white-space:nowrap;}
+  .sidepanel-size-toggle{display:flex;align-items:center;justify-content:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);
+    width:calc(65.11 / var(--rowD-basis) * 100cqh);padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-size-value{flex:1;font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;letter-spacing:-0.69px;
     color:#737A88;text-align:center;white-space:nowrap;}
-  .sidepanel-chevron{width:5.54px;height:2.77px;display:block;flex-shrink:0;}
-  .sidepanel-main{display:flex;flex-direction:column;width:303.38px;flex:1;min-height:0;overflow:hidden;
+  .sidepanel-chevron{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(2.77 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .sidepanel-main{display:flex;flex-direction:column;width:calc(303.38 / var(--rowD-basis) * 100cqh);flex:1;min-height:0;overflow:hidden;
     background:var(--surface-ios);border-top:1.39px solid rgba(0,0,0,.2);}
-  .sidepanel-directory{display:flex;align-items:center;gap:8.31px;width:100%;padding:6.93px 5.54px 6.93px 6.93px;
+  .sidepanel-directory{display:flex;align-items:center;gap:calc(8.31 / var(--rowD-basis) * 100cqh);width:100%;padding:calc(6.93 / var(--rowD-basis) * 100cqh) calc(5.54 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);
     background:#F5F5F5;border-bottom:0.69px solid rgba(0,0,0,.2);flex-shrink:0;}
-  .sidepanel-directory-bar{display:flex;align-items:center;gap:4.16px;flex:1;min-width:0;
-    padding:5.54px 9.7px;background:#F6EBF7;border:1.39px solid var(--accent-bright);border-radius:4.16px;}
-  .sidepanel-directory-icon{width:12.47px;height:11.08px;display:block;flex-shrink:0;}
-  .sidepanel-directory-name{font-weight:500;font-size:11.08px;line-height:1.2;letter-spacing:0.39px;
+  .sidepanel-directory-bar{display:flex;align-items:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;
+    padding:calc(5.54 / var(--rowD-basis) * 100cqh) calc(9.7 / var(--rowD-basis) * 100cqh);background:#F6EBF7;border:1.39px solid var(--accent-bright);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-directory-icon{width:calc(12.47 / var(--rowD-basis) * 100cqh);height:calc(11.08 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .sidepanel-directory-name{font-weight:500;font-size:calc(11.08 / var(--rowD-basis) * 100cqh);line-height:1.2;letter-spacing:0.39px;
     color:var(--accent-bright);white-space:nowrap;}
-  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:4.16px;
-    width:65.11px;height:100%;padding:0 6.93px;border:0.97px solid rgba(0,0,0,.2);border-radius:4.16px;flex-shrink:0;}
-  .sidepanel-directory-file-type{flex:1;font-weight:500;font-size:9.7px;line-height:1.2;
+  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);
+    width:calc(65.11 / var(--rowD-basis) * 100cqh);height:100%;padding:0 calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .sidepanel-directory-file-type{flex:1;font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1.2;
     letter-spacing:-0.34px;color:#737A88;text-align:center;white-space:nowrap;}
   .sidepanel-gallery{display:flex;flex-direction:column;width:100%;flex:1;min-height:0;overflow:hidden;}
-  .sidepanel-gallery-top{display:flex;align-items:center;justify-content:flex-end;gap:6.93px;
-    padding:5.54px 11.08px;opacity:.2;flex-shrink:0;}
-  .sidepanel-upload-icon{width:12.47px;height:12.47px;display:block;}
-  .sidepanel-delete-icon{width:13.85px;height:15.24px;display:block;}
+  .sidepanel-gallery-top{display:flex;align-items:center;justify-content:flex-end;gap:calc(6.93 / var(--rowD-basis) * 100cqh);
+    padding:calc(5.54 / var(--rowD-basis) * 100cqh) calc(11.08 / var(--rowD-basis) * 100cqh);opacity:.2;flex-shrink:0;}
+  .sidepanel-upload-icon{width:calc(12.47 / var(--rowD-basis) * 100cqh);height:calc(12.47 / var(--rowD-basis) * 100cqh);display:block;}
+  .sidepanel-delete-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(15.24 / var(--rowD-basis) * 100cqh);display:block;}
   .sidepanel-gallery-row{display:flex;flex-direction:column;width:100%;flex-shrink:0;}
-  .sidepanel-gallery-time{display:flex;align-items:center;justify-content:center;gap:11.08px;
-    height:22.16px;padding:0 5.54px;opacity:.3;flex-shrink:0;}
+  .sidepanel-gallery-time{display:flex;align-items:center;justify-content:center;gap:calc(11.08 / var(--rowD-basis) * 100cqh);
+    height:calc(22.16 / var(--rowD-basis) * 100cqh);padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);opacity:.3;flex-shrink:0;}
   .sidepanel-gallery-time-line{flex:1;height:0;border-top:0.69px solid rgba(0,0,0,.25);}
-  .sidepanel-gallery-time-label{font-weight:500;font-size:8.31px;line-height:1.7;color:var(--ink-strong);white-space:nowrap;}
-  .sidepanel-gallery-grid{display:flex;flex-wrap:wrap;gap:2.77px;padding:0 1.39px;width:100%;}
-  .sidepanel-card{display:flex;flex-direction:column;width:98.35px;height:110.82px;flex-shrink:0;
-    background:var(--surface);border-radius:2.77px;overflow:visible;position:relative;}
+  .sidepanel-gallery-time-label{font-weight:500;font-size:calc(8.31 / var(--rowD-basis) * 100cqh);line-height:1.7;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-gallery-grid{display:flex;flex-wrap:wrap;gap:calc(2.77 / var(--rowD-basis) * 100cqh);padding:0 calc(1.39 / var(--rowD-basis) * 100cqh);width:100%;}
+  .sidepanel-card{display:flex;flex-direction:column;width:calc(98.35 / var(--rowD-basis) * 100cqh);height:calc(110.82 / var(--rowD-basis) * 100cqh);flex-shrink:0;
+    background:var(--surface);border-radius:calc(2.77 / var(--rowD-basis) * 100cqh);overflow:visible;position:relative;}
   .sidepanel-card--active{border:1.39px solid var(--accent-bright);
     box-shadow:0 2.77px 5.54px 0 rgba(0,0,0,.25);}
   .sidepanel-card--dim{border:1.39px solid var(--border-strong);}
-  .sidepanel-card-header{display:flex;align-items:center;height:18.01px;width:100%;flex-shrink:0;}
+  .sidepanel-card-header{display:flex;align-items:center;height:calc(18.01 / var(--rowD-basis) * 100cqh);width:100%;flex-shrink:0;}
   .sidepanel-card-header-link{display:flex;align-items:center;justify-content:center;
-    width:18.01px;height:18.01px;background:var(--accent-bright);flex-shrink:0;}
-  .sidepanel-card-link-icon{width:8.31px;height:8.31px;display:block;}
-  .sidepanel-card-header-meta{display:flex;align-items:center;gap:13.85px;flex:1;min-width:0;
-    padding:2.77px 6.93px 0 2.77px;height:100%;}
-  .sidepanel-card-meta-line{font-weight:700;font-size:6.93px;line-height:1.8;color:var(--accent-bright);white-space:nowrap;}
-  .sidepanel-card-meta-btn{display:flex;align-items:center;justify-content:flex-end;gap:4.16px;flex:1;min-width:0;}
-  .sidepanel-card-copy-icon{width:8.31px;height:8.31px;display:block;flex-shrink:0;}
-  .sidepanel-card-cancel-icon{width:5.54px;height:5.54px;display:block;flex-shrink:0;}
-  .sidepanel-card-header--dim{padding:2.77px 6.93px 0;}
+    width:calc(18.01 / var(--rowD-basis) * 100cqh);height:calc(18.01 / var(--rowD-basis) * 100cqh);background:var(--accent-bright);flex-shrink:0;}
+  .sidepanel-card-link-icon{width:calc(8.31 / var(--rowD-basis) * 100cqh);height:calc(8.31 / var(--rowD-basis) * 100cqh);display:block;}
+  .sidepanel-card-header-meta{display:flex;align-items:center;gap:calc(13.85 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;
+    padding:calc(2.77 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) 0 calc(2.77 / var(--rowD-basis) * 100cqh);height:100%;}
+  .sidepanel-card-meta-line{font-weight:700;font-size:calc(6.93 / var(--rowD-basis) * 100cqh);line-height:1.8;color:var(--accent-bright);white-space:nowrap;}
+  .sidepanel-card-meta-btn{display:flex;align-items:center;justify-content:flex-end;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
+  .sidepanel-card-copy-icon{width:calc(8.31 / var(--rowD-basis) * 100cqh);height:calc(8.31 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .sidepanel-card-cancel-icon{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(5.54 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .sidepanel-card-header--dim{padding:calc(2.77 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) 0;}
   .sidepanel-card-thumb{flex:1;min-height:0;width:100%;overflow:hidden;position:relative;}
   .sidepanel-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .sidepanel-card-pointer{position:absolute;left:74.65%;top:calc(18.01px + 48.48px);width:24.94px;height:24.94px;
+  .sidepanel-card-pointer{position:absolute;left:74.65%;top:calc(calc(18.01 / var(--rowD-basis) * 100cqh) + calc(48.48 / var(--rowD-basis) * 100cqh));width:calc(24.94 / var(--rowD-basis) * 100cqh);height:calc(24.94 / var(--rowD-basis) * 100cqh);
     transform:translateY(-50%);pointer-events:none;z-index:2;}
 
   /* ── Row B — browser mockup shell (responsive; cqw basis = Figma 1× frame 645px) ── */
@@ -1606,8 +1677,11 @@
 
   <!-- Row D — media left, text + fanned card stack right -->
   <div class="rowD-scale-wrap">
-  <div class="grrab-rowD" style="display:grid;grid-template-columns:1.05fr 1fr;gap:72px;align-items:stretch;">
+  <div class="grrab-rowD" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:72px;align-items:stretch;">
     <!-- RIGHT: side-panel screenshot placeholder -->
+    <!-- The fade sits here rather than on the card column so the mockup's foot dissolves
+         with it. The -webkit- pair is required: Safari has no unprefixed mask-image. -->
+    <div style="display:flex;align-items:flex-start;gap:16px;width:100%;height:551px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom, #000 78%, transparent 100%),linear-gradient(to right, transparent 0, #000 6%, #000 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to bottom, #000 78%, transparent 100%),linear-gradient(to right, transparent 0, #000 6%, #000 100%);mask-composite:intersect;">
     <div class="rowD-mockup-wrap">
         <div class="rowD-window">
           <div class="rowD-chrome">
@@ -1629,9 +1703,6 @@
               <div class="rowD-profile-sep"></div>
               <div class="rowD-profile-avatar">
                 <img src="assets/landing/img/example_profile.webp" alt="">
-              </div>
-              <div class="rowD-profile-menu">
-                <img class="rowD-profile-menu-icon" src="assets/landing/icons/rowA/icon_menubar.svg" alt="">
               </div>
             </div>
           </div>
@@ -1687,31 +1758,11 @@
                   </div>
                   <div class="sidepanel-clip">
                     <div class="sidepanel-clip-row">
-                      <span class="sidepanel-clip-row-label">Clip Shortcut</span>
-                      <div class="sidepanel-clip-row-value">
-                        <span class="sidepanel-kbd">⌘C</span>
-                        <span class="sidepanel-refresh">
-                          <img class="sidepanel-refresh-icon" src="assets/landing/icons/rowD/icon_refresh.svg" alt="">
-                        </span>
-                      </div>
-                    </div>
-                    <hr class="sidepanel-clip-sep">
-                    <div class="sidepanel-clip-row">
                       <span class="sidepanel-clip-row-label">Clip Size</span>
                       <div class="sidepanel-clip-row-value">
                         <span class="sidepanel-size-toggle">
                           <span class="sidepanel-size-value">Auto</span>
                           <img class="sidepanel-chevron" src="assets/landing/icons/rowD/icon_chevron.svg" alt="">
-                        </span>
-                      </div>
-                    </div>
-                    <hr class="sidepanel-clip-sep">
-                    <div class="sidepanel-clip-row">
-                      <span class="sidepanel-clip-row-label">Upscale</span>
-                      <div class="sidepanel-clip-row-value">
-                        <span class="sidepanel-check">
-                          <span class="sidepanel-check-box"></span>
-                          <span class="sidepanel-check-label">Auto</span>
                         </span>
                       </div>
                     </div>
@@ -1824,6 +1875,42 @@
           </div>
         </div>
     </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;padding-top:16px;">
+      <!-- The fan's front card, now standing beside the mockup. Its internals are cqw
+           against its own column, so the 16px the gap takes shrinks the card as a whole
+           instead of cropping it. 291 is the divisor because that is the width these
+           values were set at; the border and radius stay in px deliberately. -->
+      <div style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:2px solid #BC13FE;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:stretch;background:var(--surface);">
+          <span style="flex-shrink:0;align-self:stretch;aspect-ratio:1;background:var(--accent-bright);display:inline-flex;align-items:center;justify-content:center;">
+            <img src="assets/landing/icons/rowD/icon_link.svg" alt="" style="width:46%;height:46%;display:block;">
+          </span>
+          <span style="display:flex;align-items:center;gap:calc(9 / 291 * 100cqw);flex:1;min-width:0;padding:calc(9 / 291 * 100cqw) calc(11 / 291 * 100cqw) calc(9 / 291 * 100cqw) calc(9 / 291 * 100cqw);">
+          <span style="font-family:var(--font-sans);font-size:calc(15 / 291 * 100cqw);font-weight:700;letter-spacing:-0.01em;color:var(--accent-bright);">Pinterest</span>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:calc(10 / 291 * 100cqw);">
+            <img src="assets/landing/icons/rowD/icon_copy.svg" alt="" style="width:calc(17 / 291 * 100cqw);height:calc(17 / 291 * 100cqw);display:block;flex-shrink:0;">
+            <img src="assets/landing/icons/rowD/icon_cancel.svg" alt="" style="width:calc(11 / 291 * 100cqw);height:calc(11 / 291 * 100cqw);display:block;flex-shrink:0;">
+          </span>
+          </span>
+        </div>
+        <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-1.webp') center/cover no-repeat;"></div>
+      </div>
+        <!-- Dim cards: same shape, no purple frame or glow, and a header stripped to its
+             name. The header keeps its height so the three cards line up. -->
+        <div style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border-strong);display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;background:var(--surface);padding:calc(9 / 291 * 100cqw) calc(11 / 291 * 100cqw) calc(9 / 291 * 100cqw) calc(9 / 291 * 100cqw);">
+            <span style="font-family:var(--font-sans);font-size:calc(15 / 291 * 100cqw);font-weight:700;letter-spacing:-0.01em;color:var(--accent-bright);">youtube</span>
+          </div>
+          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-2.webp') center/cover no-repeat;"></div>
+        </div>
+        <div style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border-strong);display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;background:var(--surface);padding:calc(9 / 291 * 100cqw) calc(11 / 291 * 100cqw) calc(9 / 291 * 100cqw) calc(9 / 291 * 100cqw);">
+            <span style="font-family:var(--font-sans);font-size:calc(15 / 291 * 100cqw);font-weight:700;letter-spacing:-0.01em;color:var(--accent-bright);">instagram</span>
+          </div>
+          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-3.webp') center/cover no-repeat;"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- LEFT: heading + description + fanned card stack -->
     <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;height:100%;">
@@ -1833,47 +1920,6 @@
         <p style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
       </div>
 
-      <!-- Fanned card stack (static collage) -->
-      <div style="position:relative;width:100%;height:360px;">
-        <div style="position:absolute;left:21px;top:117px;width:116px;height:174px;transform:rotate(-20deg);z-index:1;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 10px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;">
-          <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
-            <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">google</span>
-          </div>
-          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-4.webp') center/cover no-repeat;"></div>
-        </div>
-        <div style="position:absolute;left:66px;top:66px;width:132px;height:75%;transform:rotate(-13deg);z-index:2;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 12px 28px rgba(0,0,0,.13);display:flex;flex-direction:column;">
-          <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
-            <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">instagram</span>
-          </div>
-          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-3.webp') center/cover no-repeat;"></div>
-        </div>
-        <div style="position:absolute;left:132px;top:24px;width:150px;height:90%;transform:rotate(-6deg);z-index:3;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 14px 32px rgba(0,0,0,.14);display:flex;flex-direction:column;">
-          <div style="display:flex;align-items:center;padding:9px 11px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
-            <span style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:-0.01em;color:var(--accent);">youtube</span>
-          </div>
-          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-2.webp') center/cover no-repeat;"></div>
-        </div>
-        <!-- front / active card -->
-        <div style="position:absolute;right:2%;top:0;width:368px;max-width:64%;z-index:10;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:2px solid #BC13FE;box-shadow:0 22px 48px rgba(188,19,254,.26);display:flex;flex-direction:column;height:100%;">
-          <!-- Same layout and parts as .sidepanel-card--active's header: the link icon, the
-               source name, then copy and cancel. Written inline at this card's own size
-               rather than reusing those classes, because everything here is inline and the
-               sidepanel's 8px icons would be invisible at 368px wide. -->
-          <div style="display:flex;align-items:stretch;background:var(--surface);">
-            <span style="flex-shrink:0;align-self:stretch;aspect-ratio:1;background:var(--accent-bright);display:inline-flex;align-items:center;justify-content:center;">
-              <img src="assets/landing/icons/rowD/icon_link.svg" alt="" style="width:46%;height:46%;display:block;">
-            </span>
-            <span style="display:flex;align-items:center;gap:9px;flex:1;min-width:0;padding:9px 11px 9px 9px;">
-            <span style="font-family:var(--font-sans);font-size:15px;font-weight:700;letter-spacing:-0.01em;color:var(--accent-bright);">Pinterest</span>
-            <span style="margin-left:auto;display:flex;align-items:center;gap:10px;">
-              <img src="assets/landing/icons/rowD/icon_copy.svg" alt="" style="width:17px;height:17px;display:block;flex-shrink:0;">
-              <img src="assets/landing/icons/rowD/icon_cancel.svg" alt="" style="width:11px;height:11px;display:block;flex-shrink:0;">
-            </span>
-            </span>
-          </div>
-          <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-1.webp') center/cover no-repeat;"></div>
-        </div>
-      </div>
     </div>
   </div>
   </div>
@@ -1909,7 +1955,7 @@
 
 <!-- cursor-follow badge + grab toast (portaled at body level) -->
 <div id="grabBadge" class="grab-badge">Press <strong>⌘C</strong> to Clip</div>
-<div id="rowATip" class="rowA-tip" aria-hidden="true">⌘C</div>
+<div id="rowATip" class="rowA-tip" aria-hidden="true">Press <span class="rowA-tip-key">⌘C</span></div>
 <div style="position:fixed;top:20px;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;">
   <div id="grabToast" class="grab-toast">Clipped to clipboard</div>
 </div>
@@ -1927,7 +1973,9 @@
      detection it uses, so the page never shows a shortcut the visitor
      cannot press. Failing open leaves the macOS text in place. */
   var KC_SHORTCUT_SELECTOR =
-    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip, .rowB-tip, .hero-tip, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
+    /* .rowA-tip-key, not .rowA-tip: the swap overwrites textContent wholesale, so
+       pointing it at the tooltip would take the word "Press" with it. */
+    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip-key, .rowB-tip, .hero-tip, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
   try {
     var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
                 navigator.userAgent.indexOf("Mac") !== -1;
@@ -1981,8 +2029,8 @@
       });
       tile.addEventListener("mousemove", function(e){
         if(!rowATip) return;
-        rowATip.style.left = (e.clientX + 14) + "px";
-        rowATip.style.top  = (e.clientY + 18) + "px";
+        rowATip.style.left = (e.clientX +8) + "px";
+        rowATip.style.top  = (e.clientY -4) + "px";
       });
       tile.addEventListener("mouseleave", function(){
         if(rowAHovered === tile) rowAHovered = null;
@@ -2318,6 +2366,11 @@
     var heroPlay = function(){
       var tile = heroTiles[0];
       if (!tile || !heroBody.offsetWidth) return;
+      /* Every cycle queues about thirty timers. Cancelling and emptying the list here
+         keeps that from growing without bound, and means a stray call cannot leave two
+         sequences running against each other. */
+      for (var ht = 0; ht < heroTimers.length; ht++) clearTimeout(heroTimers[ht]);
+      heroTimers.length = 0;
       heroSetStep(heroSteps[0]);
 
       var b = heroOffsetIn(heroBody);
@@ -2345,21 +2398,20 @@
       heroAt(2850, heroHover);
       heroAt(3250, heroPress);
       heroAt(4250, heroReveal);
-      heroAt(5690, heroShowActs);
-      heroAt(6100, function(){
+      heroAt(5650, function(){
         if (heroActClip) heroMoveTo(heroCentreIn(heroActClip));
       });
-      heroAt(6850, heroClipHover);
-      heroAt(7250, heroClipPress);
-      heroAt(7450, heroClipDone);
-      heroAt(9200, heroToastOut);
-      heroAt(9700, heroPasteIn);
-      heroAt(10040, heroTipVOut);
+      heroAt(6400, heroClipHover);
+      heroAt(6800, heroClipPress);
+      heroAt(7000, heroClipDone);
+      heroAt(8750, heroToastOut);
+      heroAt(8450, heroPasteIn);
+      heroAt(8790, heroTipVOut);
       /* One tracking run covers the whole return leg: crossing back in, the scroll, and
          the final approach. During the scroll the cursor is still and the tiles slide
          under it, which elementFromPoint picks up frame by frame. 2790 runs to 14190,
          where the glow is locked. */
-      heroAt(10040, function(){
+      heroAt(8790, function(){
         /* --slow belonged to the drift out to the canvas. It used to come off in
            heroCursorAside; with that step gone this is the first move that needs the
            cursor's normal .75s back.
@@ -2370,24 +2422,24 @@
         heroMoveTo(heroCentreIn(heroBody));
         heroTrack(2650);
       });
-      heroAt(11000, heroScrollDown);
-      heroAt(11900, heroHoverLate);
-      heroAt(12690, function(){
+      heroAt(9750, heroScrollDown);
+      heroAt(10650, heroHoverLate);
+      heroAt(11440, function(){
         if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
         heroHotOnly(heroTiles[heroTiles.length - 5]);
       });
 
       /* ── second pass: erase, on the tile the cursor just settled on ── */
       var box = { l:0.39, t:0.38, r:0.59, b:0.65 };
-      heroAt(13100, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
-      heroAt(13440, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
-      heroAt(13740, function(){
+      heroAt(11850, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
+      heroAt(12190, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
+      heroAt(12490, function(){
         heroSetStep(heroSteps[1]);
         heroResetOverlay();
         heroOverlay.classList.add("hero-overlay--on");
       });
-      heroAt(14020, function(){ heroMoveTo(heroBoxPoint(box.l, box.t)); });
-      heroAt(14770, function(){
+      heroAt(12770, function(){ heroMoveTo(heroBoxPoint(box.l, box.t)); });
+      heroAt(13520, function(){
         if (!heroMarquee) return;
         heroMarquee.style.left = (box.l * 100) + "%";
         heroMarquee.style.top = (box.t * 100) + "%";
@@ -2397,37 +2449,124 @@
         heroMoveTo(heroBoxPoint(box.r, box.b));
         heroDragTrack(box, 820);
       });
-      heroAt(15590, function(){
+      heroAt(14340, function(){
         if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
         heroSetAction(true);
         if (!heroMarquee) return;
         heroMarquee.style.width = ((box.r - box.l) * 100) + "%";
         heroMarquee.style.height = ((box.b - box.t) * 100) + "%";
       });
-      heroAt(15790, function(){
+      heroAt(14540, function(){
         if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
       });
-      heroAt(16540, heroHover);
-      heroAt(16940, heroPress);
-      heroAt(17940, heroReveal);
-      heroAt(19380, heroShowActs);
+      heroAt(15290, heroHover);
+      heroAt(15690, heroPress);
+      heroAt(16690, heroReveal);
 
       /* ── second clip: no camera move this time, a canvas pan instead ── */
-      heroAt(19800, function(){
+      heroAt(18090, function(){
         if (heroActClip) heroMoveTo(heroCentreIn(heroActClip));
       });
-      heroAt(20550, heroClipHover);
-      heroAt(20950, heroClipPress);
-      heroAt(21150, heroClipDone2);
-      heroAt(21600, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
-      heroAt(22900, heroToastOut);
-      heroAt(22500, heroPanLeft);
+      heroAt(18840, heroClipHover);
+      heroAt(19240, heroClipPress);
+      heroAt(19440, heroClipDone2);
+      heroAt(19890, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
+      heroAt(21190, heroToastOut);
+      heroAt(20790, heroPanLeft);
       /* 23250 is exactly when the pan's .75s transition ends, so the cursor sets off
          the instant the canvas stops rather than after a beat. */
-      heroAt(23250, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
-      heroAt(24050, heroPasteIn2);
-      heroAt(24390, heroTipVOut);
-      heroAt(24550, function(){ heroCursorAsideOf(heroPaste2); });
+      heroAt(21540, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
+      heroAt(22340, heroPasteIn2);
+      heroAt(22680, heroTipVOut);
+      heroAt(22840, function(){ heroCursorAsideOf(heroPaste2); });
+
+      /* ── the return ── */
+      /* Nothing fades and nothing is moved out of the way. The zoom-in carries the camera
+         back to the browser window, which takes the canvas and the cursor off-screen on
+         its own; by the time the reset clears them they have been out of sight for over a
+         second. The gallery scrolls back at the same time because it is inside the window
+         the camera is closing in on, so it would be seen if left. */
+      heroAt(23790, function(){
+        if (heroStage) {
+          heroStage.classList.remove("hero-stage--zoomout");
+          heroStage.classList.add("hero-stage--zoomin");
+        }
+        if (heroGallery) {
+          heroScrollY = 0;
+          heroGallery.style.transform = "translateY(0)";
+        }
+      });
+      heroAt(25290, function(){ window.heroReset(); });
+      /* 100ms after the reset rather than in the same tick: the reset suppresses several
+         transitions with a forced reflow, and starting the next cycle inside that same
+         frame can show as a flicker. */
+      heroAt(25390, function(){ heroPlay(); });
+    };
+
+    /* Puts everything back to the opening state. Defined here and hung on window so it
+       can be called from the console before anything depends on it; the loop wires it up
+       in a later round. The camera is deliberately NOT reset — removing the zoom class
+       would snap it rather than animate, and the zoom-in is its own step. */
+    window.heroReset = function(){
+      if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
+
+      /* pan and scroll, both the variables and what they drew */
+      heroPanX = 0; heroPanY = 0; heroScrollY = 0;
+      /* Transitions off for the snap back: by the time this runs the sequence has already
+         animated both, and letting them glide would send them travelling a second time. */
+      if (heroCanvasPan) {
+        heroCanvasPan.style.transition = "none";
+        heroCanvasPan.style.transform = "";
+        void heroCanvasPan.offsetWidth;
+        heroCanvasPan.style.transition = "";
+      }
+      if (heroGallery) {
+        heroGallery.style.transition = "none";
+        heroGallery.style.transform = "";
+        void heroGallery.offsetWidth;
+        heroGallery.style.transition = "";
+      }
+
+      /* the two pasted images */
+      if (heroPaste) { heroPaste.classList.remove("hero-paste--in");
+        heroPaste.classList.remove("hero-paste--out");
+        heroPaste.style.left = ""; heroPaste.style.top = ""; }
+      if (heroPaste2) { heroPaste2.classList.remove("hero-paste--in");
+        heroPaste2.classList.remove("hero-paste--out");
+        heroPaste2.style.left = ""; heroPaste2.style.top = ""; }
+
+      /* the cursor */
+      heroCursor.classList.remove("hero-cursor--on");
+      heroCursor.classList.remove("hero-cursor--slow");
+      heroCursor.classList.remove("hero-cursor--out");
+      heroCursor.style.transition = "none";
+      heroCursor.style.transform = "";
+      void heroCursor.offsetWidth;
+      heroCursor.style.transition = "";
+      if (heroTip) heroTip.classList.remove("hero-tip--in");
+      if (heroTipV) heroTipV.classList.remove("hero-tip--in");
+
+      /* the editor */
+      heroOverlay.classList.remove("hero-overlay--on");
+      heroResetOverlay();
+      heroSetStep(heroSteps[0]);
+      if (heroOverlayBtn) {
+        heroOverlayBtn.classList.remove("hero-overlay-btn--hover");
+        heroOverlayBtn.classList.remove("hero-overlay-btn--press");
+      }
+      if (heroActClip) {
+        heroActClip.classList.remove("hero-overlay-act--hover");
+        heroActClip.classList.remove("hero-overlay-act--press");
+      }
+      if (heroSpinner) heroSpinner.classList.remove("hero-spinner--on");
+
+      /* the toast and the tile glow */
+      if (heroToast) heroToast.classList.remove("hero-toast--in");
+      heroHotOnly(null);
+      /* The zoom-in class is removed but zoom-out is NOT re-added: the stage should be
+         left in its opening, zoomed-in state, which is what no class at all means once
+         the paused zoom-out animation is gone. */
+      if (heroStage) heroStage.classList.remove("hero-stage--zoomin");
     };
 
     if (heroReduce && heroReduce.matches) {
