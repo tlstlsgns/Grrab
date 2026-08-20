@@ -220,6 +220,16 @@
   @keyframes rowAScrollUp{
     from{transform:translateY(0);}
     to{transform:translateY(-50.39%);}}
+  /* The mobile pair. 50.60 rather than the vertical 50.39: the tiles are a different
+     shape and the ratio between a tile's width and the gap is what sets it. Checked at
+     174, 300 and 500px wide — the same figure at all three, because every dimension comes
+     from --rowA-u. */
+  @keyframes rowAScrollRight{
+    from{transform:translateX(-50.60%);}
+    to{transform:translateX(0);}}
+  @keyframes rowAScrollLeft{
+    from{transform:translateX(0);}
+    to{transform:translateX(-50.60%);}}
   @media (prefers-reduced-motion:reduce){
     .rowA-col{animation:none;}
   }
@@ -255,9 +265,6 @@
       linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%),
       linear-gradient(to bottom, transparent 0, #000 10%, #000 90%, transparent 100%);
     -webkit-mask-composite:source-in;mask-composite:intersect;}
-  .rowA-preview{position:relative;z-index:1;display:none;
-    flex-direction:column;align-items:center;gap:calc(6 * var(--rowA-u));
-    width:calc(212 * var(--rowA-u));height:calc(312 * var(--rowA-u));}
   .rowA-compare{position:relative;z-index:1;width:100%;height:100%;overflow:hidden;
     cursor:ew-resize;user-select:none;touch-action:none;
     background:var(--surface-key);box-shadow:0 calc(4 * var(--rowA-u)) calc(18 * var(--rowA-u)) rgba(0,0,0,.12);}
@@ -275,15 +282,6 @@
     display:flex;align-items:center;justify-content:center;color:var(--accent-bright);flex-shrink:0;}
   .rowA-compare-knob svg{width:calc(18 * var(--rowA-u));height:calc(18 * var(--rowA-u));display:block;}
   .rowA-compare-knob svg + svg{margin-left:calc(-8 * var(--rowA-u));}
-  .rowA-toast{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
-    gap:calc(6 * var(--rowA-u));padding:calc(5 * var(--rowA-u)) calc(10 * var(--rowA-u));
-    background:var(--accent-bright);border-radius:calc(6 * var(--rowA-u));
-    filter:drop-shadow(0 0 calc(2 * var(--rowA-u)) rgba(0,0,0,.25));}
-  .rowA-toast-icon{width:calc(12.5 * var(--rowA-u));height:calc(15 * var(--rowA-u));display:block;flex-shrink:0;}
-  .rowA-toast-text{font-family:var(--font-sans);font-weight:600;line-height:1;color:#fff;
-    font-size:calc(12 * var(--rowA-u));white-space:nowrap;}
-  .rowA-image{flex:1;min-height:0;width:100%;overflow:hidden;}
-  .rowA-image img{width:100%;height:100%;object-fit:cover;display:block;}
   .rowA-step-kbd{font-family:inherit;font-size:inherit;font-weight:700;
     letter-spacing:.01em;color:var(--accent);}
 
@@ -291,10 +289,12 @@
      The stage keeps the old video's 16:9 footprint; the window sits centred on it at
      the Figma frame's own 593:434, so its height matches what the video occupied. */
   .hero-stage{position:relative;width:100%;aspect-ratio:1920/1080;container-type:size;
-    overflow:hidden;border-radius:28px;background:var(--surface-key);}
-  /* 28px, not --radius-2xl's 24: the window's own corner reaches 12 * --hero-u * 1.7
-     = 27.0px at full zoom, and anything smaller here lets the wallpaper show through
-     the wedge outside that curve. Raise it if either the zoom or the 12 changes. */
+    overflow:hidden;border-radius:2.46% / 4.38%;background:var(--surface-key);}
+  /* Percentages, not cqh: border-radius is a property of this element, so resolving its
+     own container units against itself is circular and the browser silently used an
+     ancestor instead — the corner came out 46.9px at every width. Percentages resolve
+     against this box. 4.38% of the height is the 28px it used to be at desktop, and the
+     2.46% horizontal is that divided by the 16:9 ratio so the corner stays round. */
   /* The camera holds the wallpaper AND both windows, so zooming it moves the whole
      scene together. Its numbers come from the layout: the window is 105cqh wide and
      the stage 177.78cqh (16:9), so the window is 59.06% of the stage and its centre
@@ -573,6 +573,12 @@
      active rule, the pointer cursor, the transitions and the 3px left border that marked
      the active card are all gone. Plain pixels, as Row B's are — --rowD-basis lives
      inside the sidepanel window and does not reach this column. */
+  /* Percentages, not cqw: border-radius belongs to this element, so its own container
+     units resolve against an ancestor instead — the corner came out 17px on mobile and
+     61 on desktop. The pair is horizontal / vertical and each resolves against its own
+     axis, so both come from dividing the 12px they had on desktop: 12/195 across and
+     12/220 down. Written the other way round they made an ellipse. */
+  .rowD-clip-card{border-radius:6.15% / 5.45%;}
   .rowD-cards{display:flex;flex-direction:column;gap:10px;width:100%;}
   .rowD-card{display:flex;align-items:flex-start;gap:14px;width:100%;
     padding:16px 18px;border-radius:12px;background:transparent;text-align:left;}
@@ -585,6 +591,9 @@
     letter-spacing:-0.01em;color:var(--ink-strong);}
   .rowD-card-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
   #inspireList svg{width:20px;height:20px;display:block;}
+  /* The bare label is the mobile one; the media block below swaps which is shown. */
+  .rowC-item-label-bare{display:none;}
+  .rowC-active-desc{display:none;}
   /* 591/440 rather than the Figma frame's 593/434: at --container-max the 1.25fr column
      is 591px and Row A stands 440 tall, so this makes the two rows match exactly at any
      viewport of 1200px or more, where the container is capped. Below that Row A's height
@@ -1232,8 +1241,19 @@
     #top{ padding:56px 20px 40px !important;
       align-items:flex-start !important; text-align:left !important; }
     .hero-h1{ font-size:34px !important; }
+    /* The CTA heading reads as the hero's below 820. Its weight moves too — the CTA token
+       is 700 and the hero's is 800 — so this sets both rather than the size alone. */
+    .cta-h2{ font-size:34px !important; font-weight:800 !important; }
     .hero-sub{ font-size:20px !important; }
+    /* The rows' subtitles read as the hero's below 820. Their desktop sizes differ from
+       each other — 22px in Rows A and B, 20 in C and D — and stay that way; it is only
+       here they converge. The weight moves too: they are 500 inline and the hero is 600. */
+    .feature-sub{ font-size:20px !important; font-weight:600 !important; }
     #how{ padding:56px 20px !important; gap:56px !important; }
+    /* The hero mockup's section had no mobile rule and kept its 32px sides, giving up
+       16% of a 400px viewport. 20px matches #top, #how and the header — and the
+       .browser-frame rules below compute from 100vw - 40px on the same assumption. */
+    section:has(> .hero-stage){ padding:8px 20px 48px !important; }
     .feature-h2{ font-size:28px !important; }
     .nav-links{ display:none !important; }
 
@@ -1265,21 +1285,74 @@
     .rowB-card-icon img{ width:19px !important; height:19px !important; }
     .rowB-card-title{ font-size:16px !important; }
     .rowB-card-desc{ font-size:13.5px !important; }
+    /* The desktop pins this to 470px so Rows A, B and C stand level. Below 820 the row
+       stacks and there is nothing to level against, but the height stayed while the width
+       fell to 368 — the window ended up upright. 591/470 is the shape the desktop
+       renders; --rowB-u is width-based, so the contents follow on their own. */
+    .rowB-mockup-wrap{ aspect-ratio:591/470 !important; height:auto !important; }
+    /* Side by side, so the marker moves from the left edge to the bottom. The left border
+       has to be zeroed as well as the bottom given a width — the base rule sets
+       border-left:3px and leaving it would keep reserving that space. */
+    .rowB-cards{ flex-direction:row !important; }
+    .rowB-card{ flex:1 !important; min-width:0 !important;
+      align-items:center !important;
+      border-left-width:0 !important;
+      border-bottom:3px solid transparent !important;
+      border-radius:12px 12px 0 0 !important; }
+    .rowB-card--active{ border-left-color:transparent !important;
+      border-bottom-color:#BC13FE !important; }
+    .rowB-card-desc{ display:none !important; }
+    /* Four across, icon above title. Every declaration needs !important: the rows are
+       built in JavaScript with inline cssText, which a stylesheet cannot otherwise beat.
+       The description is hidden rather than removed — it still shows on desktop. */
+    .rowC-list{ flex-direction:row !important; gap:4px !important; }
+    .rowC-item{ flex:1 !important; min-width:0 !important;
+      flex-direction:column !important; align-items:center !important;
+      gap:6px !important; padding:10px 4px !important; }
+    .rowC-item-text{ font-size:13px !important; text-align:center !important;
+      line-height:1.2 !important; }
+    .rowC-item-desc{ display:none !important; }
+    .rowC-item-label{ display:none !important; }
+    .rowC-item-label-bare{ display:inline !important; }
+    .rowC-subtitle{ display:none !important; }
+    .rowC-active-desc{ display:block !important; }
     .rowD-cards{ gap:8px !important; }
     .rowD-card{ padding:14px 14px !important; gap:12px !important; }
     .rowD-card-icon{ width:34px !important; height:34px !important; }
     .rowD-card-icon img{ width:19px !important; height:19px !important; }
     .rowD-card-title{ font-size:16px !important; }
     .rowD-card-desc{ font-size:13.5px !important; }
+    /* Three across, icon above title. align-items centres them horizontally here — the
+       card is a column, so that is its cross axis, where Row B's row-wise cards used the
+       same property for vertical centring. */
+    .rowD-cards{ flex-direction:row !important; gap:8px !important; }
+    .rowD-card{ flex:1 !important; min-width:0 !important;
+      flex-direction:column !important; align-items:center !important;
+      gap:8px !important; padding:12px 6px !important; }
+    .rowD-card-text{ align-items:center !important; }
+    .rowD-card-title{ text-align:center !important; }
+    .rowD-card-desc{ display:none !important; }
     .grrab-rowD{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowD > div:last-child{ gap:14px !important; }
-    .grrab-rowD > div:last-child > div:last-child{ display:none !important; }
+    /* That selector used to find the fanned card stack, which is gone; it now finds
+       .rowD-cards and was hiding the three cards entirely. The box's height is released
+       here too — 551px is a desktop figure and the contents scale down on mobile. */
+    /* The whole media box scales as one piece: 591 x 551 is what it measures on desktop,
+       so holding that ratio keeps the panel and its cards in the same relationship at any
+       width. The gap goes to a percentage of the same 591 for the same reason. */
+    .rowD-media{ height:auto !important; aspect-ratio:591/551 !important;
+      gap:2.7% !important; }
     .grrab-inspire-grid{ grid-template-columns:1fr !important; align-items:start !important; gap:24px !important; }
-    .grrab-inspire-grid > div:last-child{ min-height:auto !important; height:auto !important; }
+    /* nth-child(2), not last-child: #inspireDesc was added after the mockup and took over
+       :last-child, so the rule was releasing its height instead and the mockup kept the
+       470px the desktop gives it. The grid has three children and the mockup is second. */
+    .grrab-inspire-grid > div:nth-child(2){ min-height:auto !important; height:auto !important; }
 
     /* text/heading FIRST, mockup below. Only Row D needs an explicit order now that
        every row puts its text first in the DOM. */
-    .rowD-mockup-wrap{ order:2 !important; }
+    /* The order belongs on the flex box, not the mockup: the mockup now sits inside that
+       box with the cards, so ordering it only rearranged the two of them. */
+    .rowD-media{ order:2 !important; }
 
     /* ---- uniform-scale mockups (option A) ----
        Each mockup renders at a fixed REFERENCE size, then scales to fit the mobile
@@ -1294,15 +1367,62 @@
     .rowA-mockup-wrap{ --rowA-u:calc(100cqw / 281) !important; }
     .rowA-pallette{ aspect-ratio:auto !important; height:100% !important;
       padding:0 !important; --rowA-u:calc(100cqh / 434) !important; }
-    .rowA-preview{ display:flex !important; }
-    .rowA-compare{ display:none !important; }
+    /* Touch holds :hover on whatever was last tapped, so tapping a tile would stop its
+       column for good. The desktop pause stays; this cancels it here. The tile's glow is
+       the same stuck hover and is deliberately left alone. */
+    .rowA-col:hover{ animation-play-state:running !important; }
+    /* Rows, not columns. The tiles take 312/434 — the comparison's proportion, which is a
+       constant here because the mockup is 281/434 and the grid splits 281fr/312fr, so the
+       width cancels out of the ratio. flex:1 gives each row a third of the height and the
+       aspect-ratio settles the tile's width from there, so nothing needs a fixed number. */
+    /* One mask, both sides. The rows run sideways so the cut is horizontal; the three of
+       them divide the height exactly, so a top or bottom fade would dim tiles that are
+       whole. With a single mask there is nothing to composite, and mask-composite is
+       overridden back to its default so the desktop's intersect does not linger. */
+    .rowA-gallery{ flex-direction:column !important; justify-content:flex-start !important;
+      -webkit-mask-image:linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%) !important;
+      mask-image:linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%) !important;
+      -webkit-mask-composite:source-over !important;
+      mask-composite:add !important; }
+    /* min-height:0 is what makes flex:1 authoritative here. A flex item defaults to
+       min-height:auto and refuses to shrink below its content, so the tile asking for
+       height:100% of a row whose height was not yet known resolved to the image's own
+       1252px and the row grew to match. */
+    .rowA-col{ flex-direction:row !important; flex:1 !important; width:auto !important;
+      min-height:0 !important; align-self:stretch !important;
+      animation-name:rowAScrollRight !important; }
+    .rowA-col:nth-child(2){ animation-name:rowAScrollLeft !important; }
+    .rowA-col .rowA-tile{ aspect-ratio:312/434 !important; height:100% !important;
+      width:auto !important; }
+    /* The comparison splits horizontally here and is dragged up and down. inset(50% 0 0 0)
+       hides the before-image's top half, so after is above the line and before below. */
+    /* No !important: the script writes clip-path inline as you drag, and !important beats
+       an inline style — the clip stayed at 50% while the handle moved. This rule still
+       provides the starting value, because it matches the desktop rule's specificity and
+       comes later in the sheet. */
+    .rowA-compare-before{ clip-path:inset(50% 0 0 0);
+      -webkit-clip-path:inset(50% 0 0 0); }
+    /* translateY, not the desktop's translateX: the bar spans the full width from left:0
+       here, so a horizontal shift only pushes it off the edge — it is the vertical centre
+       on its `top` that needs correcting. */
+    /* top has no !important because the script writes it inline as you drag, and
+       !important beats inline — the bar sat at 50% while the split moved. It still gets
+       its starting 50% from here: the desktop rule sets top:0, and this comes later in
+       the sheet at equal specificity. The others keep theirs; the script never writes
+       them and each has a desktop value to override. */
+    .rowA-compare-handle{ left:0 !important; right:0 !important; top:50%;
+      bottom:auto !important; width:auto !important;
+      height:calc(3 * var(--rowA-u)) !important;
+      transform:translateY(-50%) !important; }
+    .rowA-compare-knob{ transform:rotate(90deg) !important; }
 
     /* Row C — ref 520×554 */
-    .rowD-mockup-wrap{ position:relative !important; width:100% !important;
-      height:calc((100vw - 40px) * 554 / 520) !important; overflow:hidden !important; }
-    .rowD-window{ position:absolute !important; inset:auto !important; top:0 !important;
-      left:0 !important; width:520px !important; height:554px !important;
-      transform-origin:top left; transform:scale(calc((100vw - 40px) / 520px)) !important; }
+    /* 64.3% is 380/591 — the width it has inside the box on desktop. The height comes
+       from the box's ratio rather than a calc against the viewport, so the two children
+       stay in step however wide the screen is. */
+    .rowD-mockup-wrap{ position:relative !important; width:64.3% !important;
+      height:100% !important; flex-shrink:0 !important; overflow:hidden !important; }
+
 
     /* Row B — frame ref 645×442, scaled by width; wrapper reserves 16:9 to match Row A */
     #inspirePanes{ position:relative !important; flex:none !important; width:100% !important;
@@ -1314,25 +1434,24 @@
     /* ===== minimal mobile mockup chrome (Obsidian-style) ===== */
 
     /* Row C chrome (.rowD-chrome) — no url text; inject domain */
+    /* The star stays hidden — it computes to about 7px here. The line does not: with the
+       injected "grrab.app" gone, hiding it would leave the address field empty. */
     .rowD-urlbar-star{ display:none !important; }
-    .rowD-urlbar-line{ display:none !important; }
+    /* The pill's outline and the logo's white disc read as clutter at this size — they
+       are ornament on a header 25px tall. The urlbar's padding is the 16 units the star
+       reserves on desktop; with the star hidden the line would otherwise run to the edge. */
+    .rowD-profile-pill{ border:0 !important; }
+    .rowD-profile-logo{ background:transparent !important; }
+    .rowD-urlbar{ padding-right:calc(16 / var(--rowD-basis) * 100cqh) !important; }
     .rowD-profile-ext,
     .rowD-profile-sep,
     .rowD-profile-avatar{ display:none !important; }
 
-    .rowD-chrome{ height:40px !important; padding:0 12px !important; gap:8px !important; }
-
-    .rowD-urlbar{ height:26px !important; padding:0 12px !important; flex:1 !important;
-      background:var(--surface) !important; border:1px solid var(--border) !important;
-      border-left:1px solid var(--border) !important;
-      border-radius:999px !important; display:flex !important; align-items:center !important; }
-    .rowD-urlbar::before{ content:"grrab.app"; font-family:var(--font-sans);
-      font-size:11px; color:var(--ink-700); white-space:nowrap; }
-
-    .rowD-profile{ gap:0 !important; }
-    .rowD-profile-pill{ border:0 !important; background:transparent !important; gap:0 !important; }
-    .rowD-profile-logo{ width:22px !important; height:22px !important; }
-    .rowD-profile-logo img{ width:22px !important; height:auto !important; }
+    /* The chrome's fixed sizes are gone. They were written when .rowD-window carried a
+       transform:scale and the header needed simplifying by hand; the window is now sized
+       by --rowD-basis from its own height, so the desktop rules scale the header on their
+       own. What remains hidden above is hidden because it is too small to read, not
+       because it is the wrong size. */
 
     /* FINAL CTA + footer: reduce horizontal padding to 20px */
     section[style*="accent-wash"] > div{ padding:54px 20px !important; }
@@ -1342,18 +1461,20 @@
     header > div{ padding:12px 16px !important; }
     #top{ padding:44px 16px 32px !important; }
     .hero-h1{ font-size:28px !important; }
+    .cta-h2{ font-size:28px !important; }
     .hero-sub{ font-size:18px !important; }
+    .feature-sub{ font-size:18px !important; }
     #how{ padding:44px 16px !important; gap:44px !important; }
     .feature-h2{ font-size:24px !important; }
 
     /* side padding now 16px each → 100vw-32px in the mockup scale math */
-    .rowD-mockup-wrap{ height:calc((100vw - 32px) * 554 / 520) !important; }
-    .rowD-window{ transform:scale(calc((100vw - 32px) / 520px)) !important; }
+
     #inspirePanes{ height:calc((100vw - 32px) * 1080 / 1920) !important; }
     .browser-frame{ transform:scale(calc((100vw - 32px) / 645px)) !important; }
 
     /* FINAL CTA + footer horizontal padding → 16px; CTA button shrink/wrap */
     section[style*="accent-wash"] > div{ padding:44px 16px !important; }
+    section:has(> .hero-stage){ padding:8px 16px 40px !important; }
     footer > div{ padding:32px 16px !important; }
     section[style*="accent-wash"] .btn-lg{ height:auto !important; min-height:48px;
       padding:12px 20px !important; font-size:15px !important; white-space:normal !important;
@@ -1491,7 +1612,7 @@
       <div style="display:flex;flex-direction:column;gap:14px;">
         <p class="feature-label">ONE-CLICK</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Instant upscale.</h2>
-        <p style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>— it lands on your clipboard, upscaled.</p>
+        <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>— it lands on your clipboard, upscaled.</p>
       </div>
 
       <div class="rowA-pallette">
@@ -1506,13 +1627,6 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </div>
           </div>
-        </div>
-        <div class="rowA-preview">
-          <div class="rowA-toast">
-            <img class="rowA-toast-icon" src="/assets/landing/icons/rowA/icon_copy.svg" alt="">
-            <span class="rowA-toast-text">Image copied</span>
-          </div>
-          <div class="rowA-image"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
         </div>
       </div>
     </div>
@@ -1571,13 +1685,13 @@
       <div style="display:flex;flex-direction:column;gap:14px;">
         <p class="feature-label">EDIT</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Photoshop, right in the browser.</h2>
-        <p style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Clean up backgrounds, texts, and objects<br>— right where you found the image.</p>
+        <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Clean up backgrounds, texts, and objects<br>— right where you found the image.</p>
       </div>
 
       <div class="rowB-cards">
         <button type="button" class="rowB-card rowB-card--active">
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_removebg.svg" alt=""></span>
-          <span class="rowB-card-text"><span class="rowB-card-title">Remove Background</span><span class="rowB-card-desc">description for removebg.</span></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Remove BG</span><span class="rowB-card-desc">description for removebg.</span></span>
         </button>
         <button type="button" class="rowB-card">
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_erase.svg" alt=""></span>
@@ -1657,9 +1771,9 @@
       <div style="display:flex;flex-direction:column;gap:14px;">
         <p class="feature-label">SUPPORTS</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Any image on the web</h2>
-        <p style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Even from Instagram posts, YouTube thumbnails — any source that inspires you.</p>
+        <p class="rowC-subtitle" style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Even from Instagram posts, YouTube thumbnails — any source that inspires you.</p>
       </div>
-      <div id="inspireList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div id="inspireList" class="rowC-list" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
 
     <!-- RIGHT: framed visual with crossfade. 591/440 matches Row A's height at the
@@ -1680,6 +1794,10 @@
       </div>
       <div id="inspirePanes" style="position:relative;height:auto;"></div>
     </div>
+    <!-- The active source's description. A third grid item, so that on mobile — one
+         column — it falls after the mockup. On desktop it is display:none, and a hidden
+         grid item takes no cell, so the two-column layout is unaffected. -->
+    <p id="inspireDesc" class="rowC-active-desc feature-sub" style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;"></p>
   </div>
   </div>
 
@@ -1692,7 +1810,7 @@
     <!-- RIGHT: side-panel screenshot placeholder -->
     <!-- The fade sits here rather than on the card column so the mockup's foot dissolves
          with it. The -webkit- pair is required: Safari has no unprefixed mask-image. -->
-    <div style="display:flex;align-items:flex-start;gap:16px;width:100%;height:551px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom, #000 78%, transparent 100%),linear-gradient(to right, transparent 0, #000 6%, #000 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to bottom, #000 78%, transparent 100%),linear-gradient(to right, transparent 0, #000 6%, #000 100%);mask-composite:intersect;">
+    <div class="rowD-media" style="display:flex;align-items:flex-start;gap:16px;width:100%;height:551px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom, #000 78%, transparent 100%),linear-gradient(to right, transparent 0, #000 6%, #000 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to bottom, #000 78%, transparent 100%),linear-gradient(to right, transparent 0, #000 6%, #000 100%);mask-composite:intersect;">
     <div class="rowD-mockup-wrap">
         <div class="rowD-window">
           <div class="rowD-chrome">
@@ -1908,7 +2026,7 @@
            against its own column, so the 16px the gap takes shrinks the card as a whole
            instead of cropping it. 291 is the divisor because that is the width these
            values were set at; the border and radius stay in px deliberately. -->
-      <div style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:2px solid #BC13FE;display:flex;flex-direction:column;">
+      <div class="rowD-clip-card" style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;overflow:hidden;background:#fff;border:2px solid #BC13FE;display:flex;flex-direction:column;">
         <div style="display:flex;align-items:stretch;background:var(--surface);">
           <span style="flex-shrink:0;align-self:stretch;aspect-ratio:1;background:var(--accent-bright);display:inline-flex;align-items:center;justify-content:center;">
             <img src="assets/landing/icons/rowD/icon_link.svg" alt="" style="width:46%;height:46%;display:block;">
@@ -1925,13 +2043,13 @@
       </div>
         <!-- Dim cards: same shape, no purple frame or glow, and a header stripped to its
              name. The header keeps its height so the three cards line up. -->
-        <div style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border-strong);display:flex;flex-direction:column;">
+        <div class="rowD-clip-card" style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;overflow:hidden;background:#fff;border:1px solid var(--border-strong);display:flex;flex-direction:column;">
           <div style="display:flex;align-items:center;background:var(--surface);padding:calc(9 / 291 * 100cqw) calc(11 / 291 * 100cqw) calc(9 / 291 * 100cqw) calc(9 / 291 * 100cqw);">
             <span style="font-family:var(--font-sans);font-size:calc(15 / 291 * 100cqw);font-weight:700;letter-spacing:-0.01em;color:var(--accent-bright);">youtube</span>
           </div>
           <div style="flex:1;background:url('/assets/landing/img/rowD/rowD-image-2.webp') center/cover no-repeat;"></div>
         </div>
-        <div style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;border-radius:var(--radius-lg);overflow:hidden;background:#fff;border:1px solid var(--border-strong);display:flex;flex-direction:column;">
+        <div class="rowD-clip-card" style="flex:0 0 auto;aspect-ratio:98.35/110.82;container-type:inline-size;overflow:hidden;background:#fff;border:1px solid var(--border-strong);display:flex;flex-direction:column;">
           <div style="display:flex;align-items:center;background:var(--surface);padding:calc(9 / 291 * 100cqw) calc(11 / 291 * 100cqw) calc(9 / 291 * 100cqw) calc(9 / 291 * 100cqw);">
             <span style="font-family:var(--font-sans);font-size:calc(15 / 291 * 100cqw);font-weight:700;letter-spacing:-0.01em;color:var(--accent-bright);">instagram</span>
           </div>
@@ -1945,7 +2063,7 @@
       <div style="display:flex;flex-direction:column;gap:14px;">
         <p class="feature-label">SIDE PANEL</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every image clip,<br>saved and organized.</h2>
-        <p style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
+        <p class="feature-sub" style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
       </div>
 
       <div class="rowD-cards">
@@ -1974,7 +2092,7 @@
   <div style="max-width:var(--container-max);margin:0 auto;padding:54px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;">
     <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="120" height="120" style="display:block;border-radius:26px;">
     <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
-      <h2 style="font-family:var(--font-display);font-weight:var(--font-display-weight-cta);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;text-align:center;"><span style="color:var(--accent-hover);">Grrab</span> any image. Never low-res.</h2>
+      <h2 class="cta-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-cta);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;text-align:center;"><span style="color:var(--accent-hover);">Grrab</span> any image. Never low-res.</h2>
     </div>
     <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc" style="margin-top:8px;"><img src="/assets/landing/icons/chrome.svg" alt="" aria-hidden="true" width="20" height="20">Add to Chrome</a>
   </div>
@@ -2031,7 +2149,6 @@
 
   /* ─────────────────────────── ROW A — GALLERY ─────────────────────────── */
   var rowAGallery = document.querySelector(".rowA-gallery");
-  var rowAPreviewImg = document.querySelector(".rowA-image img");
   var rowATip = document.getElementById("rowATip");
   var rowACompare = document.getElementById("rowACompare");
   var rowACompareBefore = document.getElementById("rowACompareBefore");
@@ -2039,7 +2156,7 @@
   var rowACompareAfter = document.getElementById("rowACompareAfter");
   var rowACompareHandle = document.getElementById("rowACompareHandle");
 
-  if (rowAGallery && rowAPreviewImg) {
+  if (rowAGallery) {
     var rowATiles = [].slice.call(rowAGallery.querySelectorAll(".rowA-tile"));
     var rowAHovered = null;
 
@@ -2048,7 +2165,6 @@
       var img = tile.querySelector("img");
       if(!img) return;
       var beforeSrc = img.getAttribute("src");
-      rowAPreviewImg.setAttribute("src", beforeSrc);
       if(rowACompareBeforeImg && rowACompareAfter){
         rowACompareBeforeImg.setAttribute("src", beforeSrc);
         rowACompareAfter.setAttribute("src", beforeSrc.replace("-before.webp", "-after.webp"));
@@ -2085,30 +2201,54 @@
   if (rowACompare && rowACompareBefore && rowACompareHandle) {
     var rowACompareDragging = false;
 
-    var rowASetComparePos = function(clientX){
+    var rowAVertical = window.matchMedia("(max-width:820px)");
+    var rowASetComparePos = function(client){
       var r = rowACompare.getBoundingClientRect();
-      if(!r.width) return;
-      var p = ((clientX - r.left) / r.width) * 100;
+      var vert = rowAVertical.matches;
+      var size = vert ? r.height : r.width;
+      if (!size) return;
+      var p = ((vert ? client - r.top : client - r.left) / size) * 100;
       p = Math.max(0, Math.min(100, p));
-      var clip = "inset(0 " + (100 - p) + "% 0 0)";
+      /* inset trims from the side the before-image should not cover: the right on
+         desktop, the top on mobile, where after sits above the line. */
+      var clip = vert ? "inset(" + p + "% 0 0 0)" : "inset(0 " + (100 - p) + "% 0 0)";
       rowACompareBefore.style.clipPath = clip;
       rowACompareBefore.style.webkitClipPath = clip;
-      rowACompareHandle.style.left = p + "%";
+      /* Both are written on every call rather than one being cleared in a branch. The
+         branch only ran on a drag, so resizing after a vertical drag left `top` inline on
+         a handle the desktop rule positions with top:0;bottom:0 — and it went out of the
+         frame. */
+      rowACompareHandle.style.top  = vert ? p + "%" : "";
+      rowACompareHandle.style.left = vert ? "" : p + "%";
     };
 
     rowACompare.addEventListener("pointerdown", function(e){
       rowACompareDragging = true;
       try { rowACompare.setPointerCapture(e.pointerId); } catch(_){}
-      rowASetComparePos(e.clientX);
+      rowASetComparePos(rowAVertical.matches ? e.clientY : e.clientX);
     });
     rowACompare.addEventListener("pointermove", function(e){
-      if(rowACompareDragging) rowASetComparePos(e.clientX);
+      if(rowACompareDragging) rowASetComparePos(rowAVertical.matches ? e.clientY : e.clientX);
     });
     rowACompare.addEventListener("pointerup", function(e){
       rowACompareDragging = false;
       try { rowACompare.releasePointerCapture(e.pointerId); } catch(_){}
     });
     rowACompare.addEventListener("pointercancel", function(){ rowACompareDragging = false; });
+    /* Crossing the breakpoint leaves the inline top or left from the last drag applying on
+       the wrong axis — the desktop rules do not use !important, because the mobile drag
+       needs the inline value to win. Re-centring on the flip is enough; a drag at the new
+       width would fix it anyway, but until then the handle sits somewhere arbitrary. */
+    var rowARecentre = function(){
+      var vert = rowAVertical.matches;
+      var clip = vert ? "inset(50% 0 0 0)" : "inset(0 50% 0 0)";
+      rowACompareBefore.style.clipPath = clip;
+      rowACompareBefore.style.webkitClipPath = clip;
+      rowACompareHandle.style.top  = vert ? "50%" : "";
+      rowACompareHandle.style.left = vert ? "" : "50%";
+    };
+    if (rowAVertical.addEventListener) rowAVertical.addEventListener("change", rowARecentre);
+    else if (rowAVertical.addListener) rowAVertical.addListener(rowARecentre);
     rowACompare.addEventListener("pointerleave", function(){ rowACompareDragging = false; });
   }
 
@@ -3387,13 +3527,25 @@
     // list row
     var row = document.createElement("button");
     row.type = "button";
+    row.className = "rowC-item";
     row.style.cssText = "display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;font:inherit;padding:14px 16px;border-radius:10px;background:transparent;border:none;outline:none;-webkit-appearance:none;appearance:none;transition:background .15s ease;";
     var iconWrap = document.createElement("span");
+    iconWrap.className = "rowC-item-icon";
     iconWrap.style.cssText = "flex-shrink:0;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-muted);transition:color .15s ease;";
     iconWrap.innerHTML = it.icon;
     var txt = document.createElement("span");
+    txt.className = "rowC-item-text";
     txt.style.cssText = "font-size:17px;line-height:1.45;color:var(--ink-muted);min-width:0;text-align:left;";
-    txt.innerHTML = '<strong style="font-weight:700;color:var(--ink-strong);">'+it.label+'</strong> '+it.desc;
+    /* The description was a bare text node, which cannot be hidden with CSS. Its own
+       span is what lets the mobile rules drop it. */
+    /* Two labels, one with the trailing stop and one without. It cannot be done in CSS —
+       the stop is part of the string — and the config keeps its own value untouched. The
+       hidden one is aria-hidden so the word is not announced twice. */
+    var rowCBare = it.label.replace(/\.$/, "");
+    txt.innerHTML = '<strong class="rowC-item-title" style="font-weight:700;color:var(--ink-strong);">'+
+      '<span class="rowC-item-label">'+it.label+'</span>'+
+      '<span class="rowC-item-label-bare" aria-hidden="true">'+rowCBare+'</span>'+
+      '</strong> <span class="rowC-item-desc">'+it.desc+'</span>';
     row.appendChild(iconWrap); row.appendChild(txt);
     row.addEventListener("mouseenter", function(){ activate(it.id); });
     row.addEventListener("focus", function(){ activate(it.id); });
@@ -3434,6 +3586,14 @@
     panesEl.style.justifyContent = isMockup ? "stretch" : "";
     panesEl.style.background = isMockup ? "var(--surface)" : "";
     panesEl.style.overflow = isMockup ? "hidden" : "";
+    /* The mobile description sits outside the list, so it is set here rather than by any
+       one row. The element is hidden on desktop, so this runs harmlessly there. */
+    var descEl = document.getElementById("inspireDesc");
+    if (descEl) {
+      for (var di = 0; di < inspireConfig.length; di++) {
+        if (inspireConfig[di].id === id) { descEl.textContent = inspireConfig[di].desc; break; }
+      }
+    }
     inspireConfig.forEach(function(it){
       var on = it.id === id;
       var row = rowEls[it.id], iw = iconWrapEls[it.id], pane = paneEls[it.id];
