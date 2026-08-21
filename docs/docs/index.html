@@ -141,6 +141,148 @@
   .docs-split-outro{display:none;}
   .docs-split-text > .docs-action-list{margin-bottom:0;}
 
+  /* ── The Grrab popup, in a browser window ──
+     Every dimension is X / 559 * 100cqw, 559 being the Figma frame's width, so the whole
+     thing scales with whatever column it is given. The container is .docs-settings-popover
+     rather than .chrome-window itself: a border-radius on the element that declares
+     container-type resolves against an ancestor instead of itself, which cost two rounds
+     on the landing page. */
+  /* Scoped to #settings: .docs-split is shared with the side-panel section, which has no
+     reason to take a 340px floor. */
+  #settings .docs-split{min-height:340px;}
+  .docs-settings-popover{flex:0 0 336px;max-width:336px;container-type:inline-size;}
+
+  /* No ratio: the height comes from the split, which #settings gives a floor. Chasing the
+     scaled popup with an aspect-ratio meant recomputing the frame's height every time the
+     scale moved. The tab strip and top bar are still fractions of the width, so only the
+     body absorbs the difference. */
+  .chrome-window{width:100%;height:100%;display:flex;flex-direction:column;
+    align-items:flex-end;overflow:hidden;background:var(--surface);
+    border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-top-right-radius:calc(24 / 559 * 100cqw);}
+
+  .browser-tabs{display:flex;align-items:flex-start;width:100%;flex-shrink:0;
+    height:calc(40 / 559 * 100cqw);}
+  .browser-tabs-strip{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;
+    justify-content:flex-end;background:#EFD3FF;
+    border-bottom-left-radius:calc(4 / 559 * 100cqw);}
+  .browser-tabs-tab{display:flex;align-items:flex-end;width:100%;flex-shrink:0;
+    height:calc(11 / 559 * 100cqw);
+    padding:calc(4 / 559 * 100cqw) calc(5 / 559 * 100cqw);
+    border-radius:calc(16 / 559 * 100cqw) calc(16 / 559 * 100cqw) 0 0;}
+  /* The frame has a 3x5 vector here that has no file in the repo. A plain box stands in;
+     at this scale it renders about 2x3px. */
+  .browser-tabs-glyph{width:calc(3 / 559 * 100cqw);height:calc(5 / 559 * 100cqw);
+    background:rgba(0,0,0,.2);flex-shrink:0;}
+
+  .chrome-top{display:flex;align-items:center;width:100%;flex-shrink:0;
+    height:calc(50 / 559 * 100cqw);gap:calc(6 / 559 * 100cqw);
+    padding:calc(10 / 559 * 100cqw) calc(18 / 559 * 100cqw) calc(10 / 559 * 100cqw) 0;
+    border-bottom:1px solid #CCCDCD;}
+  .chrome-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    background:#E1E1E2;border:1px solid var(--border);
+    border-radius:0 calc(70 / 559 * 100cqw) calc(70 / 559 * 100cqw) 0;}
+  /* No fill is set on this in Figma, so it would be invisible. --border-strong is what the
+     landing page's equivalent uses. */
+  .chrome-urlbar-line{flex:1;min-width:0;height:calc(3.5 / 559 * 100cqw);
+    background:var(--border-strong);border-radius:calc(10 / 559 * 100cqw);}
+  .chrome-urlbar-star{display:flex;align-items:center;justify-content:flex-end;height:100%;
+    flex-shrink:0;padding-left:calc(12 / 559 * 100cqw);padding-right:calc(16 / 559 * 100cqw);}
+  .grrab-urlbar-star-icon{width:calc(15 / 559 * 100cqw);height:calc(15 / 559 * 100cqw);display:block;}
+  .chrome-profile{display:flex;align-items:center;justify-content:flex-end;height:100%;flex-shrink:0;}
+  .chrome-profile-pill{display:flex;align-items:center;height:100%;flex-shrink:0;
+    gap:calc(10 / 559 * 100cqw);}
+  .chrome-profile-wrap{display:flex;align-items:center;height:100%;flex-shrink:0;overflow:hidden;
+    gap:calc(2 / 559 * 100cqw);border:0.5px solid #D7D7D7;
+    border-radius:calc(30 / 559 * 100cqw);}
+  .chrome-profile-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    aspect-ratio:1;height:100%;flex-shrink:0;background:#E1E1E2;
+    padding:0 calc(5 / 559 * 100cqw) 1px;border-radius:calc(20 / 559 * 100cqw);}
+  .chrome-profile-logo img{width:100%;height:auto;display:block;object-fit:cover;}
+  .chrome-profile-ext{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    aspect-ratio:1;height:100%;flex-shrink:0;background:var(--surface);
+    padding:0 calc(6 / 559 * 100cqw) 1px;}
+  .chrome-profile-ext-icon{width:calc(16 / 559 * 100cqw);height:calc(16 / 559 * 100cqw);display:block;}
+  .chrome-profile-sep{width:1px;height:calc(20 / 559 * 100cqw);background:#D7D7D7;flex-shrink:0;}
+  .chrome-profile-avatar{width:calc(20 / 559 * 100cqw);height:calc(20 / 559 * 100cqw);
+    border:0.3px solid rgba(115,122,136,.3);border-radius:50%;overflow:hidden;flex-shrink:0;}
+  .chrome-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  .chrome-body{position:relative;flex:1;min-height:0;width:100%;}
+  /* The shadow's 0.5 alpha is what Figma has; it is heavy for a figure on a white page. */
+  /* Back to the frame's own 150 and 320, with transform doing the enlarging — widening the
+     box alone made the popup shorter, since its height comes from children that are still
+     fractions of 559. Scaling takes the type and the 1px dividers with it, which is what
+     the rows needed. top right as the origin keeps the right edge at 470, where the
+     extension icon sits above it. */
+  .grrab-popup{position:absolute;top:0;left:calc(150 / 559 * 100cqw);
+    width:calc(320 / 559 * 100cqw);transform:scale(1.4);transform-origin:top right;
+    display:flex;flex-direction:column;align-items:flex-start;
+    background:var(--surface);border:1px solid #A49D98;overflow:hidden;
+    border-radius:calc(13 / 559 * 100cqw);padding-top:calc(6 / 559 * 100cqw);
+    box-shadow:0 calc(4 / 559 * 100cqw) calc(24 / 559 * 100cqw) rgba(0,0,0,.5);}
+  .grrab-popup-header{display:flex;flex-direction:column;align-items:flex-start;width:100%;
+    flex-shrink:0;padding:calc(8 / 559 * 100cqw) calc(16 / 559 * 100cqw);
+    border-bottom:0.3px solid var(--border);}
+  .grrab-popup-titlebar{display:flex;align-items:flex-start;width:100%;gap:1px;}
+  /* .docs-section prefixed: .docs-section p is 0,1,1 and beat this at 0,1,0, so the title
+     rendered at the page's 17px body size. Every other string in the popup is a span and
+     was never in that contest. */
+  .docs-section .grrab-popup-title{flex:1;min-width:0;margin:0;
+    font-family:'Instrument Sans',var(--font-sans);font-weight:700;
+    font-size:calc(16 / 559 * 100cqw);line-height:1.2;color:var(--ink-strong);}
+  .grrab-popup-switch{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
+    width:calc(40 / 559 * 100cqw);height:calc(20 / 559 * 100cqw);
+    padding:calc(2 / 559 * 100cqw);background:var(--accent-bright);overflow:hidden;
+    border-radius:calc(30 / 559 * 100cqw);
+    box-shadow:inset 0 0 calc(4 / 559 * 100cqw) rgba(0,0,0,.25);}
+  .grrab-popup-switch-knob{width:calc(16 / 559 * 100cqw);height:100%;flex-shrink:0;
+    background:var(--surface);border-radius:calc(20 / 559 * 100cqw);}
+
+  .grrab-popup-row{display:flex;align-items:center;justify-content:space-between;width:100%;
+    flex-shrink:0;height:calc(40 / 559 * 100cqw);
+    padding:calc(6 / 559 * 100cqw) calc(16 / 559 * 100cqw);
+    border-bottom:0.3px solid var(--border);}
+  .docs-section .grrab-popup-label{margin:0;flex-shrink:0;white-space:nowrap;
+    font-family:'Instrument Sans',var(--font-sans);font-weight:600;
+    font-size:calc(12 / 559 * 100cqw);line-height:1;color:#737A88;}
+  .grrab-popup-row-value{display:flex;align-items:center;flex-shrink:0;
+    width:calc(70 / 559 * 100cqw);height:calc(25 / 559 * 100cqw);}
+  .grrab-popup-kbd{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;
+    height:100%;border:1px solid rgba(0,0,0,.2);border-radius:calc(4 / 559 * 100cqw);
+    padding:calc(7 / 559 * 100cqw) calc(13 / 559 * 100cqw) calc(5 / 559 * 100cqw);
+    font-family:'Instrument Sans',var(--font-sans);font-weight:600;
+    font-size:calc(11 / 559 * 100cqw);line-height:1;color:#737A88;white-space:nowrap;}
+  .grrab-popup-refresh{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    width:calc(21 / 559 * 100cqw);height:100%;flex-shrink:0;}
+  .shortcut-refresh-icon{width:calc(6 / 559 * 100cqw);height:calc(6 / 559 * 100cqw);display:block;}
+  .shortcut-refresh-icon--refresh{transform:rotate(-90deg) scaleY(-1);}
+  .grrab-popup-select{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    gap:calc(3 / 559 * 100cqw);width:calc(70 / 559 * 100cqw);height:calc(25 / 559 * 100cqw);
+    padding:calc(6 / 559 * 100cqw) calc(8 / 559 * 100cqw);
+    border:1px solid rgba(0,0,0,.2);border-radius:calc(4 / 559 * 100cqw);}
+  .grrab-popup-option{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;
+    font-family:'Instrument Sans',var(--font-sans);font-weight:600;
+    font-size:calc(11 / 559 * 100cqw);line-height:1;color:#737A88;
+    text-align:center;white-space:nowrap;}
+  .grrab-popup-chevron-icon{width:calc(6.547 / 559 * 100cqw);height:calc(3.793 / 559 * 100cqw);
+    display:block;flex-shrink:0;}
+  .grrab-popup-check{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
+    gap:calc(5 / 559 * 100cqw);width:calc(70 / 559 * 100cqw);height:calc(25 / 559 * 100cqw);
+    padding:calc(6 / 559 * 100cqw) 0;}
+  /* Without this the shared .grrab-popup-option's flex:1 would stretch and re-centre the
+     word, where this row wants it packed against the right with the box. */
+  .grrab-popup-check .grrab-popup-option{flex:0 0 auto;}
+  .grrab-popup-checkbox{width:calc(13 / 559 * 100cqw);height:calc(13 / 559 * 100cqw);
+    flex-shrink:0;border:1px solid #767676;border-radius:calc(2 / 559 * 100cqw);}
+  .grrab-popup-footer{display:flex;align-items:center;justify-content:center;width:100%;
+    flex-shrink:0;padding:calc(12 / 559 * 100cqw) calc(16 / 559 * 100cqw);}
+  .grrab-popup-btn{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;
+    padding:calc(8 / 559 * 100cqw);background:var(--accent-bright);
+    border:1px solid rgba(0,0,0,.2);border-radius:calc(4 / 559 * 100cqw);
+    font-family:'Instrument Sans',var(--font-sans);font-weight:600;
+    font-size:calc(12 / 559 * 100cqw);line-height:1;color:#fff;white-space:nowrap;}
+
   @media (max-width:820px){
     .nav-links{display:none !important;}
     header > div{padding:14px 20px !important;}
@@ -195,6 +337,7 @@
     <div class="docs-toc-group">
       <p class="docs-toc-group-label">How Grrab works</p>
       <ol class="docs-toc" start="3">
+        <li><a href="#settings">Grrab Setting</a></li>
         <li><a href="#shortcut">The clip shortcut</a></li>
         <li><a href="#upscaling">AI upscaling on your device</a></li>
         <li><a href="#history">Your clip history and the side panel</a></li>
@@ -202,7 +345,7 @@
     </div>
     <div class="docs-toc-group">
       <p class="docs-toc-group-label">Under the hood</p>
-      <ol class="docs-toc" start="6">
+      <ol class="docs-toc" start="7">
         <li><a href="#privacy">Privacy and data</a></li>
         <li><a href="#troubleshooting">Troubleshooting</a></li>
         <li><a href="#follow">Follow along</a></li>
@@ -240,6 +383,87 @@
   <div class="docs-group">
     <p class="docs-group-label">How Grrab works</p>
     <hr class="docs-group-rule">
+
+    <section class="docs-section" id="settings">
+      <h2>Grrab Setting</h2>
+      <div class="docs-split">
+        <div class="docs-split-text">
+          <p>TODO: describe the popup's settings.</p>
+        </div>
+        <div class="docs-settings-popover">
+          <div class="chrome-window">
+            <div class="browser-tabs">
+              <div class="browser-tabs-strip">
+                <div class="browser-tabs-tab"><span class="browser-tabs-glyph"></span></div>
+              </div>
+            </div>
+            <div class="chrome-top">
+              <div class="chrome-urlbar">
+                <div class="chrome-urlbar-line"></div>
+                <div class="chrome-urlbar-star">
+                  <img class="grrab-urlbar-star-icon" src="/docs/assets/icons/icon_star.svg" alt="">
+                </div>
+              </div>
+              <div class="chrome-profile">
+                <div class="chrome-profile-pill">
+                  <div class="chrome-profile-wrap">
+                    <div class="chrome-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt=""></div>
+                    <div class="chrome-profile-ext">
+                      <img class="chrome-profile-ext-icon" src="/docs/assets/icons/icon_ext.svg" alt="">
+                    </div>
+                  </div>
+                  <div class="chrome-profile-sep"></div>
+                  <!-- Figma has a photo here with no file in the repo; the landing page's
+                       stand-in is used, which is a different face. -->
+                  <div class="chrome-profile-avatar"><img src="/assets/landing/img/example_profile.webp" alt=""></div>
+                </div>
+              </div>
+            </div>
+            <div class="chrome-body">
+              <div class="grrab-popup">
+                <div class="grrab-popup-header">
+                  <div class="grrab-popup-titlebar">
+                    <p class="grrab-popup-title">Grrab Images</p>
+                    <span class="grrab-popup-switch"><span class="grrab-popup-switch-knob"></span></span>
+                  </div>
+                </div>
+                <div class="grrab-popup-row">
+                  <p class="grrab-popup-label">Clip Shortcut</p>
+                  <div class="grrab-popup-row-value">
+                    <span class="grrab-popup-kbd">⌘C</span>
+                    <span class="grrab-popup-refresh"><img class="shortcut-refresh-icon shortcut-refresh-icon--refresh" src="/docs/assets/icons/icon_refresh.svg" alt=""></span>
+                  </div>
+                </div>
+                <div class="grrab-popup-row">
+                  <p class="grrab-popup-label">Clip Size</p>
+                  <div class="grrab-popup-select">
+                    <span class="grrab-popup-option">Auto</span>
+                    <img class="grrab-popup-chevron-icon" src="/docs/assets/icons/icon_chevron.svg" alt="">
+                  </div>
+                </div>
+                <div class="grrab-popup-row">
+                  <p class="grrab-popup-label">Upscale</p>
+                  <div class="grrab-popup-check">
+                    <span class="grrab-popup-checkbox"></span>
+                    <span class="grrab-popup-option">Auto</span>
+                  </div>
+                </div>
+                <div class="grrab-popup-row">
+                  <p class="grrab-popup-label">Clip mode</p>
+                  <div class="grrab-popup-select">
+                    <span class="grrab-popup-option">instant</span>
+                    <img class="grrab-popup-chevron-icon" src="/docs/assets/icons/icon_chevron.svg" alt="">
+                  </div>
+                </div>
+                <div class="grrab-popup-footer">
+                  <span class="grrab-popup-btn">Open SidePanel</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="docs-section" id="shortcut">
       <h2>The clip shortcut</h2>
