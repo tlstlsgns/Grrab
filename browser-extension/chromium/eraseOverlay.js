@@ -31,9 +31,10 @@ let pointerInside = false;
  * @param {(blob: Blob) => void} [commitFn]
  * @param {(setter: (text: string) => void) => void} [bindStatus]
  * @param {(blob: Blob) => Promise<Blob|{error: string}|null>} [bgFn]
- * @returns {Promise<{ action: 'done'|'cancel', blob: Blob|null, modified?: boolean, bgRemoved?: boolean, erased?: boolean }>}
+ * @param {(blob: Blob) => Promise<Blob|null>} [upscaleFn]
+ * @returns {Promise<{ action: 'done'|'cancel', blob: Blob|null, modified?: boolean, bgRemoved?: boolean, erased?: boolean, upscaled?: boolean }>}
  */
-export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
+export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, upscaleFn) {
   let finishRef = null;
   const p = new Promise((resolve) => {
     statusText = KC_ERASE_DEFAULT_STATUS;
@@ -53,6 +54,11 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
     const bgHistory = [];
     let eraseApplied = false;
     const eraseHistory = [];
+    // PHASE_SR_BUTTON: kept in step with history — every history.push pushes here too,
+    // and undoLast pops all of them together, so Undo restores the flag that went with
+    // the image being restored.
+    let srApplied = false;
+    const srHistory = [];
     let busy = false;
     let scale = 1;
     let srcW = 0;
@@ -403,6 +409,14 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
     btnBg.style.display = 'inline-flex';
     btnBg.style.visibility = 'hidden';
 
+    const btnUpscale = document.createElement('button');
+    btnUpscale.type = 'button';
+    btnUpscale.className = 'kc-erase-btn kc-erase-btn--primary kc-erase-btn-upscale';
+    btnUpscale.innerHTML = '<span>Upscale</span>';
+    btnUpscale.style.cssText = iconTextBtnStyle;
+    btnUpscale.style.display = 'inline-flex';
+    btnUpscale.style.visibility = 'hidden';
+
     const btnCancel = document.createElement('button');
     btnCancel.type = 'button';
     btnCancel.className = 'kc-erase-btn kc-erase-btn--cancel kc-erase-btn-cancel';
@@ -434,7 +448,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
     rightGroup.style.cssText = groupStyle;
 
     leftGroup.append(btnModeBrush, btnModeRect, sizeSliderWrap, boxHintEl);
-    rightGroup.append(btnBg);
+    rightGroup.append(btnUpscale, btnBg);
     toolbar.append(leftGroup, rightGroup);
     bottomBar.append(btnUndo, btnRefresh, btnDone);
     stageWrap.append(toolbar, stage, statusEl, bottomBar);
@@ -526,7 +540,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
       } catch (_) {}
     }
 
-    const allButtons = [btnRefresh, btnUndo, btnBg, btnCancel, btnDone, btnModeBrush, btnModeRect];
+    const allButtons = [btnRefresh, btnUndo, btnBg, btnUpscale, btnCancel, btnDone, btnModeBrush, btnModeRect];
 
     function finish(action) {
       if (settled) return;
@@ -552,6 +566,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
         modified: current !== originalBlob,
         bgRemoved: current !== originalBlob && bgApplied,
         erased: current !== originalBlob && eraseApplied,
+        upscaled: current !== originalBlob && srApplied,
       });
     }
     finishRef = finish;
@@ -611,6 +626,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
         btnRefresh.style.visibility = 'hidden';
         btnUndo.style.visibility = 'hidden';
         btnBg.style.visibility = 'hidden';
+        btnUpscale.style.visibility = 'hidden';
         btnDone.style.display = 'none';
         btnCancel.style.display = 'inline-block';
         btnModeBrush.style.display = 'none';
@@ -654,6 +670,9 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
           setBgButton(KC_ICON_REMOVEBG, 'Remove BG');
         }
       }
+      // PHASE_SR_BUTTON: hidden when the caller supplied no upscaleFn, the same way
+      // btnBg is hidden without bgFn.
+      btnUpscale.style.visibility = upscaleFn ? 'visible' : 'hidden';
       btnCancel.style.display = 'inline-block';
       btnDone.style.display = 'inline-flex';
       setDoneButton(KC_ICON_CLIP, KC_CLIP_LABEL);
@@ -662,6 +681,10 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
         if (btn === btnCancel) continue;
         if (btn === btnBg) {
           setButtonDisabled(btnBg, busy || (bgApplied && !hasSelection()));
+          continue;
+        }
+        if (btn === btnUpscale) {
+          setButtonDisabled(btnUpscale, busy || srApplied);
           continue;
         }
         if (btn === btnDone) {
@@ -804,6 +827,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
       current = history.pop();
       bgApplied = bgHistory.length > 0 ? bgHistory.pop() : false;
       eraseApplied = eraseHistory.length > 0 ? eraseHistory.pop() : false;
+      srApplied = srHistory.length > 0 ? srHistory.pop() : false;
       draft = null;
       selections = [];
       activeStroke = null;
@@ -830,9 +854,11 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
       history.push(current);
       bgHistory.push(bgApplied);
       eraseHistory.push(eraseApplied);
+      srHistory.push(srApplied);
       current = originalBlob;
       bgApplied = false;
       eraseApplied = false;
+      srApplied = false;
       draft = null;
       selections = [];
       activeStroke = null;
@@ -919,6 +945,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
         history.push(current);
         bgHistory.push(bgApplied);
         eraseHistory.push(eraseApplied);
+        srHistory.push(srApplied);
         current = out;
         eraseApplied = true;
         draft = null;
@@ -961,6 +988,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
           history.push(current);
           bgHistory.push(bgApplied);
           eraseHistory.push(eraseApplied);
+          srHistory.push(srApplied);
           current = out;
           bgApplied = true;
           draft = null;
@@ -982,6 +1010,46 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
               : failed === 'http-429' ? 'Daily background removal limit reached'
               : 'Background removal failed';
           }
+          updateUi();
+          renderSelections();
+        }
+      }
+    }
+
+    // PHASE_SR_BUTTON: modelled on runBgRemove. One pass, one press per session; the
+    // megapixel loop belongs to the automatic path, where nobody chose to run it. A
+    // source over the provider ceiling is shrunk to the ceiling by the offscreen side,
+    // exactly as the clip pipeline does it.
+    async function runUpscale() {
+      if (busy || loading || srApplied || !current || !upscaleFn) return;
+      busy = true;
+      statusOverride = '';
+      updateUi();
+      let failed = false;
+      try {
+        const out = await upscaleFn(current);
+        if (settled) return;
+        if (out instanceof Blob) {
+          history.push(current);
+          bgHistory.push(bgApplied);
+          eraseHistory.push(eraseApplied);
+          srHistory.push(srApplied);
+          current = out;
+          srApplied = true;
+          draft = null;
+          selections = [];
+          activeStroke = null;
+          try { await loadBlobIntoImage(current); } catch (_) {}
+          if (settled) return;
+        } else {
+          failed = true;
+        }
+      } catch (_) {
+        failed = true;
+      } finally {
+        busy = false;
+        if (!settled) {
+          if (failed) statusOverride = 'Upscaling failed';
           updateUi();
           renderSelections();
         }
@@ -1226,6 +1294,12 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn) {
       if (busy || loading) return;
       if (hasSelection()) { runRemove(); return; }
       runBgRemove();
+    });
+    btnUpscale.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (busy || loading) return;
+      runUpscale();
     });
     btnCancel.addEventListener('click', (e) => {
       e.preventDefault();
