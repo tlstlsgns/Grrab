@@ -308,28 +308,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
   _renderClipSizeUI(String(Number(changes[KC_CLIP_SIZE_KEY].newValue) || 0));
 });
 
-const KC_UPSCALE_AUTO_KEY = 'kc_upscale_auto';
-const spUpscaleAuto = document.getElementById('sp-upscale-auto');
-
-async function _loadUpscaleAutoSetting() {
-  try {
-    const r = await chrome.storage.local.get(KC_UPSCALE_AUTO_KEY);
-    if (spUpscaleAuto) spUpscaleAuto.checked = (r?.[KC_UPSCALE_AUTO_KEY] === true); // default OFF when unset
-  } catch (_) {
-    if (spUpscaleAuto) spUpscaleAuto.checked = false;
-  }
-}
-
-spUpscaleAuto?.addEventListener('change', () => {
-  try { chrome.storage.local.set({ [KC_UPSCALE_AUTO_KEY]: !!spUpscaleAuto.checked }); } catch (_) {}
-});
-
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'local' || !changes[KC_UPSCALE_AUTO_KEY]) return;
-  if (spUpscaleAuto) spUpscaleAuto.checked = (changes[KC_UPSCALE_AUTO_KEY].newValue === true);
-});
-
-_loadUpscaleAutoSetting();
 // === END PHASE_CLIP_SIZE ===
 
 // === PHASE_CLIP_EFFECT ===
