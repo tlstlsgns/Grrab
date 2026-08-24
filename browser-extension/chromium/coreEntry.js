@@ -313,9 +313,6 @@ initShortcutSync();
 const KC_CLIP_MAXDIM_KEY = 'kc_clip_max_dim';
 let _clipMaxDim = 0;
 
-const KC_UPSCALE_AUTO_KEY = 'kc_upscale_auto';
-let _upscaleAuto = false;
-
 function initClipSizeSync() {
   (async () => {
     try {
@@ -333,25 +330,7 @@ function initClipSizeSync() {
   } catch (_) {}
 }
 
-function initUpscaleAutoSync() {
-  (async () => {
-    try {
-      const r = await chrome.storage.local.get(KC_UPSCALE_AUTO_KEY);
-      _upscaleAuto = (r?.[KC_UPSCALE_AUTO_KEY] === true); // default OFF when unset
-    } catch (_) {
-      _upscaleAuto = false;
-    }
-  })();
-  try {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local' || !changes[KC_UPSCALE_AUTO_KEY]) return;
-      _upscaleAuto = (changes[KC_UPSCALE_AUTO_KEY].newValue === true);
-    });
-  } catch (_) {}
-}
-
 initClipSizeSync();
-initUpscaleAutoSync();
 // === END PHASE_CLIP_SIZE ===
 
 // === PHASE_CLIP_EFFECT ===
@@ -458,10 +437,15 @@ const KC_CLIP_DEFAULT_SUCCESS_TEXT = 'Image clipped';
 const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
 // PHASE_CLIP_PROGRESS_TEXT: path-aware in-progress morph targets + SR-fallback
 // terminal text. KC_CLIP_LOADING_TEXT above is intentionally unchanged.
+// PHASE_SR_AUTO_MIN: a clip below this many pixels is upscaled even with the Upscale
+// setting off. 387x387 (149,769 px) was judged usable as a reference image and 300x300
+// (90,000 px) was not, so the line sits at the top of that range. It is also
+// SR_MAX_PIXELS_WASM, so an automatic upscale is never shrunk before the model runs and
+// the result is the same with or without a GPU.
+const KC_SR_AUTO_MIN_PIXELS = 150000;
 const KC_CLIP_UPSCALING_TEXT = 'Upscaling image…';
 const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
 const KC_CLIP_SR_FALLBACK_TEXT = 'Upscaling failed — original image clipped';
-const KC_CLIP_SR_TOO_LARGE_TEXT = "Beyond the upscaler's range.\nOriginal image clipped";
 const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
 const KC_CLIP_BG_FALLBACK_TEXT = 'Background removal failed — original clipped';
 const KC_CLIP_BG_SIGNIN_TEXT = 'Sign in to remove backgrounds';
@@ -616,7 +600,7 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
     // PHASE_CLIP_PROGRESS_TEXT: treat an SR-fallback terminal (gray 'canceled' kind but
     // a real clip of the original image) like a completed clip for the away path, so an
     // away user still gets a completion banner carrying the fallback text.
-    const _terminalDone = (kind === 'success') || !!ctrl._srFallback || !!ctrl._srTooLarge;
+    const _terminalDone = (kind === 'success') || !!ctrl._srFallback;
     if (ctrl.osLoadingShown && ctrl.osNotifId) {
       // A loading "Clipping…" OS notification is already up (user left mid-clip).
       if (_terminalDone && away) {
@@ -663,7 +647,8 @@ function _kcBeginClipControl() {
   _kcEraseModified = false;
   _kcEraseBgRemoved = false;
   _kcEraseErased = false;
-  const ctrl = { seq: ++_kcClipSeq, cancelled: false, done: false, abortReject: null, toast: null, failsafe: null, upscaleAuto: _upscaleAuto };
+  _kcEraseUpscaled = false;
+  const ctrl = { seq: ++_kcClipSeq, cancelled: false, done: false, abortReject: null, toast: null, failsafe: null };
   try { ctrl.toast = showCoreClipToast({ kind: 'loading', text: KC_CLIP_LOADING_TEXT }); } catch (_) { ctrl.toast = null; }
   ctrl.failsafe = setTimeout(() => {
     _kcFinishClipControl(ctrl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
@@ -3364,9 +3349,7 @@ async function saveActiveCoreItem(request = {}) {
                 // PHASE_CLIP_PROGRESS_TEXT: SR upscaling attempted but fell back to the
                 // original image (timeout/failure) -> neutral 'canceled' VISUAL kind only;
                 // ctrl.cancelled stays false so the original image still saves.
-                if (request.clipControl._srTooLarge) {
-                  _kcFinishClipControl(request.clipControl, { kind: 'success', text: KC_CLIP_SR_TOO_LARGE_TEXT, duration: 3200 });
-                } else if (request.clipControl._srFallback) {
+                if (request.clipControl._srFallback) {
                   _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_FALLBACK_TEXT });
                 } else if (request.clipControl._bgFallback) {
                   const _bgReason = request.clipControl._bgReason || '';
@@ -3548,9 +3531,15 @@ async function saveActiveCoreItem(request = {}) {
     // exact size-adjusted clip image so the server stores it and overrides
     // img_url with a stable storage URL (re-clip/upload then reproduce it).
     // For 'origin' nothing is uploaded and img_url stays the remote URL.
-    const clipSize = _clipMaxDim > 0 ? `${_clipMaxDim}px` : 'origin';
+    // PHASE_SR_APPLIED: read the outcome from this clip's control. Relay and other
+    // callers carry no clipControl; they never run SR, so false is correct for them.
+    const srApplied = !!(request?.clipControl && request.clipControl._srApplied);
+    const clipSize = _clipMaxDim > 0 ? `${_clipMaxDim}px` : (srApplied ? 'upscaled' : 'origin');
     let clipImageBase64 = '';
-    if ((_clipMaxDim > 0 || _upscaleAuto || (_clipEffect === 'erase' && _kcEraseModified))
+    // PHASE_SR_APPLIED: srApplied is set only when super-resolution output actually
+    // replaced the blob. A source past the pixel ceiling is skipped and a timeout falls
+    // back to the original; neither should upload or report as upscaled.
+    if ((_clipMaxDim > 0 || srApplied || (_clipEffect === 'erase' && _kcEraseModified))
         && clipAdjustedBlob) {
       try {
         clipImageBase64 = await _ceBlobToDataURL(clipAdjustedBlob);
@@ -3584,7 +3573,9 @@ async function saveActiveCoreItem(request = {}) {
       ...(meta?.platform      ? { platform:        meta.platform }      : {}),
       is_bgremoved: _clipEffect === 'erase' && _kcEraseBgRemoved,
       is_erased: _clipEffect === 'erase' && _kcEraseErased,
-      is_upscaled: !!(request?.clipControl ? request.clipControl.upscaleAuto : _upscaleAuto),
+      // PHASE_SR_BUTTON: either path counts — the automatic upscale before the overlay
+      // opened, or the button inside it.
+      is_upscaled: srApplied || (_clipEffect === 'erase' && _kcEraseUpscaled),
     };
 
     // === PHASE_CLIP_CANCEL ===
@@ -3808,7 +3799,7 @@ function _ceBlobToDataURL(blob) {
 }
 
 // === PHASE_CLIP_SIZE ===
-// Upscale (when _upscaleAuto) and clip-size resize (_clipMaxDim) are separate
+// Automatic upscaling (under KC_SR_AUTO_MIN_PIXELS) and clip-size resize (_clipMaxDim)
 // decisions. SR runs at native 4x output (targetWidth: 0 to offscreen); the
 // content script fits to _clipMaxDim afterward when set. Pixel ceiling from
 // offscreen governs whether SR is attempted at all.
@@ -3890,10 +3881,14 @@ function _kcMarkSrFallback() { // PHASE_CLIP_PROGRESS_TEXT
     if (ctrl) ctrl._srFallback = true;
   } catch (_) {}
 }
-function _kcMarkSrTooLarge() {
+// PHASE_SR_APPLIED: the save path used to ask whether Upscale was switched on, which
+// says nothing about whether the model ran. A source past the pixel ceiling is skipped
+// and a timeout falls back to the original, yet both saved as upscaled. This marks the
+// clip control only when SR output actually replaced the blob.
+function _kcMarkSrApplied() {
   try {
     const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
-    if (ctrl) ctrl._srTooLarge = true;
+    if (ctrl) ctrl._srApplied = true;
   } catch (_) {}
 }
 function _kcMarkBgFallback(reason) { // PHASE_CLIP_EFFECT
@@ -3914,10 +3909,15 @@ async function maybeUpscaleClip(blob) {
 
     let out = blob;
 
-    if (_upscaleAuto) {
+    // PHASE_SR_AUTO_MIN: every upscale on this path is automatic now — the manual one
+    // lives in the editor overlay. The ceiling lookup wakes the offscreen document and
+    // loads the model, so the cheap local pixel count is tested first and a clip that
+    // will not be upscaled pays nothing.
+    if (srcPx < KC_SR_AUTO_MIN_PIXELS) {
       const ceiling = await _kcGetSrMaxPixels();
       if (srcPx / 4 > ceiling) {
-        _kcMarkSrTooLarge();
+        // PHASE_SR_AUTO_MIN: a source this small cannot exceed the ceiling, and nobody
+        // asked for this upscale, so there is nothing to report either way.
       } else {
         _srAttempted = true;
         _kcMorphClipLoadingText(KC_CLIP_UPSCALING_TEXT);
@@ -3927,9 +3927,10 @@ async function maybeUpscaleClip(blob) {
         const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
         if (res && res.ok && res.dataUrl) {
           out = await (await fetch(res.dataUrl)).blob();
-        } else {
-          _kcMarkSrFallback();
+          _kcMarkSrApplied(); // PHASE_SR_APPLIED
         }
+        // PHASE_SR_AUTO_MIN: a failure is silent. Nobody asked for this upscale and the
+        // original image is clipped regardless.
       }
     }
 
@@ -4002,6 +4003,7 @@ let _kcEraseCommitted = null;   // Blob committed by the overlay's Done, or null
 let _kcEraseModified = false;   // overlay reported pixel change from original
 let _kcEraseBgRemoved = false;  // overlay reported background removal on final blob
 let _kcEraseErased = false;     // overlay reported inpaint erase on final blob
+let _kcEraseUpscaled = false;   // overlay reported the Upscale button ran on final blob
 let _kcEraseSetStatus = null;   // overlay status setter while an erase overlay is open
 let _kcEraseCancel = null;
 
@@ -4011,6 +4013,7 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
   _kcEraseModified = false;
   _kcEraseBgRemoved = false;
   _kcEraseErased = false;
+  _kcEraseUpscaled = false;
   const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
   if (ctrl && ctrl.failsafe) { clearTimeout(ctrl.failsafe); ctrl.failsafe = null; }
   try { if (ctrl && ctrl.toast) { ctrl.toast.dismiss(); ctrl.toast = null; } } catch (_) {}
@@ -4056,7 +4059,17 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
       return await (await fetch(res.dataUrl)).blob();
     };
 
-    const p = mod.showEraseOverlay(pipelinePromise, inpaintFn, commitFn, bindStatus, bgFn);
+    // PHASE_SR_BUTTON: the overlay hands over a Blob and expects one back, while the
+    // sr-upscale message carries data URLs — the same conversion bgFn makes. targetWidth
+    // stays 0: the clip-size fit happens later in the pipeline, not here.
+    const upscaleFn = async (b) => {
+      const dataUrl = await _ceBlobToDataURL(b);
+      const res = await chrome.runtime.sendMessage({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
+      if (!res || !res.ok || !res.dataUrl) return null;
+      return await (await fetch(res.dataUrl)).blob();
+    };
+
+    const p = mod.showEraseOverlay(pipelinePromise, inpaintFn, commitFn, bindStatus, bgFn, upscaleFn);
     _kcEraseCancel = p.cancelExternal || null;
     const out = await p;
     if (out.action === 'cancel') {
@@ -4066,6 +4079,7 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
     _kcEraseModified = !!out.modified;
     _kcEraseBgRemoved = !!out.bgRemoved;
     _kcEraseErased = !!out.erased;
+    _kcEraseUpscaled = !!out.upscaled;
     return out.blob;
   } catch (_) {
     return null;
