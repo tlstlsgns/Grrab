@@ -443,7 +443,10 @@ const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
 // SR_MAX_PIXELS_WASM, so an automatic upscale is never shrunk before the model runs and
 // the result is the same with or without a GPU.
 const KC_SR_AUTO_MIN_PIXELS = 150000;
-const KC_CLIP_UPSCALING_TEXT = 'Upscaling image…';
+// PHASE_SR_AUTO_MIN: every upscale on the clip path is automatic now, so the toast
+// explains itself. It is on screen for 149 ms on WebGPU and a few seconds on WASM, so it
+// has to read at a glance.
+const KC_CLIP_UPSCALING_TEXT = 'Small image — upscaling…';
 const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
 const KC_CLIP_SR_FALLBACK_TEXT = 'Upscaling failed — original image clipped';
 const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
