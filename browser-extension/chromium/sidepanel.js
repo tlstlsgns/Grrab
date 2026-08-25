@@ -36,18 +36,17 @@ import {
   openPickerWindow,
   refreshPrimaryHandleCache,
   writeItemToHandle,
-  saveItemViaDownloads,
-  buildDriveUploadPayload,
+  buildDriveSavePayload,
   // === PHASE_UPLOAD_AUTO_ROUTING ===
   saveItemToDownloads,
   // === END PHASE_UPLOAD_AUTO_ROUTING ===
   resolveItemClipboardPngBlob,
-} from './upload.js';
+} from './download.js';
 import {
   getDestination,
   setDestination,
   clearDestination,
-} from './uploadStorage.js';
+} from './downloadStorage.js';
 
 // === PHASE_SHORTCUT_RECORDER ===
 import {
@@ -60,16 +59,14 @@ import {
 } from './shortcutStore.js';
 // === END PHASE_SHORTCUT_RECORDER ===
 
-// PHASE_UPLOAD_ALWAYS_AUTO: the Auto checkbox is removed — uploads
-// always route directly to the configured destination
-// (handleUploadToDestination). The legacy 'kc_upload_auto_enabled'
-// storage key is abandoned in place. The upload popover remains only
-// as the catch-path fallback in handleUploadButtonClick.
+// PHASE_UPLOAD_ALWAYS_AUTO: the Auto checkbox is removed — saves always
+// route directly to the configured destination (handleSaveToDestination).
+// The legacy 'kc_upload_auto_enabled' storage key is abandoned in place.
 
 // === PHASE_UPLOAD_FORMAT ===
-const KC_UPLOAD_FORMAT_KEY = 'kc_upload_format';
-const KC_UPLOAD_FORMAT_PRESETS = ['original', 'jpg', 'jpeg', 'png', 'webp'];
-const KC_UPLOAD_FORMAT_LABELS = {
+const KC_DOWNLOAD_FORMAT_KEY = 'kc_upload_format';
+const KC_DOWNLOAD_FORMAT_PRESETS = ['original', 'jpg', 'jpeg', 'png', 'webp'];
+const KC_DOWNLOAD_FORMAT_LABELS = {
   original: 'Original',
   jpg: 'JPG',
   jpeg: 'JPEG',
@@ -79,115 +76,115 @@ const KC_UPLOAD_FORMAT_LABELS = {
 // PHASE_UPLOAD_FORMAT: the closed button is 58px wide, which 'Original' does not fit.
 // The menu is unconstrained, so it keeps the whole word — the abbreviation exists only
 // where the space does not.
-const KC_UPLOAD_FORMAT_BTN_LABELS = { original: 'Orig' };
+const KC_DOWNLOAD_FORMAT_BTN_LABELS = { original: 'Orig' };
 
-let _kcUploadFormatMenuOpen = false;
-let _kcUploadFormatOutsideClick = null;
-let _kcUploadFormatEscKey = null;
+let _kcDownloadFormatMenuOpen = false;
+let _kcDownloadFormatOutsideClick = null;
+let _kcDownloadFormatEscKey = null;
 
-function _normalizeUploadFormat(fmt) {
+function _normalizeDownloadFormat(fmt) {
   const v = String(fmt || '').trim().toLowerCase();
-  return KC_UPLOAD_FORMAT_PRESETS.includes(v) ? v : 'original';
+  return KC_DOWNLOAD_FORMAT_PRESETS.includes(v) ? v : 'original';
 }
 
-function _renderUploadFormatUI(fmt) {
-  const key = _normalizeUploadFormat(fmt);
-  const btn = document.getElementById('kc-upload-format-btn');
-  const menu = document.getElementById('kc-upload-format-menu');
+function _renderDownloadFormatUI(fmt) {
+  const key = _normalizeDownloadFormat(fmt);
+  const btn = document.getElementById('kc-download-format-btn');
+  const menu = document.getElementById('kc-download-format-menu');
   if (!btn || !menu) return;
-  const btnLabel = KC_UPLOAD_FORMAT_BTN_LABELS[key] || KC_UPLOAD_FORMAT_LABELS[key] || 'Orig';
+  const btnLabel = KC_DOWNLOAD_FORMAT_BTN_LABELS[key] || KC_DOWNLOAD_FORMAT_LABELS[key] || 'Orig';
   btn.innerHTML = `<span class="kc-dropdown-btn-label">${btnLabel}</span>`;
   btn.dataset.format = key;
-  btn.setAttribute('aria-expanded', _kcUploadFormatMenuOpen ? 'true' : 'false');
+  btn.setAttribute('aria-expanded', _kcDownloadFormatMenuOpen ? 'true' : 'false');
   menu.innerHTML = '';
-  for (const preset of KC_UPLOAD_FORMAT_PRESETS) {
+  for (const preset of KC_DOWNLOAD_FORMAT_PRESETS) {
     const li = document.createElement('li');
     li.className = 'kc-dropdown-menu-item';
     if (preset === key) li.classList.add('kc-dropdown-menu-item-selected');
     li.setAttribute('role', 'option');
     li.setAttribute('aria-selected', preset === key ? 'true' : 'false');
     li.dataset.format = preset;
-    li.textContent = KC_UPLOAD_FORMAT_LABELS[preset];
+    li.textContent = KC_DOWNLOAD_FORMAT_LABELS[preset];
     li.addEventListener('click', (e) => {
       e.stopPropagation();
-      _selectUploadFormat(preset);
+      _selectDownloadFormat(preset);
     });
     menu.appendChild(li);
   }
 }
 
-function _detachUploadFormatMenuListeners() {
-  if (_kcUploadFormatOutsideClick) {
-    document.removeEventListener('click', _kcUploadFormatOutsideClick, true);
-    _kcUploadFormatOutsideClick = null;
+function _detachDownloadFormatMenuListeners() {
+  if (_kcDownloadFormatOutsideClick) {
+    document.removeEventListener('click', _kcDownloadFormatOutsideClick, true);
+    _kcDownloadFormatOutsideClick = null;
   }
-  if (_kcUploadFormatEscKey) {
-    document.removeEventListener('keydown', _kcUploadFormatEscKey);
-    _kcUploadFormatEscKey = null;
+  if (_kcDownloadFormatEscKey) {
+    document.removeEventListener('keydown', _kcDownloadFormatEscKey);
+    _kcDownloadFormatEscKey = null;
   }
 }
 
-function _closeUploadFormatMenu() {
-  if (!_kcUploadFormatMenuOpen) return;
-  _kcUploadFormatMenuOpen = false;
-  const menu = document.getElementById('kc-upload-format-menu');
-  const btn = document.getElementById('kc-upload-format-btn');
+function _closeDownloadFormatMenu() {
+  if (!_kcDownloadFormatMenuOpen) return;
+  _kcDownloadFormatMenuOpen = false;
+  const menu = document.getElementById('kc-download-format-menu');
+  const btn = document.getElementById('kc-download-format-btn');
   if (menu) menu.hidden = true;
   if (btn) btn.setAttribute('aria-expanded', 'false');
-  _detachUploadFormatMenuListeners();
+  _detachDownloadFormatMenuListeners();
 }
 
-function _openUploadFormatMenu() {
-  const menu = document.getElementById('kc-upload-format-menu');
-  const btn = document.getElementById('kc-upload-format-btn');
+function _openDownloadFormatMenu() {
+  const menu = document.getElementById('kc-download-format-menu');
+  const btn = document.getElementById('kc-download-format-btn');
   if (!menu || !btn) return;
-  _kcUploadFormatMenuOpen = true;
+  _kcDownloadFormatMenuOpen = true;
   menu.hidden = false;
   btn.setAttribute('aria-expanded', 'true');
-  _renderUploadFormatUI(btn.dataset.format || 'original');
-  _kcUploadFormatOutsideClick = (e) => {
-    const wrap = document.getElementById('kc-upload-format-wrap');
-    if (wrap && !wrap.contains(e.target)) _closeUploadFormatMenu();
+  _renderDownloadFormatUI(btn.dataset.format || 'original');
+  _kcDownloadFormatOutsideClick = (e) => {
+    const wrap = document.getElementById('kc-download-format-wrap');
+    if (wrap && !wrap.contains(e.target)) _closeDownloadFormatMenu();
   };
-  _kcUploadFormatEscKey = (e) => {
-    if (e.key === 'Escape') _closeUploadFormatMenu();
+  _kcDownloadFormatEscKey = (e) => {
+    if (e.key === 'Escape') _closeDownloadFormatMenu();
   };
   setTimeout(() => {
-    if (_kcUploadFormatMenuOpen && _kcUploadFormatOutsideClick) {
-      document.addEventListener('click', _kcUploadFormatOutsideClick, true);
+    if (_kcDownloadFormatMenuOpen && _kcDownloadFormatOutsideClick) {
+      document.addEventListener('click', _kcDownloadFormatOutsideClick, true);
     }
   }, 0);
-  document.addEventListener('keydown', _kcUploadFormatEscKey);
+  document.addEventListener('keydown', _kcDownloadFormatEscKey);
 }
 
-function _toggleUploadFormatMenu() {
-  if (_kcUploadFormatMenuOpen) _closeUploadFormatMenu();
-  else _openUploadFormatMenu();
+function _toggleDownloadFormatMenu() {
+  if (_kcDownloadFormatMenuOpen) _closeDownloadFormatMenu();
+  else _openDownloadFormatMenu();
 }
 
-async function _selectUploadFormat(value) {
-  const next = _normalizeUploadFormat(value);
+async function _selectDownloadFormat(value) {
+  const next = _normalizeDownloadFormat(value);
   try {
-    await chrome.storage.local.set({ [KC_UPLOAD_FORMAT_KEY]: next });
+    await chrome.storage.local.set({ [KC_DOWNLOAD_FORMAT_KEY]: next });
   } catch (_) {}
-  _renderUploadFormatUI(next);
-  _closeUploadFormatMenu();
+  _renderDownloadFormatUI(next);
+  _closeDownloadFormatMenu();
 }
 
-async function _loadUploadFormatSetting() {
+async function _loadDownloadFormatSetting() {
   try {
-    const r = await chrome.storage.local.get(KC_UPLOAD_FORMAT_KEY);
-    const v = String(r?.[KC_UPLOAD_FORMAT_KEY] || '').trim().toLowerCase();
-    _renderUploadFormatUI(KC_UPLOAD_FORMAT_PRESETS.includes(v) ? v : 'original');
+    const r = await chrome.storage.local.get(KC_DOWNLOAD_FORMAT_KEY);
+    const v = String(r?.[KC_DOWNLOAD_FORMAT_KEY] || '').trim().toLowerCase();
+    _renderDownloadFormatUI(KC_DOWNLOAD_FORMAT_PRESETS.includes(v) ? v : 'original');
   } catch (_) {
-    _renderUploadFormatUI('original');
+    _renderDownloadFormatUI('original');
   }
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'local' || !changes[KC_UPLOAD_FORMAT_KEY]) return;
-  const v = String(changes[KC_UPLOAD_FORMAT_KEY].newValue || '').trim().toLowerCase();
-  _renderUploadFormatUI(KC_UPLOAD_FORMAT_PRESETS.includes(v) ? v : 'original');
+  if (area !== 'local' || !changes[KC_DOWNLOAD_FORMAT_KEY]) return;
+  const v = String(changes[KC_DOWNLOAD_FORMAT_KEY].newValue || '').trim().toLowerCase();
+  _renderDownloadFormatUI(KC_DOWNLOAD_FORMAT_PRESETS.includes(v) ? v : 'original');
 });
 // === END PHASE_UPLOAD_FORMAT ===
 
@@ -587,14 +584,14 @@ async function handleOpenFolderSettings() {
     }
   } catch (_) {}
   await _refreshDirContainer();
-  await _loadUploadFormatSetting();
+  await _loadDownloadFormatSetting();
   await _loadClipSizeSetting(); // PHASE_CLIP_SIZE
   await _loadClipEffectSetting(); // PHASE_CLIP_EFFECT
 })();
 
-document.getElementById('kc-upload-format-btn')?.addEventListener('click', (e) => {
+document.getElementById('kc-download-format-btn')?.addEventListener('click', (e) => {
   e.stopPropagation();
-  _toggleUploadFormatMenu();
+  _toggleDownloadFormatMenu();
 });
 
 // === PHASE_CLIP_SIZE ===
@@ -769,11 +766,6 @@ const optimisticCards = new Map();
 // Maps each rendered `.data-card` element to its backing Firestore item object
 // (used by upload UI — WeakMap avoids retaining detached DOM).
 const kcCardItemByEl = new WeakMap();
-
-/** @type {HTMLDivElement | null} */
-let kcUploadPopoverEl = null;
-/** @type {(() => void) | null} */
-let kcUploadOutsideDismiss = null;
 
 // window-level drag state (mirrors main.js pattern)
 window.currentDraggedWrapper  = null;
@@ -1043,33 +1035,33 @@ function _kcApplyCardSelectionClasses() {
     if (!liveIds.has(id)) _kcSelectedCardIds.delete(id);
   }
   // PHASE_BULK_UPLOAD: reflect selection count on the bulk-upload button.
-  _kcUpdateBulkUploadButton();
+  _kcUpdateBulkDownloadButton();
 }
 
 // === PHASE_BULK_UPLOAD ===
 // Bulk-upload button and format dropdown live in the directory bar as a pair; the group
 // is collapsed (.is-hidden) until ≥1 card is selected. Never override while an upload
 // is in flight (the spinner/disabled state owns the button then).
-function _kcUpdateBulkUploadButton() {
-  const btn = document.querySelector('.sp-bulk-upload-btn');
-  const group = document.getElementById('kc-dir-upload-group');
+function _kcUpdateBulkDownloadButton() {
+  const btn = document.querySelector('.sp-bulk-download-btn');
+  const group = document.getElementById('kc-dir-download-group');
   if (!btn || !group) return;
-  if (btn.dataset.uploading === 'true') return;
+  if (btn.dataset.downloading === 'true') return;
   const hasSelection = _kcSelectedCardIds.size >= 1;
   // PHASE_UPLOAD_FORMAT: an open menu inside a collapsing group would be clipped mid-air.
-  if (!hasSelection) _closeUploadFormatMenu();
+  if (!hasSelection) _closeDownloadFormatMenu();
   group.classList.toggle('is-hidden', !hasSelection);
   group.setAttribute('aria-hidden', hasSelection ? 'false' : 'true');
   btn.tabIndex = hasSelection ? 0 : -1;
-  const fmtBtn = document.getElementById('kc-upload-format-btn');
+  const fmtBtn = document.getElementById('kc-download-format-btn');
   if (fmtBtn) fmtBtn.tabIndex = hasSelection ? 0 : -1;
 }
 
 // Upload every currently-selected card to the active destination. Immediate
 // (no confirm). Spinner on the button while running; summary toast at the end.
-async function executeUploadSelected() {
-  const btn = document.querySelector('.sp-bulk-upload-btn');
-  if (!btn || btn.dataset.uploading === 'true') return;
+async function executeDownloadSelected() {
+  const btn = document.querySelector('.sp-bulk-download-btn');
+  if (!btn || btn.dataset.downloading === 'true') return;
   if (_kcSelectedCardIds.size === 0) return;
 
   // Resolve selected cards → items (skip any card without a mapped item).
@@ -1084,11 +1076,11 @@ async function executeUploadSelected() {
   if (items.length === 0) return;
 
   // Enter uploading state: spinner on, icon hidden, keep button visible.
-  btn.dataset.uploading = 'true';
+  btn.dataset.downloading = 'true';
   btn.disabled = true;
-  btn.classList.add('is-uploading');
+  btn.classList.add('is-downloading');
   btn.style.display = 'inline-flex';
-  const spinner = btn.querySelector('.sp-bulk-upload-spinner');
+  const spinner = btn.querySelector('.sp-bulk-download-spinner');
   if (spinner) spinner.hidden = false;
 
   let ok = 0;
@@ -1096,11 +1088,11 @@ async function executeUploadSelected() {
   try {
     const results = await Promise.allSettled(
       // anchorBtn = null: per-card flash is replaced by the button spinner +
-      // summary toast. handleUploadToDestination shows its own per-item toasts;
+      // summary toast. handleSaveToDestination shows its own per-item toasts;
       // those are acceptable as progress feedback.
-      items.map((item) => handleUploadToDestination(item, null))
+      items.map((item) => handleSaveToDestination(item, null))
     );
-    // handleUploadToDestination resolves (doesn't reject) on handled failures,
+    // handleSaveToDestination resolves (doesn't reject) on handled failures,
     // so treat fulfilled as success and rejected as failure. This is a coarse
     // count; the per-item toasts carry the detail.
     for (const r of results) {
@@ -1110,36 +1102,36 @@ async function executeUploadSelected() {
   } finally {
     // Exit uploading state.
     if (spinner) spinner.hidden = true;
-    btn.classList.remove('is-uploading');
+    btn.classList.remove('is-downloading');
     btn.disabled = false;
-    delete btn.dataset.uploading;
+    delete btn.dataset.downloading;
     // Clear selection after a bulk action (mirrors delete-selected behavior).
     // Also drop .active: a single (non-shift) click marks the first card both
     // selected AND active, and the accent ring fires on either class — so the
     // selection clear alone would leave the first-clicked card ringed.
     deactivateAllCards();
-    _kcClearCardSelection(); // also resets the button to inactive via _kcUpdateBulkUploadButton
+    _kcClearCardSelection(); // also resets the button to inactive via _kcUpdateBulkDownloadButton
   }
 
   // Summary toast.
   if (fail === 0) {
-    showKcToast(`${ok} clip${ok === 1 ? '' : 's'} uploaded`, 'success');
+    showKcToast(`${ok} clip${ok === 1 ? '' : 's'} saved`, 'success');
   } else if (ok === 0) {
-    showKcToast(`Upload failed for ${fail} clip${fail === 1 ? '' : 's'}`, 'error');
+    showKcToast(`Save failed for ${fail} clip${fail === 1 ? '' : 's'}`, 'error');
   } else {
-    showKcToast(`${ok} uploaded, ${fail} failed`, 'error');
+    showKcToast(`${ok} saved, ${fail} failed`, 'error');
   }
 }
 
-function attachBulkUploadHandler() {
-  const btn = document.querySelector('.sp-bulk-upload-btn');
+function attachBulkDownloadHandler() {
+  const btn = document.querySelector('.sp-bulk-download-btn');
   if (!btn || btn.dataset.handlerAttached === 'true') return;
   btn.dataset.handlerAttached = 'true';
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (btn.disabled) return; // uploading: the spinner owns the button
     if (_kcSelectedCardIds.size === 0) return;
-    executeUploadSelected();
+    executeDownloadSelected();
   });
 }
 // === END PHASE_BULK_UPLOAD ===
@@ -1481,7 +1473,7 @@ function showDashboardScreen(user) {
   loginScreen.style.display     = 'none';
   dashboardScreen.style.display = 'flex';
   attachClearButtonHandlers();
-  attachBulkUploadHandler(); // PHASE_BULK_UPLOAD
+  attachBulkDownloadHandler(); // PHASE_BULK_UPLOAD
 
   // Update avatar
   if (user.photoURL) {
@@ -1727,8 +1719,8 @@ function createDataCard(item) {
         <svg class="kc-clip-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
           <path fill-rule="evenodd" clip-rule="evenodd" stroke="none" d="M8 5h7.795c1.115 0 1.519.116 1.926.334.407.218.727.538.945.945.218.407.334.811.334 1.926V16a1 1 0 1 0 2 0V8.128c0-1.783-.186-2.43-.534-3.082a3.635 3.635 0 0 0-1.512-1.512C18.302 3.186 17.655 3 15.872 3H8a1 1 0 0 0 0 2zm7.721 2.334C15.314 7.116 14.91 7 13.795 7h-7.59c-1.115 0-1.519.116-1.926.334a2.272 2.272 0 0 0-.945.945C3.116 8.686 3 9.09 3 10.205v7.59c0 1.114.116 1.519.334 1.926.218.407.538.727.945.945.407.218.811.334 1.926.334h7.59c1.114 0 1.519-.116 1.926-.334.407-.218.727-.538.945-.945.218-.407.334-.811.334-1.926v-7.59c0-1.115-.116-1.519-.334-1.926a2.272 2.272 0 0 0-.945-.945z"/>
         </svg>
-        <svg class="kc-upload-mark kc-upload-mark--check" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-        <svg class="kc-upload-mark kc-upload-mark--x" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg class="kc-action-mark kc-action-mark--check" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="kc-action-mark kc-action-mark--x" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>`;
   // === END PHASE_CARD_CLIPBOARD_COPY ===
@@ -2434,7 +2426,7 @@ function attachClearButtonHandlers() {
 
   const exitConfirmPending = () => {
     bar.classList.remove('confirm-pending');
-    _kcUpdateBulkUploadButton(); // restore the bulk-upload button after pending
+    _kcUpdateBulkDownloadButton(); // restore the bulk-upload button after pending
     if (trashIcon) trashIcon.style.display = '';
     if (checkIcon) checkIcon.style.display = 'none';
     if (confirmText) {
@@ -2477,7 +2469,7 @@ function attachClearButtonHandlers() {
       confirmMode = selectedCount >= 1 ? 'selected' : 'all';
 
       bar.classList.add('confirm-pending');
-      _kcUpdateBulkUploadButton(); // hide the bulk-upload button while pending
+      _kcUpdateBulkDownloadButton(); // hide the bulk-upload button while pending
       if (trashIcon) trashIcon.style.display = 'none';
       if (checkIcon) checkIcon.style.display = '';
       if (confirmText) {
@@ -2749,14 +2741,14 @@ function formatToastFileName(name) {
 }
 // === END PHASE_UPLOAD_TOAST_FILENAME ===
 
-function flashUploadMark(btnEl, success) {
+function flashActionMark(btnEl, success) {
   if (!btnEl) return;
-  const cls = success ? 'kc-upload--success' : 'kc-upload--error';
-  btnEl.classList.add(cls, 'kc-upload--feedback');
+  const cls = success ? 'kc-action--success' : 'kc-action--error';
+  btnEl.classList.add(cls, 'kc-action--feedback');
   const wrapper = btnEl.closest('.card-wrapper');
   let timer = null;
   const clear = () => {
-    btnEl.classList.remove(cls, 'kc-upload--feedback');
+    btnEl.classList.remove(cls, 'kc-action--feedback');
     if (timer) { clearTimeout(timer); timer = null; }
     if (wrapper) wrapper.removeEventListener('mouseleave', clear);
   };
@@ -2778,10 +2770,10 @@ async function handleClipButtonClick(item, anchorBtn) {
     );
     if (!png) throw new Error('clipboard image resolve failed');
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
-    flashUploadMark(anchorBtn, true);
+    flashActionMark(anchorBtn, true);
     showKcToast('Copied to clipboard', 'success');
   } catch (_) {
-    flashUploadMark(anchorBtn, false);
+    flashActionMark(anchorBtn, false);
     showKcToast('Failed to copy image', 'error');
   } finally {
     if (anchorBtn) anchorBtn.disabled = false;
@@ -2789,36 +2781,17 @@ async function handleClipButtonClick(item, anchorBtn) {
 }
 // === END PHASE_CARD_CLIPBOARD_COPY ===
 
-function handleLocalUpload(item, anchorBtn) {
-  saveItemViaDownloads(item)
-    .then((result) => {
-      if (result.ok) {
-        flashUploadMark(anchorBtn, true);
-        showKcToast(`${formatToastFileName(result.filename)}\nSaved`, 'success');
-      } else if (result.reason === 'cancelled') {
-        flashUploadMark(anchorBtn, false);
-      } else {
-        flashUploadMark(anchorBtn, false);
-        showKcToast(`Save failed: ${result.message || 'Unknown error'}`, 'error');
-      }
-    })
-    .catch((e) => {
-      flashUploadMark(anchorBtn, false);
-      showKcToast(`Save failed: ${e?.message || String(e)}`, 'error');
-    });
-}
-
-function handleAutoPathUpload(item, anchorBtn, handle) {
+function handleAutoPathSave(item, anchorBtn, handle) {
     writeItemToHandle(handle, item)
     .then((result) => {
       if (result.ok) {
-        flashUploadMark(anchorBtn, true);
+        flashActionMark(anchorBtn, true);
         showKcToast(
           `${formatToastFileName(result.filename)}\nsaved to ${result.primaryFolderName}`,
           'success'
         );
       } else {
-        flashUploadMark(anchorBtn, false);
+        flashActionMark(anchorBtn, false);
         let msg;
         switch (result.reason) {
           case 'permission':
@@ -2836,51 +2809,47 @@ function handleAutoPathUpload(item, anchorBtn, handle) {
       }
     })
     .catch((e) => {
-      flashUploadMark(anchorBtn, false);
+      flashActionMark(anchorBtn, false);
       showKcToast(`Save failed: ${e?.message || String(e)}`, 'error');
     });
-}
-
-function openUploadPopover(item, anchorBtn) {
-  openKcUploadPopover(anchorBtn, item);
 }
 
 /**
  * Upload an item directly to the configured Drive Grrab_files folder.
  * Called when destination.type === 'drive' and Auto is ON.
  */
-async function handleAutoDriveUpload(item, destination, anchorBtn) {
+async function handleAutoDriveSave(item, destination, anchorBtn) {
   try {
-    showKcToast('Uploading to Google Drive…');
+    showKcToast('Saving to Google Drive…');
 
-    const payload = await buildDriveUploadPayload(item);
+    const payload = await buildDriveSavePayload(item);
     if (!payload.ok) {
-      flashUploadMark(anchorBtn, false);
-      showKcToast(`Upload prep failed: ${payload.message || 'Unknown'}`, 'error');
+      flashActionMark(anchorBtn, false);
+      showKcToast(`Could not prepare the file: ${payload.message || 'Unknown'}`, 'error');
       return;
     }
 
-    const uploadResp = await chrome.runtime.sendMessage({
-      action: 'drive-upload-file',
+    const saveResp = await chrome.runtime.sendMessage({
+      action: 'drive-save-file',
       folderId: destination.driveFolderId,
       desiredName: payload.desiredName,
       mimeType: payload.mimeType,
       contentBase64: payload.contentBase64,
     });
 
-    if (!uploadResp?.ok) {
-      flashUploadMark(anchorBtn, false);
-      if (uploadResp?.reason === 'folder-missing') {
+    if (!saveResp?.ok) {
+      flashActionMark(anchorBtn, false);
+      if (saveResp?.reason === 'folder-missing') {
         await clearDestination();
         await _refreshDirContainer();
         showKcToast('Drive folder not found. Please set it again.', 'error');
         return;
       }
-      showKcToast(`Upload failed: ${uploadResp?.message || 'Unknown'}`, 'error');
+      showKcToast(`Save failed: ${saveResp?.message || 'Unknown'}`, 'error');
       return;
     }
 
-    flashUploadMark(anchorBtn, true);
+    flashActionMark(anchorBtn, true);
     // PHASE_UPLOAD_TOAST_FILENAME: unify the Drive success toast with the
     // non-Drive folder-upload style — width-budgeted filename owns line 1
     // (formatToastFileName's budget assumes a dedicated line; the old
@@ -2893,42 +2862,28 @@ async function handleAutoDriveUpload(item, destination, anchorBtn) {
       'success'
     );
   } catch (e) {
-    flashUploadMark(anchorBtn, false);
-    showKcToast(`Upload failed: ${e?.message || String(e)}`, 'error');
+    flashActionMark(anchorBtn, false);
+    showKcToast(`Save failed: ${e?.message || String(e)}`, 'error');
   }
 }
 
 // === PHASE_UPLOAD_AUTO_ROUTING ===
-// handleUploadButtonClick — card upload button entry point.
+// handleSaveToDestination — destination-driven upload dispatcher.
 //
-// Always-auto routing (PHASE_UPLOAD_ALWAYS_AUTO): route immediately via
-// handleUploadToDestination. The upload popover (openKcUploadPopover) is
-// reachable only via the catch-path fallback when routing throws.
-async function handleUploadButtonClick(item, anchorBtn) {
-  try {
-    await handleUploadToDestination(item, anchorBtn);
-  } catch (e) {
-    openKcUploadPopover(anchorBtn, item);
-  }
-}
-
-// handleUploadToDestination — destination-driven upload dispatcher.
-//
-// Called from two paths:
-//   1. handleUploadButtonClick (always-auto primary path).
-//   2. Card popover's "지정 디렉토리로 업로드" item (error fallback or manual).
+// Called from executeDownloadSelected (bulk bar). anchorBtn is null there —
+// per-card flash is skipped in favour of the bar spinner and summary toast.
 //
 // Destination mapping:
 //   null                            → saveItemToDownloads (implicit default)
 //   {type: 'downloads'}             → saveItemToDownloads (explicit)
-//   {type: 'local'} + handle ok     → handleAutoPathUpload (existing IDB handle path)
+//   {type: 'local'} + handle ok     → handleAutoPathSave (existing IDB handle path)
 //   {type: 'local'} + handle missing → _markDirFolderMissing + toast + open Dir popover
-//   {type: 'drive', ...}             → handleAutoDriveUpload (existing Drive path)
+//   {type: 'drive', ...}             → handleAutoDriveSave (existing Drive path)
 //
 // The Downloads paths (null + 'downloads') go through chrome.downloads
 // with filename '<sanitized>.<ext>' in the Downloads root and saveAs: false. No OS
 // dialog, no user gesture required.
-async function handleUploadToDestination(item, anchorBtn) {
+async function handleSaveToDestination(item, anchorBtn) {
   try {
     const destination = await getDestination();
 
@@ -2936,10 +2891,10 @@ async function handleUploadToDestination(item, anchorBtn) {
     if (!destination || destination.type === 'downloads') {
       const result = await saveItemToDownloads(item);
       if (result && result.ok) {
-        flashUploadMark(anchorBtn, true);
+        flashActionMark(anchorBtn, true);
         showKcToast(`${formatToastFileName(result.filename)}\nSaved`, 'success');
       } else {
-        flashUploadMark(anchorBtn, false);
+        flashActionMark(anchorBtn, false);
         showKcToast(`Save failed: ${result?.message || 'Unknown error'}`, 'error');
       }
       return;
@@ -2954,167 +2909,30 @@ async function handleUploadToDestination(item, anchorBtn) {
         await handleOpenFolderSettings();
         return;
       }
-      handleAutoPathUpload(item, anchorBtn, handle);
+      handleAutoPathSave(item, anchorBtn, handle);
       return;
     }
 
     if (destination.type === 'drive') {
-      await handleAutoDriveUpload(item, destination, anchorBtn);
+      await handleAutoDriveSave(item, destination, anchorBtn);
       return;
     }
 
     // Defensive fallback: unknown destination shape → treat as Downloads.
     const result = await saveItemToDownloads(item);
     if (result && result.ok) {
-      flashUploadMark(anchorBtn, true);
+      flashActionMark(anchorBtn, true);
       showKcToast(`${formatToastFileName(result.filename)}\nSaved`, 'success');
     } else {
-      flashUploadMark(anchorBtn, false);
+      flashActionMark(anchorBtn, false);
       showKcToast(`Save failed: ${result?.message || 'Unknown error'}`, 'error');
     }
   } catch (e) {
-    flashUploadMark(anchorBtn, false);
+    flashActionMark(anchorBtn, false);
     showKcToast(`Save failed: ${e?.message || String(e)}`, 'error');
   }
 }
 // === END PHASE_UPLOAD_AUTO_ROUTING ===
-
-// ── Upload destination popover (Phase U1 — UI only, no file I/O) ──────────────
-
-function onKcUploadEscapeKey(ev) {
-  if (ev.key === 'Escape') closeKcUploadPopover();
-}
-
-function closeKcUploadPopover() {
-  if (kcUploadOutsideDismiss) {
-    document.removeEventListener('click', kcUploadOutsideDismiss, false);
-    kcUploadOutsideDismiss = null;
-  }
-  document.removeEventListener('keydown', onKcUploadEscapeKey, false);
-  if (kcUploadPopoverEl) {
-    kcUploadPopoverEl.classList.remove('kc-upload-popover--open');
-    kcUploadPopoverEl.style.display = 'none';
-    delete kcUploadPopoverEl._kcItem;
-    delete kcUploadPopoverEl._kcAnchorBtn;
-  }
-}
-
-function ensureKcUploadPopover() {
-  if (kcUploadPopoverEl) return kcUploadPopoverEl;
-  const app = document.getElementById('app');
-  if (!app) return null;
-  const div = document.createElement('div');
-  div.className = 'kc-upload-popover';
-  div.setAttribute('role', 'menu');
-  // === PHASE_UPLOAD_AUTO_ROUTING ===
-  // Card popover items (decision 6):
-  //   📁 내 컴퓨터 폴더         → handleLocalUpload (OS save dialog, saveAs: true)
-  //   📁 지정 디렉토리로 업로드  → handleUploadToDestination (routes by destination)
-  //
-  // Drive option removed from card popover. Drive is set via directory
-  // settings; once {type:'drive'} is the active
-  // destination, the "지정 디렉토리로 업로드" item routes there.
-  div.innerHTML = `
-    <button type="button" class="kc-upload-popover-item" data-destination="local" role="menuitem">
-      <span class="kc-upload-popover-icon" aria-hidden="true">📁</span>
-      <span>My Computer</span>
-    </button>
-    <button type="button" class="kc-upload-popover-item" data-destination="destination" role="menuitem">
-      <span class="kc-upload-popover-icon" aria-hidden="true">📁</span>
-      <span>Upload to set folder</span>
-    </button>
-  `;
-  div.querySelectorAll('.kc-upload-popover-item').forEach((itemBtn) => {
-    itemBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const dest = itemBtn.getAttribute('data-destination') || '';
-      const item = div._kcItem;
-      const anchorBtn = div._kcAnchorBtn;
-      closeKcUploadPopover();
-      if (!item) return;
-      if (dest === 'local') {
-        handleLocalUpload(item, anchorBtn);
-      } else if (dest === 'destination') {
-        await handleUploadToDestination(item, anchorBtn);
-      }
-    });
-  });
-  // === END PHASE_UPLOAD_AUTO_ROUTING ===
-  app.appendChild(div);
-  kcUploadPopoverEl = div;
-  return div;
-}
-
-function positionKcUploadPopover(anchorEl) {
-  const pop = ensureKcUploadPopover();
-  if (!pop || !anchorEl) return;
-
-  pop.classList.remove('kc-upload-popover--open');
-  pop.style.display = 'block';
-  pop.style.visibility = 'hidden';
-  pop.style.position = 'fixed';
-  pop.style.left = '0px';
-  pop.style.top = '0px';
-
-  requestAnimationFrame(() => {
-    const ar = anchorEl.getBoundingClientRect();
-    const pr = pop.getBoundingClientRect();
-    const pad = 6;
-    let left = ar.left;
-    let top = ar.bottom + 4;
-
-    if (left + pr.width > window.innerWidth - pad) {
-      left = ar.right - pr.width;
-    }
-    if (left < pad) left = pad;
-
-    if (top + pr.height > window.innerHeight - pad) {
-      top = ar.top - pr.height - 4;
-    }
-    if (top < pad) top = pad;
-
-    pop.style.left = `${Math.round(left)}px`;
-    pop.style.top = `${Math.round(top)}px`;
-    pop.style.visibility = '';
-    pop.style.display = '';
-    pop.classList.add('kc-upload-popover--open');
-  });
-}
-
-function openKcUploadPopover(anchorBtn, item) {
-  const pop = ensureKcUploadPopover();
-  if (!pop) return;
-
-  const wasOpen = pop.classList.contains('kc-upload-popover--open');
-  const prevAnchor = pop._kcAnchorBtn;
-  if (wasOpen && prevAnchor === anchorBtn) {
-    closeKcUploadPopover();
-    return;
-  }
-  if (wasOpen && prevAnchor !== anchorBtn) {
-    closeKcUploadPopover();
-  }
-
-  pop._kcItem = item;
-  pop._kcAnchorBtn = anchorBtn;
-
-  positionKcUploadPopover(anchorBtn);
-
-  if (kcUploadOutsideDismiss) {
-    document.removeEventListener('click', kcUploadOutsideDismiss, false);
-  }
-  const outside = (ev) => {
-    if (ev.target.closest('.kc-upload-popover')) return;
-    if (ev.target.closest('.data-card-upload')) return;
-    if (ev.target.closest('.data-card-clip')) return;
-    closeKcUploadPopover();
-  };
-  kcUploadOutsideDismiss = outside;
-  setTimeout(() => {
-    document.addEventListener('click', outside, false);
-  }, 0);
-  document.addEventListener('keydown', onKcUploadEscapeKey, false);
-}
 
 // === PHASE_CARD_CLIPBOARD_COPY ===
 function attachClipHandlers(container) {
@@ -3143,7 +2961,6 @@ function attachDeleteHandlers(container) {
     btn.parentNode.replaceChild(newBtn, btn);
 
     newBtn.addEventListener('click', (e) => {
-      closeKcUploadPopover();
       e.stopPropagation();
       const header  = newBtn.closest('.data-card-header');
       const card    = newBtn.closest('.data-card');
@@ -3472,7 +3289,6 @@ function attachCardClickHandlers() {
 
       // Ignore clicks on the delete button area
       if (e.target.closest('.data-card-delete')) return;
-      if (e.target.closest('.data-card-upload')) return;
       if (e.target.closest('.data-card-clip')) return;
 
       const clickedWrapper = newCard.closest('.card-wrapper');

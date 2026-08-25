@@ -1,7 +1,7 @@
-// upload.js — local folder upload: image export, sanitization, File System Access API.
+// download.js — local folder save: image export, sanitization, File System Access API.
 // Google Drive (Phase U3) is handled in sidepanel.js only.
 
-import { getPrimaryHandle, clearPrimaryHandle } from './uploadStorage.js';
+import { getPrimaryHandle, clearPrimaryHandle } from './downloadStorage.js';
 
 const KNOWN_IMG_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif']);
 
@@ -227,12 +227,12 @@ async function fetchImageAsBlob(imgUrl, fallbackUrl = '') {
 // === END PHASE27G_SAVE_FALLBACK ===
 
 // === PHASE_UPLOAD_FORMAT ===
-const KC_UPLOAD_FORMAT_KEY = 'kc_upload_format';
+const KC_DOWNLOAD_FORMAT_KEY = 'kc_upload_format';
 
-async function getUploadFormatSetting() {
+async function getSaveFormatSetting() {
   try {
-    const r = await chrome.storage.local.get(KC_UPLOAD_FORMAT_KEY);
-    const v = String(r?.[KC_UPLOAD_FORMAT_KEY] || '').trim().toLowerCase();
+    const r = await chrome.storage.local.get(KC_DOWNLOAD_FORMAT_KEY);
+    const v = String(r?.[KC_DOWNLOAD_FORMAT_KEY] || '').trim().toLowerCase();
     if (v === 'jpg' || v === 'jpeg' || v === 'png' || v === 'webp') return v;
     return 'original';
   } catch (_) {
@@ -285,7 +285,7 @@ async function transcodeBlobToFormat(blob, fmt) {
   }
 }
 
-function resolveUploadExtension(resolved, blob) {
+function resolveSaveExtension(resolved, blob) {
   if (resolved?.forcedExt) return resolved.forcedExt;
   return resolved?.srcUrl
     ? inferImageExtension(resolved.srcUrl, blob)
@@ -294,19 +294,19 @@ function resolveUploadExtension(resolved, blob) {
 // === END PHASE_UPLOAD_FORMAT ===
 
 // === PHASE_UPLOAD_IMAGE_ONLY ===
-// Every upload artifact is an image. Resolution order:
+// Every save artifact is an image. Resolution order:
 //   1) img_url via background fetch-image (img_thumbnail_b64 as fetch
 //      fallback — existing fetchImageAsBlob behavior),
 //   2) img_thumbnail_b64 alone when img_url is empty (clip-time 400x400
 //      JPEG data URL; CORS-immune), usedFallback = true,
 //   3) neither -> null (caller emits its existing no-image failure).
 // The legacy non-Image -> markdown export (Phase U2) is removed: SNS and
-// category-less clips now upload their image like everything else.
+// category-less clips now save their image like everything else.
 async function resolveItemImageBlob(item) {
   const imgUrl = String(item?.img_url || '').trim();
   const b64 = String(item?.img_thumbnail_b64 || '').trim();
   const applyFormat = async (base) => {
-    const _fmt = await getUploadFormatSetting();
+    const _fmt = await getSaveFormatSetting();
     const _t = await transcodeBlobToFormat(base.blob, _fmt);
     return {
       blob: _t.blob,
@@ -466,7 +466,7 @@ export async function saveItemViaDownloads(item) {
     }
     blob = resolved.blob;
     usedFallback = resolved.usedFallback;
-    ext = resolveUploadExtension(resolved, blob);
+    ext = resolveSaveExtension(resolved, blob);
 
     const rawTitle = (item.title || '').trim();
     let base = rawTitle ? rawTitle : fallbackFilenameBase(item);
@@ -591,7 +591,7 @@ export async function writeItemToHandle(handle, item) {
     }
     blob = resolved.blob;
     usedFallback = resolved.usedFallback;
-    ext = resolveUploadExtension(resolved, blob);
+    ext = resolveSaveExtension(resolved, blob);
 
     const rawTitle = (item.title || '').trim();
     let base = rawTitle ? rawTitle : fallbackFilenameBase(item);
@@ -625,8 +625,8 @@ export async function writeItemToHandle(handle, item) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Drive upload helper (Phase U3.3b)
-// Builds the request payload for background.js drive-upload-file:
+// Drive save helper (Phase U3.3b)
+// Builds the request payload for background.js drive-save-file:
 //   desiredName, mimeType, contentBase64
 // Reuses existing sanitize/filename pipeline + image blob fetch.
 // ─────────────────────────────────────────────────────────────
@@ -654,17 +654,17 @@ function blobToBase64(blob) {
 }
 
 /**
- * Build a Drive upload payload for a given DataCard item. Does NOT
+ * Build a Drive save payload for a given DataCard item. Does NOT
  * send to Drive — returns { desiredName, mimeType, contentBase64 } for
- * the caller to pass to background via drive-upload-file message.
+ * the caller to pass to background via drive-save-file message.
  *
- * Naming and sanitization match the local upload pipeline.
+ * Naming and sanitization match the local save pipeline.
  *
  * @param {object} item
  * @returns {Promise<{ ok: true, desiredName: string, mimeType: string, contentBase64: string }
  *   | { ok: false, reason: 'generic', message: string }>}
  */
-export async function buildDriveUploadPayload(item) {
+export async function buildDriveSavePayload(item) {
   try {
     let blob;
     let ext;
@@ -675,7 +675,7 @@ export async function buildDriveUploadPayload(item) {
       return { ok: false, reason: 'generic', message: 'No image URL' };
     }
     blob = resolved.blob;
-    ext = resolveUploadExtension(resolved, blob);
+    ext = resolveSaveExtension(resolved, blob);
     mimeType = blob.type || (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`);
 
     const rawTitle = (item.title || '').trim();
@@ -725,7 +725,7 @@ export async function saveItemToDownloads(item) {
     }
     blob = resolved.blob;
     usedFallback = resolved.usedFallback;
-    ext = resolveUploadExtension(resolved, blob);
+    ext = resolveSaveExtension(resolved, blob);
 
     const rawTitle = (item.title || '').trim();
     let base = rawTitle ? rawTitle : fallbackFilenameBase(item);

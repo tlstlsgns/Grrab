@@ -348,15 +348,15 @@
        theirs. The padding and the caret's margin are tightened too: at 58px with the
        shared 6px padding and 6px caret margin the label had about 30px, and 'WEBP' needs
        about 34. */
-    #kc-upload-format-btn {
+    #kc-download-format-btn {
       width: 58px;
       padding-left: 4px;
       padding-right: 4px;
     }
-    #kc-upload-format-btn::after {
+    #kc-download-format-btn::after {
       margin-left: 2px;
     }
-    #kc-upload-format-wrap {
+    #kc-download-format-wrap {
       margin-left: 0;
     }
     .kc-dropdown-btn-label {
@@ -1122,12 +1122,10 @@
     /* === END PHASE_CARD_CLIPBOARD_COPY === */
 
     /* ── Upload result mark overlay (Phase U2) ─────────────────────── */
-    .card-wrapper:hover .data-card-upload-btn.kc-upload--feedback svg,
-    .card-wrapper:hover .data-card-clip-btn.kc-upload--feedback svg {
+    .card-wrapper:hover .data-card-clip-btn.kc-action--feedback svg {
       opacity: 1 !important;
     }
-    .data-card-upload-btn .kc-upload-mark,
-    .data-card-clip-btn .kc-upload-mark {
+    .data-card-clip-btn .kc-action-mark {
       display: none;
       width: 10px;
       height: 10px;
@@ -1135,65 +1133,18 @@
       stroke-width: 2.5;
       fill: none;
     }
-    .data-card-upload-btn.kc-upload--success .kc-upload-mark.kc-upload-mark--check,
-    .data-card-clip-btn.kc-upload--success .kc-upload-mark.kc-upload-mark--check {
+    .data-card-clip-btn.kc-action--success .kc-action-mark.kc-action-mark--check {
       display: inline-block;
     }
-    .data-card-upload-btn.kc-upload--success svg:not(.kc-upload-mark),
-    .data-card-clip-btn.kc-upload--success svg:not(.kc-upload-mark) {
+    .data-card-clip-btn.kc-action--success svg:not(.kc-action-mark) {
       display: none;
     }
-    .data-card-upload-btn.kc-upload--error .kc-upload-mark.kc-upload-mark--x,
-    .data-card-clip-btn.kc-upload--error .kc-upload-mark.kc-upload-mark--x {
+    .data-card-clip-btn.kc-action--error .kc-action-mark.kc-action-mark--x {
       display: inline-block;
       stroke: #ef4444;
     }
-    .data-card-upload-btn.kc-upload--error svg:not(.kc-upload-mark),
-    .data-card-clip-btn.kc-upload--error svg:not(.kc-upload-mark) {
+    .data-card-clip-btn.kc-action--error svg:not(.kc-action-mark) {
       display: none;
-    }
-
-    /* Upload destination popover (Phase U1) */
-    .kc-upload-popover {
-      display: none;
-      position: fixed;
-      z-index: 2147483000;
-      min-width: 168px;
-      padding: 4px;
-      background: #fff;
-      border-radius: 6px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-      box-sizing: border-box;
-    }
-    .kc-upload-popover.kc-upload-popover--open {
-      display: block;
-    }
-    .kc-upload-popover-item {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-      margin: 0;
-      padding: 8px 10px;
-      border: none;
-      border-radius: 4px;
-      background: transparent;
-      font-family: 'Roboto', sans-serif;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-primary);
-      text-align: left;
-      cursor: pointer;
-      box-sizing: border-box;
-    }
-    .kc-upload-popover-item:hover {
-      background: rgba(0, 0, 0, 0.06);
-    }
-    .kc-upload-popover-icon {
-      flex-shrink: 0;
-      font-size: 14px;
-      line-height: 1;
     }
 
     /* ── Upload toast (Phase U2) ─────────────────────────────────────── */
@@ -1314,7 +1265,7 @@
     /* === PHASE_BULK_UPLOAD === */
     /* PHASE_BULK_UPLOAD: 28px button + 4px gap + 58px dropdown = the 90px the dropdown
        used to take on its own. */
-    .kc-dir-upload-group {
+    .kc-dir-download-group {
       flex: 0 0 auto;
       display: flex;
       align-items: center;
@@ -1326,14 +1277,14 @@
     /* ⚠️ overflow is hidden ONLY while collapsed. The format menu is absolutely
        positioned below the dropdown and would be clipped away entirely if the group
        clipped its children at all times. */
-    .kc-dir-upload-group.is-hidden {
+    .kc-dir-download-group.is-hidden {
       width: 0;
       margin-left: -8px;
       opacity: 0;
       overflow: hidden;
       pointer-events: none;
     }
-    .sp-bulk-upload-btn {
+    .sp-bulk-download-btn {
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
@@ -1348,18 +1299,18 @@
       cursor: pointer;
       transition: background-color 0.15s ease, color 0.15s ease;
     }
-    .sp-bulk-upload-btn:hover:not(:disabled) {
+    .sp-bulk-download-btn:hover:not(:disabled) {
       background: rgba(0, 0, 0, 0.05);
       color: var(--kc-accent, #BC13FE);
     }
-    .sp-bulk-upload-btn:disabled {
+    .sp-bulk-download-btn:disabled {
       cursor: default;
     }
-    .sp-bulk-upload-icon {
+    .sp-bulk-download-icon {
       width: 18px;
       height: 18px;
     }
-    .sp-bulk-upload-spinner {
+    .sp-bulk-download-spinner {
       width: 16px;
       height: 16px;
       border: 2px solid rgba(0, 0, 0, 0.12);
@@ -1367,11 +1318,11 @@
       border-radius: 50%;
       animation: data-card-spin 0.7s linear infinite;
     }
-    .sp-bulk-upload-spinner[hidden] {
+    .sp-bulk-download-spinner[hidden] {
       display: none;
     }
     /* While uploading, the icon is swapped for the spinner. */
-    .sp-bulk-upload-btn.is-uploading .sp-bulk-upload-icon {
+    .sp-bulk-download-btn.is-downloading .sp-bulk-download-icon {
       display: none;
     }
     /* === END PHASE_BULK_UPLOAD === */
@@ -1490,26 +1441,26 @@
         <!-- PHASE_BULK_UPLOAD: the button and the format dropdown appear and vanish
              together, and the pair is exactly as wide as the dropdown alone used to be,
              so the folder button gives up the same space it always did. -->
-        <div class="kc-dir-upload-group is-hidden" id="kc-dir-upload-group" aria-hidden="true">
+        <div class="kc-dir-download-group is-hidden" id="kc-dir-download-group" aria-hidden="true">
           <!-- === PHASE_BULK_UPLOAD === -->
-          <button type="button" class="sp-bulk-upload-btn" tabindex="-1"
-                  aria-label="Upload selected clips to folder">
-            <svg class="sp-bulk-upload-icon" viewBox="0 0 24 24"
+          <button type="button" class="sp-bulk-download-btn" tabindex="-1"
+                  aria-label="Save selected clips to folder">
+            <svg class="sp-bulk-download-icon" viewBox="0 0 24 24"
                  fill="none" stroke="currentColor" stroke-width="2"
                  stroke-linecap="round" stroke-linejoin="round"
                  aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            <span class="sp-bulk-upload-spinner" hidden></span>
+            <span class="sp-bulk-download-spinner" hidden></span>
           </button>
           <!-- === PHASE_UPLOAD_FORMAT === -->
-          <div class="kc-dropdown-wrap" id="kc-upload-format-wrap">
-            <button type="button" id="kc-upload-format-btn" class="kc-dropdown-btn" tabindex="-1"
-                    title="Upload image format" aria-label="Select upload image format"
+          <div class="kc-dropdown-wrap" id="kc-download-format-wrap">
+            <button type="button" id="kc-download-format-btn" class="kc-dropdown-btn" tabindex="-1"
+                    title="Save image format" aria-label="Select save image format"
                     aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Orig</span></button>
-            <ul id="kc-upload-format-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
+            <ul id="kc-download-format-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
           </div>
           <!-- === END PHASE_UPLOAD_FORMAT === -->
         </div>

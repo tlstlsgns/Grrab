@@ -64,8 +64,8 @@
         "sidepanel.js",
         "sidepanel.css",
         "firebase-bundle.js",
-        "upload.js",
-        "uploadStorage.js",
+        "download.js",
+        "downloadStorage.js",
         "picker.html",
         "picker.js"
       ],
