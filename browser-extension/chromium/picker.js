@@ -1,7 +1,7 @@
 // picker.js — runs in a dedicated extension popup window, invokes showDirectoryPicker,
 // persists handle to IndexedDB, notifies side panel, and closes itself.
 
-import { setPrimaryHandle, setDestination } from './uploadStorage.js';
+import { setPrimaryHandle, setDestination } from './downloadStorage.js';
 
 const btn = document.getElementById('pick');
 const driveBtn = document.getElementById('pick-drive');

@@ -523,13 +523,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // async response
   }
 
-  // Phase U3.3: upload a DataCard item to Drive's Grrab_files folder
+  // Phase U3.3: save a DataCard item to Drive's Grrab_files folder
   // as a markdown (or image for Image category) file via multipart upload.
   //
-  // Request: { action: 'drive-upload-file', item, folderId, desiredName, mimeType, contentBase64 }
+  // Request: { action: 'drive-save-file', item, folderId, desiredName, mimeType, contentBase64 }
   // Response: { ok: true, fileId, fileName, webViewLink? }
   //           | { ok: false, reason: 'no-token' | 'folder-missing' | 'api-error', message, status? }
-  if (request.action === 'drive-upload-file') {
+  if (request.action === 'drive-save-file') {
     (async () => {
       try {
         const { folderId, desiredName, mimeType, contentBase64 } = request;
@@ -618,7 +618,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             ok: false,
             reason,
             status: uploadResp.status,
-            message: `Drive upload failed: ${uploadResp.status}`,
+            message: `Drive save failed: ${uploadResp.status}`,
           });
           return;
         }

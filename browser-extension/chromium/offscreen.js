@@ -25,9 +25,10 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
     (async () => {
       try {
         const blob = await (await fetch(msg.dataUrl)).blob();
-        const up = await superResolveToWidth(blob, msg.targetWidth);
-        if (!up) { sendResponse({ ok: false, error: 'sr-null' }); return; }
-        const outDataUrl = await toDataURL(up);
+        // superResolveToWidth already returns a PNG data URL: it encodes once with
+        // toDataURL, which avoids the ~1,000 ms offscreen convertToBlob stall.
+        const outDataUrl = await superResolveToWidth(blob, msg.targetWidth);
+        if (!outDataUrl) { sendResponse({ ok: false, error: 'sr-null' }); return; }
         sendResponse({ ok: true, dataUrl: outDataUrl });
       } catch (e) {
         sendResponse({ ok: false, error: String(e) });
