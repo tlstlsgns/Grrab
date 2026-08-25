@@ -76,6 +76,10 @@ const KC_UPLOAD_FORMAT_LABELS = {
   png: 'PNG',
   webp: 'WEBP',
 };
+// PHASE_UPLOAD_FORMAT: the closed button is 58px wide, which 'Original' does not fit.
+// The menu is unconstrained, so it keeps the whole word — the abbreviation exists only
+// where the space does not.
+const KC_UPLOAD_FORMAT_BTN_LABELS = { original: 'Orig' };
 
 let _kcUploadFormatMenuOpen = false;
 let _kcUploadFormatOutsideClick = null;
@@ -91,7 +95,8 @@ function _renderUploadFormatUI(fmt) {
   const btn = document.getElementById('kc-upload-format-btn');
   const menu = document.getElementById('kc-upload-format-menu');
   if (!btn || !menu) return;
-  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_UPLOAD_FORMAT_LABELS[key] || 'Original'}</span>`;
+  const btnLabel = KC_UPLOAD_FORMAT_BTN_LABELS[key] || KC_UPLOAD_FORMAT_LABELS[key] || 'Orig';
+  btn.innerHTML = `<span class="kc-dropdown-btn-label">${btnLabel}</span>`;
   btn.dataset.format = key;
   btn.setAttribute('aria-expanded', _kcUploadFormatMenuOpen ? 'true' : 'false');
   menu.innerHTML = '';
@@ -1042,25 +1047,22 @@ function _kcApplyCardSelectionClasses() {
 }
 
 // === PHASE_BULK_UPLOAD ===
-// Keep the bulk-upload button always visible: active when ≥1 card is selected,
-// otherwise a muted .is-inactive state that stays clickable to surface a
-// "select a clip first" toast. Never override the state while an upload is in
-// flight (the spinner/disabled state owns the button then).
+// Bulk-upload button and format dropdown live in the directory bar as a pair; the group
+// is collapsed (.is-hidden) until ≥1 card is selected. Never override while an upload
+// is in flight (the spinner/disabled state owns the button then).
 function _kcUpdateBulkUploadButton() {
   const btn = document.querySelector('.sp-bulk-upload-btn');
-  if (!btn) return;
+  const group = document.getElementById('kc-dir-upload-group');
+  if (!btn || !group) return;
   if (btn.dataset.uploading === 'true') return;
-  // Hide entirely while a delete-confirm is pending: the clear bar then shows
-  // only the "Really delete…?" prompt + check button.
-  const bar = document.querySelector('.sp-clear-bar');
-  if (bar && bar.classList.contains('confirm-pending')) {
-    btn.style.display = 'none';
-    return;
-  }
   const hasSelection = _kcSelectedCardIds.size >= 1;
-  btn.style.display = 'inline-flex';
-  btn.classList.toggle('is-inactive', !hasSelection);
-  btn.setAttribute('aria-disabled', hasSelection ? 'false' : 'true');
+  // PHASE_UPLOAD_FORMAT: an open menu inside a collapsing group would be clipped mid-air.
+  if (!hasSelection) _closeUploadFormatMenu();
+  group.classList.toggle('is-hidden', !hasSelection);
+  group.setAttribute('aria-hidden', hasSelection ? 'false' : 'true');
+  btn.tabIndex = hasSelection ? 0 : -1;
+  const fmtBtn = document.getElementById('kc-upload-format-btn');
+  if (fmtBtn) fmtBtn.tabIndex = hasSelection ? 0 : -1;
 }
 
 // Upload every currently-selected card to the active destination. Immediate
@@ -1136,11 +1138,7 @@ function attachBulkUploadHandler() {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (btn.disabled) return; // uploading: the spinner owns the button
-    // Inactive (no selection): guide the user instead of uploading nothing.
-    if (_kcSelectedCardIds.size === 0) {
-      showKcToast('Select at least one clip to upload', 'success');
-      return;
-    }
+    if (_kcSelectedCardIds.size === 0) return;
     executeUploadSelected();
   });
 }

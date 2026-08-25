@@ -343,6 +343,22 @@
       color: #6b7280;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
+    /* PHASE_UPLOAD_FORMAT: narrower than the shared 90px, to sit beside the upload
+       button within the same total width. Scoped by id so Clip Size and Clip mode keep
+       theirs. The padding and the caret's margin are tightened too: at 58px with the
+       shared 6px padding and 6px caret margin the label had about 30px, and 'WEBP' needs
+       about 34. */
+    #kc-upload-format-btn {
+      width: 58px;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+    #kc-upload-format-btn::after {
+      margin-left: 2px;
+    }
+    #kc-upload-format-wrap {
+      margin-left: 0;
+    }
     .kc-dropdown-btn-label {
       flex: 1;
       text-align: center;
@@ -422,39 +438,11 @@
     .sp-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; cursor: pointer; }
     .sp-check input { margin: 0; accent-color: #BC13FE; cursor: pointer; }
     /* === END PHASE_CLIP_SIZE === */
-    @media (prefers-color-scheme: dark) {
-      .kc-dir-container {
-        border-bottom-color: rgba(255, 255, 255, 0.06);
-        background: rgba(255, 255, 255, 0.02);
-      }
-      .kc-dir-folder-btn {
-        border-color: rgba(255, 255, 255, 0.12);
-        color: #9ca3af;
-      }
-      .kc-dropdown-btn {
-        border-color: rgba(255, 255, 255, 0.12);
-        color: #9ca3af;
-      }
-      .kc-dropdown-menu {
-        background: var(--bg-primary, #1a1a1a);
-        border-color: rgba(255, 255, 255, 0.12);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      }
-      .kc-dropdown-menu-item {
-        color: #9ca3af;
-      }
-      .kc-dropdown-menu-item-selected {
-        color: var(--accent);
-      }
-      /* === PHASE_CARD_MULTISELECT === */
-      .data-card.kc-card-selected {
-        background: rgba(188, 19, 254, 0.14);
-      }
-      .sp-clear-bar.confirm-pending .sp-clear-confirm-text {
-        color: var(--accent);
-      }
-      /* === END PHASE_CARD_MULTISELECT === */
-    }
+    /* The side panel has no dark mode. A partial one lived here: it painted 12%-white
+       borders and near-white backgrounds onto surfaces that stayed light, because
+       html/body carry #fafafa with no dark rule — so on a dark system the controls simply
+       lost their outlines. Doing it properly means the cards, the setting rows, the
+       directory list and the toasts as well, which is its own piece of work. */
 
     /* ── Directory list ── */
     #sp-directory-list {
@@ -1324,7 +1312,29 @@
     /* === END PHASE_CARD_MULTISELECT === */
 
     /* === PHASE_BULK_UPLOAD === */
+    /* PHASE_BULK_UPLOAD: 28px button + 4px gap + 58px dropdown = the 90px the dropdown
+       used to take on its own. */
+    .kc-dir-upload-group {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 90px;
+      opacity: 1;
+      transition: width 0.18s ease, opacity 0.18s ease, margin 0.18s ease;
+    }
+    /* ⚠️ overflow is hidden ONLY while collapsed. The format menu is absolutely
+       positioned below the dropdown and would be clipped away entirely if the group
+       clipped its children at all times. */
+    .kc-dir-upload-group.is-hidden {
+      width: 0;
+      margin-left: -8px;
+      opacity: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
     .sp-bulk-upload-btn {
+      flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1336,21 +1346,14 @@
       background: transparent;
       color: #A9A9AD;
       cursor: pointer;
-      transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+      transition: background-color 0.15s ease, color 0.15s ease;
     }
-    .sp-bulk-upload-btn:hover:not(:disabled):not(.is-inactive) {
+    .sp-bulk-upload-btn:hover:not(:disabled) {
       background: rgba(0, 0, 0, 0.05);
       color: var(--kc-accent, #BC13FE);
     }
     .sp-bulk-upload-btn:disabled {
       cursor: default;
-    }
-    /* Inactive (no card selected): muted but still clickable so a click can
-       surface a "select a clip first" toast. Do NOT use the native disabled
-       attribute here — that would swallow the click. */
-    .sp-bulk-upload-btn.is-inactive {
-      opacity: 0.3;
-      cursor: pointer;
     }
     .sp-bulk-upload-icon {
       width: 18px;
@@ -1484,14 +1487,33 @@
           </svg>
           <span class="kc-dir-folder-label" id="kc-dir-folder-label">Select save location</span>
         </button>
-        <!-- === PHASE_UPLOAD_FORMAT === -->
-        <div class="kc-dropdown-wrap" id="kc-upload-format-wrap">
-          <button type="button" id="kc-upload-format-btn" class="kc-dropdown-btn"
-                  title="Upload image format" aria-label="Select upload image format"
-                  aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Original</span></button>
-          <ul id="kc-upload-format-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
+        <!-- PHASE_BULK_UPLOAD: the button and the format dropdown appear and vanish
+             together, and the pair is exactly as wide as the dropdown alone used to be,
+             so the folder button gives up the same space it always did. -->
+        <div class="kc-dir-upload-group is-hidden" id="kc-dir-upload-group" aria-hidden="true">
+          <!-- === PHASE_BULK_UPLOAD === -->
+          <button type="button" class="sp-bulk-upload-btn" tabindex="-1"
+                  aria-label="Upload selected clips to folder">
+            <svg class="sp-bulk-upload-icon" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span class="sp-bulk-upload-spinner" hidden></span>
+          </button>
+          <!-- === PHASE_UPLOAD_FORMAT === -->
+          <div class="kc-dropdown-wrap" id="kc-upload-format-wrap">
+            <button type="button" id="kc-upload-format-btn" class="kc-dropdown-btn" tabindex="-1"
+                    title="Upload image format" aria-label="Select upload image format"
+                    aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Orig</span></button>
+            <ul id="kc-upload-format-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
+          </div>
+          <!-- === END PHASE_UPLOAD_FORMAT === -->
         </div>
-        <!-- === END PHASE_UPLOAD_FORMAT === -->
+        <!-- === END PHASE_BULK_UPLOAD === -->
       </div>
 
       <!-- Directory list -->
@@ -1518,21 +1540,6 @@
       <div id="sp-itemlist-clip">
         <div class="sp-clear-bar">
           <span class="sp-clear-confirm-text" style="display:none;"></span>
-          <!-- === PHASE_BULK_UPLOAD === Bulk-upload selected cards. Hidden until
-               ≥1 card is selected (see _kcUpdateBulkUploadButton). === -->
-          <button type="button" class="sp-bulk-upload-btn is-inactive" aria-disabled="true"
-                  aria-label="Upload selected clips to folder">
-            <svg class="sp-bulk-upload-icon" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round"
-                 aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <span class="sp-bulk-upload-spinner" hidden></span>
-          </button>
-          <!-- === END PHASE_BULK_UPLOAD === -->
           <button type="button" class="sp-clear-btn" disabled
                   aria-label="Clear all clips in dock list">
             <svg class="sp-clear-icon-trash" viewBox="0 0 24 24"
