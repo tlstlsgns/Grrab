@@ -4072,7 +4072,15 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
       return await (await fetch(res.dataUrl)).blob();
     };
 
-    const p = mod.showEraseOverlay(pipelinePromise, inpaintFn, commitFn, bindStatus, bgFn, upscaleFn);
+    // PHASE_SR_LIMIT: the overlay needs the provider's ceiling to know when a source is
+    // already larger than an upscale could produce. Passed as a function, not a value, so
+    // opening the overlay does not wait on the offscreen document — and the lookup warms
+    // the session the Upscale button would need anyway.
+    const srMaxPixelsFn = async () => {
+      try { return await _kcGetSrMaxPixels(); } catch (_) { return 0; }
+    };
+
+    const p = mod.showEraseOverlay(pipelinePromise, inpaintFn, commitFn, bindStatus, bgFn, upscaleFn, srMaxPixelsFn);
     _kcEraseCancel = p.cancelExternal || null;
     const out = await p;
     if (out.action === 'cancel') {

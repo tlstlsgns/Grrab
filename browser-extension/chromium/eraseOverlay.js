@@ -16,6 +16,10 @@ const KC_REMOVING_BG_LABEL = 'Removing BG…';
 // share one: both take something away, and two near-identical words would read as a
 // distinction that is not there.
 const KC_BUSY_UPSCALING = 'Upscaling…';
+// PHASE_SR_LIMIT: shown on hover when the button is disabled for size. A pass shrinks an
+// oversized source to the provider's ceiling first, so past ceiling x 16 the result comes
+// back smaller than what went in.
+const KC_UPSCALE_LIMIT_HINT = 'Too large to upscale';
 const KC_BUSY_REMOVING = 'Removing…';
 const KC_ICON_BOX = '<svg style="display:block" width="16" height="16" viewBox="0 0 122 123" fill="none" xmlns="http://www.w3.org/2000/svg"> <g clip-path="url(#clip_kc_icon_box)"> <mask id="mask_kc_icon_box" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="122" height="123"> <path d="M121.65 0H0V122.88H121.65V0Z" fill="white"/> </mask> <g mask="url(#mask_kc_icon_box)"><path d="M1.95953 0.278813L1.90953 0.298813L1.87953 0.318813C1.80953 0.348813 1.74953 0.378813 1.68953 0.418813L1.66953 0.428813L1.60953 0.458813L1.57953 0.478813C1.54953 0.498813 1.51953 0.518813 1.48953 0.538813L1.44953 0.568813H1.43953L1.40953 0.588813L1.37953 0.608813L1.33953 0.638813L1.28953 0.678813H1.27953C0.729527 1.10881 0.329527 1.68881 0.139527 2.35881C0.0295275 2.69881 -0.0104725 3.06881 -0.00047256 3.42881V5.47881C0.0195275 8.02881 2.77953 9.59881 4.97953 8.27881C5.64953 7.86881 6.12953 7.25881 6.37953 6.54881H9.83953C12.3895 6.52881 13.9595 3.76881 12.6395 1.56881C12.0295 0.588813 10.9995 0.00881356 9.83953 -0.00118644H3.41953C2.93953 -0.0211865 2.43953 0.0688135 1.95953 0.278813ZM101.11 122.859C101.2 122.879 101.3 122.879 101.4 122.859C101.43 122.839 101.47 122.819 101.5 122.809L111.26 117.179C111.35 117.119 111.41 117.019 111.44 116.919C111.46 116.839 111.46 116.759 111.43 116.709L100.73 98.0588C100.64 97.8988 100.58 97.7288 100.54 97.5488C100.35 96.6088 100.95 95.6988 101.89 95.5088L117.59 92.2588C117.61 92.2488 117.63 92.2488 117.65 92.2488C119 91.9688 120.15 91.4888 120.91 90.8888C121.28 90.5988 121.53 90.2988 121.63 90.0188C121.69 89.8388 121.66 89.6288 121.54 89.3888C121.32 88.9788 120.88 88.5188 120.15 88.0288L66.7895 51.4888L71.7395 115.949C71.8095 116.829 71.9795 117.439 72.2195 117.829C72.3595 118.059 72.5295 118.179 72.7195 118.219C73.0095 118.279 73.3895 118.209 73.8295 118.039C74.7295 117.679 75.7095 116.919 76.6395 115.889L87.3495 103.869C87.4695 103.739 87.6095 103.619 87.7795 103.519C88.6095 103.039 89.6695 103.319 90.1495 104.149L100.95 122.739C100.97 122.799 101.03 122.839 101.11 122.859ZM1.60953 0.458813C1.56953 0.488813 1.52953 0.508813 1.48953 0.538813L1.60953 0.458813ZM6.55953 18.5888C6.53953 16.0388 3.77953 14.4688 1.57953 15.7888C0.589527 16.3988 0.00952744 17.4288 -0.00047256 18.5888V25.1388C0.0195275 27.6888 2.77953 29.2588 4.97953 27.9388C5.96953 27.3288 6.54953 26.2988 6.55953 25.1388V18.5888ZM6.55953 38.2588C6.53953 35.7088 3.77953 34.1388 1.57953 35.4588C0.589527 36.0588 0.00952744 37.0988 -0.00047256 38.2588V44.8088C0.0195275 47.3588 2.77953 48.9288 4.97953 47.6088C5.96953 46.9988 6.54953 45.9688 6.55953 44.8088V38.2588ZM6.55953 57.9188C6.53953 55.3688 3.77953 53.7988 1.57953 55.1188C0.589527 55.7288 0.00952744 56.7588 -0.00047256 57.9188V64.4788C0.0195275 67.0288 2.77953 68.5988 4.97953 67.2788C5.96953 66.6688 6.54953 65.6388 6.55953 64.4788V57.9188ZM6.55953 77.5888C6.53953 75.0388 3.77953 73.4688 1.57953 74.7888C0.589527 75.3988 0.00952744 76.4288 -0.00047256 77.5888V84.1388C0.0195275 86.6888 2.77953 88.2588 4.97953 86.9388C5.96953 86.3288 6.54953 85.2988 6.55953 84.1388V77.5888ZM6.55953 97.2488C6.53953 94.6988 3.77953 93.1288 1.57953 94.4488C0.589527 95.0588 0.00952744 96.0888 -0.00047256 97.2488V103.809C0.0195275 106.359 2.77953 107.929 4.97953 106.609C5.96953 105.999 6.54953 104.969 6.55953 103.809V97.2488ZM13.1295 103.789C10.5795 103.809 9.00953 106.569 10.3295 108.769C10.9395 109.759 11.9695 110.339 13.1295 110.349H19.6795C22.2295 110.329 23.7995 107.569 22.4795 105.369C21.8695 104.379 20.8395 103.799 19.6795 103.789H13.1295ZM32.7895 103.789C30.2395 103.809 28.6695 106.569 29.9895 108.769C30.5995 109.759 31.6295 110.339 32.7895 110.349H39.3495C41.8995 110.329 43.4695 107.569 42.1495 105.369C41.5395 104.379 40.5095 103.799 39.3495 103.789H32.7895ZM52.4595 103.789C49.9095 103.809 48.3395 106.569 49.6595 108.769C50.2695 109.759 51.2995 110.339 52.4595 110.349H59.0195C61.5695 110.329 63.1395 107.569 61.8195 105.369C61.2095 104.379 60.1795 103.799 59.0195 103.789H52.4595ZM103.79 63.3588C103.81 65.9088 106.57 67.4788 108.77 66.1588C109.76 65.5488 110.34 64.5188 110.35 63.3588V56.7988C110.33 54.2488 107.57 52.6788 105.37 53.9988C104.38 54.6088 103.8 55.6388 103.79 56.7988V63.3588ZM103.79 43.6988C103.81 46.2488 106.57 47.8188 108.77 46.4988C109.76 45.8888 110.34 44.8588 110.35 43.6988V37.1388C110.33 34.5888 107.57 33.0188 105.37 34.3388C104.38 34.9488 103.8 35.9788 103.79 37.1388V43.6988ZM103.79 24.0288C103.81 26.5788 106.57 28.1488 108.77 26.8288C109.76 26.2188 110.34 25.1888 110.35 24.0288V17.4788C110.33 14.9288 107.57 13.3588 105.37 14.6788C104.38 15.2888 103.8 16.3188 103.79 17.4788V24.0288ZM104.63 6.55881C105.62 7.65881 107.32 8.04881 108.77 7.16881C109.76 6.55881 110.34 5.52881 110.35 4.36881V3.41881C110.38 2.80881 110.23 2.16881 109.88 1.57881C109.27 0.588813 108.24 0.00881356 107.08 -0.00118644H101.61C99.0595 0.0188135 97.4895 2.77881 98.8095 4.97881C99.4195 5.96881 100.45 6.54881 101.61 6.55881H104.63ZM88.4995 6.55881C91.0495 6.53881 92.6195 3.77881 91.2995 1.57881C90.6895 0.588813 89.6595 0.00881356 88.4995 -0.00118644H81.9495C79.3995 0.0188135 77.8295 2.77881 79.1495 4.97881C79.7595 5.96881 80.7895 6.54881 81.9495 6.55881H88.4995ZM68.8295 6.55881C71.3795 6.53881 72.9495 3.77881 71.6295 1.57881C71.0195 0.588813 69.9895 0.00881356 68.8295 -0.00118644H62.2695C59.7195 0.0188135 58.1495 2.77881 59.4695 4.97881C60.0795 5.96881 61.1095 6.54881 62.2695 6.55881H68.8295ZM49.1695 6.55881C51.7195 6.53881 53.2895 3.77881 51.9695 1.57881C51.3595 0.588813 50.3295 0.00881356 49.1695 -0.00118644H42.6095C40.0595 0.0188135 38.4895 2.77881 39.8095 4.97881C40.4195 5.96881 41.4495 6.54881 42.6095 6.55881H49.1695ZM29.4995 6.55881C32.0495 6.53881 33.6195 3.77881 32.2995 1.57881C31.6995 0.588813 30.6595 0.00881356 29.4995 -0.00118644H22.9495C20.3995 0.0188135 18.8295 2.77881 20.1495 4.97881C20.7595 5.96881 21.7895 6.54881 22.9495 6.55881H29.4995Z" fill="currentColor"/> </g> </g> <defs> <clipPath id="clip_kc_icon_box"> <rect width="122" height="123" fill="white"/> </clipPath> </defs> </svg>';
 const KC_ICON_BRUSH = '<svg style="display:block" width="16" height="16" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg"> <g clip-path="url(#clip_kc_icon_brush)"> <path d="M260.969 483.344C198.281 487.375 141.391 511.25 109.109 596.313C105.438 606.016 96.6094 611.906 86.3125 611.906C68.9531 611.906 15.2812 568.672 -0.015625 558.234C-3.49246e-10 686.906 59.2656 800 200 800C318.531 800 400 731.609 400 612.203C400 607.344 398.984 602.703 398.484 597.937L260.969 483.344ZM715.453 0C691.766 0 669.563 10.4844 652.625 25.7031C333.234 311.016 300 317.719 300 401.703C300 423.109 305.078 443.516 313.641 462.172L413.359 545.266C424.625 548.078 436.234 550 448.344 550C545.391 550 601.641 478.953 778.281 149.281C789.813 126.859 800 102.641 800 77.4219C800 32.25 759.375 0 715.453 0Z" fill="currentColor"/> <path d="M779.18 711.214H572.594C572.239 710.469 572 709.647 572 708.761C572 707.335 572.581 706.058 573.453 705.046H700.845C709.983 705.046 717.373 697.666 717.373 688.517C717.373 679.392 709.983 672 700.845 672L421.917 672C422.398 696.061 415.486 720.109 401.181 740.416C383.653 765.298 358.659 785.592 329 799.847L732.83 799.847C743.066 799.847 751.367 791.544 751.367 781.297C751.367 771.049 743.064 762.746 732.83 762.746H646.28C641.125 762.746 636.941 758.577 636.941 753.421C636.941 751.474 637.675 749.807 638.659 748.316H779.181C789.43 748.316 797.745 740.027 797.745 729.764C797.744 719.518 789.428 711.214 779.18 711.214Z" fill="currentColor"/> </g> <defs> <clipPath id="clip_kc_icon_brush"> <rect width="800" height="800" fill="white"/> </clipPath> </defs> </svg>';
@@ -36,9 +40,10 @@ let pointerInside = false;
  * @param {(setter: (text: string) => void) => void} [bindStatus]
  * @param {(blob: Blob) => Promise<Blob|{error: string}|null>} [bgFn]
  * @param {(blob: Blob) => Promise<Blob|null>} [upscaleFn]
+ * @param {() => Promise<number>} [srMaxPixelsFn]
  * @returns {Promise<{ action: 'done'|'cancel', blob: Blob|null, modified?: boolean, bgRemoved?: boolean, erased?: boolean, upscaled?: boolean }>}
  */
-export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, upscaleFn) {
+export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, upscaleFn, srMaxPixelsFn) {
   let finishRef = null;
   const p = new Promise((resolve) => {
     statusText = KC_ERASE_DEFAULT_STATUS;
@@ -61,6 +66,10 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     // PHASE_SR_BUTTON: kept in step with history — every history.push pushes here too,
     // and undoLast pops all of them together, so Undo restores the flag that went with
     // the image being restored.
+    // PHASE_SR_LIMIT: the largest output a pass can produce, in pixels — the provider's
+    // input ceiling times sixteen. 0 means not yet known, and while it is 0 the button
+    // stays enabled: settling a moment late is better than flickering on every open.
+    let srMaxOutPx = 0;
     let srApplied = false;
     const srHistory = [];
     let busy = false;
@@ -567,7 +576,13 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     const bottomRightGroup = document.createElement('div');
     bottomRightGroup.className = 'kc-erase-bottom-right';
     bottomRightGroup.style.cssText = groupStyle;
-    bottomRightGroup.append(btnUpscale, btnDone);
+    // PHASE_SR_LIMIT: a disabled button gets no pointer events, so its own title would
+    // never show. The wrapper stays interactive and carries the tooltip instead.
+    const upscaleWrap = document.createElement('span');
+    upscaleWrap.className = 'kc-erase-upscale-wrap';
+    upscaleWrap.style.cssText = 'box-sizing:border-box;display:inline-flex;align-items:center;margin:0;padding:0;border:none;background:transparent';
+    upscaleWrap.append(btnUpscale);
+    bottomRightGroup.append(upscaleWrap, btnDone);
     bottomBar.append(bottomLeftGroup, bottomRightGroup);
     stageWrap.append(toolbar, stage, statusEl, bottomBar);
 
@@ -738,6 +753,12 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     setDoneButton(KC_ICON_CLIP, KC_CLIP_LABEL);
     setBgButton(KC_ICON_REMOVEBG, 'Remove BG');
 
+    // PHASE_SR_LIMIT: false while the ceiling is unknown, so the button starts usable.
+    function _srcExceedsLimit() {
+      if (!srMaxOutPx || !srcW || !srcH) return false;
+      return (srcW * srcH) > srMaxOutPx;
+    }
+
     function updateUi() {
       if (loading) {
         statusEl.style.display = 'block';
@@ -804,7 +825,13 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
           continue;
         }
         if (btn === btnUpscale) {
-          setButtonDisabled(btnUpscale, busy || srApplied);
+          // PHASE_SR_LIMIT: past srMaxOutPx an upscale returns less than it was given —
+          // the source is shrunk to the ceiling and only that fraction is enlarged. The
+          // hint is set on every pass so it cannot outlive the reason: an undo restores a
+          // smaller image, and the button becomes usable again.
+          const overLimit = _srcExceedsLimit();
+          setButtonDisabled(btnUpscale, busy || srApplied || overLimit);
+          upscaleWrap.title = overLimit ? KC_UPSCALE_LIMIT_HINT : '';
           continue;
         }
         if (btn === btnDone) {
@@ -1263,6 +1290,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     // exactly as the clip pipeline does it.
     async function runUpscale() {
       if (busy || loading || srApplied || !current || !upscaleFn) return;
+      if (_srcExceedsLimit()) return; // PHASE_SR_LIMIT
       busy = true;
       statusOverride = '';
       showBusyOverlay(KC_BUSY_UPSCALING); // PHASE_BUSY_OVERLAY
@@ -1572,6 +1600,15 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     updateModeToggleUi();
     try { root.focus(); } catch (_) {}
     updateUi();
+
+      if (typeof srMaxPixelsFn === 'function') {
+        srMaxPixelsFn().then((px) => {
+          // PHASE_SR_LIMIT: x16 because the model is 4x on each axis.
+          if (settled) return;
+          const n = Number(px) || 0;
+          if (n > 0) { srMaxOutPx = n * 16; updateUi(); }
+        }).catch(() => {});
+      }
 
     Promise.resolve(blob)
       .then(async (resolvedBlob) => {
