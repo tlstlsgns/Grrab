@@ -450,7 +450,7 @@
      matched by eye: backdrop L91, tools L444-454, hint L369, checkerboard L139-142,
      spinner ring L173. */
   .hero-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;
-    justify-content:center;background:rgba(0,0,0,0.92);
+    justify-content:center;background:rgba(0,0,0,0.82);
     opacity:0;pointer-events:none;transition:opacity .3s ease;}
   .hero-overlay--on{opacity:1;}
   /* aspect-ratio pins the figure to the image's own 2000x1333. Without it the box
@@ -490,23 +490,71 @@
      The extension has NO pressed state — it disables with opacity 0.45 instead. This
      grey is kept deliberately, because a demo needs the click to be legible. */
   .hero-overlay-btn--press{background:#8A8A8E;border-color:transparent;}
-  .hero-spinner{position:absolute;left:50%;top:50%;z-index:3;
-    width:calc(28 * var(--hero-btn-u));height:calc(28 * var(--hero-btn-u));
-    margin:calc(-14 * var(--hero-btn-u)) 0 0 calc(-14 * var(--hero-btn-u));
-    border:calc(3 * var(--hero-btn-u)) solid rgba(255,255,255,0.2);
-    border-top-color:#BC13FE;border-radius:50%;
-    display:none;animation:heroSpin .8s linear infinite;}
-  .hero-spinner--on{display:block;}
+    /* The extension dims the whole stage while a model runs and captions the ring, so the
+       pause explains itself. The overlay covers the figure rather than the image, which is
+       the same box here. */
+    .hero-busy{position:absolute;inset:0;z-index:3;display:none;
+      flex-direction:column;align-items:center;justify-content:center;
+      gap:calc(14 * var(--hero-u));
+      background:rgba(0,0,0,0.45);pointer-events:none;}
+    .hero-busy--on{display:flex;}
+    .hero-busy-ring{width:calc(28 * var(--hero-btn-u));height:calc(28 * var(--hero-btn-u));
+      border:calc(3 * var(--hero-btn-u)) solid rgba(255,255,255,0.2);
+      border-top-color:#BC13FE;border-radius:50%;flex:0 0 auto;
+      animation:heroSpin .8s linear infinite;}
+    .hero-busy-text{font-family:var(--font-sans);font-weight:600;line-height:1.4;
+      font-size:calc(14 * var(--hero-btn-u));color:#ffffff;white-space:nowrap;}
+    /* The extension draws a bar on the wipe's edge so the change is legible when before
+       and after are the same size on screen. Row B has had one since it was built; this
+       is the hero's, wired the same way — hidden until the reveal, then travelling with
+       the clip edge over the same 1.4s. */
+    .hero-wipe{position:absolute;inset:0;z-index:3;display:none;
+      overflow:hidden;pointer-events:none;}
+    .hero-wipe--on{display:block;}
+    /* Travels by transform rather than left. box-shadow is not composited, so animating
+       a layout property repaints the glow every frame across the figure's width and it
+       visibly stutters; a transform puts the bar on its own layer and the shadow is
+       rasterised once. --x is the fraction of the figure it has crossed. */
+    .hero-wipe-bar{position:absolute;top:0;bottom:0;left:0;
+      width:calc(3 * var(--hero-u));background:#BC13FE;
+      --x:0%;transform:translateX(calc(var(--x) - 50%));
+      pointer-events:none;will-change:transform;
+      box-shadow:0 0 calc(12 * var(--hero-u)) rgba(188,19,254,0.9);}
+    .hero-wipe--on .hero-wipe-bar{transition:transform 1.4s ease;}
   @keyframes heroSpin{to{transform:rotate(360deg);}}
-  .hero-overlay-act{position:absolute;top:calc(100% + 12 * var(--hero-btn-u));right:0;
-    display:inline-flex;align-items:center;
-    padding:calc(6 * var(--hero-btn-u)) calc(11 * var(--hero-btn-u));
-    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--hero-btn-u));
-    font-family:var(--font-sans);font-weight:600;line-height:1.4;
-    font-size:calc(11 * var(--hero-btn-u));color:#f0f0f0;white-space:nowrap;
-    /* Visible whenever the editor is: the extension shows Clip before any selection is
-       made. --in and the code that toggles it are now inert but left alone. */
-    opacity:1;transition:opacity .35s ease;}
+    /* The extension's editor puts four buttons on one row under the image: Back and
+       Refresh at the left, Upscale beside Clip at the right. The bar spans the figure so
+       the two groups sit at its edges, and Clip stays where it always was — which is why
+       the cursor still finds it by measuring rather than by a fixed number. */
+    .hero-overlay-bar{position:absolute;top:calc(100% + 12 * var(--hero-btn-u));
+      left:0;right:0;display:flex;align-items:center;justify-content:space-between;}
+    .hero-overlay-bar-left,
+    .hero-overlay-bar-right{display:inline-flex;align-items:center;
+      gap:calc(8 * var(--hero-btn-u));}
+
+    .hero-overlay-act{position:static;
+      display:inline-flex;align-items:center;gap:calc(5 * var(--hero-btn-u));
+      padding:calc(6 * var(--hero-btn-u)) calc(11 * var(--hero-btn-u));
+      background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--hero-btn-u));
+      font-family:var(--font-sans);font-weight:600;line-height:1.4;
+      font-size:calc(11 * var(--hero-btn-u));color:#f0f0f0;white-space:nowrap;
+      opacity:1;transition:opacity .35s ease;}
+    /* Back, Refresh and Upscale are shown but not used by the demo. The extension greys
+       a button it cannot act on rather than hiding it, so the row keeps its shape. */
+    .hero-overlay-act--ghost{background:#333333;border-color:#555555;opacity:.55;}
+    /* Every bottom-bar icon is white, ghost or not — the extension's Clip icon is white
+       too. The landing SVGs ship at #E200FF for the Row B cards, which are unfiltered;
+       here the filter overrides that. */
+    .hero-overlay-act img{width:calc(11 * var(--hero-btn-u));
+      height:calc(11 * var(--hero-btn-u));display:block;filter:brightness(0) invert(1);}
+    /* Back and Refresh are only meaningful once something has been done to the image:
+       the extension shows them when there is history. They start hidden and fade in when
+       the wipe lands. visibility rather than display, so the bar's layout — and Clip's
+       position, which the cursor measures — never moves. */
+    .hero-overlay-act--late{opacity:0;visibility:hidden;
+      transition:opacity .35s ease,visibility 0s linear .35s;}
+    .hero-overlay-act--late.hero-overlay-act--in{opacity:.55;visibility:visible;
+      transition:opacity .35s ease,visibility 0s;}
   /* Sits opposite the action button, on the same line above the image. The two share
      the 12-unit offset so they stay level however the buttons are scaled. */
   .hero-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--hero-btn-u));
@@ -657,7 +705,7 @@
     opacity:0;transition:opacity .3s ease;}
   .rowB-tip--in{opacity:1;transition:none;}
   .rowB-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;
-    justify-content:center;background:rgba(0,0,0,0.92);
+    justify-content:center;background:rgba(0,0,0,0.82);
     opacity:0;pointer-events:none;transition:opacity .3s ease;}
   .rowB-overlay--on{opacity:1;}
   .rowB-overlay-figure{position:relative;display:flex;margin:0;
@@ -691,21 +739,57 @@
      held down, so both classes are present and the later rule has to win.
      border-color rather than border:none, so the box does not shrink by 2px on press. */
   .rowB-overlay-btn--press{background:#8A8A8E;border-color:transparent;}
-  .rowB-spinner{position:absolute;left:50%;top:50%;z-index:3;
-    width:calc(28 * var(--rowB-u));height:calc(28 * var(--rowB-u));
-    margin:calc(-14 * var(--rowB-u)) 0 0 calc(-14 * var(--rowB-u));
-    border:calc(3 * var(--rowB-u)) solid rgba(255,255,255,0.2);
-    border-top-color:#BC13FE;border-radius:50%;
-    display:none;animation:heroSpin .8s linear infinite;}
-  .rowB-spinner--on{display:block;}
-  .rowB-overlay-act{position:absolute;top:calc(100% + 12 * var(--rowB-u));
-    display:inline-flex;align-items:center;
-    padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
-    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
-    font-family:var(--font-sans);font-weight:600;line-height:1.4;
-    font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
-    opacity:1;transition:opacity .35s ease;}
-  .rowB-overlay-act--clip{right:0;}
+    /* The extension dims the whole stage while a model runs and captions the ring, so the
+       pause explains itself. The overlay covers the figure rather than the image, which is
+       the same box here. */
+    .rowB-busy{position:absolute;inset:0;z-index:3;display:none;
+      flex-direction:column;align-items:center;justify-content:center;
+      gap:calc(14 * var(--rowB-u));
+      background:rgba(0,0,0,0.45);pointer-events:none;}
+    .rowB-busy--on{display:flex;}
+    .rowB-busy-ring{width:calc(28 * var(--rowB-u));height:calc(28 * var(--rowB-u));
+      border:calc(3 * var(--rowB-u)) solid rgba(255,255,255,0.2);
+      border-top-color:#BC13FE;border-radius:50%;flex:0 0 auto;
+      animation:heroSpin .8s linear infinite;}
+    .rowB-busy-text{font-family:var(--font-sans);font-weight:600;line-height:1.4;
+      font-size:calc(14 * var(--rowB-u));color:#ffffff;white-space:nowrap;}
+    /* The extension's editor puts four buttons on one row under the image: Back and
+       Refresh at the left, Upscale beside Clip at the right. The bar spans the figure so
+       the two groups sit at its edges, and Clip stays where it always was — which is why
+       the cursor still finds it by measuring rather than by a fixed number. */
+    .rowB-overlay-bar{position:absolute;top:calc(100% + 12 * var(--rowB-u));
+      left:0;right:0;display:flex;align-items:center;justify-content:space-between;}
+    .rowB-overlay-bar-left,
+    .rowB-overlay-bar-right{display:inline-flex;align-items:center;
+      gap:calc(8 * var(--rowB-u));}
+
+    .rowB-overlay-act{position:static;
+      display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));
+      padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
+      background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
+      font-family:var(--font-sans);font-weight:600;line-height:1.4;
+      font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
+      opacity:1;transition:opacity .35s ease;}
+    /* Back, Refresh and Upscale are shown but not used by the demo. The extension greys
+       a button it cannot act on rather than hiding it, so the row keeps its shape. */
+    .rowB-overlay-act--ghost{background:#333333;border-color:#555555;opacity:.55;}
+    /* The hero has these for Clip; Row B never got them because nothing pressed a bar
+       button until the upscale card. */
+    .rowB-overlay-act--hover{background:#BC13FE;border-color:transparent;}
+    .rowB-overlay-act--press{background:#8A8A8E;border-color:transparent;}
+    /* Every bottom-bar icon is white, ghost or not — the extension's Clip icon is white
+       too. The landing SVGs ship at #E200FF for the Row B cards, which are unfiltered;
+       here the filter overrides that. */
+    .rowB-overlay-act img{width:calc(11 * var(--rowB-u));
+      height:calc(11 * var(--rowB-u));display:block;filter:brightness(0) invert(1);}
+    /* Back and Refresh are only meaningful once something has been done to the image:
+       the extension shows them when there is history. They start hidden and fade in when
+       the wipe lands. visibility rather than display, so the bar's layout — and Clip's
+       position, which the cursor measures — never moves. */
+    .rowB-overlay-act--late{opacity:0;visibility:hidden;
+      transition:opacity .35s ease,visibility 0s linear .35s;}
+    .rowB-overlay-act--late.rowB-overlay-act--in{opacity:.55;visibility:visible;
+      transition:opacity .35s ease,visibility 0s;}
   .rowB-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--rowB-u));
     display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));}
   .rowB-tool{display:inline-flex;align-items:center;justify-content:center;
@@ -720,7 +804,7 @@
     font-size:calc(11 * var(--rowB-u));color:#ffffff;white-space:nowrap;}
   .rowB-hint--off{display:none;}
   .rowB-slider-clip{position:absolute;inset:0;z-index:3;display:none;
-    overflow:hidden;pointer-events:none;border-radius:calc(8 * var(--rowB-u));}
+    overflow:hidden;pointer-events:none;}
   .rowB-slider-handle{position:absolute;top:0;bottom:0;left:0;
     width:calc(2 * var(--rowB-u));background:var(--accent-bright);
     transform:translateX(-50%);display:flex;pointer-events:none;
@@ -743,6 +827,13 @@
   .rowB-slider-clip--wipe{display:block;}
   .rowB-slider-clip--wipe .rowB-slider-knob{display:none;}
   .rowB-slider-clip--wipe .rowB-slider-handle{transition:left 1.4s ease;}
+    /* Matches the hero's bar and the extension's: 3 units of #BC13FE with a purple glow.
+       Only in the wipe state — the same element is the handle the visitor drags in live
+       mode, and that keeps its own look. */
+    .rowB-slider-clip--wipe .rowB-slider-handle{
+      width:calc(3 * var(--rowB-u));background:#BC13FE;
+      box-shadow:0 0 calc(12 * var(--rowB-u)) rgba(188,19,254,0.9);
+      will-change:left;}
   .rowB-marquee{position:absolute;left:0;top:0;width:0;height:0;display:none;z-index:1;
     border:1px solid #BC13FE;background:rgba(188,19,254,.18);pointer-events:none;}
   .rowB-marquee--on{display:block;}
@@ -821,13 +912,6 @@
     padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);
     font-weight:600;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#737A88;white-space:nowrap;}
   .sidepanel-clip-sep{width:100%;height:0.42px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
-  /* The extension leaves this a native checkbox with only accent-color set, so there is
-     nothing to copy for the unchecked look. Border matches .sidepanel-kbd, the nearest
-     bordered control in this mockup. */
-  .sidepanel-check{display:flex;align-items:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
-  .sidepanel-check-box{width:calc(8.31 / var(--rowD-basis) * 100cqh);height:calc(8.31 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(1.39 / var(--rowD-basis) * 100cqh);
-    background:#FFFFFF;flex-shrink:0;display:block;}
-  .sidepanel-check-label{font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#6b7280;white-space:nowrap;}
   .sidepanel-size-toggle{display:flex;align-items:center;justify-content:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);
     width:calc(65.11 / var(--rowD-basis) * 100cqh);padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);}
   .sidepanel-size-value{flex:1;font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;letter-spacing:-0.69px;
@@ -842,14 +926,24 @@
   .sidepanel-directory-icon{width:calc(12.47 / var(--rowD-basis) * 100cqh);height:calc(11.08 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
   .sidepanel-directory-name{font-weight:500;font-size:calc(11.08 / var(--rowD-basis) * 100cqh);line-height:1.2;letter-spacing:0.39px;
     color:var(--accent-bright);white-space:nowrap;}
-  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);
-    width:calc(65.11 / var(--rowD-basis) * 100cqh);height:100%;padding:0 calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+    /* v1.5.6 moved bulk saving into the directory bar. The button and the dropdown
+       together are exactly as wide as the dropdown alone used to be, so the folder pill
+       beside them keeps the space it had. */
+    .sidepanel-directory-group{display:flex;align-items:center;flex-shrink:0;
+      gap:calc(2.89 / var(--rowD-basis) * 100cqh);
+      width:calc(65.11 / var(--rowD-basis) * 100cqh);}
+    .sidepanel-download-btn{display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;width:calc(20.26 / var(--rowD-basis) * 100cqh);
+      height:calc(20.26 / var(--rowD-basis) * 100cqh);}
+    .sidepanel-download-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);
+      height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;}
+  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:calc(1.45 / var(--rowD-basis) * 100cqh);
+    width:calc(41.96 / var(--rowD-basis) * 100cqh);height:100%;padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(2.89 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
   .sidepanel-directory-file-type{flex:1;font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1.2;
     letter-spacing:-0.34px;color:#737A88;text-align:center;white-space:nowrap;}
   .sidepanel-gallery{display:flex;flex-direction:column;width:100%;flex:1;min-height:0;overflow:hidden;}
   .sidepanel-gallery-top{display:flex;align-items:center;justify-content:flex-end;gap:calc(6.93 / var(--rowD-basis) * 100cqh);
     padding:calc(5.54 / var(--rowD-basis) * 100cqh) calc(11.08 / var(--rowD-basis) * 100cqh);opacity:.2;flex-shrink:0;}
-  .sidepanel-upload-icon{width:calc(12.47 / var(--rowD-basis) * 100cqh);height:calc(12.47 / var(--rowD-basis) * 100cqh);display:block;}
   .sidepanel-delete-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(15.24 / var(--rowD-basis) * 100cqh);display:block;}
   .sidepanel-gallery-row{display:flex;flex-direction:column;width:100%;flex-shrink:0;}
   .sidepanel-gallery-time{display:flex;align-items:center;justify-content:center;gap:calc(11.08 / var(--rowD-basis) * 100cqh);
@@ -1570,8 +1664,23 @@
                 <span id="heroOverlayBtnLabel">Remove BG</span>
               </span>
               <span class="hero-marquee" id="heroMarquee" aria-hidden="true"></span>
-              <span class="hero-spinner" id="heroSpinner" aria-hidden="true"></span>
-              <span class="hero-overlay-act" id="heroActClip">Clip</span>
+              <span class="hero-wipe" id="heroWipe" aria-hidden="true">
+                <span class="hero-wipe-bar" id="heroWipeBar"></span>
+              </span>
+              <span class="hero-busy" id="heroBusy" aria-hidden="true">
+                <span class="hero-busy-ring"></span>
+                <span class="hero-busy-text" id="heroBusyText">Removing…</span>
+              </span>
+              <span class="hero-overlay-bar" aria-hidden="true">
+                <span class="hero-overlay-bar-left">
+                  <span class="hero-overlay-act hero-overlay-act--ghost hero-overlay-act--late" id="heroActBack"><img src="/assets/landing/icons/hero/icon_back.svg" alt="">Back</span>
+                  <span class="hero-overlay-act hero-overlay-act--ghost hero-overlay-act--late" id="heroActRefresh"><img src="/assets/landing/icons/hero/icon_refresh.svg" alt="">Refresh</span>
+                </span>
+                <span class="hero-overlay-bar-right">
+                  <span class="hero-overlay-act" id="heroActUpscale"><img src="/assets/landing/icons/hero/icon_upscale.svg" alt="">Upscale</span>
+                  <span class="hero-overlay-act" id="heroActClip"><img src="/assets/landing/icons/hero/icon_clip.svg" alt="">Clip</span>
+                </span>
+              </span>
             </figure>
           </div>
           <span class="hero-toast" id="heroToast" aria-hidden="true">
@@ -1697,6 +1806,10 @@
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_erase.svg" alt=""></span>
           <span class="rowB-card-text"><span class="rowB-card-title">Erase Texts</span><span class="rowB-card-desc">description for erase1.</span></span>
         </button>
+        <button type="button" class="rowB-card">
+          <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_upscale.svg" alt=""></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Upscale</span><span class="rowB-card-desc">description for upscale.</span></span>
+        </button>
       </div>
     </div>
 
@@ -1750,8 +1863,20 @@
                   </span>
                 </span>
               </span>
-              <span class="rowB-spinner" id="rowBSpinner" aria-hidden="true"></span>
-              <span class="rowB-overlay-act rowB-overlay-act--clip" id="rowBActClip">Clip</span>
+              <span class="rowB-busy" id="rowBBusy" aria-hidden="true">
+                <span class="rowB-busy-ring"></span>
+                <span class="rowB-busy-text" id="rowBBusyText">Removing…</span>
+              </span>
+              <span class="rowB-overlay-bar" aria-hidden="true">
+                <span class="rowB-overlay-bar-left">
+                  <span class="rowB-overlay-act rowB-overlay-act--ghost rowB-overlay-act--late" id="rowBActBack"><img src="/assets/landing/icons/rowB/icon_back.svg" alt="">Back</span>
+                  <span class="rowB-overlay-act rowB-overlay-act--ghost rowB-overlay-act--late" id="rowBActRefresh"><img src="/assets/landing/icons/rowB/icon_refresh.svg" alt="">Refresh</span>
+                </span>
+                <span class="rowB-overlay-bar-right">
+                  <span class="rowB-overlay-act" id="rowBActUpscale"><img src="/assets/landing/icons/rowB/icon_upscale.svg" alt="">Upscale</span>
+                  <span class="rowB-overlay-act" id="rowBActClip"><img src="/assets/landing/icons/rowB/icon_clip.svg" alt="">Clip</span>
+                </span>
+              </span>
             </figure>
           </div>
         </div>
@@ -1904,16 +2029,6 @@
                     </div>
                     <hr class="sidepanel-clip-sep">
                     <div class="sidepanel-clip-row">
-                      <span class="sidepanel-clip-row-label">Upscale</span>
-                      <div class="sidepanel-clip-row-value">
-                        <span class="sidepanel-check">
-                          <span class="sidepanel-check-box"></span>
-                          <span class="sidepanel-check-label">Auto</span>
-                        </span>
-                      </div>
-                    </div>
-                    <hr class="sidepanel-clip-sep">
-                    <div class="sidepanel-clip-row">
                       <span class="sidepanel-clip-row-label">Clip mode</span>
                       <div class="sidepanel-clip-row-value">
                         <span class="sidepanel-size-toggle">
@@ -1931,14 +2046,18 @@
                     <img class="sidepanel-directory-icon" src="assets/landing/icons/rowD/icon_folder.svg" alt="">
                     <span class="sidepanel-directory-name">My_folder</span>
                   </div>
-                  <div class="sidepanel-directory-file">
-                    <span class="sidepanel-directory-file-type">PNG</span>
-                    <img class="sidepanel-chevron" src="assets/landing/icons/rowD/icon_chevron.svg" alt="">
+                  <div class="sidepanel-directory-group">
+                    <span class="sidepanel-download-btn">
+                      <img class="sidepanel-download-icon" src="assets/landing/icons/rowD/icon_download.svg" alt="">
+                    </span>
+                    <div class="sidepanel-directory-file">
+                      <span class="sidepanel-directory-file-type">PNG</span>
+                      <img class="sidepanel-chevron" src="assets/landing/icons/rowD/icon_chevron.svg" alt="">
+                    </div>
                   </div>
                 </div>
                 <div class="sidepanel-gallery">
                   <div class="sidepanel-gallery-top">
-                    <img class="sidepanel-upload-icon" src="assets/landing/icons/rowD/icon_upload.svg" alt="">
                     <img class="sidepanel-delete-icon" src="assets/landing/icons/rowD/icon_delete.svg" alt="">
                   </div>
                   <div class="sidepanel-gallery-row">
@@ -2277,13 +2396,18 @@
   var heroOverlay = document.getElementById("heroOverlay");
   var heroOverlayAfter = document.getElementById("heroOverlayAfter");
   var heroOverlayBtn = document.getElementById("heroOverlayBtn");
-  var heroSpinner = document.getElementById("heroSpinner");
+  var heroBusy = document.getElementById("heroBusy");
+  var heroWipe = document.getElementById("heroWipe");
+  var heroWipeBar = document.getElementById("heroWipeBar");
   var heroFigure = document.querySelector(".hero-overlay-figure");
   var heroOverlayImg = document.getElementById("heroOverlayImg");
   var heroOverlayBtnIcon = document.getElementById("heroOverlayBtnIcon");
   var heroOverlayBtnLabel = document.getElementById("heroOverlayBtnLabel");
   var heroActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
   var heroActClip = document.getElementById("heroActClip");
+  var heroLateActs = heroOverlay
+    ? [].slice.call(heroOverlay.querySelectorAll(".hero-overlay-act--late"))
+    : [];
   var heroToast = document.getElementById("heroToast");
   var heroCanvas = document.querySelector(".hero-canvas");
   var heroCanvasBody = document.querySelector(".hero-canvas-body");
@@ -2298,6 +2422,7 @@
 
   if (heroCamera && heroBody && heroCursor && heroOverlay && heroTiles.length) {
     var heroTimers = [];
+    var heroLateTimer = 0;
     var heroRaf = 0;
     var heroAt = function(ms, fn){ heroTimers.push(setTimeout(fn, ms)); };
 
@@ -2349,12 +2474,35 @@
     };
     var heroPress = function(){
       if (heroOverlayBtn) heroOverlayBtn.classList.add("hero-overlay-btn--press");
-      if (heroSpinner) heroSpinner.classList.add("hero-spinner--on");
+      if (heroBusy) heroBusy.classList.add("hero-busy--on");
+      if (heroMarquee) {
+        heroMarquee.classList.remove("hero-marquee--on");
+        heroMarquee.style.width = "0%";
+        heroMarquee.style.height = "0%";
+      }
     };
     var heroReveal = function(){
-      if (heroSpinner) heroSpinner.classList.remove("hero-spinner--on");
+      if (heroBusy) heroBusy.classList.remove("hero-busy--on");
       if (heroOverlayBtn) heroOverlayBtn.classList.remove("hero-overlay-btn--press");
+      if (heroWipe && heroWipeBar) {
+        var hw = heroFigure ? heroFigure.offsetWidth : 0;
+        heroWipe.classList.add("hero-wipe--on");
+        heroWipeBar.style.transition = "none";
+        heroWipeBar.style.transform = "translateX(calc(" + hw + "px - 50%))";
+        void heroWipeBar.offsetWidth;
+        heroWipeBar.style.transition = "";
+        heroWipeBar.style.transform = "translateX(-50%)";
+      }
       if (heroOverlayAfter) heroOverlayAfter.classList.add("hero-overlay-after--in");
+      if (heroLateTimer) { clearTimeout(heroLateTimer); heroLateTimer = 0; }
+      heroLateTimer = setTimeout(function(){
+        heroLateTimer = 0;
+        if (heroLateActs) {
+          heroLateActs.forEach(function(el){ el.classList.add("hero-overlay-act--in"); });
+        }
+        if (heroWipe) heroWipe.classList.remove("hero-wipe--on");
+      }, 1400);
+      heroTimers.push(heroLateTimer);
     };
     /* Everything that differs between one editor pass and the next lives here rather
        than being hardcoded in the markup, so a second pass is a config entry instead
@@ -2392,11 +2540,20 @@
        otherwise already be revealed and Clip already showing. Killing the transition
        around the class removal stops the result rewinding on screen. */
     var heroResetOverlay = function(){
+      if (heroLateTimer) { clearTimeout(heroLateTimer); heroLateTimer = 0; }
+      if (heroLateActs) {
+        heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
+      }
       if (heroOverlayAfter) {
         heroOverlayAfter.style.transition = "none";
         heroOverlayAfter.classList.remove("hero-overlay-after--in");
         void heroOverlayAfter.offsetWidth;
         heroOverlayAfter.style.transition = "";
+      }
+      if (heroWipe) heroWipe.classList.remove("hero-wipe--on");
+      if (heroWipeBar) {
+        heroWipeBar.style.transition = "none";
+        heroWipeBar.style.transform = "translateX(-50%)";
       }
       if (heroMarquee) {
         heroMarquee.classList.remove("hero-marquee--on");
@@ -2543,6 +2700,10 @@
          sequences running against each other. */
       for (var ht = 0; ht < heroTimers.length; ht++) clearTimeout(heroTimers[ht]);
       heroTimers.length = 0;
+      heroLateTimer = 0;
+      if (heroLateActs) {
+        heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
+      }
       heroSetStep(heroSteps[0]);
 
       var b = heroOffsetIn(heroBody);
@@ -2720,6 +2881,10 @@
 
       /* the editor */
       heroOverlay.classList.remove("hero-overlay--on");
+      if (heroLateTimer) { clearTimeout(heroLateTimer); heroLateTimer = 0; }
+      if (heroLateActs) {
+        heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
+      }
       heroResetOverlay();
       heroSetStep(heroSteps[0]);
       if (heroOverlayBtn) {
@@ -2730,7 +2895,7 @@
         heroActClip.classList.remove("hero-overlay-act--hover");
         heroActClip.classList.remove("hero-overlay-act--press");
       }
-      if (heroSpinner) heroSpinner.classList.remove("hero-spinner--on");
+      if (heroBusy) heroBusy.classList.remove("hero-busy--on");
 
       /* the toast and the tile glow */
       if (heroToast) heroToast.classList.remove("hero-toast--in");
@@ -2766,9 +2931,14 @@
   var rowBOverlayImg = document.getElementById("rowBOverlayImg");
   var rowBOverlayAfter = document.getElementById("rowBOverlayAfter");
   var rowBOverlayBtn = document.getElementById("rowBOverlayBtn");
+  var rowBActUpscale = document.getElementById("rowBActUpscale");
   var rowBActs = [].slice.call(document.querySelectorAll(".rowB-overlay-act"));
+  var rowBLateActs = rowBOverlay
+    ? [].slice.call(rowBOverlay.querySelectorAll(".rowB-overlay-act--late"))
+    : [];
   var rowBMarquee = document.getElementById("rowBMarquee");
-  var rowBSpinner = document.getElementById("rowBSpinner");
+  var rowBBusy = document.getElementById("rowBBusy");
+  var rowBBusyText = document.getElementById("rowBBusyText");
   var rowBOverlayBtnIcon = document.getElementById("rowBOverlayBtnIcon");
   var rowBOverlayBtnLabel = document.getElementById("rowBOverlayBtnLabel");
   var rowBHint = document.getElementById("rowBHint");
@@ -2783,12 +2953,19 @@
          out again in the hero's heroSetAction — change both together. */
       { tile:4, img:"/assets/landing/img/rowB/rowB-image-7-before.webp",
         icon:"/assets/landing/icons/rowB/icon_erase.svg", label:"Remove",
-        box:{ l:0.39, t:0.38, r:0.59, b:0.65 } }
+        box:{ l:0.39, t:0.38, r:0.59, b:0.65 } },
+      /* The bottom bar's Upscale, not the top button — target says which. The images are
+         a stand-in: 5-before and 5-after are currently identical, so the wipe runs but
+         shows no change. Replacing them is part of the final asset pass. */
+      { tile:6, img:"/assets/landing/img/rowB/rowB-image-5-before.webp",
+        icon:"/assets/landing/icons/rowB/icon_upscale.svg", label:"Upscale",
+        busy:"Upscaling…", target:"upscale" }
     ];
     /* Row B keeps icon and label on the step, unlike the hero: a card click chooses the
        pass, so which label the drag switches TO depends on the card. Card 1 has no drag
        and stays on Remove BG throughout. */
     var rowBSetAction = function(step, erasing){
+      if (rowBBusyText) rowBBusyText.textContent = step.busy || "Removing…";
       if (rowBOverlayBtnIcon) rowBOverlayBtnIcon.setAttribute("src",
         erasing ? step.icon : "/assets/landing/icons/rowB/icon_removebg.svg");
       if (rowBOverlayBtnLabel) rowBOverlayBtnLabel.textContent =
@@ -2799,6 +2976,7 @@
       }
     };
     var rowBTimers = [];
+    var rowBLateTimer = 0;
     var rowBRaf = 0;
     var rowBCurrent = 0;
     var rowBLive = false;
@@ -2809,6 +2987,7 @@
     var rowBClearTimers = function(){
       for (var i = 0; i < rowBTimers.length; i++) clearTimeout(rowBTimers[i]);
       rowBTimers = [];
+      rowBLateTimer = 0;
     };
     var rowBAt = function(ms, fn){ rowBTimers.push(setTimeout(fn, ms)); };
 
@@ -2871,16 +3050,35 @@
     /* The press is NOT released on a timer any more. It stays down for as long as the
        spinner runs, which is what makes the button read as busy rather than as a
        click that already finished. rowBReveal is the single point where both end. */
+    /* Two buttons can be pressed in this mockup: the top action button, and the bottom
+       bar's Upscale on the third card. The class prefixes differ, so the target carries
+       both. */
+    var rowBTargetEl = function(){
+      var s = rowBSteps[rowBCurrent];
+      return (s && s.target === "upscale") ? rowBActUpscale : rowBOverlayBtn;
+    };
+    var rowBTargetCls = function(){
+      var s = rowBSteps[rowBCurrent];
+      return (s && s.target === "upscale") ? "rowB-overlay-act" : "rowB-overlay-btn";
+    };
     var rowBHover = function(){
-      if (rowBOverlayBtn) rowBOverlayBtn.classList.add("rowB-overlay-btn--hover");
+      var el = rowBTargetEl();
+      if (el) el.classList.add(rowBTargetCls() + "--hover");
     };
     var rowBPress = function(){
-      if (rowBOverlayBtn) rowBOverlayBtn.classList.add("rowB-overlay-btn--press");
-      if (rowBSpinner) rowBSpinner.classList.add("rowB-spinner--on");
+      var el = rowBTargetEl();
+      if (el) el.classList.add(rowBTargetCls() + "--press");
+      if (rowBBusy) rowBBusy.classList.add("rowB-busy--on");
+      if (rowBMarquee) {
+        rowBMarquee.classList.remove("rowB-marquee--on");
+        rowBMarquee.style.width = "0%";
+        rowBMarquee.style.height = "0%";
+      }
     };
     var rowBReveal = function(){
-      if (rowBSpinner) rowBSpinner.classList.remove("rowB-spinner--on");
-      if (rowBOverlayBtn) rowBOverlayBtn.classList.remove("rowB-overlay-btn--press");
+      if (rowBBusy) rowBBusy.classList.remove("rowB-busy--on");
+      var el = rowBTargetEl();
+      if (el) el.classList.remove(rowBTargetCls() + "--press");
       if (rowBMarquee) rowBMarquee.classList.remove("rowB-marquee--on");
       if (rowBClip) rowBClip.classList.add("rowB-slider-clip--wipe");
       if (rowBHandle) {
@@ -2891,6 +3089,19 @@
         rowBHandle.style.left = "0%";
       }
       if (rowBOverlayAfter) rowBOverlayAfter.classList.add("rowB-overlay-after--in");
+      if (rowBLateTimer) { clearTimeout(rowBLateTimer); rowBLateTimer = 0; }
+      rowBLateTimer = setTimeout(function(){
+        rowBLateTimer = 0;
+        if (rowBLateActs) {
+          rowBLateActs.forEach(function(el){ el.classList.add("rowB-overlay-act--in"); });
+        }
+        var s = rowBSteps[rowBCurrent];
+        if (rowBActUpscale && s && s.target === "upscale") {
+          rowBActUpscale.classList.remove("rowB-overlay-act--hover");
+          rowBActUpscale.classList.add("rowB-overlay-act--ghost");
+        }
+      }, 1400);
+      rowBTimers.push(rowBLateTimer);
     };
     var rowBSetSplit = function(f){
       if (!rowBOverlayAfter) return;
@@ -2906,7 +3117,8 @@
       rowBCursor.classList.remove("rowB-cursor--on");
       /* The hover goes with the cursor. Live mode is a handover, not a reset, so
          rowBReset's own removal never runs on this path. */
-      if (rowBOverlayBtn) rowBOverlayBtn.classList.remove("rowB-overlay-btn--hover");
+      var el = rowBTargetEl();
+      if (el) el.classList.remove(rowBTargetCls() + "--hover");
       if (rowBClip) rowBClip.classList.remove("rowB-slider-clip--wipe");
       if (rowBHandle) rowBHandle.style.transition = "";
       if (rowBChrome) rowBChrome.classList.add("rowB-chrome--live");
@@ -2918,6 +3130,10 @@
       if (rowBRaf) { cancelAnimationFrame(rowBRaf); rowBRaf = 0; }
       rowBLive = false;
       rowBSplitDragging = false;
+      if (rowBLateTimer) { clearTimeout(rowBLateTimer); rowBLateTimer = 0; }
+      if (rowBLateActs) {
+        rowBLateActs.forEach(function(el){ el.classList.remove("rowB-overlay-act--in"); });
+      }
       if (rowBChrome) rowBChrome.classList.remove("rowB-chrome--live");
       rowBOverlay.classList.remove("rowB-overlay--live");
       if (rowBClip) rowBClip.classList.remove("rowB-slider-clip--wipe");
@@ -2932,7 +3148,12 @@
         rowBOverlayBtn.classList.remove("rowB-overlay-btn--press");
         rowBOverlayBtn.classList.remove("rowB-overlay-btn--hover");
       }
-      if (rowBSpinner) rowBSpinner.classList.remove("rowB-spinner--on");
+      if (rowBActUpscale) {
+        rowBActUpscale.classList.remove("rowB-overlay-act--press");
+        rowBActUpscale.classList.remove("rowB-overlay-act--hover");
+        rowBActUpscale.classList.remove("rowB-overlay-act--ghost");
+      }
+      if (rowBBusy) rowBBusy.classList.remove("rowB-busy--on");
       if (rowBHint) rowBHint.classList.remove("rowB-hint--off");
       if (rowBOverlayAfter) {
         rowBOverlayAfter.style.clipPath = "";
@@ -3004,8 +3225,9 @@
 
       if (!step.box) {
         rowBAt(2100, function(){
-          if (!rowBOverlayBtn) return;
-          var p = rowBPointIn(rowBOverlayBtn);
+          var el = rowBTargetEl();
+          if (!el) return;
+          var p = rowBPointIn(el);
           rowBMoveTo(p.x, p.y);
         });
         rowBAt(2850, rowBHover);
