@@ -60,6 +60,18 @@ import {
 } from './itemDetector.js';
 import { getShortcut, onShortcutChange, matchesShortcut, formatShortcut } from './shortcutStore.js';
 
+// PHASE_TAKEOVER: the load guard becomes version-aware so a future build, re-injected
+// into a tab still running this one, can tell an orphan from a genuine double-load. It
+// changes nothing here: this version still refuses to run twice, and nothing in 1.5.7
+// ever reads the version or calls the teardown. Both exist so that a LATER version has
+// something to talk to — the mechanism has to live in the old script, and the only way
+// to put it there is to ship it before it is needed.
+const _kcCoreSkipInit = !!window.__kickclipCoreLoaded;
+if (!_kcCoreSkipInit) {
+  window.__kickclipCoreLoaded = true;
+  window.__kickclipCoreVersion = '1.5.7';
+}
+
 let _kcUserReady = false; // true when kickclipUserId is confirmed
 // === PHASE_ANON_CLIP_TELEMETRY ===
 // Anonymous usage-stats opt-out (default ON). Synced from
@@ -87,6 +99,13 @@ let _retryScanTimer = 0;    // setTimeout handle for pending retry scan
 let _retryScanCount  = 0;   // number of retries attempted for current navigation
 let _kcSpaLateScanTimers = []; // delayed forced scans after SPA navigation
 let _forceFullScanOnMutation = false; // true after navigation: next MutationObserver trigger uses full document scan
+// PHASE_TAKEOVER: retained refs for observers/timers the teardown disconnects.
+let _kcMainMutationObserver = null;
+let _kcDocOpenPollInterval = null;
+let _kcDomDrivenMutationObserver = null;
+let _kcOrigPushState = null;
+let _kcOrigReplaceState = null;
+let _kcShortcutChangeUnsubscribe = null;
 
 function _kcClearSpaLateScanTimers() {
   try {
@@ -207,6 +226,11 @@ const KC_MSG_PREFIX = '__kc__';
 const KC_SAVE_QUERY = '__kc_save_query__';
 const KC_SAVE_HANDLED = '__kc_save_handled__';
 const KC_SAVE_RELAY = '__kc_save_relay__';
+// PHASE_IFRAME_CLIP_DONE: a clip inside a subframe finishes there — the bytes, the
+// gesture and the save all live in the frame. The top frame still started a loading
+// toast, because it saw the keypress without local hover, and nothing was telling it
+// the clip had ended. This does.
+const KC_CLIP_DONE = '__kickclip_clip_done__';
 // === PHASE_IFRAME_HOVER_PROPAGATION ===
 const KC_IFRAME_HOVER = '__kc_iframe_hover__';
 const KC_IFRAME_HOVER_END = '__kc_iframe_hover_end__';
@@ -215,6 +239,10 @@ const KC_IFRAME_CLIPBOARD_RESULT = '__kc_iframe_clipboard_result__';
 // === PHASE_IFRAME_CLIP_REQUEST ===
 const KC_IFRAME_CLIP_REQUEST = '__kc_iframe_clip_request__';
 // === END PHASE_IFRAME_CLIP_REQUEST ===
+// PHASE_IFRAME_OWNERSHIP: the mode chord arms and completes inside whichever frame has
+// focus, but the toggle belongs on the top — its confirmation toast has to be visible,
+// and a small embed can hide it entirely.
+const KC_IFRAME_MODE_TOGGLE = '__kc_iframe_mode_toggle__';
 
 /** Metadata tooltip id — hidden briefly during save (shutter uses overlay fills in uiManager). */
 const METADATA_TOOLTIP_ID = 'kickclip-metadata-tooltip';
@@ -283,7 +311,7 @@ function initShortcutSync() {
   })();
   // Subscribe to changes.
   try {
-    onShortcutChange((shortcut) => {
+    _kcShortcutChangeUnsubscribe = onShortcutChange((shortcut) => {
       _activeShortcut = shortcut;
       syncCoreBadgeTexts();
     });
@@ -304,7 +332,7 @@ function syncCoreBadgeTexts() {
   });
 }
 
-initShortcutSync();
+if (!_kcCoreSkipInit) initShortcutSync();
 
 // === PHASE_CLIP_SIZE ===
 // Cache kc_clip_max_dim: target longest-edge (px) for clipped images.
@@ -363,7 +391,34 @@ function initClipEffectSync() {
 
 initClipEffectSync();
 
+// PHASE_CTX_GUARD: reloading the extension severs chrome.runtime in content scripts that
+// are already running. sendMessage then throws SYNCHRONOUSLY — at the call, before a
+// promise exists — so a .catch() on the result never sees it and the exception escapes
+// into whatever was awaiting the pipeline. Every call goes through here instead: a dead
+// runtime resolves to null, which each caller already treats as failure.
+function _kcRuntimeAlive() {
+  try { return !!(chrome && chrome.runtime && chrome.runtime.id); }
+  catch (_) { return false; }
+}
+
+function _kcSend(msg) {
+  try {
+    if (!_kcRuntimeAlive()) return Promise.resolve(null);
+    const p = chrome.runtime.sendMessage(msg);
+    return (p && typeof p.catch === 'function') ? p.catch(() => null) : Promise.resolve(null);
+  } catch (_) {
+    return Promise.resolve(null);
+  }
+}
+
 async function _kcToggleClipMode() {
+  // PHASE_CTX_GUARD: chrome.storage is severed along with the runtime, so the write is
+  // discarded and the mode does not change. Announcing a switch that did not happen is
+  // worse than saying nothing.
+  if (!_kcRuntimeAlive()) {
+    _kcShowContextDeadToast();
+    return;
+  }
   if (_kcInflightClip && !_kcInflightClip.done) return;
   const next = _clipEffect === 'erase' ? 'none' : 'erase';
   if (next === 'erase') {
@@ -379,7 +434,7 @@ async function _kcToggleClipMode() {
         align: 'right',
         duration: 3200,
         onClick: () => {
-          try { chrome.runtime.sendMessage({ action: 'open-sidepanel' }); } catch (_) {}
+          try { _kcSend({ action: 'open-sidepanel' }); } catch (_) {}
         },
       });
       return;
@@ -435,6 +490,14 @@ const KC_CLIP_LOADING_FAILSAFE_EFFECT_MS = 30000; // PHASE_CLIP_EFFECT
 const KC_CLIP_LOADING_TEXT = 'Clipping…';
 const KC_CLIP_DEFAULT_SUCCESS_TEXT = 'Image clipped';
 const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
+// PHASE_CTX_GUARD: shown when the extension has been reloaded under a page that was
+// already open. Chrome severs chrome.runtime in the content scripts still running there,
+// so nothing can be saved or upscaled until the page is reloaded. The image still reaches
+// the clipboard — this says what did not happen.
+const KC_CLIP_CONTEXT_DEAD_TEXT = 'Grrab was updated — refresh this page to clip';
+function _kcShowContextDeadToast() {
+  showCoreClipToast({ kind: 'canceled', text: KC_CLIP_CONTEXT_DEAD_TEXT, duration: 4000 });
+}
 // PHASE_CLIP_PROGRESS_TEXT: path-aware in-progress morph targets + SR-fallback
 // terminal text. KC_CLIP_LOADING_TEXT above is intentionally unchanged.
 // PHASE_SR_AUTO_MIN: a clip below this many pixels is upscaled even with the Upscale
@@ -519,6 +582,15 @@ function _kcResolveClipLoadingUI({ kind = 'success', text = '' } = {}) {
       showCoreClipToast({ kind, text: finalText });
     }
   } catch (_) {}
+  _kcClipLoadingToast = null;
+}
+
+// Clear the iframe-hover loading UI without surfacing a terminal toast on top
+// (the subframe already showed the outcome toast).
+function _kcDismissClipLoadingUI() {
+  _kcClipLoadingClearTimers();
+  _kcClipLoadingClearCursor();
+  try { if (_kcClipLoadingToast) _kcClipLoadingToast.dismiss(); } catch (_) {}
   _kcClipLoadingToast = null;
 }
 // === END PHASE_CLIP_LOADING_UI ===
@@ -608,23 +680,20 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
       // A loading "Clipping…" OS notification is already up (user left mid-clip).
       if (_terminalDone && away) {
         // Still away → morph it to the completed state (progress 100 / title % on macOS).
-        chrome.runtime.sendMessage(
+        _kcSend(
           { action: 'clip-os-progress-done', id: ctrl.osNotifId, message: finalText },
-          () => { if (chrome.runtime.lastError) {} }
         );
       } else {
         // Came back (sees the in-page toast) or non-success → just clear it.
-        chrome.runtime.sendMessage(
+        _kcSend(
           { action: 'clip-os-clear', id: ctrl.osNotifId },
-          () => { if (chrome.runtime.lastError) {} }
         );
       }
     } else if (_terminalDone && away) {
       // No loading notif shown (clip finished before any leave), but away at
       // completion → surface a terminal notification (prior behavior).
-      chrome.runtime.sendMessage(
+      _kcSend(
         { action: 'clip-os-notify', title: 'Grrab', message: finalText },
-        () => { if (chrome.runtime.lastError) {} }
       );
     }
   } catch (_) { /* never let notification surfacing break the clip flow */ }
@@ -670,9 +739,8 @@ function _kcBeginClipControl() {
     if (!away) return;
     ctrl.osLoadingShown = true;
     try {
-      chrome.runtime.sendMessage(
+      _kcSend(
         { action: 'clip-os-progress-start', id: ctrl.osNotifId, title: 'Grrab', message: KC_CLIP_LOADING_TEXT },
-        () => { if (chrome.runtime.lastError) { /* SW asleep / notifications off — ignore */ } }
       );
     } catch (_) {}
   };
@@ -2829,6 +2897,7 @@ function mountObservers() {
       attributes: true,
       attributeFilter: ['src', 'style'],
     });
+    _kcMainMutationObserver = obs;
     // === END PHASE20_HOTFIX_SRC_MUTATION ===
 
     // Detect document.open(): after document.open(), document.documentElement
@@ -2838,13 +2907,16 @@ function mountObservers() {
       const liveRoot = window.document.documentElement;
       if (liveRoot !== targetNode) {
         obs.disconnect();
+        _kcMainMutationObserver = null;
         window.clearInterval(checkInterval);
+        _kcDocOpenPollInterval = null;
         schedulePreScan(document, false, 'doc-open-recovery');
         window.__kcWindowListenersMounted = false;
         mountWindowListeners();
         registerObserver(true);
       }
     }, 200);
+    _kcDocOpenPollInterval = checkInterval;
   }
   registerObserver();
 }
@@ -2986,6 +3058,7 @@ function mountDomDrivenRedispatch() {
     attributes: true,
     attributeFilter: ['src', 'style'],
   });
+  _kcDomDrivenMutationObserver = obs;
 }
 // === END PHASE_DOM_DRIVEN_REDISPATCH ===
 
@@ -3257,7 +3330,10 @@ async function saveActiveCoreItem(request = {}) {
     // clipboard copy, _savedUrlSet update, Optimistic Card dispatch,
     // server fetch.
     const isIframeRelay = meta?._isIframeRelay === true;
-    const url = String(meta?.activeHoverUrl || activeUrl).trim();
+    // PHASE_IFRAME_OWNERSHIP: for an iframe clip, activeHoverUrl is the frame's own
+    // address. _pageUrl is the page the user is looking at, which is what the card should
+    // open.
+    const url = String(meta?._pageUrl || meta?.activeHoverUrl || activeUrl).trim();
     if (!url) return { success: false, reason: 'missing-url' };
 
     const title = String(meta?.title || document.title || url).trim();
@@ -3320,9 +3396,10 @@ async function saveActiveCoreItem(request = {}) {
       } catch (e) {}
     }
 
-    if (!isIframeRelay) {
+    if (!isIframeRelay || request?.clipControl) {
       // CoreItem clip feedback: clipboard result drives overlay ring + badge text.
-      // Skipped in relay mode — top frame handles clipboard; iframe draws no UI.
+      // Skipped in relay mode — iframe owns the visible UI — unless this clip carries
+      // a clipControl (PHASE_IFRAME_OWNERSHIP top-frame iframe clips).
       // === PHASE_IFRAME_CLIPBOARD ===
       // IIFE runs in iframe too (iframe keydown). Outer !isIframeRelay gates relay.
       // === PHASE_SHUTTER_REMOVAL ===
@@ -3333,7 +3410,11 @@ async function saveActiveCoreItem(request = {}) {
       // === PHASE_IFRAME_CLIP_REQUEST ===
       // When iframe-focused keydown delegates clipboard to top via W2,
       // visual feedback also comes from top via KC_IFRAME_CLIPBOARD_RESULT.
-      if (!request?.fromIframeHover && !request?.fromIframeClipRequest) {
+      // PHASE_IFRAME_OWNERSHIP: this block was skipped for iframe clips because the
+      // subframe owned the terminal toast and the top had no control to finish. The top
+      // creates one now, and nothing else calls _kcFinishClipControl — so skipping this
+      // left the control running until its failsafe called the clip a failure.
+      if (request?.clipControl || (!request?.fromIframeHover && !request?.fromIframeClipRequest)) {
       // === END PHASE_IFRAME_CLIP_REQUEST ===
       // === END PHASE_IFRAME_HOVER_PROPAGATION ===
         (async () => {
@@ -3343,6 +3424,17 @@ async function saveActiveCoreItem(request = {}) {
             // Clip outcome now surfaces as a top-center toast; the
             // status_badge stays on its default "Press X to clip" text.
             if (clipboardResult?.success) {
+              if (!_kcRuntimeAlive()) {
+                if (request?.clipControl) {
+                  _kcFinishClipControl(request.clipControl,
+                    { kind: 'canceled', text: KC_CLIP_CONTEXT_DEAD_TEXT, duration: 4000 });
+                } else if (_kcClipLoadingToast) {
+                  _kcResolveClipLoadingUI({ kind: 'canceled', text: KC_CLIP_CONTEXT_DEAD_TEXT });
+                } else {
+                  _kcShowContextDeadToast();
+                }
+                return;
+              }
               markCoreHighlightClipped();
               // PHASE_CLIP_CANCEL: local-hover clips carry a clipControl; resolve THAT
               // clip's toast (no-op if it was already canceled by a later clip, so the
@@ -3390,31 +3482,14 @@ async function saveActiveCoreItem(request = {}) {
     let userId = null;
     try {
       // First attempt — service worker may be asleep
-      const userIdResponse = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: 'get-cached-user-id' }, (response) => {
-          if (chrome.runtime.lastError) {
-            // Service worker was asleep or not ready — resolve with null to trigger retry
-            resolve(null);
-          } else {
-            resolve(response);
-          }
-        });
-      });
+      const userIdResponse = await _kcSend({ action: 'get-cached-user-id' });
 
       if (userIdResponse?.userId) {
         userId = userIdResponse.userId;
       } else {
         // Retry once after a short delay to allow service worker to wake up
         await new Promise((r) => setTimeout(r, 150));
-        const retryResponse = await new Promise((resolve) => {
-          chrome.runtime.sendMessage({ action: 'get-cached-user-id' }, (response) => {
-            if (chrome.runtime.lastError) {
-              resolve(null);
-            } else {
-              resolve(response);
-            }
-          });
-        });
+        const retryResponse = await _kcSend({ action: 'get-cached-user-id' });
         userId = retryResponse?.userId || null;
       }
     } catch {
@@ -3524,6 +3599,12 @@ async function saveActiveCoreItem(request = {}) {
         }
       }
     } catch (_) { /* defensive — leave originSource empty */ }
+    // PHASE_IFRAME_OWNERSHIP: an iframe clip arrives as a stub with no DOM, so the block
+    // above cannot run and origin_source would go out empty — which turns off dedup on
+    // both the client and the server, and a second clip of the same image becomes a
+    // second card. The image URL is the same identifier the DOM path settles on, and the
+    // message already carries it.
+    if (!originSource) originSource = String(meta?.image?.url || '').trim();
     if (_clipEffect === 'erase' && _kcEraseModified && originSource) {
       originSource = `${originSource}#kc-edit-${Date.now()}`;
     }
@@ -3595,7 +3676,7 @@ async function saveActiveCoreItem(request = {}) {
     // Skip if running inside an iframe — only the top-level frame should create optimistic cards
     if (window.self === window.top && isSignedIn()) {
       try {
-        chrome.runtime.sendMessage({
+        _kcSend({
           action:             'optimistic-card',
           tempId,
           url,
@@ -3610,6 +3691,13 @@ async function saveActiveCoreItem(request = {}) {
           createdAt:          Date.now(),
         });
       } catch { /* Side Panel may not be open — silently ignore */ }
+    }
+
+    // PHASE_CTX_GUARD: without the runtime there is no cached user id, so the payload
+    // would go out without one and the server answers 400. Nothing about this request can
+    // succeed — skip it rather than fail it.
+    if (!_kcRuntimeAlive()) {
+      return { success: false, reason: 'context-invalidated' };
     }
 
     if (isSignedIn()) {
@@ -3815,7 +3903,7 @@ let _srMaxPixels = null;
 async function _kcGetSrMaxPixels() {
   if (_srMaxPixels) return _srMaxPixels;
   try {
-    const res = await chrome.runtime.sendMessage({ action: 'sr-max-pixels' });
+    const res = await _kcSend({ action: 'sr-max-pixels' });
     if (res && res.ok && res.px > 0) { _srMaxPixels = res.px; return _srMaxPixels; }
   } catch (_) {}
   return 150000;
@@ -3905,6 +3993,11 @@ async function maybeUpscaleClip(blob) {
   try {
     if (!blob) return blob;
 
+    // PHASE_CTX_GUARD: the offscreen document is unreachable without the runtime. Asking
+    // costs a message round trip that resolves to null and a toast that promises an
+    // upscale the user will not get.
+    if (!_kcRuntimeAlive()) return blob;
+
     const bitmap = await createImageBitmap(blob);
     const srcW = bitmap.width || 1, srcH = bitmap.height || 1;
     bitmap.close?.();
@@ -3925,7 +4018,7 @@ async function maybeUpscaleClip(blob) {
         _srAttempted = true;
         _kcMorphClipLoadingText(KC_CLIP_UPSCALING_TEXT);
         const dataUrl = await _ceBlobToDataURL(blob);
-        const ask = chrome.runtime.sendMessage({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
+        const ask = _kcSend({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
         const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), 10000));
         const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
         if (res && res.ok && res.dataUrl) {
@@ -3988,7 +4081,7 @@ async function maybeRemoveBackground(blob) {
     const sendBlob = await _kcBgEncodeForSend(blob);
     if (!sendBlob) { _kcMarkBgFallback('encode-failed'); return blob; }
     const dataUrl = await _ceBlobToDataURL(sendBlob);
-    const ask = chrome.runtime.sendMessage({ action: 'bg-remove-server', dataUrl });
+    const ask = _kcSend({ action: 'bg-remove-server', dataUrl });
     const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), KC_BG_TIMEOUT_MS));
     const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
     if (res && res.ok && res.dataUrl) {
@@ -4011,6 +4104,10 @@ let _kcEraseSetStatus = null;   // overlay status setter while an erase overlay 
 let _kcEraseCancel = null;
 
 async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
+  // PHASE_CTX_GUARD: the overlay is a dynamic import of an extension URL, which fails
+  // before the pipeline is even consumed — so the upscale guard never sees a dead
+  // runtime here. Fall through to the plain pipeline instead of failing the clip.
+  if (!_kcRuntimeAlive()) return pipelinePromise;
   if (_clipEffect !== 'erase') return pipelinePromise;
   _kcEraseCommitted = null;
   _kcEraseModified = false;
@@ -4034,7 +4131,7 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
 
     const inpaintFn = async (b, maskDataUrl) => {
       const dataUrl = await _ceBlobToDataURL(b);
-      const res = await chrome.runtime.sendMessage({
+      const res = await _kcSend({
         action: 'inpaint', dataUrl, maskDataUrl,
       });
       if (!res || !res.ok || !res.dataUrl) return null;
@@ -4057,7 +4154,7 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
       const sendBlob = await _kcBgEncodeForSend(b);
       if (!sendBlob) return null;
       const dataUrl = await _ceBlobToDataURL(sendBlob);
-      const res = await chrome.runtime.sendMessage({ action: 'bg-remove-server', dataUrl });
+      const res = await _kcSend({ action: 'bg-remove-server', dataUrl });
       if (!res || !res.ok || !res.dataUrl) return { error: (res && res.error) || 'failed' };
       return await (await fetch(res.dataUrl)).blob();
     };
@@ -4067,7 +4164,7 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
     // stays 0: the clip-size fit happens later in the pipeline, not here.
     const upscaleFn = async (b) => {
       const dataUrl = await _ceBlobToDataURL(b);
-      const res = await chrome.runtime.sendMessage({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
+      const res = await _kcSend({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
       if (!res || !res.ok || !res.dataUrl) return null;
       return await (await fetch(res.dataUrl)).blob();
     };
@@ -4336,16 +4433,7 @@ async function imageUrlToPngBlob(imageUrl) {
   // Attempt 2: background-script fetch via 'fetch-image' action
   // (bypasses CORS via extension <all_urls> permission)
   try {
-    const response = await new Promise((resolve) => {
-      try {
-        chrome.runtime.sendMessage(
-          { action: 'fetch-image', url: imageUrl },
-          (r) => resolve(chrome.runtime.lastError ? null : r)
-        );
-      } catch (_) {
-        resolve(null);
-      }
-    });
+    const response = await _kcSend({ action: 'fetch-image', url: imageUrl });
     if (response && response.success && response.dataUrl) {
       const pngBlob = await dataUrlToPngBlob(response.dataUrl);
       if (pngBlob) return pngBlob;
@@ -4382,16 +4470,7 @@ async function imgElementToBlob(imgEl) {
   // <all_urls> permission). Gets raw image bytes as base64 data URL, then
   // re-encodes to PNG via canvas (required by Chrome's ClipboardItem).
   try {
-    const response = await new Promise((resolve) => {
-      try {
-        chrome.runtime.sendMessage(
-          { action: 'fetch-image', url: imgEl.src },
-          (r) => resolve(chrome.runtime.lastError ? null : r)
-        );
-      } catch (_) {
-        resolve(null);
-      }
-    });
+    const response = await _kcSend({ action: 'fetch-image', url: imgEl.src });
     if (response && response.success && response.dataUrl) {
       const pngBlob = await dataUrlToPngBlob(response.dataUrl);
       if (pngBlob) return pngBlob;
@@ -4466,19 +4545,8 @@ async function captureVideoViaTabScreenshot(videoEl, maxDim) {
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     // 1. Request screenshot from background
-    const screenshotDataUrl = await new Promise((resolve) => {
-      try {
-        chrome.runtime.sendMessage(
-          { action: 'capture-visible-tab' },
-          (response) => {
-            if (chrome.runtime.lastError) resolve(null);
-            else resolve(response?.dataUrl || null);
-          }
-        );
-      } catch (_) {
-        resolve(null);
-      }
-    });
+    const _captureResponse = await _kcSend({ action: 'capture-visible-tab' });
+    const screenshotDataUrl = _captureResponse?.dataUrl || null;
 
     if (!screenshotDataUrl) return null;
 
@@ -4678,6 +4746,15 @@ function buildSyntheticStateFromIframeHover(info) {
 // thick border + badge text feedback via markCoreHighlightClipped /
 // setCoreStatusBadgeText. The iframe's sourceWindow was captured at
 // hover-time. Defensive against window unload / cross-origin throw.
+function _kcNotifyTopClipDone(ok) {
+  // PHASE_IFRAME_CLIP_DONE
+  try {
+    if (window !== window.top) {
+      window.top.postMessage({ [KC_CLIP_DONE]: true, ok: !!ok }, '*');
+    }
+  } catch (_) {}
+}
+
 function notifyIframeClipboardResult(info, clipboardPromise) {
   if (!info || !clipboardPromise) return;
   Promise.resolve(clipboardPromise).then((result) => {
@@ -4892,11 +4969,8 @@ async function performClipboardCopy(category, url, rootElementForDominant, optio
   }
 }
 
-function mountSaveMessageListener() {
-  if (window.__kcSaveMessageListenerMounted) return;
-  if (!chrome?.runtime?.onMessage?.addListener) return;
-  window.__kcSaveMessageListenerMounted = true;
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+
+function _kcOnRuntimeMessage(request, sender, sendResponse) {
     if (request?.action === 'sidepanel-opened') {
       _sidePanelFocused = true;
       _sidePanelOpen = true;
@@ -4917,8 +4991,8 @@ function mountSaveMessageListener() {
       return true;
     }
     if (request?.action === 'saved-urls-updated') {
-      chrome.runtime.sendMessage({ action: 'get-saved-urls' }, (response) => {
-        if (chrome.runtime.lastError) return;
+      _kcSend({ action: 'get-saved-urls' }).then((response) => {
+        if (!response) return;
         const entries = response?.urls;
         if (Array.isArray(entries)) {
           const normalized = normalizeSavedUrlsResponse(entries);
@@ -5035,30 +5109,20 @@ function mountSaveMessageListener() {
     })();
 
     return true;
-  });
+}
 
-  if (IS_IFRAME) {
-    window.addEventListener(
-      'message',
-      async (e) => {
+async function _kcOnIframeSaveRelayMessage(e) {
         try {
           if (!e.data || !e.data[KC_MSG_PREFIX]) return;
           // === PHASE_IFRAME_HOVER_PROPAGATION ===
           if (e.data[KC_IFRAME_CLIPBOARD_RESULT] === true) {
             try {
-              // === PHASE_CLIP_TOAST ===
+              // PHASE_IFRAME_OWNERSHIP: terminal toast now runs on top; keep KC_CLIP_DONE only.
               if (e.data.success === true) {
                 markCoreHighlightClipped();
-                // PHASE_CLIP_LOADING_UI: previously only showed toast when successText
-                // was present; now always resolve the loading UI (with default text
-                // fallback) so the loading toast cannot get stuck on the rare
-                // success-without-successText branch.
-                _kcResolveClipLoadingUI({
-                  kind: 'success',
-                  text: e.data.successText ? String(e.data.successText) : '',
-                });
+                _kcNotifyTopClipDone(true);
               } else {
-                _kcResolveClipLoadingUI({ kind: 'error', text: 'Clip failed' }); // PHASE_CLIP_LOADING_UI
+                _kcNotifyTopClipDone(false);
               }
               // === END PHASE_CLIP_TOAST ===
             } catch (_) { /* defensive */ }
@@ -5113,45 +5177,159 @@ function mountSaveMessageListener() {
             await finalizeKCSaveFeedback(saveFeedbackHidden, saveKickClipStartedAt);
           }
         } catch (err) {}
-      },
-      { passive: true }
-    );
-  }
 }
 
-function mountWindowListeners() {
-  if (window.__kcWindowListenersMounted) return;
-  window.__kcWindowListenersMounted = true;
+function _kcOnIframeSaveQueryMessage(e) {
+      try {
+        if (!e.data || !e.data[KC_MSG_PREFIX] || e.data[KC_SAVE_HANDLED] !== true) return;
+        // An iframe reported it handled the save — nothing to do in top frame
+      } catch (e) {}
+}
 
-  window.addEventListener('load', () => schedulePreScan(document, false, 'window-load'), { passive: true });
-  // === PHASE_IMG_LOAD_TRIGGER ===
-  // Some sites (e.g. Behance) complete lazy-load by populating an
-  // <img>'s underlying bytes without mutating its `src` attribute and
-  // without inserting/removing any DOM node KickClip's MutationObserver
-  // observes. The class swap on the parent <a> is filtered out by the
-  // observer's attributeFilter: ['src']; the placeholder removal is a
-  // removedNodes-only mutation the callback also does not check. The
-  // net effect: no preScan trigger fires when lazy-load actually
-  // completes, and detection does not catch up until an unrelated
-  // event (resize, scroll-driven hover, popup) perturbs state.
-  //
-  // The <img>.load event fires reliably when any image's bytes finish
-  // decoding, including <picture><source srcset> swaps that leave
-  // <img src> unchanged. We listen at the document level in capture
-  // phase because individual elements' `load` events do not bubble.
-  // schedulePreScan() is already debounced via scanTimer, so even a
-  // burst of simultaneous loads collapses to a single scan.
-  document.addEventListener(
-    'load',
-    (e) => {
-      const t = e?.target;
-      if (!t || t.nodeType !== 1) return;
-      if (String(t.tagName || '').toUpperCase() !== 'IMG') return;
-      schedulePreScan(document, false, 'img-load');
-    },
-    { passive: true, capture: true }
-  );
-  // === END PHASE_IMG_LOAD_TRIGGER ===
+function _kcOnIframeHoverPropagationMessage(event) {
+      try {
+        const data = event?.data;
+        // PHASE_IFRAME_CLIP_DONE: the clip ran in a subframe and has finished. Clear the
+        // loading UI this frame started, with the outcome the frame reported.
+        if (data && data[KC_CLIP_DONE] === true) {
+          _kcDismissClipLoadingUI();
+          return;
+        }
+        if (!data || data[KC_MSG_PREFIX] !== true) return;
+        if (data[KC_IFRAME_HOVER] === true) {
+          state.iframeHoverInfo = {
+            url: String(data.url || '').trim(),
+            imageUrl: String(data.imageUrl || '').trim(),
+            category: String(data.category || '').trim(),
+            title: String(data.title || '').trim(),
+            platform: String(data.platform || '').trim(),
+            pageUrl: String(data.pageUrl || '').trim(),
+            sourceWindow: event.source,
+          };
+        } else if (data[KC_IFRAME_HOVER_END] === true) {
+          if (state.iframeHoverInfo?.sourceWindow === event.source) {
+            state.iframeHoverInfo = null;
+          }
+        // === PHASE_IFRAME_CLIP_REQUEST ===
+        } else if (data[KC_IFRAME_CLIP_REQUEST] === true) {
+          // Iframe-focused clipboard delegation. Build synthetic state
+          // from message payload (same shape as buildSyntheticStateFromIframeHover
+          // expects) and call performSyncClipboardWrite in this message
+          // handler's sync turn — per Chrome UAv2, iframe's keydown activation
+          // is visible on top frame, so clipboard.write succeeds.
+          const info = {
+            url: String(data.url || '').trim(),
+            imageUrl: String(data.imageUrl || '').trim(),
+            category: String(data.category || '').trim(),
+            title: String(data.title || '').trim(),
+            platform: String(data.platform || '').trim(),
+            pageUrl: String(data.pageUrl || '').trim(),
+            sourceWindow: event.source,
+          };
+          const syntheticState = buildSyntheticStateFromIframeHover(info);
+          const clipCtrl = _kcBeginClipControl(); // PHASE_IFRAME_OWNERSHIP
+          let clipboardPromise = null;
+          try {
+            clipboardPromise = performSyncClipboardWrite(syntheticState);
+          } catch (_) { /* defensive */ }
+          if (clipboardPromise) {
+            // PHASE_IFRAME_OWNERSHIP: terminal toast now runs on top via save IIFE + clipControl.
+            // PHASE_IFRAME_OWNERSHIP: the pipeline ran here, so the upscaled bytes are in
+            // this frame's clipboardPromise. The subframe used to save instead, with no
+            // bytes at all — a URL-only row with is_upscaled false.
+            const savedActive = state.activeCoreItem;
+            const savedUrl = state.activeHoverUrl;
+            const savedMeta = state.lastExtractedMetadata;
+            state.activeCoreItem = syntheticState.activeCoreItem;
+            state.activeHoverUrl = syntheticState.activeHoverUrl;
+            state.lastExtractedMetadata = {
+              ...syntheticState.lastExtractedMetadata,
+              _pageUrl: info.pageUrl,
+              _isIframeRelay: true,
+            };
+            Promise.resolve()
+              .then(() => saveActiveCoreItem({
+                action: 'save-url',
+                skipClipboard: true,
+                clipboardPromise,
+                fromIframeClipRequest: true,
+                clipControl: clipCtrl,
+              }))
+              .catch(() => {})
+              .finally(() => {
+                state.activeCoreItem = savedActive;
+                state.activeHoverUrl = savedUrl;
+                state.lastExtractedMetadata = savedMeta;
+              });
+          } else {
+            // Synthetic clipboard returned null — no image and no DOM (always
+            // true in synthetic). Notify iframe of failure.
+            try {
+              event.source?.postMessage({
+                [KC_MSG_PREFIX]: true,
+                [KC_IFRAME_CLIPBOARD_RESULT]: true,
+                success: false,
+                successText: null,
+              }, '*');
+            } catch (_) { /* defensive */ }
+          }
+        } else if (data[KC_IFRAME_MODE_TOGGLE] === true) {
+          // PHASE_IFRAME_OWNERSHIP: the chord happened in a subframe. Toggling here puts
+          // the confirmation toast on the page the user is looking at.
+          _kcToggleClipMode();
+        }
+        // === END PHASE_IFRAME_CLIP_REQUEST ===
+      } catch (_) { /* defensive */ }
+}
+
+function _kcOnStorageChangedAuth(changes, area) {
+    if (area !== 'local') return;
+
+    // === PHASE_ANON_CLIP_TELEMETRY ===
+    if ('kc_usage_stats_enabled' in changes) {
+      _kcUsageStatsEnabled = changes.kc_usage_stats_enabled.newValue !== false;
+    }
+    // === END PHASE_ANON_CLIP_TELEMETRY ===
+
+    // Sign-in detected
+    if (changes.kickclipUserId?.newValue && !_kcUserReady) {
+      _kcUserReady = true;
+      return;
+    }
+
+    // Sign-out detected
+    if ('kickclipUserId' in changes && !changes.kickclipUserId?.newValue && _kcUserReady) {
+      _kcUserReady = false;
+      // Force-hide all KickClip UI immediately
+      try {
+        // === PHASE_BADGE_SHADOW_REGRESSION_FIX ===
+        // Badge lives in the badge shadow root (closed mode). Overlay lives
+        // in main shadow. document.getElementById returned null for both.
+        const ids = [
+          'kickclip-highlight-overlay',
+          'kickclip-status-badge-core',
+        ];
+        for (const id of ids) {
+          const el = id === 'kickclip-status-badge-core'
+            ? getKCBadgeShadowElement(id)
+            : getKCShadowElement(id);
+          if (el) { el.style.transition = ''; el.style.opacity = '0'; }
+        }
+        // === END PHASE_BADGE_SHADOW_REGRESSION_FIX ===
+      } catch (e) {}
+    }
+}
+
+function mountSaveMessageListener() {
+  if (window.__kcSaveMessageListenerMounted) return;
+  if (!chrome?.runtime?.onMessage?.addListener) return;
+  window.__kcSaveMessageListenerMounted = true;
+  chrome.runtime.onMessage.addListener(_kcOnRuntimeMessage);
+
+  if (IS_IFRAME) {
+    window.addEventListener('message', _kcOnIframeSaveRelayMessage, { passive: true });
+  }
+}
 
 // === PHASE_SCROLL_PRESCAN_TRIGGER ===
 // Lazy-loaded images that already completed (class="lazyloaded") don't
@@ -5171,7 +5349,16 @@ function schedulePreScanScrollDebounced() {
 }
 // === END PHASE_SCROLL_PRESCAN_TRIGGER ===
 
-  window.addEventListener('scroll', async () => {
+// === PHASE_TAKEOVER: hoisted page listeners (named refs for future teardown) ===
+function _kcOnWindowLoad() { schedulePreScan(document, false, 'window-load'); }
+function _kcOnWindowResize() { schedulePreScan(document, false, 'window-resize'); }
+function _kcOnDocumentImgLoad(e) {
+      const t = e?.target;
+      if (!t || t.nodeType !== 1) return;
+      if (String(t.tagName || '').toUpperCase() !== 'IMG') return;
+      schedulePreScan(document, false, 'img-load');
+    }
+async function _kcOnWindowScroll() {
     // === PHASE_SCROLL_PRESCAN_TRIGGER_INTEGRATION ===
     // Trigger a debounced pre-scan on scroll so lazy-loaded images
     // newly entering the viewport get detected even without a fresh
@@ -5224,27 +5411,8 @@ function schedulePreScanScrollDebounced() {
       false,
       rectOverride
     );
-  }, { passive: true, capture: true });
-  // === PHASE_KEYDOWN_SHORTCUT ===
-  // Custom clip shortcut. Listens for the user-configured shortcut
-  // (stored via shortcutStore.js as 'kickclipShortcutV2') and, when
-  // matched, conditionally triggers the clip flow:
-  //   - If state.activeCoreItem and state.activeHoverUrl are set
-  //     (overlay is active on a clippable item), preventDefault the
-  //     keystroke and invoke saveActiveCoreItem directly.
-  //   - Otherwise, do nothing — the keystroke proceeds to its default
-  //     behavior (text copy for Cmd+C, save dialog for Cmd+S, etc.),
-  //     so we don't interfere with Chrome's native shortcuts when the
-  //     user isn't actively trying to clip.
-  //
-  // Capture phase (third arg = true) is used so KickClip evaluates the
-  // gate before any page-level listener can preventDefault and steal
-  // the event.
-  //
-  // _activeShortcut is module-level (initialized by PHASE_BADGE_SHORTCUT_SYNC
-  // above). The keydown listener just reads it; no separate init needed.
-
-  document.addEventListener('keydown', async (event) => {
+  }
+async function _kcOnKeydown(event) {
     if (event.metaKey && event.shiftKey && _kcIsLoneModifierKey(event)) {
       _kcModChordArmed = true;
     } else {
@@ -5289,14 +5457,9 @@ function schedulePreScanScrollDebounced() {
           pageUrl: String(window.location.href || '').trim(),
         }, '*');
       } catch (_) { /* defensive */ }
-      try {
-        await saveActiveCoreItem({
-          action: 'save-url',
-          skipClipboard: true,
-          clipboardPromise: null,
-          fromIframeClipRequest: true,
-        });
-      } catch (e) { /* defensive */ }
+      // PHASE_IFRAME_OWNERSHIP: the top frame saves now. This call posted a URL with no
+      // pipeline bytes — no clipped image, no thumbnail, is_upscaled always false — while
+      // the top held the real result and did nothing with it.
       return;
     }
     // === END PHASE_IFRAME_CLIP_REQUEST ===
@@ -5325,11 +5488,22 @@ function schedulePreScanScrollDebounced() {
     // === PHASE_CLIP_CANCEL ===
     // Local-hover clips use the cancelable per-clip control; the iframe-hover-
     // propagation path keeps the legacy single-toast loading UI unchanged.
+    // PHASE_CTX_GUARD: with the runtime severed there is no upscale, no save and no side
+    // panel — only the original bytes. Handing those over while telling the user to
+    // refresh reads as a success and a failure at once, so the clip is abandoned instead.
+    if (!_kcRuntimeAlive()) {
+      _kcShowContextDeadToast();
+      return;
+    }
     let clipCtrl = null;
     if (hasLocalHover) {
       clipCtrl = _kcBeginClipControl();
     } else {
-      _kcStartClipLoadingUI(); // PHASE_CLIP_LOADING_UI (iframe-hover-propagation)
+      // PHASE_IFRAME_OWNERSHIP: a control, not the legacy loading UI. Without one,
+      // _kcMarkSrApplied has nothing to write to, so an upscaled clip saves its original
+      // bytes; and the save's cancelled check has nothing to read, so a cancelled editor
+      // saves anyway.
+      clipCtrl = _kcBeginClipControl();
     }
     // === END PHASE_CLIP_CANCEL ===
     // === PHASE_CLIPBOARD_SYNC_WRITE ===
@@ -5353,9 +5527,7 @@ function schedulePreScanScrollDebounced() {
     }
     // === END PHASE_CLIPBOARD_SYNC_WRITE ===
     // === PHASE_IFRAME_HOVER_PROPAGATION ===
-    if (hasIframeHover && !hasLocalHover && clipboardPromise) {
-      notifyIframeClipboardResult(iframeInfo, clipboardPromise);
-    }
+    // PHASE_IFRAME_OWNERSHIP: terminal toast now runs on top via save IIFE + clipControl.
     // === END PHASE_IFRAME_HOVER_PROPAGATION ===
     try {
       if (hasLocalHover) {
@@ -5380,7 +5552,12 @@ function schedulePreScanScrollDebounced() {
           title: iframeInfo.title,
           platform: iframeInfo.platform,
           _pageUrl: iframeInfo.pageUrl,
+          // PHASE_IFRAME_OWNERSHIP: the top frame is clipping on behalf of a subframe, so
+          // its own highlight is not showing and the overlay gate would reject the save.
+          // Relay mode exists for exactly this — a frame saving something it is not
+          // hovering itself.
           _isIframeHoverPropagation: true,
+          _isIframeRelay: true,
         };
         try {
           await saveActiveCoreItem({
@@ -5388,6 +5565,7 @@ function schedulePreScanScrollDebounced() {
             skipClipboard: true,
             clipboardPromise,
             fromIframeHover: true,
+            clipControl: clipCtrl,
           });
         } finally {
           state.activeCoreItem = savedActive;
@@ -5399,19 +5577,25 @@ function schedulePreScanScrollDebounced() {
     } catch (e) {
       // defensive — clip failures shouldn't crash the listener
     }
-  }, true);
-  document.addEventListener('keyup', async (event) => {
+  }
+async function _kcOnKeyup(event) {
     if (!_kcModChordArmed) return;
     if (!_kcIsLoneModifierKey(event)) { _kcModChordArmed = false; return; }
     if (event.metaKey && event.shiftKey) return;   // still holding both
     _kcModChordArmed = false;
     if (!_kcActiveEnabled) return;
-    if (IS_IFRAME) return;
+    if (IS_IFRAME) {
+      // PHASE_IFRAME_OWNERSHIP: the chord completed here, but the top toggles. Nothing
+      // else in this frame needs to know — the storage write reaches every frame's
+      // onChanged listener, including this one's.
+      try {
+        window.top.postMessage({ [KC_MSG_PREFIX]: true, [KC_IFRAME_MODE_TOGGLE]: true }, '*');
+      } catch (_) { /* defensive */ }
+      return;
+    }
     await _kcToggleClipMode();
-  }, true);
-  // === END PHASE_KEYDOWN_SHORTCUT ===
-  window.addEventListener('resize', () => schedulePreScan(document, false, 'window-resize'), { passive: true });
-  window.addEventListener('mouseover', async (e) => {
+  }
+async function _kcOnWindowMouseover(e) {
     if (!_windowFocused) return;
     lastPointerX = e?.clientX ?? lastPointerX;
     lastPointerY = e?.clientY ?? lastPointerY;
@@ -5496,8 +5680,8 @@ function schedulePreScanScrollDebounced() {
     }
     // === END PHASE27D_RELAXED_DISPATCH ===
     await updateCoreSelectionFromTarget(target, e.clientX, e.clientY);
-  }, { passive: true, capture: true });
-  window.addEventListener('mousemove', (e) => {
+  }
+function _kcOnWindowMousemove(e) {
     lastPointerX = e?.clientX ?? lastPointerX;
     lastPointerY = e?.clientY ?? lastPointerY;
 
@@ -5613,12 +5797,8 @@ function schedulePreScanScrollDebounced() {
       }
     } catch (_) { /* never let the hover gate throw */ }
     // === END PHASE_OVERLAY_MOUSEMOVE_GATE ===
-  }, { passive: true, capture: true });
-
-  // mouseout with null relatedTarget means the pointer truly left the document
-  // (e.g. moved to address bar, side panel, or another app).
-  // This is more reliable than mouseleave for browser UI transitions.
-  document.addEventListener('mouseout', (e) => {
+  }
+function _kcOnDocumentMouseout(e) {
     if (IS_IFRAME) {
       // iframe context: when the pointer leaves the iframe document,
       // clean up any active CoreHighlight via coreClear().
@@ -5636,10 +5816,8 @@ function schedulePreScanScrollDebounced() {
       try { hideCoreStatusBadge(); } catch (_) {}
       try { hideCoreHighlight(); } catch (_) {}
     }
-  }, { passive: true });
-
-  // mouseover fires when pointer re-enters from outside the document.
-  document.addEventListener('mouseover', (e) => {
+  }
+function _kcOnDocumentMouseover(e) {
     if (!_mouseInsideDocument) {
       _mouseInsideDocument = true;
       if (IS_IFRAME) return; // top frame handles badge state
@@ -5651,13 +5829,11 @@ function schedulePreScanScrollDebounced() {
         }
       } catch (e) {}
     }
-  }, { passive: true });
-
-  // ── SPA navigation detection ──────────────────────────────────────────────
-  // Forces a full document re-scan when the URL changes without a page reload.
-  // Resets lastFingerprint and cancels any pending scanTimer so the new page's
-  // content is always scanned from scratch.
-  function resetAndFullScan() {
+  }
+function _kcOnPagehide() {
+    try { _kcClearSpaLateScanTimers(); } catch (_) {}
+  }
+function resetAndFullScan() {
     _kcClearSpaLateScanTimers();
     _mouseHasMovedOnPage = false;
     _mouseInsideDocument = false;
@@ -5680,114 +5856,97 @@ function schedulePreScanScrollDebounced() {
     lastRenderedElementSet = null;
     _forceFullScanOnMutation = true;
     schedulePreScan(document, true, 'spa-navigation');
-    _kcScheduleSpaLateScans();
-  }
-
-  window.addEventListener('pagehide', () => {
-    try { _kcClearSpaLateScanTimers(); } catch (_) {}
-  }, { passive: true });
-
-  // popstate: browser back/forward navigation
-  window.addEventListener('popstate', resetAndFullScan, { passive: true });
-
-  // hashchange: hash-only URL changes (e.g. Gmail folder switching #inbox → #sent)
-  window.addEventListener('hashchange', resetAndFullScan, { passive: true });
-
-  // yt-navigate-finish: YouTube's custom SPA navigation complete event.
-  // Fires after YouTube has fully rendered the new page content — more accurate
-  // than pushState which fires before rendering. Only active on youtube.com.
-  window.addEventListener('yt-navigate-finish', () => {
+    _kcScheduleSpaLateScans();}
+function _kcOnYtNavigateFinish() {
     if (/^https:\/\/www\.youtube\.com(\/|$)/.test(String(window.location.href || ''))) {
       resetAndFullScan();
     }
-  }, { passive: true });
+  }
+function _kcOnBrowserHidden() {
+  _windowFocused = false;
+  try { hideCoreHighlight(); }   catch (e) {}
+  try { hideMetadataTooltip(); }   catch (e) {}
+  try { if (!IS_IFRAME) { hideCoreStatusBadge(); } }       catch (e) {}
+  unmountActiveCoreItemMutationObserver();
+  state.activeCoreItem       = null;
+  state.activeHoverUrl       = null;
+  state.lastExtractedMetadata = null;
+}
+function _kcOnBrowserVisible() { _windowFocused = true; }
+function _kcOnVisibilityChangeLifecycle() {
+  if (document.visibilityState === 'hidden') {
+    _kcOnBrowserHidden();
+  } else {
+    _kcOnBrowserVisible();
+  }
+}
+function _kcOnWindowBlurLifecycle() {
+  setTimeout(() => {
+    if (!document.hasFocus() && !_sidePanelFocused) {
+      _kcOnBrowserHidden();
+    }
+  }, 100);
+}
+function _kcOnWindowFocusLifecycle() {
+  if (document.visibilityState !== 'hidden') {
+    _kcOnBrowserVisible();
+  }
+}
+function _kcOnDomContentLoaded() { schedulePreScan(document, false, 'DOMContentLoaded'); }
+// === END PHASE_TAKEOVER hoisted page listeners ===
 
-  // pushState / replaceState: SPA routing (patch history methods)
-  // Guard against double-patching if mountWindowListeners() is called again
+function mountWindowListeners() {
+  if (window.__kcWindowListenersMounted) return;
+  window.__kcWindowListenersMounted = true;
+
+  window.addEventListener('load', _kcOnWindowLoad, { passive: true });
+  // === PHASE_IMG_LOAD_TRIGGER ===
+  document.addEventListener('load', _kcOnDocumentImgLoad, { passive: true, capture: true });
+  // === END PHASE_IMG_LOAD_TRIGGER ===
+
+  window.addEventListener('scroll', _kcOnWindowScroll, { passive: true, capture: true });
+  // === PHASE_KEYDOWN_SHORTCUT ===
+  document.addEventListener('keydown', _kcOnKeydown, true);
+  document.addEventListener('keyup', _kcOnKeyup, true);
+  // === END PHASE_KEYDOWN_SHORTCUT ===
+  window.addEventListener('resize', _kcOnWindowResize, { passive: true });
+  window.addEventListener('mouseover', _kcOnWindowMouseover, { passive: true, capture: true });
+  window.addEventListener('mousemove', _kcOnWindowMousemove, { passive: true, capture: true });
+  document.addEventListener('mouseout', _kcOnDocumentMouseout, { passive: true });
+  document.addEventListener('mouseover', _kcOnDocumentMouseover, { passive: true });
+
+  window.addEventListener('pagehide', _kcOnPagehide, { passive: true });
+  window.addEventListener('popstate', resetAndFullScan, { passive: true });
+  window.addEventListener('hashchange', resetAndFullScan, { passive: true });
+  window.addEventListener('yt-navigate-finish', _kcOnYtNavigateFinish, { passive: true });
+
   if (!window.__kickclipHistoryPatched) {
     window.__kickclipHistoryPatched = true;
     const _isYouTubeOrigin = () =>
       /^https:\/\/www\.youtube\.com(\/|$)/.test(String(window.location.href || ''));
-    const _origPushState = history.pushState.bind(history);
+    _kcOrigPushState = history.pushState.bind(history);
     history.pushState = (...args) => {
-      _origPushState(...args);
-      // On YouTube, yt-navigate-finish handles the scan after rendering is complete.
-      // Calling resetAndFullScan() here would scan before content is ready.
+      _kcOrigPushState(...args);
       if (!_isYouTubeOrigin()) resetAndFullScan();
     };
-    const _origReplaceState = history.replaceState.bind(history);
+    _kcOrigReplaceState = history.replaceState.bind(history);
     history.replaceState = (...args) => {
-      _origReplaceState(...args);
+      _kcOrigReplaceState(...args);
       if (!_isYouTubeOrigin()) resetAndFullScan();
     };
   }
 
-  // Suppress CoreHighlight / hover when the tab is hidden or window loses focus; restore when back.
   if (!IS_IFRAME) {
-    // Shared hide logic for when the browser loses focus or tab becomes hidden.
-    const onBrowserHidden = () => {
-      _windowFocused = false;
-      try { hideCoreHighlight(); }   catch (e) {}
-      try { hideMetadataTooltip(); }   catch (e) {}
-      try { if (!IS_IFRAME) { hideCoreStatusBadge(); } }       catch (e) {}
-      // === PHASE_COREITEM_LIVE_METADATA ===
-      unmountActiveCoreItemMutationObserver();
-      // === END PHASE_COREITEM_LIVE_METADATA ===
-      state.activeCoreItem       = null;
-      state.activeHoverUrl       = null;
-      state.lastExtractedMetadata = null;
-    };
-
-    // Shared restore logic for when the browser regains focus or tab becomes visible.
-    const onBrowserVisible = () => {
-      _windowFocused = true;
-    };
-
-    // Case 1: tab switch (visibilitychange fires, window.blur also fires but
-    // document.hasFocus() check below will handle dedup correctly)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        onBrowserHidden();
-      } else {
-        onBrowserVisible();
-      }
-    }, { passive: true });
-
-    // Case 2: focus moved to another app or window (visibilitychange does NOT fire).
-    // Use a short delay then check document.hasFocus() to distinguish real app-level
-    // blur from in-page focus shifts (e.g. clicking an input, iframe gaining focus).
-    window.addEventListener('blur', () => {
-      setTimeout(() => {
-        // Do not treat as not-focused if the Side Panel has taken focus —
-        // the Side Panel is part of the KickClip Chrome extension, not an external app.
-        if (!document.hasFocus() && !_sidePanelFocused) {
-          onBrowserHidden();
-        }
-      }, 100);
-    }, { passive: true });
-
-    // Restore when the window regains focus from another app/window.
-    window.addEventListener('focus', () => {
-      if (document.visibilityState !== 'hidden') {
-        onBrowserVisible();
-      }
-    }, { passive: true });
+    document.addEventListener('visibilitychange', _kcOnVisibilityChangeLifecycle, { passive: true });
+    window.addEventListener('blur', _kcOnWindowBlurLifecycle, { passive: true });
+    window.addEventListener('focus', _kcOnWindowFocusLifecycle, { passive: true });
   }
 }
 
 function mountIframeSaveQueryListener() {
   if (window.__kcIframeSaveQueryListenerMounted) return;
   window.__kcIframeSaveQueryListenerMounted = true;
-  window.addEventListener(
-    'message',
-    (e) => {
-      try {
-        if (!e.data || !e.data[KC_MSG_PREFIX] || e.data[KC_SAVE_HANDLED] !== true) return;
-        // An iframe reported it handled the save — nothing to do in top frame
-      } catch (e) {}
-    },
-    { passive: true }
-  );
+  window.addEventListener('message', _kcOnIframeSaveQueryMessage, { passive: true });
 }
 
 // === PHASE_IFRAME_HOVER_PROPAGATION ===
@@ -5799,67 +5958,7 @@ function mountIframeHoverPropagationListener() {
   if (IS_IFRAME) return;
   if (window.__kcIframeHoverPropagationListenerMounted) return;
   window.__kcIframeHoverPropagationListenerMounted = true;
-  window.addEventListener(
-    'message',
-    (event) => {
-      try {
-        const data = event?.data;
-        if (!data || data[KC_MSG_PREFIX] !== true) return;
-        if (data[KC_IFRAME_HOVER] === true) {
-          state.iframeHoverInfo = {
-            url: String(data.url || '').trim(),
-            imageUrl: String(data.imageUrl || '').trim(),
-            category: String(data.category || '').trim(),
-            title: String(data.title || '').trim(),
-            platform: String(data.platform || '').trim(),
-            pageUrl: String(data.pageUrl || '').trim(),
-            sourceWindow: event.source,
-          };
-        } else if (data[KC_IFRAME_HOVER_END] === true) {
-          if (state.iframeHoverInfo?.sourceWindow === event.source) {
-            state.iframeHoverInfo = null;
-          }
-        // === PHASE_IFRAME_CLIP_REQUEST ===
-        } else if (data[KC_IFRAME_CLIP_REQUEST] === true) {
-          // Iframe-focused clipboard delegation. Build synthetic state
-          // from message payload (same shape as buildSyntheticStateFromIframeHover
-          // expects) and call performSyncClipboardWrite in this message
-          // handler's sync turn — per Chrome UAv2, iframe's keydown activation
-          // is visible on top frame, so clipboard.write succeeds.
-          const info = {
-            url: String(data.url || '').trim(),
-            imageUrl: String(data.imageUrl || '').trim(),
-            category: String(data.category || '').trim(),
-            title: String(data.title || '').trim(),
-            platform: String(data.platform || '').trim(),
-            pageUrl: String(data.pageUrl || '').trim(),
-            sourceWindow: event.source,
-          };
-          const syntheticState = buildSyntheticStateFromIframeHover(info);
-          let clipboardPromise = null;
-          try {
-            clipboardPromise = performSyncClipboardWrite(syntheticState);
-          } catch (_) { /* defensive */ }
-          if (clipboardPromise) {
-            notifyIframeClipboardResult(info, clipboardPromise);
-          } else {
-            // Synthetic clipboard returned null — no image and no DOM (always
-            // true in synthetic). Notify iframe of failure.
-            try {
-              event.source?.postMessage({
-                [KC_MSG_PREFIX]: true,
-                [KC_IFRAME_CLIPBOARD_RESULT]: true,
-                success: false,
-                successText: null,
-              }, '*');
-            } catch (_) { /* defensive */ }
-          }
-        }
-        // === END PHASE_IFRAME_CLIP_REQUEST ===
-      } catch (_) { /* defensive */ }
-    },
-    { passive: true }
-  );
+  window.addEventListener('message', _kcOnIframeHoverPropagationMessage, { passive: true });
 }
 // === END PHASE_IFRAME_HOVER_PROPAGATION ===
 
@@ -5888,50 +5987,14 @@ async function checkKcUserAndInit() {
 function mountKcAuthWatcher() {
   if (window.__kcAuthWatcherMounted) return;
   window.__kcAuthWatcherMounted = true;
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local') return;
-
-    // === PHASE_ANON_CLIP_TELEMETRY ===
-    if ('kc_usage_stats_enabled' in changes) {
-      _kcUsageStatsEnabled = changes.kc_usage_stats_enabled.newValue !== false;
-    }
-    // === END PHASE_ANON_CLIP_TELEMETRY ===
-
-    // Sign-in detected
-    if (changes.kickclipUserId?.newValue && !_kcUserReady) {
-      _kcUserReady = true;
-      return;
-    }
-
-    // Sign-out detected
-    if ('kickclipUserId' in changes && !changes.kickclipUserId?.newValue && _kcUserReady) {
-      _kcUserReady = false;
-      // Force-hide all KickClip UI immediately
-      try {
-        // === PHASE_BADGE_SHADOW_REGRESSION_FIX ===
-        // Badge lives in the badge shadow root (closed mode). Overlay lives
-        // in main shadow. document.getElementById returned null for both.
-        const ids = [
-          'kickclip-highlight-overlay',
-          'kickclip-status-badge-core',
-        ];
-        for (const id of ids) {
-          const el = id === 'kickclip-status-badge-core'
-            ? getKCBadgeShadowElement(id)
-            : getKCShadowElement(id);
-          if (el) { el.style.transition = ''; el.style.opacity = '0'; }
-        }
-        // === END PHASE_BADGE_SHADOW_REGRESSION_FIX ===
-      } catch (e) {}
-    }
-  });
+  chrome.storage.onChanged.addListener(_kcOnStorageChangedAuth);
 }
 
 function mountLifecycle() {
   if (document.readyState === 'loading') {
     document.addEventListener(
       'DOMContentLoaded',
-      () => schedulePreScan(document, false, 'DOMContentLoaded'),
+      _kcOnDomContentLoaded,
       { once: true }
     );
   } else {
@@ -5955,11 +6018,10 @@ function mountLifecycle() {
     // Populate _savedUrlSet from background cache (restored from chrome.storage.local)
     // so the first isSaved check is accurate.
     try {
-      chrome.runtime.sendMessage({ action: 'get-saved-urls' }, (response) => {
-        if (!chrome.runtime.lastError && Array.isArray(response?.urls)) {
-          const normalized = normalizeSavedUrlsResponse(response.urls);
-          _savedUrlSet = new Set(normalized);
-        }
+      _kcSend({ action: 'get-saved-urls' }).then((response) => {
+        if (!response || !Array.isArray(response?.urls)) return;
+        const normalized = normalizeSavedUrlsResponse(response.urls);
+        _savedUrlSet = new Set(normalized);
       });
     } catch (e) {}
     mountIframeSaveQueryListener();
@@ -5980,5 +6042,79 @@ function mountLifecycle() {
 // === PHASE_AI_DOMAIN_UNLOCK ===
 // Previously gated on !_isElectronApp to skip Electron-based desktop apps.
 // Restriction removed; see content-loader.js for full rationale.
-checkKcUserAndInit();
+
+// PHASE_TAKEOVER: called by a LATER version after it is injected into this page, so
+// this copy stops responding before the new one starts. Nothing in this version calls
+// it. It must not throw: by the time it runs, chrome.runtime is already severed.
+if (!_kcCoreSkipInit) {
+  window.__kickclipCoreTeardown = function () {
+    try { window.removeEventListener('load', _kcOnWindowLoad); } catch (_) {}
+    try { document.removeEventListener('load', _kcOnDocumentImgLoad, true); } catch (_) {}
+    try { window.removeEventListener('scroll', _kcOnWindowScroll, true); } catch (_) {}
+    try { document.removeEventListener('keydown', _kcOnKeydown, true); } catch (_) {}
+    try { document.removeEventListener('keyup', _kcOnKeyup, true); } catch (_) {}
+    try { window.removeEventListener('resize', _kcOnWindowResize); } catch (_) {}
+    try { window.removeEventListener('mouseover', _kcOnWindowMouseover, true); } catch (_) {}
+    try { window.removeEventListener('mousemove', _kcOnWindowMousemove, true); } catch (_) {}
+    try { document.removeEventListener('mouseout', _kcOnDocumentMouseout); } catch (_) {}
+    try { document.removeEventListener('mouseover', _kcOnDocumentMouseover); } catch (_) {}
+    try { window.removeEventListener('pagehide', _kcOnPagehide); } catch (_) {}
+    try { window.removeEventListener('popstate', resetAndFullScan); } catch (_) {}
+    try { window.removeEventListener('hashchange', resetAndFullScan); } catch (_) {}
+    try { window.removeEventListener('yt-navigate-finish', _kcOnYtNavigateFinish); } catch (_) {}
+    try { document.removeEventListener('visibilitychange', _kcOnVisibilityChangeLifecycle); } catch (_) {}
+    try { window.removeEventListener('blur', _kcOnWindowBlurLifecycle); } catch (_) {}
+    try { window.removeEventListener('focus', _kcOnWindowFocusLifecycle); } catch (_) {}
+    try { document.removeEventListener('DOMContentLoaded', _kcOnDomContentLoaded); } catch (_) {}
+    try { window.removeEventListener('message', _kcOnIframeSaveRelayMessage); } catch (_) {}
+    try { window.removeEventListener('message', _kcOnIframeSaveQueryMessage); } catch (_) {}
+    try { window.removeEventListener('message', _kcOnIframeHoverPropagationMessage); } catch (_) {}
+    try {
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage &&
+          chrome.runtime.onMessage.removeListener) {
+        chrome.runtime.onMessage.removeListener(_kcOnRuntimeMessage);
+      }
+    } catch (_) {}
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged &&
+          chrome.storage.onChanged.removeListener) {
+        chrome.storage.onChanged.removeListener(_kcOnStorageChangedAuth);
+      }
+    } catch (_) {}
+    try { if (_kcShortcutChangeUnsubscribe) _kcShortcutChangeUnsubscribe(); } catch (_) {}
+    try { if (_kcMainMutationObserver) _kcMainMutationObserver.disconnect(); } catch (_) {}
+    try { _kcMainMutationObserver = null; } catch (_) {}
+    try { if (_kcDomDrivenMutationObserver) _kcDomDrivenMutationObserver.disconnect(); } catch (_) {}
+    try { _kcDomDrivenMutationObserver = null; } catch (_) {}
+    try { if (_kcShadowRootObserver) _kcShadowRootObserver.disconnect(); } catch (_) {}
+    try { _kcShadowRootObserver = null; } catch (_) {}
+    try { if (_kcDocOpenPollInterval) window.clearInterval(_kcDocOpenPollInterval); } catch (_) {}
+    try { _kcDocOpenPollInterval = null; } catch (_) {}
+    try { _kcClearSpaLateScanTimers(); } catch (_) {}
+    try {
+      if (scanTimer) {
+        if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(scanTimer);
+        else window.clearTimeout(scanTimer);
+        scanTimer = 0;
+      }
+    } catch (_) {}
+    try { if (_retryScanTimer) { window.clearTimeout(_retryScanTimer); _retryScanTimer = 0; } } catch (_) {}
+    try { if (_domDrivenRedispatchDebounceTimer) { window.clearTimeout(_domDrivenRedispatchDebounceTimer); _domDrivenRedispatchDebounceTimer = null; } } catch (_) {}
+    try { unmountActiveCoreItemMutationObserver(); } catch (_) {}
+    try { unmountActiveOverlayRectWatcher(); } catch (_) {}
+    try {
+      if (_kcOrigPushState) history.pushState = _kcOrigPushState;
+      if (_kcOrigReplaceState) history.replaceState = _kcOrigReplaceState;
+    } catch (_) {}
+    try { window.__kcWindowListenersMounted = false; } catch (_) {}
+    try { window.__kcSaveMessageListenerMounted = false; } catch (_) {}
+    try { window.__kcIframeSaveQueryListenerMounted = false; } catch (_) {}
+    try { window.__kcIframeHoverPropagationListenerMounted = false; } catch (_) {}
+    try { window.__kcAuthWatcherMounted = false; } catch (_) {}
+    try { _mountedDomDrivenRedispatch = false; } catch (_) {}
+    try { window.__kickclipCoreLoaded = false; } catch (_) {}
+  };
+}
+
+if (!_kcCoreSkipInit) checkKcUserAndInit();
 // === END PHASE_AI_DOMAIN_UNLOCK ===
