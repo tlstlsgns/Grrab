@@ -10,6 +10,12 @@ import {
 // ─────────── Clip Shortcut recorder (mirrors the sidepanel recorder) ───────────
 const scBtn = document.getElementById('pp-shortcut-btn');
 const scReset = document.getElementById('pp-shortcut-reset');
+
+// The version comes from the manifest, so it cannot drift from what is installed.
+try {
+  const _ppVersion = document.getElementById('pp-version');
+  if (_ppVersion) _ppVersion.textContent = 'v' + chrome.runtime.getManifest().version;
+} catch (_) { /* leave it blank rather than show a wrong version */ }
 let _recording = false;
 let _prior = null;
 let _keyListener = null;
