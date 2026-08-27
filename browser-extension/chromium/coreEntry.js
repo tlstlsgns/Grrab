@@ -249,6 +249,11 @@ const KC_IFRAME_MODE_TOGGLE = '__kc_iframe_mode_toggle__';
 // a later build asks this one to stand down before it takes over. Nothing in this version
 // sends it.
 const KC_TEARDOWN_REQUEST = '__kickclip_teardown_request__';
+// PHASE_TAKEOVER: posted back once the teardown has run, so the build that asked knows
+// when it is safe to start. Without it the only option is a fixed delay, and a delay that
+// runs short leaves two instances answering the same keypress — the failure that stopped
+// re-injection shipping in 1.5.7.
+const KC_TEARDOWN_COMPLETE = '__kickclip_teardown_complete__';
 
 /** Metadata tooltip id — hidden briefly during save (shutter uses overlay fills in uiManager). */
 const METADATA_TOOLTIP_ID = 'kickclip-metadata-tooltip';
@@ -6151,6 +6156,10 @@ if (!_kcCoreSkipInit) {
       if (!e || !e.data || e.data[KC_TEARDOWN_REQUEST] !== true) return;
       window.removeEventListener('message', _kcOnTeardownRequest);
       window.__kickclipCoreTeardown();
+      // PHASE_TAKEOVER: the teardown is synchronous, so by here this instance has stopped.
+      // The version rides along: a later build can then tell which predecessor it is
+      // replacing without having to guess.
+      window.postMessage({ [KC_TEARDOWN_COMPLETE]: true, version: '1.5.8' }, '*');
     } catch (_) {}
   });
 }
