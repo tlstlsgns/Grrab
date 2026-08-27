@@ -23,6 +23,19 @@ const excludedBasenames = new Set([
   'logo_source.svg',
   'debug-translation.js',
   'bgRemoval.js',
+  // PHASE_BUNDLE: the content script is content-bundle.js now. These are its sources —
+  // esbuild reads them from chromium/ at build time and nothing loads them at runtime, so
+  // they do not ship. shortcutStore.js is NOT here: the side panel and the popup import
+  // it directly.
+  'brandConfig.js',
+  'coreEngine.js',
+  'coreEntry.js',
+  'dataExtractor.js',
+  'eraseOverlay.js',
+  'itemDetector.js',
+  'stateLite.js',
+  'uiManager.js',
+  'urlResolver.js',
 ]);
 
 function shouldExclude(entryName) {
