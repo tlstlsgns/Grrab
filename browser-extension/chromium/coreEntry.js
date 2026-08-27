@@ -71,7 +71,7 @@ import { getShortcut, onShortcutChange, matchesShortcut, formatShortcut } from '
 const _kcCoreSkipInit = !!window.__kickclipCoreLoaded;
 if (!_kcCoreSkipInit) {
   window.__kickclipCoreLoaded = true;
-  window.__kickclipCoreVersion = '1.5.8';
+  window.__kickclipCoreVersion = '1.5.9';
 }
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
@@ -6159,7 +6159,7 @@ if (!_kcCoreSkipInit) {
       // PHASE_TAKEOVER: the teardown is synchronous, so by here this instance has stopped.
       // The version rides along: a later build can then tell which predecessor it is
       // replacing without having to guess.
-      window.postMessage({ [KC_TEARDOWN_COMPLETE]: true, version: '1.5.8' }, '*');
+      window.postMessage({ [KC_TEARDOWN_COMPLETE]: true, version: '1.5.9' }, '*');
     } catch (_) {}
   });
 }

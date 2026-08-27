@@ -6,17 +6,81 @@ let lastPingTime = 0;
 let _savedUrlsCache = [];
 let _cachedUserId = null; // cached login state for synchronous access in onCommand
 
-// PHASE_TAKEOVER: re-injecting on update was tried and does not work yet.
-// chrome.scripting.executeScript runs in a different isolated world than the one
-// content_scripts use, so the injected code cannot see __kickclipCoreTeardown and cannot
-// stop the orphan — the probe found it undefined in every frame of every tab. The result
-// is two live instances: the new one clips, the old one blocks the save and asks for a
-// refresh. Worse than the refresh notice alone.
+// PHASE_TAKEOVER: on update, Chrome severs chrome.runtime in every content script already
+// running. They keep executing and cannot reach the service worker, so the page stops
+// clipping until it is reloaded.
 //
-// This version ships the other half instead: coreEntry listens for a teardown request on
-// window.postMessage, which every world in a frame receives. A later build can send it
-// and take over cleanly. It cannot help this version — 1.5.7 is not listening — which is
-// why the listener ships before the injection that will use it.
+// The script cannot be replaced in place — chrome.scripting.executeScript runs in a
+// different isolated world than content_scripts, and there is no API to reach that one.
+// What it can do is ask: 1.5.8 and later listen on window.postMessage for a teardown
+// request and answer when they have stopped. The new bundle then runs in the injector's
+// world, alone.
+//
+// A build older than 1.5.8 does not listen. Nothing answers, the wait times out, and that
+// tab is left as it is — the refresh notice already explains itself. Injecting anyway
+// would leave two instances handling one keypress.
+const KC_TEARDOWN_REQUEST = '__kickclip_teardown_request__';
+const KC_TEARDOWN_COMPLETE = '__kickclip_teardown_complete__';
+const KC_TEARDOWN_TIMEOUT_MS = 500;
+
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason !== 'update') return;
+  _kcTakeOverOpenTabs();
+});
+
+async function _kcTakeOverOpenTabs() {
+  let tabs = [];
+  try { tabs = await chrome.tabs.query({}); } catch (_) { return; }
+  // PHASE_TAKEOVER: tabs are independent, and each one costs a probe that waits out its
+  // timeout when nothing answers. Sequentially, the last tab in a window of ten waits for
+  // all nine before it — long enough that the user has already pressed the shortcut and
+  // been told to refresh by the instance still running there.
+  await Promise.all(tabs.map(async (tab) => {
+    if (!tab.id) return;
+    try {
+      await _kcTakeOverTab(tab.id);
+    } catch (_) {}
+  }));
+}
+
+async function _kcTakeOverTab(tabId) {
+  // The probe runs in every frame and resolves to whether that frame answered.
+  const results = await chrome.scripting.executeScript({
+    target: { tabId, allFrames: true },
+    args: [KC_TEARDOWN_REQUEST, KC_TEARDOWN_COMPLETE, KC_TEARDOWN_TIMEOUT_MS],
+    func: (reqKey, doneKey, timeoutMs) => new Promise((resolve) => {
+      let settled = false;
+      const onMessage = (e) => {
+        if (!e || !e.data || e.data[doneKey] !== true) return;
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('message', onMessage);
+        resolve({ ok: true, version: e.data.version || null, href: location.href });
+      };
+      window.addEventListener('message', onMessage);
+      try { window.postMessage({ [reqKey]: true }, '*'); } catch (_) {}
+      setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('message', onMessage);
+        resolve({ ok: false, href: location.href });
+      }, timeoutMs);
+    }),
+  });
+
+  // Only frames that answered get the new script. A frame running a build with no
+  // listener is left alone rather than doubled up.
+  const frameIds = [];
+  for (const r of results) {
+    if (r && r.result && r.result.ok) frameIds.push(r.frameId);
+  }
+  if (!frameIds.length) return;
+
+  await chrome.scripting.executeScript({
+    target: { tabId, frameIds },
+    files: ['config.js', 'content-bundle.js'],
+  });
+}
 
 // Enable side panel toggle on toolbar icon click.
 // Chrome 116+ automatically opens/closes the side panel on action click.
