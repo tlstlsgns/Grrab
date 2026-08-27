@@ -85,6 +85,25 @@ const KC_SHADOW_HOST_ID = 'kickclip-shadow-host';
 let _kcShadowRoot = null;
 let _kcShadowHost = null; // host element ref for re-attach (PHASE_SHADOW_HOST_REATTACH)
 
+function _kcAttachOrReplace(host, hostId) {
+  try {
+    return { root: host.attachShadow({ mode: 'closed' }), host };
+  } catch (_) {
+    // NotSupportedError: the element already hosts a shadow tree we cannot see.
+    let fresh = null;
+    try {
+      fresh = host.cloneNode(false);
+      host.replaceWith(fresh);
+    } catch (_) {
+      try { host.remove(); } catch (_) {}
+      fresh = document.createElement('div');
+      fresh.id = hostId;
+      try { (document.body || document.documentElement).appendChild(fresh); } catch (_) {}
+    }
+    return { root: fresh.attachShadow({ mode: 'closed' }), host: fresh };
+  }
+}
+
 /**
  * Returns the KickClip shadow root, creating the host + shadow if needed.
  * Idempotent — safe to call multiple times.
@@ -133,7 +152,17 @@ export function getKCShadowRoot() {
   }
 
   _kcShadowHost = host;
-  _kcShadowRoot = host.shadowRoot || host.attachShadow({ mode: 'closed' });
+  // PHASE_TAKEOVER: a host left behind by a torn-down instance still carries a CLOSED
+  // shadow root, which only the code that attached it can reach. From here shadowRoot
+  // reads null and attachShadow throws, so the element is replaced rather than adopted —
+  // its tree is unreachable and its contents belong to an instance that has stopped.
+  if (host.shadowRoot) {
+    _kcShadowRoot = host.shadowRoot;
+  } else {
+    const attached = _kcAttachOrReplace(host, KC_SHADOW_HOST_ID);
+    _kcShadowHost = attached.host;
+    _kcShadowRoot = attached.root;
+  }
   return _kcShadowRoot;
 }
 
@@ -185,7 +214,13 @@ function getKCBadgeShadowRoot() {
   }
 
   _kcBadgeShadowHost = host;
-  _kcBadgeShadowRoot = host.shadowRoot || host.attachShadow({ mode: 'closed' });
+  if (host.shadowRoot) {
+    _kcBadgeShadowRoot = host.shadowRoot;
+  } else {
+    const attached = _kcAttachOrReplace(host, KC_BADGE_SHADOW_HOST_ID);
+    _kcBadgeShadowHost = attached.host;
+    _kcBadgeShadowRoot = attached.root;
+  }
 
   try {
     if (_kcBadgeShadowRoot && !_kcBadgeShadowRoot.getElementById('kickclip-overlay-styles')) {
@@ -1900,6 +1935,15 @@ export function resetUiManagerForTeardown() {
       _kcShortcutTipMoveHandler = null;
     }
   } catch (_) {}
+  // PHASE_TAKEOVER: the shadow trees are closed, so a later build cannot reach them and
+  // has to replace the hosts. Removing them here spares it that, and takes this
+  // instance's UI off the page at the same time.
+  try { if (_kcShadowHost) _kcShadowHost.remove(); } catch (_) {}
+  try { if (_kcBadgeShadowHost) _kcBadgeShadowHost.remove(); } catch (_) {}
+  _kcShadowHost = null;
+  _kcShadowRoot = null;
+  _kcBadgeShadowHost = null;
+  _kcBadgeShadowRoot = null;
 }
 
 export function clearCoreSelection() {
