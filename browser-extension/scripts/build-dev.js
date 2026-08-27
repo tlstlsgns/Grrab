@@ -18,6 +18,10 @@ async function main() {
   fs.copyFileSync(srcConfig, outConfig);
   copyOrtVendor(vendorDir);
 
+  const { bundleContent } = require('./bundle-content');
+  await bundleContent(chromiumDir, path.join(chromiumDir, 'content-bundle.js'));
+  console.log('[build:dev] coreEntry.js graph → content-bundle.js');
+
   const configText = fs.readFileSync(outConfig, 'utf8');
   if (!configText.includes('const KC_IS_DEV = true;')) {
     console.error('ERROR: chromium/config.js must contain `const KC_IS_DEV = true;` after build:dev');

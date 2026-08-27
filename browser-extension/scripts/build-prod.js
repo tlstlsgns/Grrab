@@ -136,6 +136,9 @@ function createZip() {
 async function main() {
   removePreviousOutputs();
   copySource();
+  const { bundleContent } = require('./bundle-content');
+  await bundleContent(srcDir, path.join(outDir, 'content-bundle.js'));
+  console.log('[build:prod] coreEntry.js graph → dist/prod/content-bundle.js');
   copyOrtVendor(prodVendorDir);
   copyVendorModels(prodVendorDir);
   writeProdManifest();
