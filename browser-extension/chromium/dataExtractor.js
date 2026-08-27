@@ -2791,6 +2791,10 @@ export function normalizeShortcodeExtractionResult(result, platform = '') {
 // ── Instagram shortcode proactive cache (WeakMap: article element → shortcode) ──
 const _igShortcodeCache = new WeakMap();
 const _igArticleObservers = new WeakMap();
+// PHASE_TAKEOVER: held at module scope so a teardown can disconnect it. It watches
+// documentElement with subtree:true, so an orphan left running would keep doing that
+// work under whatever replaced it.
+let _igFeedObserver = null;
 
 const _IG_POST_PATTERNS = [/\/p\/([A-Za-z0-9_-]+)/i, /\/reels?\/([A-Za-z0-9_-]+)/i];
 const _IG_SKIP_SEGMENTS = new Set(['audio', 'explore', 'stories', 'highlights', 'tv', 'live', 'ar', 'location']);
@@ -2841,7 +2845,8 @@ export function mountInstagramShortcodeObserver() {
       }
     }
 
-    const feedObs = new MutationObserver((mutations) => {
+    try { if (_igFeedObserver) _igFeedObserver.disconnect(); } catch (_) {}
+    _igFeedObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
           if (!node || node.nodeType !== 1) continue;
@@ -2862,8 +2867,17 @@ export function mountInstagramShortcodeObserver() {
     });
 
     const root = document.documentElement || document.body;
-    feedObs.observe(root, { childList: true, subtree: true });
+    _igFeedObserver.observe(root, { childList: true, subtree: true });
   } catch (e) {}
+}
+
+// PHASE_TAKEOVER: called only by coreEntry's teardown. The per-article observers in
+// _igArticleObservers are left: they are attached to nodes the page has usually already
+// removed, and tracking them for bulk disconnect would mean a parallel Set written on
+// every article for the life of the page.
+export function resetInstagramShortcodeObservers() {
+  try { if (_igFeedObserver) _igFeedObserver.disconnect(); } catch (_) {}
+  _igFeedObserver = null;
 }
 
 function extractInstagramShortcode(element) {

@@ -11,9 +11,15 @@
        it the same radius may well work; it was not tried. */
     body { width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; background: #fff; }
     .pp-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #eee; }
-    .pp-header-text { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+    /* Two children now: the brand, and the version beside it. The 8px is the space between
+       those two things; the logo and the name have their own, tighter, inside the brand. */
+    .pp-header-text { display: flex; flex-direction: row; align-items: flex-end; gap: 8px; }
+    .pp-header-brand { display: flex; flex-direction: row; align-items: flex-end; gap: 4px; }
     .pp-header-logo { display: block; flex: 0 0 auto; }
     .pp-header-title { font-size: 17px; font-weight: 600; line-height: 1.2; }
+    /* Beside the name rather than under it: the header is one row, and a second line would
+       make it taller than the settings below. #6b7280 is the same grey the row labels use. */
+       .pp-header-version { font-size: 11px; font-weight: 500; line-height: 1.2; color: #6b7280; margin-bottom: 3px; }
     .pp-toggle { position: relative; display: inline-flex; align-items: center; margin-left: auto; cursor: pointer; }
     .pp-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
     .pp-toggle-track { position: relative; width: 38px; height: 22px; border-radius: 11px; background: #d1d5db; transition: background 0.15s; }
@@ -52,8 +58,11 @@
 <body>
   <div class="pp-header">
     <div class="pp-header-text">
-      <img class="pp-header-logo" src="assets/icons/icon_32.png" alt="" width="20" height="20" />
-      <span class="pp-header-title">Grrab</span>
+      <span class="pp-header-brand">
+        <img class="pp-header-logo" src="assets/icons/icon_32.png" alt="" width="20" height="20" />
+        <span class="pp-header-title">Grrab</span>
+      </span>
+      <span class="pp-header-version" id="pp-version"></span>
     </div>
     <label class="pp-toggle" title="Enable / disable Grrab">
       <input type="checkbox" id="pp-active-toggle" />
