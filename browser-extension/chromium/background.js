@@ -6,6 +6,18 @@ let lastPingTime = 0;
 let _savedUrlsCache = [];
 let _cachedUserId = null; // cached login state for synchronous access in onCommand
 
+// PHASE_TAKEOVER: re-injecting on update was tried and does not work yet.
+// chrome.scripting.executeScript runs in a different isolated world than the one
+// content_scripts use, so the injected code cannot see __kickclipCoreTeardown and cannot
+// stop the orphan — the probe found it undefined in every frame of every tab. The result
+// is two live instances: the new one clips, the old one blocks the save and asks for a
+// refresh. Worse than the refresh notice alone.
+//
+// This version ships the other half instead: coreEntry listens for a teardown request on
+// window.postMessage, which every world in a frame receives. A later build can send it
+// and take over cleanly. It cannot help this version — 1.5.7 is not listening — which is
+// why the listener ships before the injection that will use it.
+
 // Enable side panel toggle on toolbar icon click.
 // Chrome 116+ automatically opens/closes the side panel on action click.
 chrome.sidePanel

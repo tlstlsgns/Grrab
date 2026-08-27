@@ -1886,6 +1886,22 @@ export function renderItemMapCandidates(candidates) {
 
 export const showGreenCandidateOutline = renderItemMapCandidates;
 
+// PHASE_TAKEOVER: called only by coreEntry's teardown. Each of these has its own clearing
+// path already; none of them was reachable from outside the module.
+export function resetUiManagerForTeardown() {
+  try { _kcStopFollow(); } catch (_) {}
+  try { _kcClearShortcutTipTimer(); } catch (_) {}
+  try { _kcCancelHideReset(); } catch (_) {}
+  try { if (_kcShortcutTipClipObserver) _kcShortcutTipClipObserver.disconnect(); } catch (_) {}
+  try { _kcShortcutTipClipObserver = null; } catch (_) {}
+  try {
+    if (_kcShortcutTipMoveHandler) {
+      window.removeEventListener('mousemove', _kcShortcutTipMoveHandler, true);
+      _kcShortcutTipMoveHandler = null;
+    }
+  } catch (_) {}
+}
+
 export function clearCoreSelection() {
   state.activeCoreItem = null;
   state.activeHoverUrl = null;

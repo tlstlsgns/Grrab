@@ -38,6 +38,7 @@ import {
   getNavigableAnchorUrl,
   extractYouTubeShortcodeFromUrl,
   getYouTubeThumbnailUrl,
+  resetInstagramShortcodeObservers,
 } from './dataExtractor.js';
 import {
   getKCShadowRoot,
@@ -45,6 +46,7 @@ import {
   getKCBadgeShadowElement,
   isCoreHighlightShown,
   showShortcutTipImmediate,
+  resetUiManagerForTeardown,
 } from './uiManager.js';
 import {
   determineTypeDOverlayElement,
@@ -69,7 +71,7 @@ import { getShortcut, onShortcutChange, matchesShortcut, formatShortcut } from '
 const _kcCoreSkipInit = !!window.__kickclipCoreLoaded;
 if (!_kcCoreSkipInit) {
   window.__kickclipCoreLoaded = true;
-  window.__kickclipCoreVersion = '1.5.7';
+  window.__kickclipCoreVersion = '1.5.8';
 }
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
@@ -243,6 +245,10 @@ const KC_IFRAME_CLIP_REQUEST = '__kc_iframe_clip_request__';
 // focus, but the toggle belongs on the top — its confirmation toast has to be visible,
 // and a small embed can hide it entirely.
 const KC_IFRAME_MODE_TOGGLE = '__kc_iframe_mode_toggle__';
+// PHASE_TAKEOVER: a window message reaches every isolated world in a frame, which is how
+// a later build asks this one to stand down before it takes over. Nothing in this version
+// sends it.
+const KC_TEARDOWN_REQUEST = '__kickclip_teardown_request__';
 
 /** Metadata tooltip id — hidden briefly during save (shutter uses overlay fills in uiManager). */
 const METADATA_TOOLTIP_ID = 'kickclip-metadata-tooltip';
@@ -6040,8 +6046,10 @@ function mountLifecycle() {
 // === END PHASE27B_REMOVED_GLOBAL ===
 
 // === PHASE_AI_DOMAIN_UNLOCK ===
-// Previously gated on !_isElectronApp to skip Electron-based desktop apps.
-// Restriction removed; see content-loader.js for full rationale.
+// Previously gated on !_isElectronApp to skip Electron-based desktop apps
+// (Claude Desktop, VS Code, Notion). Restriction removed — KickClip may
+// attempt initialization in all contexts; Chrome extensions are not loaded
+// by Electron apps anyway, so removing the guard has no effective impact.
 
 // PHASE_TAKEOVER: called by a LATER version after it is injected into this page, so
 // this copy stops responding before the new one starts. Nothing in this version calls
@@ -6112,8 +6120,39 @@ if (!_kcCoreSkipInit) {
     try { window.__kcIframeHoverPropagationListenerMounted = false; } catch (_) {}
     try { window.__kcAuthWatcherMounted = false; } catch (_) {}
     try { _mountedDomDrivenRedispatch = false; } catch (_) {}
+    // PHASE_TAKEOVER: the imported modules hold state of their own. Each reset is a no-op
+    // in the common case where nothing is running.
+    try { resetInstagramShortcodeObservers(); } catch (_) {}
+    try { resetUiManagerForTeardown(); } catch (_) {}
+    try { _kcClipLoadingClearTimers(); } catch (_) {}
+    // A clip in flight has two listeners and a failsafe on its control. Finishing it
+    // properly would show a toast, which a teardown should not do — so the control is
+    // dismantled directly and dropped.
+    try {
+      const ctrl = _kcInflightClip;
+      if (ctrl) {
+        if (ctrl._onClipLeave) {
+          document.removeEventListener('visibilitychange', ctrl._onClipLeave);
+          window.removeEventListener('blur', ctrl._onClipLeave);
+        }
+        if (ctrl.failsafe) { clearTimeout(ctrl.failsafe); ctrl.failsafe = null; }
+        ctrl.done = true;
+      }
+      _kcInflightClip = null;
+    } catch (_) {}
+    try { _kcClipCursorWait(false); } catch (_) {}
     try { window.__kickclipCoreLoaded = false; } catch (_) {}
   };
+  // PHASE_TAKEOVER: the request arrives from a newer build injected into this page. It
+  // runs in a different isolated world, so it cannot call the teardown directly — a
+  // window message is the only channel that crosses.
+  window.addEventListener('message', function _kcOnTeardownRequest(e) {
+    try {
+      if (!e || !e.data || e.data[KC_TEARDOWN_REQUEST] !== true) return;
+      window.removeEventListener('message', _kcOnTeardownRequest);
+      window.__kickclipCoreTeardown();
+    } catch (_) {}
+  });
 }
 
 if (!_kcCoreSkipInit) checkKcUserAndInit();
