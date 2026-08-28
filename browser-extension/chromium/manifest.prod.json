@@ -5,7 +5,7 @@
   "version": "1.6.0",
   "cross_origin_embedder_policy": { "value": "credentialless" },
   "cross_origin_opener_policy": { "value": "same-origin" },
-  "description": "Grab any image on the web, never low-res — in one shortcut.",
+  "description": "Copy any web image in one shortcut — already usable, saved to your library, without leaving the page.",
   "icons": {
     "16": "assets/icons/icon_16.png",
     "32": "assets/icons/icon_32.png",
