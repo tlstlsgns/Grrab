@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Grrab — Grab any image on the web, never low-res</title>
-<meta name="description" content="Grab any image on the web in high resolution with one keyboard shortcut. AI-upscaled to 3k, straight to your clipboard.">
+<title>Grrab — Copy any web image in one shortcut</title>
+<meta name="description" content="Copy any web image in one shortcut — already usable, saved to your library, without leaving the page.">
 <!-- Open Graph / social preview -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Grrab">
 <meta property="og:url" content="https://grrab.app/">
-<meta property="og:title" content="Grrab — Grab any image on the web, never low-res">
-<meta property="og:description" content="Grab any image on the web in high resolution with one keyboard shortcut. AI-upscaled to 3k, straight to your clipboard.">
+<meta property="og:title" content="Grrab — Copy any web image in one shortcut">
+<meta property="og:description" content="Copy any web image in one shortcut — already usable, saved to your library, without leaving the page.">
 <meta property="og:image" content="https://grrab.app/assets/landing/og-preview.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Grrab — grab any image on the web, never low-res">
+<meta property="og:image:alt" content="Grrab — copy any web image in one shortcut">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Grrab — Grab any image on the web, never low-res">
-<meta name="twitter:description" content="Grab any image on the web in high resolution with one keyboard shortcut. AI-upscaled to 3k, straight to your clipboard.">
+<meta name="twitter:title" content="Grrab — Copy any web image in one shortcut">
+<meta name="twitter:description" content="Copy any web image in one shortcut — already usable, saved to your library, without leaving the page.">
 <meta name="twitter:image" content="https://grrab.app/assets/landing/og-preview.png">
 <link rel="canonical" href="https://grrab.app/">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/landing/favicons/favicon-32.png">
@@ -81,7 +81,9 @@
   .btn-md img{width:18px;height:18px;display:block;flex:0 0 auto;}
   .btn-lg img{width:20px;height:20px;display:block;flex:0 0 auto;}
 
-  /* hero cursor-follow badge + grab toast */
+  /* No markup uses these. The extension's shortcut tip was built to mirror .grab-badge and
+     its comment points here, so the rules stay as the reference even though the page-level
+     badge and toast they were written for are gone. */
   .grab-badge{position:fixed;background:var(--accent);color:#fff;font-family:var(--font-ui);font-size:12px;font-weight:600;
     padding:6px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 14px rgba(188,19,254,.35);
     pointer-events:none;z-index:40;opacity:0;transition:opacity .12s ease;transform:translate(16px,18px);}
@@ -2233,12 +2235,7 @@
   </div>
 </footer>
 
-<!-- cursor-follow badge + grab toast (portaled at body level) -->
-<div id="grabBadge" class="grab-badge">Press <strong>⌘C</strong> to Clip</div>
 <div id="rowATip" class="rowA-tip" aria-hidden="true">Press <span class="rowA-tip-key">⌘C</span></div>
-<div style="position:fixed;top:20px;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;">
-  <div id="grabToast" class="grab-toast">Clipped to clipboard</div>
-</div>
 
 <script>
 (function(){
@@ -2254,7 +2251,7 @@
   var KC_SHORTCUT_SELECTOR =
     /* .rowA-tip-key, not .rowA-tip: the swap overwrites textContent wholesale, so
        pointing it at the tooltip would take the word "Press" with it. */
-    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip-key, .rowB-tip, .hero-tip, .feature-h2 kbd, .sidepanel-kbd, #grabBadge strong";
+    ".rowA-badge, .rowA-popup-kbd, .rowA-step-kbd, .rowA-tip-key, .rowB-tip, .hero-tip, .feature-h2 kbd, .sidepanel-kbd";
   try {
     var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
                 navigator.userAgent.indexOf("Mac") !== -1;
