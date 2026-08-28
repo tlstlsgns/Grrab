@@ -298,7 +298,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         type: 'basic',
         iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
         title: request.title || 'Grrab',
-        message: request.message || 'Image clipped',
+        message: request.message || 'Image copied',
         priority: 0,
         silent: true,
       }, () => { if (chrome.runtime.lastError) { /* OS notifications off — ignore */ } });
@@ -316,7 +316,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         type: 'basic',
         iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
         title: request.title || 'Grrab',
-        message: request.message || 'Clipping…',
+        message: request.message || 'Working…',
         priority: 0,
         silent: true,
       }, () => { if (chrome.runtime.lastError) console.log('[KICKCLIP-LOG] os-progress-start error', chrome.runtime.lastError.message); });
@@ -336,7 +336,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         type: 'basic',
         iconUrl: chrome.runtime.getURL('assets/icons/icon_128.png'),
         title: 'Grrab',
-        message: request.message || 'Image clipped',
+        message: request.message || 'Image copied',
         priority: 0,
         silent: true,
       }, () => { if (chrome.runtime.lastError) console.log('[KICKCLIP-LOG] os-progress-done error', chrome.runtime.lastError.message); });

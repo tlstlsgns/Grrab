@@ -71,7 +71,7 @@ import { getShortcut, onShortcutChange, matchesShortcut, formatShortcut } from '
 const _kcCoreSkipInit = !!window.__kickclipCoreLoaded;
 if (!_kcCoreSkipInit) {
   window.__kickclipCoreLoaded = true;
-  window.__kickclipCoreVersion = '1.5.9';
+  window.__kickclipCoreVersion = '1.6.0';
 }
 
 let _kcUserReady = false; // true when kickclipUserId is confirmed
@@ -338,8 +338,8 @@ function initShortcutSync() {
 function syncCoreBadgeTexts() {
   const display = _activeShortcut ? formatShortcut(_activeShortcut) : 'shortcut';
   setCoreBadgeTexts({
-    defaultText: `Press ${display} to Clip`,
-    failedText: 'Clip failed',
+    defaultText: `Press ${display} to copy`,
+    failedText: 'Failed to copy that image',
   });
 }
 
@@ -454,7 +454,7 @@ async function _kcToggleClipMode() {
   try { await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: next }); } catch (_) {}
   showCoreClipToast({
     kind: 'success',
-    text: next === 'erase' ? 'Clip Mode: Editor' : 'Clip Mode: Instant',
+    text: next === 'erase' ? 'Mode: Editor' : 'Mode: Instant',
     icon: false,
   });
 }
@@ -498,14 +498,14 @@ initActiveEnabledSync();
 const KC_CLIP_LOADING_THRESHOLD_MS = 150;
 const KC_CLIP_LOADING_FAILSAFE_MS = 15000;
 const KC_CLIP_LOADING_FAILSAFE_EFFECT_MS = 30000; // PHASE_CLIP_EFFECT
-const KC_CLIP_LOADING_TEXT = 'Clipping…';
-const KC_CLIP_DEFAULT_SUCCESS_TEXT = 'Image clipped';
-const KC_CLIP_DEFAULT_ERROR_TEXT = 'Clip failed';
+const KC_CLIP_LOADING_TEXT = 'Working…';
+const KC_CLIP_DEFAULT_SUCCESS_TEXT = 'Image copied';
+const KC_CLIP_DEFAULT_ERROR_TEXT = 'Failed to copy that image';
 // PHASE_CTX_GUARD: shown when the extension has been reloaded under a page that was
 // already open. Chrome severs chrome.runtime in the content scripts still running there,
 // so nothing can be saved or upscaled until the page is reloaded. The image still reaches
 // the clipboard — this says what did not happen.
-const KC_CLIP_CONTEXT_DEAD_TEXT = 'Grrab was updated — refresh this page to clip';
+const KC_CLIP_CONTEXT_DEAD_TEXT = 'Grrab was updated — refresh this page to continue';
 function _kcShowContextDeadToast() {
   showCoreClipToast({ kind: 'canceled', text: KC_CLIP_CONTEXT_DEAD_TEXT, duration: 4000 });
 }
@@ -522,9 +522,9 @@ const KC_SR_AUTO_MIN_PIXELS = 150000;
 // has to read at a glance.
 const KC_CLIP_UPSCALING_TEXT = 'Small image — upscaling…';
 const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
-const KC_CLIP_SR_FALLBACK_TEXT = 'Upscaling failed — original image clipped';
+const KC_CLIP_SR_FALLBACK_TEXT = 'Failed to enhance — copied the original';
 const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
-const KC_CLIP_BG_FALLBACK_TEXT = 'Background removal failed — original clipped';
+const KC_CLIP_BG_FALLBACK_TEXT = 'Failed to remove — copied the original';
 const KC_CLIP_BG_SIGNIN_TEXT = 'Sign in to remove backgrounds';
 const KC_CLIP_BG_LIMIT_TEXT = 'Daily background removal limit reached';
 const KC_BG_MAX_SEND_W = 2048;
@@ -618,7 +618,7 @@ function _kcDismissClipLoadingUI() {
 // At most one clip is in-flight at a time (each new clip cancels the previous
 // unresolved one). A canceled clip's in-flight super-resolution keeps running;
 // its result is simply ignored.
-const KC_CLIP_CANCELED_TEXT = 'Clip Canceled';
+const KC_CLIP_CANCELED_TEXT = 'Canceled';
 let _kcClipSeq = 0;
 let _kcInflightClip = null;
 
@@ -4770,7 +4770,7 @@ function notifyIframeClipboardResult(info, clipboardPromise) {
   if (!info || !clipboardPromise) return;
   Promise.resolve(clipboardPromise).then((result) => {
     const success = result?.success === true;
-    const successText = success ? 'Image clipped' : null;
+    const successText = success ? 'Image copied' : null;
     try {
       info.sourceWindow?.postMessage({
         [KC_MSG_PREFIX]: true,
@@ -6159,7 +6159,7 @@ if (!_kcCoreSkipInit) {
       // PHASE_TAKEOVER: the teardown is synchronous, so by here this instance has stopped.
       // The version rides along: a later build can then tell which predecessor it is
       // replacing without having to guess.
-      window.postMessage({ [KC_TEARDOWN_COMPLETE]: true, version: '1.5.9' }, '*');
+      window.postMessage({ [KC_TEARDOWN_COMPLETE]: true, version: '1.6.0' }, '*');
     } catch (_) {}
   });
 }

@@ -1633,12 +1633,12 @@ function _kcEscapeHtml(s) { // PHASE_SHORTCUT_TIP_MARKUP
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 function _kcSetShortcutTipMarkup(el, text) {
-  // PHASE_SHORTCUT_TIP_MARKUP: render "Press {glyph} to Clip" with only the glyph
+  // PHASE_SHORTCUT_TIP_MARKUP: render "Press {glyph} to copy" with only the glyph
   // bold, mirroring the landing page's .grab-badge. The tail below must stay in
   // sync with defaultText in coreEntry.js; if it ever stops matching, this falls
   // back to plain text and the glyph silently loses its emphasis.
   try {
-    const TAIL = ' to Clip';
+    const TAIL = ' to copy';
     const idx = text.indexOf(TAIL);
     if (idx > 0) {
       const head = text.slice(0, idx);          // e.g. "Press ⌘C"
