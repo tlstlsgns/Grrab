@@ -1115,9 +1115,9 @@ async function executeDownloadSelected() {
 
   // Summary toast.
   if (fail === 0) {
-    showKcToast(`${ok} clip${ok === 1 ? '' : 's'} saved`, 'success');
+    showKcToast(`${ok} image${ok === 1 ? '' : 's'} saved`, 'success');
   } else if (ok === 0) {
-    showKcToast(`Save failed for ${fail} clip${fail === 1 ? '' : 's'}`, 'error');
+    showKcToast(`Couldn't save ${fail} image${fail === 1 ? '' : 's'}`, 'error');
   } else {
     showKcToast(`${ok} saved, ${fail} failed`, 'error');
   }
@@ -1252,7 +1252,7 @@ async function executeDeleteSelected() {
     syncTimelineDividers(list);
   }
   updateClearButtonState();
-  showKcToast(`${ids.length} clip${ids.length === 1 ? '' : 's'} deleted`, 'success');
+  showKcToast(`${ids.length} image${ids.length === 1 ? '' : 's'} deleted`, 'success');
 }
 // === END PHASE_CARD_MULTISELECT ===
 
@@ -2269,7 +2269,7 @@ function ensureEmptyState(list) {
   } else if (!existingEmpty) {
     const empty = document.createElement('div');
     empty.className = 'sp-empty';
-    empty.textContent = 'No clips yet';
+    empty.textContent = 'No images yet';
     list.appendChild(empty);
   }
 }
@@ -2395,7 +2395,7 @@ async function executeClear(list, btn, exitConfirmPending) {
   updateClearButtonState();
 
   // Toast.
-  showKcToast(`${docIds.length} clip${docIds.length === 1 ? '' : 's'} deleted`, 'success');
+  showKcToast(`${docIds.length} image${docIds.length === 1 ? '' : 's'} deleted`, 'success');
   // === PHASE_CARD_MULTISELECT ===
   _kcClearCardSelection();
   // === END PHASE_CARD_MULTISELECT ===
@@ -2475,8 +2475,8 @@ function attachClearButtonHandlers() {
       if (confirmText) {
         confirmText.textContent =
           confirmMode === 'selected'
-            ? `Really delete ${selectedCount} clip${selectedCount === 1 ? '' : 's'}?`
-            : 'Really delete all clips?';
+            ? `Delete ${selectedCount} image${selectedCount === 1 ? '' : 's'}?`
+            : 'Clear your library?';
         confirmText.style.display = '';
       }
 
@@ -3049,7 +3049,7 @@ function attachDeleteHandlers(container) {
             syncTimelineDividers(parentList);
             updateClearButtonState();
           });
-          showKcToast('1 clip deleted', 'success');
+          showKcToast('1 image deleted', 'success');
         }
       }
     });
