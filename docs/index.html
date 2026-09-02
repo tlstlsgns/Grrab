@@ -102,13 +102,6 @@
   .feature-label{font-family:var(--font-sans);font-size:13px;font-weight:700;
     letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin:0;}
 
-  /* Hero line 1 is longer than line 2, so it is scaled down until both lines measure
-     the same width. The value is a ratio of the h1 size, not a fixed px, so it holds
-     at every breakpoint. Tune this ONE number if the lines do not line up; it was measured against the
-     rendered page, not calculated, so it needs re-checking whenever either line's
-     wording changes. */
-  .hero-h1-lead{font-size:0.84em;}
-
   /* ── Row A — gallery mockup (responsive; cqw basis = Figma 1× frame 593px) ── */
   /* The mockup stretches to the row height set by the text column, so the gallery
      rows grow with it. The header keeps its fixed --rowA-u height; only .rowA-body
@@ -630,16 +623,16 @@
      12/220 down. Written the other way round they made an ellipse. */
   .rowD-clip-card{border-radius:6.15% / 5.45%;}
   .rowD-cards{display:flex;flex-direction:column;gap:10px;width:100%;}
-  .rowD-card{display:flex;align-items:flex-start;gap:14px;width:100%;
-    padding:16px 18px;border-radius:12px;background:transparent;text-align:left;}
+  .rowD-card{display:flex;align-items:center;gap:14px;width:100%;
+    padding:16px 0;border-radius:12px;background:transparent;text-align:left;}
   .rowD-card-icon{flex-shrink:0;width:40px;height:40px;border-radius:10px;
     display:inline-flex;align-items:center;justify-content:center;
     background:var(--surface-subtle);border:1px solid var(--border);}
   .rowD-card-icon img{width:22px;height:22px;display:block;object-fit:contain;}
-  .rowD-card-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .rowD-card-text{min-width:0;}
   .rowD-card-title{font-family:var(--font-display);font-weight:700;font-size:18px;
     letter-spacing:-0.01em;color:var(--ink-strong);}
-  .rowD-card-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
+  .rowD-card-desc{font-size:18px;line-height:1.45;color:var(--ink-muted);}
   #inspireList svg{width:20px;height:20px;display:block;}
   /* The bare label is the mobile one; the media block below swaps which is shown. */
   .rowC-item-label-bare{display:none;}
@@ -1600,10 +1593,10 @@
 <!-- ══ HERO ══ -->
 <section id="top" style="max-width:960px;margin:0 auto;padding:100px 32px 64px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;">
   <h1 class="hero-h1" style="font-family:var(--font-display);font-weight:var(--font-display-weight-hero);font-size:var(--display-hero);line-height:1.25;letter-spacing:var(--tracking-tight);color:var(--ink-strong);margin:0;">
-    <span class="hero-h1-lead">finding, editing, copying...</span><br>Every web image, right on the page.
+    <span class="hero-h1-lead">Copy any image on the web.</span><br><span class="hero-h1-tail">The one you <span style="color:var(--accent-hover);">actually</span> wanted.</span>
   </h1>
-  <p class="hero-sub" style="font-size:28px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:600;">
-    Photoshop in your browser — in one shortcut.
+  <p class="hero-sub" style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:52ch;margin:0;font-weight:400;">
+    You copy an image and get something you can't use — blurry, watermarked, background and all. <span style="font-weight:600;">Fix it and copy it, right on the page.</span>
   </p>
   <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px;flex-wrap:wrap;">
     <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc"><img src="/assets/landing/icons/chrome.svg" alt="" aria-hidden="true" width="20" height="20">Add to Chrome</a>
@@ -1721,9 +1714,9 @@
     <!-- LEFT: heading + description + browser mockup -->
     <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <p class="feature-label">ONE-CLICK</p>
-        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Instant upscale.</h2>
-        <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>— it lands on your clipboard, upscaled.</p>
+        <p class="feature-label">RESOLUTION</p>
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Always usable.</h2>
+        <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>Copied to your clipboard, never low-res.</p>
       </div>
 
       <div class="rowA-pallette">
@@ -1794,23 +1787,23 @@
     <!-- LEFT: heading + description + step cards -->
     <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <p class="feature-label">EDIT</p>
-        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Photoshop, right in the browser.</h2>
-        <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Clean up backgrounds, texts, and objects<br>— right where you found the image.</p>
+        <p class="feature-label">TOUCH-UP</p>
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Edit it where you found it.</h2>
+        <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Get the image the way you need it, then copy.<br>No downloads, no round trip to another tool.</p>
       </div>
 
       <div class="rowB-cards">
         <button type="button" class="rowB-card rowB-card--active">
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_removebg.svg" alt=""></span>
-          <span class="rowB-card-text"><span class="rowB-card-title">Remove BG</span><span class="rowB-card-desc">description for removebg.</span></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Remove BG</span><span class="rowB-card-desc">Keeps the subject, removes the background.</span></span>
         </button>
         <button type="button" class="rowB-card">
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_erase.svg" alt=""></span>
-          <span class="rowB-card-text"><span class="rowB-card-title">Erase Texts</span><span class="rowB-card-desc">description for erase1.</span></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Erase objects</span><span class="rowB-card-desc">Brush over a watermark or object to remove it.</span></span>
         </button>
         <button type="button" class="rowB-card">
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_upscale.svg" alt=""></span>
-          <span class="rowB-card-text"><span class="rowB-card-title">Upscale</span><span class="rowB-card-desc">description for upscale.</span></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Upscale x4</span><span class="rowB-card-desc">Enlarges the image 4× without losing detail.</span></span>
         </button>
       </div>
     </div>
@@ -1887,49 +1880,12 @@
   </div>
   </div>
 
-  <!-- divider B / C -->
+  <!-- divider B / D -->
   <div style="width:100%;height:1px;background:#E5E7EB;"></div>
-
-  <!-- Row C — interactive source switcher -->
-  <div class="rowC-scale-wrap">
-  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
-    <!-- LEFT: heading + subhead + source list -->
-    <div style="display:flex;flex-direction:column;gap:24px;">
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <p class="feature-label">SUPPORTS</p>
-        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Any image on the web</h2>
-        <p class="rowC-subtitle" style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Even from Instagram posts, YouTube thumbnails — any source that inspires you.</p>
-      </div>
-      <div id="inspireList" class="rowC-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-    </div>
-
-    <!-- RIGHT: framed visual with crossfade. 591/440 matches Row A's height at the
-         capped container width, in place of the video's own 1920/1080 — so the preview
-         is stretched vertically by about a third. -->
-    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);height:470px;align-self:stretch;">
-      <div id="inspireTabHeader" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;flex-shrink:0;">
-        <span style="display:flex;gap:5px;flex-shrink:0;">
-          <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>
-          <span style="width:9px;height:9px;border-radius:50%;background:#FEBC2E;"></span>
-          <span style="width:9px;height:9px;border-radius:50%;background:#28C840;"></span>
-        </span>
-        <div style="display:flex;align-items:center;gap:8px;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:8px 8px 0 0;padding:8px 12px;margin-bottom:-11px;box-shadow:0 -1px 3px rgba(0,0,0,.04);">
-          <span id="tabIcon" style="display:inline-flex;flex-shrink:0;line-height:0;"></span>
-          <span id="tabLabel" style="flex:1;font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:-0.01em;color:var(--ink-strong);white-space:nowrap;">Youtube</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </div>
-      </div>
-      <div id="inspirePanes" style="position:relative;height:auto;"></div>
-    </div>
-    <!-- The active source's description. A third grid item, so that on mobile — one
-         column — it falls after the mockup. On desktop it is display:none, and a hidden
-         grid item takes no cell, so the two-column layout is unaffected. -->
-    <p id="inspireDesc" class="rowC-active-desc feature-sub" style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;"></p>
-  </div>
-  </div>
-
-  <!-- divider C / D -->
-  <div style="width:100%;height:1px;background:#E5E7EB;"></div>
+  <!-- The rows are named for what they are, not where they sit: rowD is the library and
+       shows third, rowC is the source switcher and shows fourth. Renaming them would
+       touch four hundred places in this file and seventy-nine asset files to gain
+       alphabetical order. -->
 
   <!-- Row D — media left, text + fanned card stack right -->
   <div class="rowD-scale-wrap">
@@ -2182,27 +2138,68 @@
     <!-- LEFT: heading + description + fanned card stack -->
     <div style="display:flex;flex-direction:column;gap:22px;align-items:flex-start;height:100%;">
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <p class="feature-label">SIDE PANEL</p>
-        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every image clip,<br>saved and organized.</h2>
-        <p class="feature-sub" style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Access, re-copy, and upload your images from the side panel.</p>
+        <p class="feature-label">LIBRARY</p>
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Everything you copied,<br>in one place.</h2>
+        <p class="feature-sub" style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Grouped by day, labeled by source.<br>Re-copy, download, or send to your folder.</p>
       </div>
 
       <div class="rowD-cards">
         <div class="rowD-card">
           <span class="rowD-card-icon"><img src="/assets/landing/icons/rowD/icon_folder_card.svg" alt=""></span>
-          <span class="rowD-card-text"><span class="rowD-card-title">Title</span><span class="rowD-card-desc">description</span></span>
+          <span class="rowD-card-text"><span class="rowD-card-title">Download.</span> <span class="rowD-card-desc">To your folder, in any format</span></span>
         </div>
         <div class="rowD-card">
           <span class="rowD-card-icon"><img src="/assets/landing/icons/rowD/icon_link_card.svg" alt=""></span>
-          <span class="rowD-card-text"><span class="rowD-card-title">Title</span><span class="rowD-card-desc">description</span></span>
+          <span class="rowD-card-text"><span class="rowD-card-title">Source page.</span> <span class="rowD-card-desc">Jump back to where you found it.</span></span>
         </div>
         <div class="rowD-card">
           <span class="rowD-card-icon"><img src="/assets/landing/icons/rowD/icon_copy_card.svg" alt=""></span>
-          <span class="rowD-card-text"><span class="rowD-card-title">Title</span><span class="rowD-card-desc">description</span></span>
+          <span class="rowD-card-text"><span class="rowD-card-title">Re-copy.</span> <span class="rowD-card-desc">One click, back on your clipboard.</span></span>
         </div>
       </div>
 
     </div>
+  </div>
+  </div>
+
+  <!-- divider D / C -->
+  <div style="width:100%;height:1px;background:#E5E7EB;"></div>
+
+  <!-- Row C — interactive source switcher -->
+  <div class="rowC-scale-wrap">
+  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
+    <!-- LEFT: heading + subhead + source list -->
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <p class="feature-label">ANY SOURCE</p>
+        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every platform you browse.</h2>
+        <p class="rowC-subtitle" style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Search, scroll, or stumble into it.<br>One shortcut works everywhere.</p>
+      </div>
+      <div id="inspireList" class="rowC-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+
+    <!-- RIGHT: framed visual with crossfade. 591/440 matches Row A's height at the
+         capped container width, in place of the video's own 1920/1080 — so the preview
+         is stretched vertically by about a third. -->
+    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);height:470px;align-self:stretch;">
+      <div id="inspireTabHeader" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;flex-shrink:0;">
+        <span style="display:flex;gap:5px;flex-shrink:0;">
+          <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>
+          <span style="width:9px;height:9px;border-radius:50%;background:#FEBC2E;"></span>
+          <span style="width:9px;height:9px;border-radius:50%;background:#28C840;"></span>
+        </span>
+        <div style="display:flex;align-items:center;gap:8px;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:8px 8px 0 0;padding:8px 12px;margin-bottom:-11px;box-shadow:0 -1px 3px rgba(0,0,0,.04);">
+          <span id="tabIcon" style="display:inline-flex;flex-shrink:0;line-height:0;"></span>
+          <span id="tabLabel" style="flex:1;font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:-0.01em;color:var(--ink-strong);white-space:nowrap;">Youtube</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+      </div>
+      <div id="inspirePanes" style="position:relative;height:auto;"></div>
+    </div>
+    <!-- The active source's description. A third grid item, so that on mobile — one
+         column — it falls after the mockup. On desktop it is display:none, and a hidden
+         grid item takes no cell, so the two-column layout is unaffected. -->
+    <p id="inspireDesc" class="rowC-active-desc feature-sub" style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;"></p>
   </div>
   </div>
 
@@ -2210,12 +2207,13 @@
 
 <!-- ══ FINAL CTA ══ -->
 <section style="background:var(--accent-wash);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
-  <div style="max-width:var(--container-max);margin:0 auto;padding:54px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;">
+  <div style="max-width:var(--container-max);margin:0 auto;padding:54px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;">
     <img src="assets/landing/grrab-logo.svg" alt="Grrab" width="120" height="120" style="display:block;border-radius:26px;">
-    <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
-      <h2 class="cta-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-cta);font-size:var(--display-md);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;text-align:center;"><span style="color:var(--accent-hover);">Grrab</span> any image. Never low-res.</h2>
+    <div style="display:flex;flex-direction:column;gap:16px;align-items:center;">
+      <h2 class="cta-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-cta);font-size:var(--display-md);line-height:1.15;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;text-align:center;">Don't let <span style="color:var(--accent-hover);">unfinished</span> images<br>into your workflow.</h2>
+      <p style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:400;text-align:center;">Every image arrives <span style="font-weight:600;">ready</span>. One shortcut, on the page.</p>
     </div>
-    <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc" style="margin-top:8px;"><img src="/assets/landing/icons/chrome.svg" alt="" aria-hidden="true" width="20" height="20">Add to Chrome</a>
+    <a class="btn btn-accent btn-lg" href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc" style="margin-top:16px;"><img src="/assets/landing/icons/chrome.svg" alt="" aria-hidden="true" width="20" height="20">Add to Chrome</a>
   </div>
 </section>
 
@@ -3313,14 +3311,14 @@
 
   /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
   var inspireConfig = [
-    {id:"youtube",  label:"YouTube.",  desc:"Grab any thumbnail in full resolution.",  previewLabel:"YouTube grab preview",  name:"Youtube",   short:"YT", tint:"#FF0000", preview:"/assets/landing/img/youtube_preview.webp",
+    {id:"youtube",  label:"YouTube.",  desc:"Thumbnails from feed or video page.",  previewLabel:"YouTube grab preview",  name:"Youtube",   short:"YT", tint:"#FF0000", preview:"/assets/landing/img/youtube_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 12s0-3.9-.5-5.6a2.9 2.9 0 0 0-2-2C18.8 4 12 4 12 4s-6.8 0-8.5.4a2.9 2.9 0 0 0-2 2C1 8.1 1 12 1 12s0 3.9.5 5.6a2.9 2.9 0 0 0 2 2C5.2 20 12 20 12 20s6.8 0 8.5-.4a2.9 2.9 0 0 0 2-2C23 15.9 23 12 23 12Z"/><polygon points="9.8 15.2 15.5 12 9.8 8.8" fill="#fff"/></svg>'},
-    {id:"instagram",label:"Instagram.",desc:"Save frames from posts and reels.",        previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584", preview:"/assets/landing/img/instagram_preview.webp",
+    {id:"instagram",label:"Instagram.",desc:"Posts, and frames from reels.",        previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584", preview:"/assets/landing/img/instagram_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>'},
-    {id:"pinterest",label:"Pinterest.",desc:"Clip any pin straight to your library.",    previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023", preview:"/assets/landing/img/pinterest_preview.webp",
+    {id:"pinterest",label:"Pinterest.",desc:"Any pin, without opening it.",    previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023", preview:"/assets/landing/img/pinterest_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 0-2.9l1.2-4.9s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.2-.8 3.4-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-2-1.3-3.4-3.7-3.4a4.2 4.2 0 0 0-4.4 4.2c0 .8.2 1.4.6 1.8.2.2.2.3.1.5l-.2.8c0 .3-.2.3-.5.2-1.3-.5-1.9-2-1.9-3.6 0-2.7 2.3-5.9 6.7-5.9 3.6 0 5.9 2.6 5.9 5.3 0 3.6-2 6.4-5 6.4-1 0-2-.6-2.3-1.2l-.6 2.5c-.2.8-.7 1.7-1 2.3A10 10 0 1 0 12 2Z"/></svg>'},
-    {id:"video",    label:"Video.",     desc:"Capture the current frame from any video.", previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowC/video-main.webp",
-     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><polygon points="10.5 9.2 15.5 12 10.5 14.8" fill="currentColor" stroke="none"/></svg>'}
+    {id:"video",    label:"Any video.",     desc:"Whatever frame is on screen.", previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowC/video-main.webp",
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 4C1.34315 4 0 5.34315 0 7V17C0 18.6569 1.34315 20 3 20H13C14.6569 20 16 18.6569 16 17V14.5307L20.7286 18.4249C22.0334 19.4994 24.0001 18.5713 24.0001 16.8811V7.28972C24.0001 5.54447 21.9211 4.63648 20.6408 5.8226L16 10.1222V7C16 5.34315 14.6569 4 13 4H3Z" fill="currentColor"/></svg>'}
   ];
   var activeInspire = "youtube";
   var listEl = document.getElementById("inspireList");
@@ -3376,7 +3374,7 @@
               '<div class="yt-feed">'+
                 '<div class="yt-videos">'+
                   '<div class="yt-video-card">'+
-                    '<div class="yt-thumb yt-thumb--glow"><img src="/assets/landing/img/rowC/image-1.webp" alt=""><span class="mock-pointer" style="left:58%;top:42%;"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span></div>'+
+                    '<div class="yt-thumb yt-thumb--glow"><img src="/assets/landing/img/rowC/image-1.webp" alt=""><span class="mock-pointer" style="left:58%;top:42%;"><img src="/assets/landing/icons/rowC/icon_cursor.svg" alt=""></span></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
                   '<div class="yt-video-card yt-video-card--dim">'+
@@ -3441,7 +3439,7 @@
   function igFeedCardHtml(dim, glow, img){
     var cardClass = 'ig-feed-card'+(dim?' ig-feed-card--dim':'');
     var thumbClass = 'ig-feed-thumb'+(glow?' ig-feed-thumb--glow':'');
-    var pointerHtml = glow ? '<span class="mock-pointer" style="left:52%;top:36%;"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span>' : '';
+    var pointerHtml = glow ? '<span class="mock-pointer" style="left:52%;top:36%;"><img src="/assets/landing/icons/rowC/icon_cursor.svg" alt=""></span>' : '';
     var ig = '/assets/landing/icons/instagram/';
     return '<div class="'+cardClass+'">'+
       '<div class="ig-feed">'+
@@ -3517,7 +3515,7 @@
     var cls = 'pin-feed-card';
     if(dim) cls += ' pin-feed-card--dim';
     if(glow) cls += ' pin-feed-card--glow';
-    var pointerHtml = glow ? '<span class="mock-pointer" style="left:42%;top:44%;"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span>' : '';
+    var pointerHtml = glow ? '<span class="mock-pointer" style="left:42%;top:44%;"><img src="/assets/landing/icons/rowC/icon_cursor.svg" alt=""></span>' : '';
     return '<div class="'+cls+'" style="aspect-ratio:'+ratio+'">'+(img?'<img src="'+img+'" alt="">':'')+pointerHtml+'</div>';
   }
 
@@ -3618,11 +3616,11 @@
              '<div class="vid-main">'+
                '<div class="vid-topbar">'+
                  '<span class="vid-sidebar-menu"><img src="/assets/landing/icons/icon_menubar.svg" alt=""></span>'+
-                 '<span class="vid-logo"><img src="/assets/landing/icons/rowC/video/icon_logo.svg" alt=""></span>'+
+                 '<span class="vid-logo"><img src="/assets/landing/icons/rowC/icon_logo.svg" alt=""></span>'+
                  '<div class="vid-search-wrap">'+
                    '<div class="vid-search">'+
                      '<div class="vid-search-input"><span class="vid-search-text">Search</span></div>'+
-                     '<div class="vid-search-btn"><img src="/assets/landing/icons/rowC/video/icon_search.svg" alt=""></div>'+
+                     '<div class="vid-search-btn"><img src="/assets/landing/icons/rowC/icon_search.svg" alt=""></div>'+
                    '</div>'+
                  '</div>'+
                  '<div class="vid-topbar-right"></div>'+
@@ -3630,29 +3628,29 @@
                '<div class="vid-screen">'+
                  '<div class="vid-screen-video vid-screen-video--glow">'+
                    '<img src="/assets/landing/img/rowC/video-main.webp" alt="">'+
-                   '<span class="mock-pointer" style="left:calc(450.61 / 645 * 100cqw);top:calc(149 / 645 * 100cqw);"><img src="/assets/landing/icons/rowC/video/icon_cursor.svg" alt=""></span>'+
+                   '<span class="mock-pointer" style="left:calc(450.61 / 645 * 100cqw);top:calc(149 / 645 * 100cqw);"><img src="/assets/landing/icons/rowC/icon_cursor.svg" alt=""></span>'+
                  '</div>'+
                  '<div class="vid-screen-controller">'+
                    '<div class="vid-control-playbar"><div class="vid-playbar-played"><span class="vid-playbar-point"></span></div></div>'+
                    '<div class="vid-control-container">'+
                      '<div class="vid-control-left">'+
-                       '<span class="vid-control-playbtn"><img src="/assets/landing/icons/rowC/video/icon_playbtn.svg" alt=""></span>'+
+                       '<span class="vid-control-playbtn"><img src="/assets/landing/icons/rowC/icon_playbtn.svg" alt=""></span>'+
                        '<div class="vid-control-etc">'+
-                         '<img class="vid-icon-volume" src="/assets/landing/icons/rowC/video/icon_volume.svg" alt="">'+
+                         '<img class="vid-icon-volume" src="/assets/landing/icons/rowC/icon_volume.svg" alt="">'+
                          '<div class="vid-control-time"><span>0:00</span><span>/</span><span>15:01</span></div>'+
                        '</div>'+
                        '<div class="vid-control-chapter">'+
                          '<span class="vid-chapter-label">Intro</span>'+
-                         '<img class="vid-icon-chapter" src="/assets/landing/icons/rowC/video/icon_chapter.svg" alt="">'+
+                         '<img class="vid-icon-chapter" src="/assets/landing/icons/rowC/icon_chapter.svg" alt="">'+
                        '</div>'+
                      '</div>'+
                      '<div class="vid-control-right">'+
                        '<div class="vid-control-setting">'+
-                         '<span class="vid-setting-relay"><img src="/assets/landing/icons/rowC/video/icon_relay.svg" alt=""></span>'+
-                         '<img class="vid-icon-transcription" src="/assets/landing/icons/rowC/video/icon_transcription.svg" alt="">'+
-                         '<img class="vid-icon-setting" src="/assets/landing/icons/rowC/video/icon_setting.svg" alt="">'+
-                         '<img class="vid-icon-view" src="/assets/landing/icons/rowC/video/icon_view.svg" alt="">'+
-                         '<img class="vid-icon-size" src="/assets/landing/icons/rowC/video/icon_size.svg" alt="">'+
+                         '<span class="vid-setting-relay"><img src="/assets/landing/icons/rowC/icon_relay.svg" alt=""></span>'+
+                         '<img class="vid-icon-transcription" src="/assets/landing/icons/rowC/icon_transcription.svg" alt="">'+
+                         '<img class="vid-icon-setting" src="/assets/landing/icons/rowC/icon_setting.svg" alt="">'+
+                         '<img class="vid-icon-view" src="/assets/landing/icons/rowC/icon_view.svg" alt="">'+
+                         '<img class="vid-icon-size" src="/assets/landing/icons/rowC/icon_size.svg" alt="">'+
                        '</div>'+
                      '</div>'+
                    '</div>'+
@@ -3673,13 +3671,13 @@
                      '</div>'+
                      '<div class="vid-meta-action">'+
                        '<div class="vid-action-react">'+
-                         '<span class="vid-react-good"><img src="/assets/landing/icons/rowC/video/icon_react_good.svg" alt=""></span>'+
+                         '<span class="vid-react-good"><img src="/assets/landing/icons/rowC/icon_react_good.svg" alt=""></span>'+
                          '<span class="vid-react-separator"></span>'+
-                         '<span class="vid-react-bad"><img src="/assets/landing/icons/rowC/video/icon_react_bad.svg" alt=""></span>'+
+                         '<span class="vid-react-bad"><img src="/assets/landing/icons/rowC/icon_react_bad.svg" alt=""></span>'+
                        '</div>'+
-                       '<div class="vid-action-share"><img src="/assets/landing/icons/rowC/video/icon_share.svg" alt=""><span class="vid-action-label">Share</span></div>'+
-                       '<div class="vid-action-save"><img src="/assets/landing/icons/rowC/video/icon_save.svg" alt=""><span class="vid-action-label">Save</span></div>'+
-                       '<div class="vid-action-more"><img src="/assets/landing/icons/rowC/video/icon_more.svg" alt=""></div>'+
+                       '<div class="vid-action-share"><img src="/assets/landing/icons/rowC/icon_share.svg" alt=""><span class="vid-action-label">Share</span></div>'+
+                       '<div class="vid-action-save"><img src="/assets/landing/icons/rowC/icon_save.svg" alt=""><span class="vid-action-label">Save</span></div>'+
+                       '<div class="vid-action-more"><img src="/assets/landing/icons/rowC/icon_more.svg" alt=""></div>'+
                      '</div>'+
                    '</div>'+
                  '</div>'+
