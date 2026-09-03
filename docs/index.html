@@ -1803,7 +1803,7 @@
         </button>
         <button type="button" class="rowB-card">
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_upscale.svg" alt=""></span>
-          <span class="rowB-card-text"><span class="rowB-card-title">Upscale x4</span><span class="rowB-card-desc">Enlarges the image 4× without losing detail.</span></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Upscale</span><span class="rowB-card-desc">Enlarges the image without losing detail.</span></span>
         </button>
       </div>
     </div>
@@ -2258,6 +2258,8 @@
       for (var kcI = 0; kcI < kcEls.length; kcI++) {
         kcEls[kcI].textContent = "Ctrl+C";
       }
+      var heroTipV = document.getElementById("heroTipV");
+      if (heroTipV) heroTipV.textContent = "Ctrl+V";
     }
   } catch (e) {}
 

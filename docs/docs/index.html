@@ -124,164 +124,92 @@
   .docs-section strong{font-weight:600;color:var(--ink-strong);}
   .docs-section a{color:var(--accent);font-weight:500;}
   .docs-section a:hover{color:var(--accent-hover);}
-  .docs-section .docs-action-list{list-style:none;padding-left:0;}
-  .docs-action-list li{display:flex;align-items:flex-start;gap:calc(12 / 17 * 1em);}
-  .docs-action-icon{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:20px;height:1.75em;color:var(--ink-strong);}
-  .docs-action-glyph{display:block;}
-  .docs-action-glyph--copy{width:15px;height:15px;fill:currentColor;stroke:none;}
-  .docs-action-glyph--delete{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;}
-  .docs-action-glyph--extlink{width:12px;height:12px;fill:currentColor;}
-  .docs-action-glyph--upload{width:15px;height:15px;}
-  .docs-figure-pair{display:flex;flex-wrap:wrap;gap:16px;margin:0 0 24px;}
-  .docs-figure-pair img{flex:1 1 280px;min-width:0;width:100%;height:auto;display:block;border:1px solid var(--border);border-radius:var(--radius-lg);}
-  .docs-split{display:flex;flex-wrap:wrap;align-items:stretch;gap:24px;}
-  .docs-split-text{flex:1 1 320px;min-width:0;}
-  .docs-split-text > :last-child{margin-bottom:0;}
-  .docs-split-figure{flex:0 1 auto;align-self:stretch;height:100%;width:auto;max-width:38%;object-fit:contain;object-position:top;display:block;border:1px solid var(--border);border-radius:var(--radius-lg);}
-  .docs-split-outro{display:none;}
-  .docs-split-text > .docs-action-list{margin-bottom:0;}
-
-  /* ── The Grrab popup, in a browser window ──
-     Every dimension is X / 559 * 100cqw, 559 being the Figma frame's width, so the whole
-     thing scales with whatever column it is given. The container is .docs-settings-popover
-     rather than .chrome-window itself: a border-radius on the element that declares
-     container-type resolves against an ancestor instead of itself, which cost two rounds
-     on the landing page. */
-  /* Scoped to #settings: .docs-split is shared with the side-panel section, which has no
-     reason to take a 340px floor. */
-  #settings .docs-split{min-height:340px;}
-  .docs-settings-popover{flex:0 0 336px;max-width:336px;container-type:inline-size;}
-
-  /* No ratio: the height comes from the split, which #settings gives a floor. Chasing the
-     scaled popup with an aspect-ratio meant recomputing the frame's height every time the
-     scale moved. The tab strip and top bar are still fractions of the width, so only the
-     body absorbs the difference. */
-  .chrome-window{width:100%;height:100%;display:flex;flex-direction:column;
-    align-items:flex-end;overflow:hidden;background:var(--surface);
-    border-top:1px solid var(--border);border-right:1px solid var(--border);
-    border-top-right-radius:calc(24 / 559 * 100cqw);}
-
-  .browser-tabs{display:flex;align-items:flex-start;width:100%;flex-shrink:0;
-    height:calc(40 / 559 * 100cqw);}
-  .browser-tabs-strip{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;
-    justify-content:flex-end;background:#EFD3FF;
-    border-bottom-left-radius:calc(4 / 559 * 100cqw);}
-  .browser-tabs-tab{display:flex;align-items:flex-end;width:100%;flex-shrink:0;
-    height:calc(11 / 559 * 100cqw);
-    padding:calc(4 / 559 * 100cqw) calc(5 / 559 * 100cqw);
-    border-radius:calc(16 / 559 * 100cqw) calc(16 / 559 * 100cqw) 0 0;}
-  /* The frame has a 3x5 vector here that has no file in the repo. A plain box stands in;
-     at this scale it renders about 2x3px. */
-  .browser-tabs-glyph{width:calc(3 / 559 * 100cqw);height:calc(5 / 559 * 100cqw);
-    background:rgba(0,0,0,.2);flex-shrink:0;}
-
-  .chrome-top{display:flex;align-items:center;width:100%;flex-shrink:0;
-    height:calc(50 / 559 * 100cqw);gap:calc(6 / 559 * 100cqw);
-    padding:calc(10 / 559 * 100cqw) calc(18 / 559 * 100cqw) calc(10 / 559 * 100cqw) 0;
-    border-bottom:1px solid #CCCDCD;}
-  .chrome-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
-    background:#E1E1E2;border:1px solid var(--border);
-    border-radius:0 calc(70 / 559 * 100cqw) calc(70 / 559 * 100cqw) 0;}
-  /* No fill is set on this in Figma, so it would be invisible. --border-strong is what the
-     landing page's equivalent uses. */
-  .chrome-urlbar-line{flex:1;min-width:0;height:calc(3.5 / 559 * 100cqw);
-    background:var(--border-strong);border-radius:calc(10 / 559 * 100cqw);}
-  .chrome-urlbar-star{display:flex;align-items:center;justify-content:flex-end;height:100%;
-    flex-shrink:0;padding-left:calc(12 / 559 * 100cqw);padding-right:calc(16 / 559 * 100cqw);}
-  .grrab-urlbar-star-icon{width:calc(15 / 559 * 100cqw);height:calc(15 / 559 * 100cqw);display:block;}
-  .chrome-profile{display:flex;align-items:center;justify-content:flex-end;height:100%;flex-shrink:0;}
-  .chrome-profile-pill{display:flex;align-items:center;height:100%;flex-shrink:0;
-    gap:calc(10 / 559 * 100cqw);}
-  .chrome-profile-wrap{display:flex;align-items:center;height:100%;flex-shrink:0;overflow:hidden;
-    gap:calc(2 / 559 * 100cqw);border:0.5px solid #D7D7D7;
-    border-radius:calc(30 / 559 * 100cqw);}
-  .chrome-profile-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;
-    aspect-ratio:1;height:100%;flex-shrink:0;background:#E1E1E2;
-    padding:0 calc(5 / 559 * 100cqw) 1px;border-radius:calc(20 / 559 * 100cqw);}
-  .chrome-profile-logo img{width:100%;height:auto;display:block;object-fit:cover;}
-  .chrome-profile-ext{display:flex;flex-direction:column;align-items:center;justify-content:center;
-    aspect-ratio:1;height:100%;flex-shrink:0;background:var(--surface);
-    padding:0 calc(6 / 559 * 100cqw) 1px;}
-  .chrome-profile-ext-icon{width:calc(16 / 559 * 100cqw);height:calc(16 / 559 * 100cqw);display:block;}
-  .chrome-profile-sep{width:1px;height:calc(20 / 559 * 100cqw);background:#D7D7D7;flex-shrink:0;}
-  .chrome-profile-avatar{width:calc(20 / 559 * 100cqw);height:calc(20 / 559 * 100cqw);
-    border:0.3px solid rgba(115,122,136,.3);border-radius:50%;overflow:hidden;flex-shrink:0;}
-  .chrome-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
-
-  .chrome-body{position:relative;flex:1;min-height:0;width:100%;}
-  /* The shadow's 0.5 alpha is what Figma has; it is heavy for a figure on a white page. */
-  /* Back to the frame's own 150 and 320, with transform doing the enlarging — widening the
-     box alone made the popup shorter, since its height comes from children that are still
-     fractions of 559. Scaling takes the type and the 1px dividers with it, which is what
-     the rows needed. top right as the origin keeps the right edge at 470, where the
-     extension icon sits above it. */
-  .grrab-popup{position:absolute;top:0;left:calc(150 / 559 * 100cqw);
-    width:calc(320 / 559 * 100cqw);transform:scale(1.4);transform-origin:top right;
-    display:flex;flex-direction:column;align-items:flex-start;
-    background:var(--surface);border:1px solid #A49D98;overflow:hidden;
-    border-radius:calc(13 / 559 * 100cqw);padding-top:calc(6 / 559 * 100cqw);
-    box-shadow:0 calc(4 / 559 * 100cqw) calc(24 / 559 * 100cqw) rgba(0,0,0,.5);}
-  .grrab-popup-header{display:flex;flex-direction:column;align-items:flex-start;width:100%;
-    flex-shrink:0;padding:calc(8 / 559 * 100cqw) calc(16 / 559 * 100cqw);
-    border-bottom:0.3px solid var(--border);}
-  .grrab-popup-titlebar{display:flex;align-items:flex-start;width:100%;gap:1px;}
-  /* .docs-section prefixed: .docs-section p is 0,1,1 and beat this at 0,1,0, so the title
-     rendered at the page's 17px body size. Every other string in the popup is a span and
-     was never in that contest. */
-  .docs-section .grrab-popup-title{flex:1;min-width:0;margin:0;
-    font-family:'Instrument Sans',var(--font-sans);font-weight:700;
-    font-size:calc(16 / 559 * 100cqw);line-height:1.2;color:var(--ink-strong);}
-  .grrab-popup-switch{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
-    width:calc(40 / 559 * 100cqw);height:calc(20 / 559 * 100cqw);
-    padding:calc(2 / 559 * 100cqw);background:var(--accent-bright);overflow:hidden;
-    border-radius:calc(30 / 559 * 100cqw);
-    box-shadow:inset 0 0 calc(4 / 559 * 100cqw) rgba(0,0,0,.25);}
-  .grrab-popup-switch-knob{width:calc(16 / 559 * 100cqw);height:100%;flex-shrink:0;
-    background:var(--surface);border-radius:calc(20 / 559 * 100cqw);}
-
-  .grrab-popup-row{display:flex;align-items:center;justify-content:space-between;width:100%;
-    flex-shrink:0;height:calc(40 / 559 * 100cqw);
-    padding:calc(6 / 559 * 100cqw) calc(16 / 559 * 100cqw);
-    border-bottom:0.3px solid var(--border);}
-  .docs-section .grrab-popup-label{margin:0;flex-shrink:0;white-space:nowrap;
-    font-family:'Instrument Sans',var(--font-sans);font-weight:600;
-    font-size:calc(12 / 559 * 100cqw);line-height:1;color:#737A88;}
-  .grrab-popup-row-value{display:flex;align-items:center;flex-shrink:0;
-    width:calc(70 / 559 * 100cqw);height:calc(25 / 559 * 100cqw);}
-  .grrab-popup-kbd{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;
-    height:100%;border:1px solid rgba(0,0,0,.2);border-radius:calc(4 / 559 * 100cqw);
-    padding:calc(7 / 559 * 100cqw) calc(13 / 559 * 100cqw) calc(5 / 559 * 100cqw);
-    font-family:'Instrument Sans',var(--font-sans);font-weight:600;
-    font-size:calc(11 / 559 * 100cqw);line-height:1;color:#737A88;white-space:nowrap;}
-  .grrab-popup-refresh{display:flex;flex-direction:column;align-items:center;justify-content:center;
-    width:calc(21 / 559 * 100cqw);height:100%;flex-shrink:0;}
-  .shortcut-refresh-icon{width:calc(6 / 559 * 100cqw);height:calc(6 / 559 * 100cqw);display:block;}
-  .shortcut-refresh-icon--refresh{transform:rotate(-90deg) scaleY(-1);}
-  .grrab-popup-select{display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    gap:calc(3 / 559 * 100cqw);width:calc(70 / 559 * 100cqw);height:calc(25 / 559 * 100cqw);
-    padding:calc(6 / 559 * 100cqw) calc(8 / 559 * 100cqw);
-    border:1px solid rgba(0,0,0,.2);border-radius:calc(4 / 559 * 100cqw);}
-  .grrab-popup-option{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;
-    font-family:'Instrument Sans',var(--font-sans);font-weight:600;
-    font-size:calc(11 / 559 * 100cqw);line-height:1;color:#737A88;
-    text-align:center;white-space:nowrap;}
-  .grrab-popup-chevron-icon{width:calc(6.547 / 559 * 100cqw);height:calc(3.793 / 559 * 100cqw);
-    display:block;flex-shrink:0;}
-  .grrab-popup-check{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
-    gap:calc(5 / 559 * 100cqw);width:calc(70 / 559 * 100cqw);height:calc(25 / 559 * 100cqw);
-    padding:calc(6 / 559 * 100cqw) 0;}
-  /* Without this the shared .grrab-popup-option's flex:1 would stretch and re-centre the
-     word, where this row wants it packed against the right with the box. */
-  .grrab-popup-check .grrab-popup-option{flex:0 0 auto;}
-  .grrab-popup-checkbox{width:calc(13 / 559 * 100cqw);height:calc(13 / 559 * 100cqw);
-    flex-shrink:0;border:1px solid #767676;border-radius:calc(2 / 559 * 100cqw);}
-  .grrab-popup-footer{display:flex;align-items:center;justify-content:center;width:100%;
-    flex-shrink:0;padding:calc(12 / 559 * 100cqw) calc(16 / 559 * 100cqw);}
-  .grrab-popup-btn{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;
-    padding:calc(8 / 559 * 100cqw);background:var(--accent-bright);
-    border:1px solid rgba(0,0,0,.2);border-radius:calc(4 / 559 * 100cqw);
-    font-family:'Instrument Sans',var(--font-sans);font-weight:600;
-    font-size:calc(12 / 559 * 100cqw);line-height:1;color:#fff;white-space:nowrap;}
+  .docs-figure-pair{position:relative;display:flex;flex-wrap:wrap;gap:16px;margin:0 0 24px;
+    width:min(1136px,100vw);margin-left:calc(50% - min(1136px,100vw)/2);margin-right:calc(50% - min(1136px,100vw)/2);}
+  .docs-figure-pair > img{flex:1 1 280px;min-width:0;width:100%;height:auto;display:block;border:1px solid var(--border);border-radius:var(--radius-lg);}
+  .docs-figure-placeholder{flex:1 1 280px;min-width:0;width:100%;aspect-ratio:797/580;display:block;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-subtle);}
+  .docs-demo-browser,
+  .docs-demo-canvas{flex:1 1 280px;min-width:0;width:100%;aspect-ratio:593/434;position:relative;overflow:hidden;
+    border:1px solid var(--border);border-radius:var(--radius-lg);}
+  .docs-demo-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+    container-type:inline-size;--docs-u:calc(100cqw / 593);
+    background:#DFDFDF;border-top:1px solid #E6E7EB;
+    border-radius:calc(3 * var(--docs-u));box-shadow:0 0 calc(4 * var(--docs-u)) 0 rgba(0,0,0,.25);}
+  .docs-demo-header{display:flex;align-items:center;gap:calc(6 * var(--docs-u));width:100%;
+    height:calc(30 * var(--docs-u));flex-shrink:0;
+    padding:calc(6 * var(--docs-u)) calc(18 * var(--docs-u)) calc(6 * var(--docs-u)) calc(10 * var(--docs-u));}
+  .docs-demo-traffic{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    height:calc(18 * var(--docs-u));gap:calc(5 * var(--docs-u));
+    padding:0 calc(6 * var(--docs-u)) 0 0;background:#DEE1E6;border-radius:0 0 calc(4 * var(--docs-u)) 0;}
+  .docs-demo-dot{width:calc(8 * var(--docs-u));height:calc(8 * var(--docs-u));border-radius:50%;flex-shrink:0;}
+  .docs-demo-dot--red{background:#FF5F57;}
+  .docs-demo-dot--yellow{background:#FEBC2E;}
+  .docs-demo-dot--green{background:#28C840;}
+  .docs-demo-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding:0 calc(23 * var(--docs-u)) 0 calc(10 * var(--docs-u));
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--docs-u));}
+  .docs-demo-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--docs-u));
+    border-radius:calc(10 * var(--docs-u));background:#DEE1E6;}
+  .docs-demo-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(18 * var(--docs-u));height:calc(18 * var(--docs-u));
+    padding:calc(2 * var(--docs-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--docs-u));}
+  .docs-demo-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  .docs-demo-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
+    background:var(--surface);border-radius:calc(8 * var(--docs-u));}
+  .docs-demo-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    width:calc(30 * var(--docs-u));gap:calc(24 * var(--docs-u));
+    padding-top:calc(16 * var(--docs-u));border-right:0.5px solid #C8C8C0;}
+  .docs-demo-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
+  .docs-demo-sidebar-icon{display:block;object-fit:contain;}
+  .docs-demo-sidebar-icon--home{width:calc(10 * var(--docs-u));height:calc(11 * var(--docs-u));}
+  .docs-demo-sidebar-icon--category{width:calc(11 * var(--docs-u));height:calc(11 * var(--docs-u));}
+  .docs-demo-sidebar-icon--add{width:calc(10 * var(--docs-u));height:calc(10 * var(--docs-u));}
+  .docs-demo-sidebar-icon--notification{width:calc(10 * var(--docs-u));height:calc(11 * var(--docs-u));}
+  .docs-demo-sidebar-icon--message{width:calc(12 * var(--docs-u));height:calc(12 * var(--docs-u));}
+  .docs-demo-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    gap:calc(10 * var(--docs-u));padding:calc(10 * var(--docs-u));flex:1;min-width:0;height:100%;
+    background:var(--surface);border-radius:0 calc(14 * var(--docs-u)) 0 0;}
+  .docs-demo-tile{position:relative;border-radius:calc(8 * var(--docs-u));overflow:hidden;
+    background:var(--surface-key);transition:box-shadow .25s ease;}
+  .docs-demo-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .docs-demo-tile--hot{box-shadow:0 0 calc(13 * var(--docs-u)) 0 var(--accent-bright);}
+  .docs-demo-tile--tall{grid-row:span 2;}
+  .docs-demo-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
+    --docs-u:calc((min(1136px, 100vw) - 16px) / 2 / 593);
+    width:calc(26 * var(--docs-u));height:calc(26 * var(--docs-u));opacity:0;
+    transition:transform 1s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  .docs-demo-cursor--on{opacity:1;}
+  .docs-demo-cursor img{width:100%;height:100%;display:block;}
+  .docs-demo-tip{position:absolute;left:calc(18 * var(--docs-u));top:calc(-20 * var(--docs-u));
+    display:inline-flex;align-items:center;white-space:nowrap;
+    padding:calc(4 * var(--docs-u)) calc(8 * var(--docs-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--docs-u));
+    font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
+    font-size:calc(11 * var(--docs-u));
+    opacity:0;transition:opacity .3s ease;}
+  .docs-demo-tip--in{opacity:1;transition:none;}
+  .docs-demo-toast{position:absolute;z-index:4;
+    top:calc(10 * var(--docs-u));right:calc(10 * var(--docs-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--docs-u));
+    padding:calc(6 * var(--docs-u)) calc(11 * var(--docs-u));
+    background:#BC13FE;border:1px solid #BC13FE;border-radius:999px;
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--docs-u));color:#f0f0f0;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .docs-demo-toast img{width:calc(11 * var(--docs-u));height:calc(11 * var(--docs-u));display:block;
+    filter:brightness(0) invert(1);}
+  .docs-demo-toast--in{opacity:1;}
+  .docs-demo-canvas{display:flex;flex-direction:column;overflow:hidden;
+    container-type:inline-size;--docs-u:calc(100cqw / 593);
+    background:#DFDFDF;}
+  .docs-demo-canvas-header{display:flex;align-items:center;gap:calc(6 * var(--docs-u));width:100%;
+    height:calc(30 * var(--docs-u));flex-shrink:0;
+    padding:calc(6 * var(--docs-u)) calc(18 * var(--docs-u)) calc(6 * var(--docs-u)) calc(10 * var(--docs-u));
+    border-bottom:1px solid #E6E7EB;}
+  .docs-demo-canvas-body{position:relative;flex:1;min-height:0;width:100%;overflow:hidden;background:#000;}
+  .docs-demo-canvas-pan{position:absolute;inset:0;}
+  .docs-demo-paste{position:absolute;left:0;top:0;display:none;width:70%;aspect-ratio:2000/1333;object-fit:contain;}
+  .docs-demo-paste--in{display:block;}
 
   @media (max-width:820px){
     .nav-links{display:none !important;}
@@ -299,9 +227,6 @@
     .docs-section ul,
     .docs-section ol{font-size:16px;}
     .docs-figure-pair{display:none;}
-    .docs-split-figure{display:none;}
-    .docs-split-outro{display:block;}
-    .docs-split-text > .docs-action-list{margin-bottom:18px;}
   }
 </style>
 </head>
@@ -331,24 +256,30 @@
       <p class="docs-toc-group-label">Getting started</p>
       <ol class="docs-toc" start="1">
         <li><a href="#what">What is Grrab</a></li>
-        <li><a href="#install">Install and start clipping in 30 seconds</a></li>
+        <li><a href="#install">Install in 30 seconds</a></li>
+        <li><a href="#first-copy">Your first copy</a></li>
       </ol>
     </div>
     <div class="docs-toc-group">
-      <p class="docs-toc-group-label">How Grrab works</p>
-      <ol class="docs-toc" start="3">
-        <li><a href="#settings">Grrab Setting</a></li>
-        <li><a href="#shortcut">The clip shortcut</a></li>
-        <li><a href="#upscaling">AI upscaling on your device</a></li>
-        <li><a href="#history">Your clip history and the side panel</a></li>
+      <p class="docs-toc-group-label">Using Grrab</p>
+      <ol class="docs-toc" start="4">
+        <li><a href="#modes">Instant and Editor modes</a></li>
+        <li><a href="#library">Your library</a></li>
       </ol>
     </div>
     <div class="docs-toc-group">
-      <p class="docs-toc-group-label">Under the hood</p>
+      <p class="docs-toc-group-label">Settings</p>
+      <ol class="docs-toc" start="6">
+        <li><a href="#settings">All settings</a></li>
+      </ol>
+    </div>
+    <div class="docs-toc-group">
+      <p class="docs-toc-group-label">Reference</p>
       <ol class="docs-toc" start="7">
+        <li><a href="#quality">How image quality works</a></li>
         <li><a href="#privacy">Privacy and data</a></li>
         <li><a href="#troubleshooting">Troubleshooting</a></li>
-        <li><a href="#follow">Follow along</a></li>
+        <li><a href="#support">Links and support</a></li>
       </ol>
     </div>
   </div>
@@ -359,164 +290,160 @@
 
     <section class="docs-section" id="what">
       <h2>What is Grrab</h2>
-      <p>Grrab is a Chrome extension that grabs any image on the web in one shortcut.</p>
-      <p>Hover any image, press Cmd+C, and Grrab copies it to your clipboard — AI-upscaled to the resolution you can actually use, and saved to your collection in the background.</p>
+      <p>Grrab is a Chrome extension that lets you copy any image on the web in one shortcut — already usable.</p>
+      <p>Hover an image, press Cmd+C, and the image lands on your clipboard. Grrab improves the quality on the way, so what you paste isn't the small preview the page was serving.</p>
+      <p>When you need more than that — a background removed, a watermark erased, a larger version — you can do it on the page, without saving the file or opening another tool. Everything you copy is also kept in a library you can come back to.</p>
+      <p>Grrab works on any site. If an image is on your screen, the shortcut works on it.</p>
     </section>
 
     <section class="docs-section" id="install">
-      <h2>Install and start clipping in 30 seconds</h2>
+      <h2>Install in 30 seconds</h2>
       <div class="docs-figure-pair">
         <img src="/assets/landing/img/install-preview1.jpg" alt="Chrome&rsquo;s extensions menu, pinning Grrab to the toolbar" width="797" height="580">
-        <img src="/assets/landing/img/install-preview2.jpg" alt="The Grrab popup, showing the on/off toggle, clip shortcut and clip size" width="797" height="580">
+        <img src="/assets/landing/img/install-preview2.jpg" alt="The Grrab popup, showing the on/off toggle, Shortcut and Output size" width="797" height="580">
       </div>
       <ol>
-        <li>Add Grrab from the <a href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Chrome Web Store</a>, then pin the Grrab icon to your toolbar.</li>
-        <li>Click the Grrab icon to open the popup — check that Grrab is on, and adjust your shortcut or clip size if you&rsquo;d like.</li>
-        <li>Hover any image on any page and press Cmd+C (Ctrl+C on Windows/Linux). Paste anywhere — Figma, a doc, an email. That&rsquo;s your first clip.</li>
+        <li>Add Grrab from the <a href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Chrome Web Store</a>.</li>
+        <li>Pin the Grrab icon to your toolbar so you can reach the settings and the library.</li>
+        <li>Click the icon once to check that Grrab is on. Everything else is already set up.</li>
       </ol>
-      <!-- TODO: screenshot or GIF of the hover highlight + Cmd+C moment -->
-      <p>Clipping to the clipboard works right away.</p>
-      <p>To save clips to a collection, sign in with Google — covered in <a href="#history">Your clip history and the side panel</a>.</p>
+      <p>Copying to your clipboard works immediately, with no account.</p>
+      <p>Signing in with Google adds:</p>
+      <ul>
+        <li>A <a href="#library">library</a> where everything you copy is kept — browse it, re-copy from it, or save it to a folder or Drive.</li>
+        <li><a href="#modes">Editor mode</a>, where you can adjust an image before it reaches your clipboard.</li>
+      </ul>
+      <p>You can sign in later from the popup.</p>
     </section>
-  </div>
 
-  <div class="docs-group">
-    <p class="docs-group-label">How Grrab works</p>
-    <hr class="docs-group-rule">
-
-    <section class="docs-section" id="settings">
-      <h2>Grrab Setting</h2>
-      <div class="docs-split">
-        <div class="docs-split-text">
-          <p>TODO: describe the popup's settings.</p>
-        </div>
-        <div class="docs-settings-popover">
-          <div class="chrome-window">
-            <div class="browser-tabs">
-              <div class="browser-tabs-strip">
-                <div class="browser-tabs-tab"><span class="browser-tabs-glyph"></span></div>
-              </div>
+    <section class="docs-section" id="first-copy">
+      <h2>Your first copy</h2>
+      <p>Move your cursor over any image on any page — a purple glow shows which one the shortcut will act on. Press the shortcut and it's on your clipboard, ready to paste.</p>
+      <div class="docs-figure-pair" id="firstCopyDemo">
+        <div class="docs-demo-browser">
+          <div class="docs-demo-chrome">
+            <div class="docs-demo-header">
+              <div class="docs-demo-traffic"><span class="docs-demo-dot docs-demo-dot--red"></span><span class="docs-demo-dot docs-demo-dot--yellow"></span><span class="docs-demo-dot docs-demo-dot--green"></span></div>
+              <div class="docs-demo-urlbar"><div class="docs-demo-urlbar-line"></div></div>
+              <div class="docs-demo-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
             </div>
-            <div class="chrome-top">
-              <div class="chrome-urlbar">
-                <div class="chrome-urlbar-line"></div>
-                <div class="chrome-urlbar-star">
-                  <img class="grrab-urlbar-star-icon" src="/docs/assets/icons/icon_star.svg" alt="">
-                </div>
+            <div class="docs-demo-body">
+              <div class="docs-demo-sidebar">
+                <div class="docs-demo-sidebar-item"><img class="docs-demo-sidebar-icon docs-demo-sidebar-icon--home" src="/assets/landing/icons/rowB/icon_home.svg" alt=""></div>
+                <div class="docs-demo-sidebar-item"><img class="docs-demo-sidebar-icon docs-demo-sidebar-icon--category" src="/assets/landing/icons/rowB/icon_category.svg" alt=""></div>
+                <div class="docs-demo-sidebar-item"><img class="docs-demo-sidebar-icon docs-demo-sidebar-icon--add" src="/assets/landing/icons/rowB/icon_add.svg" alt=""></div>
+                <div class="docs-demo-sidebar-item"><img class="docs-demo-sidebar-icon docs-demo-sidebar-icon--notification" src="/assets/landing/icons/rowB/icon_notification.svg" alt=""></div>
+                <div class="docs-demo-sidebar-item"><img class="docs-demo-sidebar-icon docs-demo-sidebar-icon--message" src="/assets/landing/icons/rowB/icon_message.svg" alt=""></div>
               </div>
-              <div class="chrome-profile">
-                <div class="chrome-profile-pill">
-                  <div class="chrome-profile-wrap">
-                    <div class="chrome-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt=""></div>
-                    <div class="chrome-profile-ext">
-                      <img class="chrome-profile-ext-icon" src="/docs/assets/icons/icon_ext.svg" alt="">
-                    </div>
-                  </div>
-                  <div class="chrome-profile-sep"></div>
-                  <!-- Figma has a photo here with no file in the repo; the landing page's
-                       stand-in is used, which is a different face. -->
-                  <div class="chrome-profile-avatar"><img src="/assets/landing/img/example_profile.webp" alt=""></div>
-                </div>
+              <div class="docs-demo-gallery">
+                <div class="docs-demo-tile docs-demo-tile--tall"><img src="/assets/landing/img/rowB/rowB-image-1-before.webp" alt=""></div>
+                <div class="docs-demo-tile"><img src="/assets/landing/img/rowB/rowB-image-3-before.webp" alt=""></div>
+                <div class="docs-demo-tile"><img src="/assets/landing/img/rowB/rowB-image-6-before.webp" alt=""></div>
+                <div class="docs-demo-tile"><img src="/assets/landing/img/rowB/rowB-image-4-before.webp" alt=""></div>
+                <div class="docs-demo-tile docs-demo-tile--tall"><img src="/assets/landing/img/rowB/rowB-image-7-before.webp" alt=""></div>
+                <div class="docs-demo-tile"><img src="/assets/landing/img/rowB/rowB-image-2-before.webp" alt=""></div>
+                <div class="docs-demo-tile"><img src="/assets/landing/img/rowB/rowB-image-5-before.webp" alt=""></div>
               </div>
-            </div>
-            <div class="chrome-body">
-              <div class="grrab-popup">
-                <div class="grrab-popup-header">
-                  <div class="grrab-popup-titlebar">
-                    <p class="grrab-popup-title">Grrab Images</p>
-                    <span class="grrab-popup-switch"><span class="grrab-popup-switch-knob"></span></span>
-                  </div>
-                </div>
-                <div class="grrab-popup-row">
-                  <p class="grrab-popup-label">Clip Shortcut</p>
-                  <div class="grrab-popup-row-value">
-                    <span class="grrab-popup-kbd">⌘C</span>
-                    <span class="grrab-popup-refresh"><img class="shortcut-refresh-icon shortcut-refresh-icon--refresh" src="/docs/assets/icons/icon_refresh.svg" alt=""></span>
-                  </div>
-                </div>
-                <div class="grrab-popup-row">
-                  <p class="grrab-popup-label">Clip Size</p>
-                  <div class="grrab-popup-select">
-                    <span class="grrab-popup-option">Auto</span>
-                    <img class="grrab-popup-chevron-icon" src="/docs/assets/icons/icon_chevron.svg" alt="">
-                  </div>
-                </div>
-                <div class="grrab-popup-row">
-                  <p class="grrab-popup-label">Upscale</p>
-                  <div class="grrab-popup-check">
-                    <span class="grrab-popup-checkbox"></span>
-                    <span class="grrab-popup-option">Auto</span>
-                  </div>
-                </div>
-                <div class="grrab-popup-row">
-                  <p class="grrab-popup-label">Clip mode</p>
-                  <div class="grrab-popup-select">
-                    <span class="grrab-popup-option">instant</span>
-                    <img class="grrab-popup-chevron-icon" src="/docs/assets/icons/icon_chevron.svg" alt="">
-                  </div>
-                </div>
-                <div class="grrab-popup-footer">
-                  <span class="grrab-popup-btn">Open SidePanel</span>
-                </div>
-              </div>
+              <span class="docs-demo-toast" aria-hidden="true">
+                <img src="/assets/landing/icons/hero/icon_copy.svg" alt="">
+                <span>Image copied</span>
+              </span>
             </div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section class="docs-section" id="shortcut">
-      <h2>The clip shortcut</h2>
-      <p>Hover any image on any page. Grrab highlights it and shows a "Press ⌘C to clip" tooltip.</p>
-      <p>Press the shortcut — Cmd+C on Mac, Ctrl+C on Windows and Linux. Grrab copies that exact image to your clipboard.</p>
-      <p>Grrab also works on video frames. Hover a playing video and press the shortcut to capture the current frame as an image.</p>
-      <p>To change the shortcut key: click the Grrab icon, then click the field under &ldquo;Clip Shortcut&rdquo; and press the key combination you want to use.</p>
-    </section>
-
-    <section class="docs-section" id="upscaling">
-      <h2>AI upscaling on your device</h2>
-      <p>Reference images on the web are often too small to use. Grrab fixes this at the moment you clip.</p>
-      <p>Click the Grrab icon and pick your Clip Size — Original, 512, 1024, or 1600. Every image you clip arrives at that resolution, no matter what size the source was.</p>
-      <p>Larger images are resized down. Smaller images are enlarged with an on-device AI super-resolution model — the kind of model that reconstructs detail, not just interpolates pixels.</p>
-      <p>Nothing is uploaded. The model runs on your machine. See <a href="#privacy">Privacy and data</a> for more.</p>
-    </section>
-
-    <section class="docs-section" id="history">
-      <h2>Your clip history and the side panel</h2>
-      <div class="docs-split">
-        <div class="docs-split-text">
-      <p>The side panel is where your clip history lives. Open it by clicking &ldquo;Open SidePanel&rdquo; in the Grrab popup.</p>
-      <p>Sign in with Google, and every clip is saved to your history — accessible from any device you sign in on, and kept until you delete it.</p>
-      <p><em>Without signing in, Grrab copies to your clipboard but doesn&rsquo;t save history.</em></p>
-      <p>From any card in the side panel, you can:</p>
-      <ul class="docs-action-list">
-        <li>
-          <span class="docs-action-icon"><svg class="docs-action-glyph docs-action-glyph--copy" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" stroke="none" d="M8 5h7.795c1.115 0 1.519.116 1.926.334.407.218.727.538.945.945.218.407.334.811.334 1.926V16a1 1 0 1 0 2 0V8.128c0-1.783-.186-2.43-.534-3.082a3.635 3.635 0 0 0-1.512-1.512C18.302 3.186 17.655 3 15.872 3H8a1 1 0 0 0 0 2zm7.721 2.334C15.314 7.116 14.91 7 13.795 7h-7.59c-1.115 0-1.519.116-1.926.334a2.272 2.272 0 0 0-.945.945C3.116 8.686 3 9.09 3 10.205v7.59c0 1.114.116 1.519.334 1.926.218.407.538.727.945.945.407.218.811.334 1.926.334h7.59c1.114 0 1.519-.116 1.926-.334.407-.218.727-.538.945-.945.218-.407.334-.811.334-1.926v-7.59c0-1.115-.116-1.519-.334-1.926a2.272 2.272 0 0 0-.945-.945z"/></svg></span>
-          <span><strong>Re-copy</strong> the clip back to your clipboard</span>
-        </li>
-        <li>
-          <span class="docs-action-icon"><svg class="docs-action-glyph docs-action-glyph--delete" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
-          <span><strong>Delete</strong> clips you no longer need</span>
-        </li>
-        <li>
-          <span class="docs-action-icon"><svg class="docs-action-glyph docs-action-glyph--extlink" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" aria-hidden="true"><path d="M120 101.383V18.617C120 8.33212 111.668 0 101.383 0H60C57.3336 0 55.1774 2.15619 55.1774 4.82263C55.1774 7.48907 57.3336 9.64526 60 9.64526H101.383C106.335 9.64526 110.355 13.665 110.355 18.617V101.383C110.355 106.335 106.335 110.355 101.383 110.355H18.617C13.6648 110.355 9.64526 106.335 9.64526 101.383V60C9.64526 57.3336 7.48907 55.1774 4.82263 55.1774C2.15619 55.1774 0 57.3336 0 60V101.383C0 111.668 8.33192 120 18.617 120H101.383C111.668 120 120 111.668 120 101.383Z"/><path d="M9.64526 32.5595V11.7602C9.64526 10.5971 10.597 9.64526 11.7602 9.64526H32.5595C35.2259 9.64526 37.3821 7.48907 37.3821 4.82263C37.3821 2.15619 35.2259 0 32.5595 0H11.7602C5.26403 0 0 5.2643 0 11.7602V32.5595C0.000350424 35.2254 2.1567 37.3818 4.82263 37.3821C7.48886 37.3821 9.64491 35.2256 9.64526 32.5595Z"/><path d="M15.3169 8.58069C13.4315 6.69523 10.3726 6.69523 8.48712 8.58069C6.60976 10.4646 6.60976 13.5131 8.48712 15.397L63.3816 70.2915C65.2655 72.1689 68.314 72.1689 70.1979 70.2915C72.0834 68.4061 72.0834 65.3472 70.1979 63.4617L15.3169 8.58069Z"/></svg></span>
-          <span><strong>Open the source page</strong> by clicking the source icon on the card</span>
-        </li>
-        <li>
-          <span class="docs-action-icon"><svg class="docs-action-glyph docs-action-glyph--upload" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span>
-          <span><strong>Upload</strong> selected clips to your export destination — select one or more cards, then click Upload</span>
-        </li>
-      </ul>
-      <p class="docs-split-outro">Everything you clip stays organized, browsable, and yours.</p>
+        <div class="docs-demo-canvas">
+          <div class="docs-demo-canvas-header">
+            <div class="docs-demo-traffic"><span class="docs-demo-dot docs-demo-dot--red"></span><span class="docs-demo-dot docs-demo-dot--yellow"></span><span class="docs-demo-dot docs-demo-dot--green"></span></div>
+          </div>
+          <div class="docs-demo-canvas-body">
+            <div class="docs-demo-canvas-pan">
+              <img class="docs-demo-paste" src="/assets/landing/img/rowB/rowB-image-1-before.webp" alt="" draggable="false">
+            </div>
+          </div>
         </div>
-        <img class="docs-split-figure" src="/assets/landing/img/sidepanel-preview.jpg" alt="The Grrab side panel, showing saved clips as cards" width="231" height="531">
+        <span class="docs-demo-cursor" aria-hidden="true">
+          <span class="docs-demo-tip docs-demo-tip--copy">⌘C</span>
+          <span class="docs-demo-tip docs-demo-tip--paste">⌘V</span>
+          <img src="/assets/landing/icons/rowB/icon_cursor.svg" alt="">
+        </span>
       </div>
+      <p>Grrab only acts when your cursor is over an image. Anywhere else on the page, Cmd+C behaves exactly as it always has, so selecting text and copying it still works the way you expect.</p>
+      <p>That's the whole loop. Everything else in this guide is about what you can do inside it.</p>
     </section>
+
   </div>
 
   <div class="docs-group">
-    <p class="docs-group-label">Under the hood</p>
+    <p class="docs-group-label">Using Grrab</p>
     <hr class="docs-group-rule">
+
+    <section class="docs-section" id="modes">
+      <h2>Instant and Editor modes</h2>
+      <p>The mode decides what happens after you press Cmd+C. You switch between them in the popup or the side panel, and the setting stays until you change it.</p>
+      <p><strong>Instant</strong> copies right away. The image goes to your clipboard and you carry on. This is the default.</p>
+      <p><strong>Editor</strong> opens the image in an overlay on the page first. The page stays where it is behind it — nothing is downloaded, and you don't leave the tab. Editor mode requires signing in.</p>
+      <p>Three things you can do there:</p>
+      <ul>
+        <li><strong>Remove BG</strong> cuts out the subject and drops the background, leaving transparency behind it.</li>
+        <li><strong>Erase</strong> removes anything you don't want. Brush over it or drag a box around it, and the area is filled in with what should have been behind it. Use it for watermarks, logos, captions, or objects in the way.</li>
+        <li><strong>Upscale</strong> enlarges the image on your device. Small sources are enlarged more, so the result is usable however small the original was.</li>
+      </ul>
+      <p>Back undoes your last step and Refresh returns the image to how it started. When you're done, Copy puts the result on your clipboard.</p>
+      <p>Remove BG runs on a server and needs you to be signed in. Erase and Upscale run on your own machine — see <a href="#privacy">Privacy and data</a>.</p>
+    </section>
+
+    <section class="docs-section" id="library">
+      <h2>Your library</h2>
+      <p>Everything you copy while signed in is kept in your library. You don't save anything — copying is the save.</p>
+      <p>Open it from the side panel. Images are grouped by day and labeled by where they came from, so a Pinterest pin is easy to tell apart from a YouTube thumbnail weeks later.</p>
+      <p>From any image you can:</p>
+      <ul>
+        <li>Put it back on your clipboard in one click.</li>
+        <li>Download it to your computer.</li>
+        <li>Open the page you found it on.</li>
+        <li>Delete it, on its own or in a selection.</li>
+      </ul>
+      <p>Downloads go wherever you've set your destination — a folder on your computer, Google Drive, or your Downloads folder — in the format you've chosen. Both are in the side panel, and you can change them at any time.</p>
+      <p>Three separate things, worth keeping apart: your <strong>clipboard</strong> holds the last image you copied, your <strong>library</strong> keeps a record of all of them, and a <strong>download</strong> is a file on your computer. Copying always fills the first. The second needs you to be signed in. The third only happens when you ask for it.</p>
+    </section>
+
+  </div>
+
+  <div class="docs-group">
+    <p class="docs-group-label">Settings</p>
+    <hr class="docs-group-rule">
+
+    <section class="docs-section" id="settings">
+      <h2>All settings</h2>
+      <p>Adjust how Grrab behaves to fit the way you work.</p>
+      <div class="docs-figure-pair">
+        <div class="docs-figure-placeholder" role="img" aria-label="The Grrab popup, showing the on/off toggle, Shortcut, Mode and Output size"></div>
+        <div class="docs-figure-placeholder" role="img" aria-label="The Grrab side panel, showing Account, Saving and the image library"></div>
+      </div>
+      <p>In the popup:</p>
+      <ul>
+        <li><strong>On / off</strong> — Turns Grrab off without uninstalling it. Cmd+C goes back to normal copying while it's off.</li>
+        <li><strong>Shortcut</strong> — The keys that copy the image under your cursor. Cmd+C by default.</li>
+        <li><strong>Mode</strong> — Copy right away, or open the editor first. Instant by default. See <a href="#modes">Instant and Editor modes</a>.</li>
+        <li><strong>Output size</strong> — The size of the image that lands on your clipboard. Auto by default.</li>
+      </ul>
+      <p>In the side panel:</p>
+      <ul>
+        <li><strong>Account</strong> — Sign in or out with Google. Signing in turns on your library and Editor mode.</li>
+        <li><strong>Saving</strong> — Where downloads land and in what format: a folder, Google Drive, or Downloads, as PNG or JPG. PNG keeps transparency. See <a href="#library">Where your images are saved</a>.</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <div class="docs-group">
+    <p class="docs-group-label">Reference</p>
+    <hr class="docs-group-rule">
+
+    <section class="docs-section" id="quality">
+      <h2>How image quality works</h2>
+      <p>TODO</p>
+    </section>
 
     <section class="docs-section" id="privacy">
       <h2>Privacy and data</h2>
@@ -533,11 +460,11 @@
       <p>Email us at <a href="mailto:tlstlsgns@gmail.com">tlstlsgns@gmail.com</a>, or open an issue on <a href="https://github.com/tlstlsgns/Grrab/issues">GitHub</a>.</p>
     </section>
 
-    <section class="docs-section" id="follow">
-      <h2>Follow along</h2>
-      <p>Grrab is a young project, and it&rsquo;s going to grow. Other browsers, and desktop and mobile apps, and new ways to organize your references are on the way.</p>
-      <p>Star the repo on <a href="https://github.com/tlstlsgns/Grrab">GitHub</a> to follow updates, or drop your email to <a href="mailto:tlstlsgns@gmail.com">tlstlsgns@gmail.com</a> and we&rsquo;ll let you know when something new ships.</p>
+    <section class="docs-section" id="support">
+      <h2>Links and support</h2>
+      <p>TODO</p>
     </section>
+
   </div>
 </main>
 
@@ -556,6 +483,172 @@
     </nav>
   </div>
 </footer>
+
+<script>
+(function(){
+  "use strict";
+  try {
+    var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
+                navigator.userAgent.indexOf("Mac") !== -1;
+    if (!isMac) {
+      var copyTip = document.querySelector(".docs-demo-tip--copy");
+      var pasteTip = document.querySelector(".docs-demo-tip--paste");
+      if (copyTip) copyTip.textContent = "Ctrl+C";
+      if (pasteTip) pasteTip.textContent = "Ctrl+V";
+    }
+  } catch (e) {}
+
+  var firstCopyDemo = document.getElementById("firstCopyDemo");
+  if (!firstCopyDemo) return;
+
+  var docsCursor = firstCopyDemo.querySelector(".docs-demo-cursor");
+  var docsCopyTip = firstCopyDemo.querySelector(".docs-demo-tip--copy");
+  var docsPasteTip = firstCopyDemo.querySelector(".docs-demo-tip--paste");
+  var docsToast = firstCopyDemo.querySelector(".docs-demo-toast");
+  var docsPaste = firstCopyDemo.querySelector(".docs-demo-paste");
+  var docsCanvas = firstCopyDemo.querySelector(".docs-demo-canvas");
+  var docsCanvasPan = firstCopyDemo.querySelector(".docs-demo-canvas-pan");
+  var docsGallery = firstCopyDemo.querySelector(".docs-demo-gallery");
+  var docsTiles = docsGallery ? docsGallery.querySelectorAll(".docs-demo-tile") : [];
+  var docsDemoTimers = [];
+  var docsDemoRaf = 0;
+  var docsDemoReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  var docsDemoClearTimers = function(){
+    for (var i = 0; i < docsDemoTimers.length; i++) clearTimeout(docsDemoTimers[i]);
+    docsDemoTimers = [];
+  };
+  var docsDemoAt = function(ms, fn){ docsDemoTimers.push(setTimeout(fn, ms)); };
+
+  var docsOffsetIn = function(el){
+    var x = 0, y = 0, n = el;
+    while (n && n !== firstCopyDemo) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    return { x: x, y: y };
+  };
+  var docsCentreIn = function(el){
+    var p = docsOffsetIn(el);
+    return { x: p.x + el.offsetWidth / 2, y: p.y + el.offsetHeight / 2 };
+  };
+  var docsPointIn = function(el){
+    var o = docsOffsetIn(el);
+    return { x: o.x + el.offsetWidth / 2, y: o.y + el.offsetHeight / 2 };
+  };
+  var docsMoveTo = function(p){
+    if (docsCursor) docsCursor.style.transform = "translate(" + p.x + "px," + p.y + "px)";
+  };
+
+  var docsHotOnly = function(tile){
+    for (var i = 0; i < docsTiles.length; i++){
+      if (docsTiles[i] === tile) docsTiles[i].classList.add("docs-demo-tile--hot");
+      else docsTiles[i].classList.remove("docs-demo-tile--hot");
+    }
+  };
+
+  var docsTrack = function(durationMs){
+    var started = Date.now();
+    var tick = function(){
+      if (!docsCursor) return;
+      var r = docsCursor.getBoundingClientRect();
+      var under = document.elementFromPoint(r.left, r.top);
+      docsHotOnly(under && under.closest ? under.closest(".docs-demo-tile") : null);
+      if (Date.now() - started < durationMs) docsDemoRaf = requestAnimationFrame(tick);
+      else docsDemoRaf = 0;
+    };
+    docsDemoRaf = requestAnimationFrame(tick);
+  };
+
+  var docsPasteAt = function(el){
+    if (!el || !docsCanvas || !docsCanvasPan) return;
+    var p = docsCentreIn(docsCanvas);
+    var o = docsOffsetIn(docsCanvasPan);
+    el.classList.add("docs-demo-paste--in");
+    void el.offsetWidth;
+    el.style.left = (p.x - o.x - el.offsetWidth / 2) + "px";
+    el.style.top = (p.y - o.y - el.offsetHeight / 2) + "px";
+  };
+
+  var docsDemoReset = function(){
+    if (docsDemoRaf) { cancelAnimationFrame(docsDemoRaf); docsDemoRaf = 0; }
+    docsHotOnly(null);
+    if (docsCursor) {
+      docsCursor.classList.remove("docs-demo-cursor--on");
+      docsCursor.style.transition = "none";
+      docsCursor.style.transform = "";
+      void docsCursor.offsetWidth;
+      docsCursor.style.transition = "";
+    }
+    if (docsCopyTip) docsCopyTip.classList.remove("docs-demo-tip--in");
+    if (docsPasteTip) docsPasteTip.classList.remove("docs-demo-tip--in");
+    if (docsToast) docsToast.classList.remove("docs-demo-toast--in");
+    if (docsPaste) {
+      docsPaste.classList.remove("docs-demo-paste--in");
+      docsPaste.style.left = "";
+      docsPaste.style.top = "";
+    }
+  };
+
+  var docsDemoPlay = function(){
+    var tile = docsTiles[0];
+    if (!tile || !docsCursor || !docsCanvas || !docsCanvas.offsetWidth) return;
+    docsDemoClearTimers();
+    docsDemoReset();
+
+    if (docsDemoReduce && docsDemoReduce.matches) {
+      tile.classList.add("docs-demo-tile--hot");
+      docsCursor.classList.add("docs-demo-cursor--on");
+      docsMoveTo(docsCentreIn(docsCanvas));
+      docsPasteAt(docsPaste);
+      return;
+    }
+
+    var canvasCentre = docsCentreIn(docsCanvas);
+    docsCursor.classList.add("docs-demo-cursor--on");
+    docsCursor.style.transition = "none";
+    docsMoveTo(canvasCentre);
+    void docsCursor.offsetWidth;
+    docsCursor.style.transition = "";
+
+    docsDemoAt(60, function(){
+      if (!tile.offsetWidth) return;
+      docsMoveTo(docsPointIn(tile));
+      docsTrack(1000);
+    });
+    docsDemoAt(1150, function(){
+      if (docsDemoRaf) { cancelAnimationFrame(docsDemoRaf); docsDemoRaf = 0; }
+      docsHotOnly(tile);
+    });
+    docsDemoAt(1450, function(){
+      if (docsCopyTip) docsCopyTip.classList.add("docs-demo-tip--in");
+      if (docsToast) docsToast.classList.add("docs-demo-toast--in");
+    });
+    docsDemoAt(1790, function(){
+      if (docsCopyTip) docsCopyTip.classList.remove("docs-demo-tip--in");
+      docsMoveTo(canvasCentre);
+      docsTrack(1000);
+    });
+    docsDemoAt(2790, function(){
+      if (docsDemoRaf) { cancelAnimationFrame(docsDemoRaf); docsDemoRaf = 0; }
+      if (docsPasteTip) docsPasteTip.classList.add("docs-demo-tip--in");
+      docsPasteAt(docsPaste);
+    });
+    docsDemoAt(3130, function(){
+      if (docsPasteTip) docsPasteTip.classList.remove("docs-demo-tip--in");
+    });
+    docsDemoAt(3200, function(){
+      if (docsToast) docsToast.classList.remove("docs-demo-toast--in");
+    });
+  };
+
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function(entries){
+      for (var i = 0; i < entries.length; i++){
+        if (entries[i].isIntersecting) docsDemoPlay();
+        else { docsDemoClearTimers(); docsDemoReset(); }
+      }
+    }, { threshold: 0.6 }).observe(firstCopyDemo);
+  }
+})();
+</script>
 
 </body>
 </html>
