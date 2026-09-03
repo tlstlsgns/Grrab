@@ -127,6 +127,29 @@
   .docs-figure-pair{position:relative;display:flex;flex-wrap:wrap;gap:16px;margin:0 0 24px;
     width:min(1136px,100vw);margin-left:calc(50% - min(1136px,100vw)/2);margin-right:calc(50% - min(1136px,100vw)/2);}
   .docs-figure-pair > img{flex:1 1 280px;min-width:0;width:100%;height:auto;display:block;border:1px solid var(--border);border-radius:var(--radius-lg);}
+  .docs-install-card{flex:1 1 280px;min-width:0;margin:0;}
+  .docs-install-shot{position:relative;aspect-ratio:1;background-size:cover;background-position:center top;background-repeat:no-repeat;
+    border:1px solid var(--border);border-radius:var(--radius-lg);
+    --bubble-right:6%;
+    /* --bubble-top: found on screen, not derived from the screenshot. */
+    --bubble-top:18%;}
+  .docs-install-bubble{position:absolute;top:var(--bubble-top);right:var(--bubble-right);z-index:1;
+    max-width:58%;padding:8px 12px;background:#fff;border-radius:var(--radius-md);
+    box-shadow:var(--shadow-md);font-size:13px;line-height:1.35;font-weight:500;color:var(--ink-strong);white-space:nowrap;}
+  .docs-install-card figcaption{font-size:15px;line-height:1.5;color:var(--ink-700);margin:10px 0 0;}
+  .docs-install-card figcaption strong{display:block;font-weight:600;color:var(--ink-strong);margin:0 0 2px;}
+  #first-copy .docs-mode-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 20px;flex-wrap:wrap;}
+  #first-copy .docs-mode-heading h2{margin:0;}
+  .docs-mode-switch{position:relative;display:flex;flex-shrink:0;padding:4px;background:var(--surface-subtle);
+    border:1px solid var(--border);border-radius:var(--radius-pill);}
+  .docs-mode-pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);
+    background:var(--surface);border-radius:var(--radius-pill);box-shadow:var(--shadow-xs);
+    transition:transform .25s ease;pointer-events:none;}
+  .docs-mode-switch[data-mode="editor"] .docs-mode-pill{transform:translateX(100%);}
+  .docs-mode-switch [role="tab"]{position:relative;z-index:1;flex:1 1 0;min-width:0;border:none;background:transparent;
+    font-family:var(--font-sans);font-size:14px;font-weight:600;line-height:1;padding:8px 20px;cursor:pointer;
+    color:var(--ink-700);border-radius:var(--radius-pill);}
+  .docs-mode-switch [role="tab"][aria-selected="true"]{color:var(--ink-strong);}
   .docs-figure-placeholder{flex:1 1 280px;min-width:0;width:100%;aspect-ratio:797/580;display:block;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-subtle);}
   .docs-demo-browser,
   .docs-demo-canvas{flex:1 1 280px;min-width:0;width:100%;aspect-ratio:593/434;position:relative;overflow:hidden;
@@ -210,6 +233,99 @@
   .docs-demo-canvas-pan{position:absolute;inset:0;}
   .docs-demo-paste{position:absolute;left:0;top:0;display:none;width:70%;aspect-ratio:2000/1333;object-fit:contain;}
   .docs-demo-paste--in{display:block;}
+  @keyframes heroSpin{to{transform:rotate(360deg);}}
+  .docs-demo-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;
+    justify-content:center;background:rgba(0,0,0,0.82);
+    opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .docs-demo-overlay--on{opacity:1;}
+  .docs-demo-overlay-figure{position:relative;display:flex;margin:0;
+    max-width:62%;max-height:64%;
+    -webkit-user-select:none;user-select:none;}
+  .docs-demo-overlay-figure img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
+  .docs-demo-overlay-img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+    object-fit:contain;}
+  .docs-demo-overlay-after{position:absolute;left:0;top:0;width:100%;height:100%;display:block;
+    object-fit:contain;z-index:2;
+    clip-path:inset(0 0 0 100%);-webkit-clip-path:inset(0 0 0 100%);
+    transition:clip-path 1.4s ease,-webkit-clip-path 1.4s ease;}
+  .docs-demo-overlay-after--in{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0);}
+  .docs-demo-overlay-after--alpha{background-color:#ffffff;
+    background-image:
+      linear-gradient(45deg,#d8d8d8 25%,transparent 25%,transparent 75%,#d8d8d8 75%),
+      linear-gradient(45deg,#d8d8d8 25%,transparent 25%,transparent 75%,#d8d8d8 75%);
+    background-size:calc(10 * var(--docs-u)) calc(10 * var(--docs-u));
+    background-position:0 0,calc(5 * var(--docs-u)) calc(5 * var(--docs-u));}
+  .docs-demo-marquee{position:absolute;left:0;top:0;width:0;height:0;display:none;z-index:1;
+    border:1px solid #BC13FE;background:rgba(188,19,254,.18);pointer-events:none;}
+  .docs-demo-marquee--on{display:block;}
+  .docs-demo-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--docs-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--docs-u));}
+  .docs-demo-tool{display:inline-flex;align-items:center;justify-content:center;
+    width:calc(27 * var(--docs-u));height:calc(27 * var(--docs-u));
+    background:#333333;border:1px solid #555555;border-radius:calc(6 * var(--docs-u));
+    transition:background .15s ease,border-color .15s ease;}
+  .docs-demo-tool img{width:calc(12 * var(--docs-u));height:calc(12 * var(--docs-u));
+    display:block;filter:brightness(0) invert(1);}
+  .docs-demo-tool--on{background:#BC13FE;border-color:transparent;}
+  .docs-demo-hint{margin-left:calc(6 * var(--docs-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--docs-u));color:#ffffff;white-space:nowrap;}
+  .docs-demo-hint--off{display:none;}
+  .docs-demo-overlay-btn{position:absolute;right:0;bottom:calc(100% + 12 * var(--docs-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--docs-u));
+    padding:calc(6 * var(--docs-u)) calc(11 * var(--docs-u));
+    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--docs-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--docs-u));color:#f0f0f0;white-space:nowrap;
+    transition:background .15s ease,border-color .15s ease;}
+  .docs-demo-overlay-btn img{width:calc(11 * var(--docs-u));height:calc(11 * var(--docs-u));display:block;
+    filter:brightness(0) invert(1);}
+  .docs-demo-overlay-btn--hover{background:#BC13FE;border-color:transparent;}
+  .docs-demo-overlay-btn--press{background:#8A8A8E;border-color:transparent;}
+  .docs-demo-busy{position:absolute;inset:0;z-index:3;display:none;
+    flex-direction:column;align-items:center;justify-content:center;
+    gap:calc(14 * var(--docs-u));
+    background:rgba(0,0,0,0.45);pointer-events:none;}
+  .docs-demo-busy--on{display:flex;}
+  .docs-demo-busy-ring{width:calc(28 * var(--docs-u));height:calc(28 * var(--docs-u));
+    border:calc(3 * var(--docs-u)) solid rgba(255,255,255,0.2);
+    border-top-color:#BC13FE;border-radius:50%;flex:0 0 auto;
+    animation:heroSpin .8s linear infinite;}
+  .docs-demo-busy-text{font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(14 * var(--docs-u));color:#ffffff;white-space:nowrap;}
+  .docs-demo-overlay-bar{position:absolute;top:calc(100% + 12 * var(--docs-u));
+    left:0;right:0;display:flex;align-items:center;justify-content:space-between;}
+  .docs-demo-overlay-bar-left,
+  .docs-demo-overlay-bar-right{display:inline-flex;align-items:center;
+    gap:calc(8 * var(--docs-u));}
+  .docs-demo-overlay-act{position:static;
+    display:inline-flex;align-items:center;gap:calc(5 * var(--docs-u));
+    padding:calc(6 * var(--docs-u)) calc(11 * var(--docs-u));
+    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--docs-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--docs-u));color:#f0f0f0;white-space:nowrap;
+    opacity:1;transition:opacity .35s ease;}
+  .docs-demo-overlay-act--ghost{background:#333333;border-color:#555555;opacity:.55;}
+  .docs-demo-overlay-act--hover{background:#BC13FE;border-color:transparent;}
+  .docs-demo-overlay-act--press{background:#8A8A8E;border-color:transparent;}
+  .docs-demo-overlay-act img{width:calc(11 * var(--docs-u));
+    height:calc(11 * var(--docs-u));display:block;filter:brightness(0) invert(1);}
+  .docs-demo-overlay-act--late{opacity:0;visibility:hidden;
+    transition:opacity .35s ease,visibility 0s linear .35s;}
+  .docs-demo-overlay-act--late.docs-demo-overlay-act--in{opacity:.55;visibility:visible;
+    transition:opacity .35s ease,visibility 0s;}
+  .docs-demo-slider{position:absolute;inset:0;z-index:3;display:none;
+    overflow:hidden;pointer-events:none;}
+  .docs-demo-slider-handle{position:absolute;top:0;bottom:0;left:0;
+    width:calc(2 * var(--docs-u));background:var(--accent-bright);
+    transform:translateX(-50%);display:flex;pointer-events:none;
+    align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.5);}
+  .docs-demo-slider--wipe{display:block;}
+  .docs-demo-slider--wipe .docs-demo-slider-handle{transition:left 1.4s ease;
+    width:calc(3 * var(--docs-u));background:#BC13FE;
+    box-shadow:0 0 calc(12 * var(--docs-u)) rgba(188,19,254,0.9);
+    will-change:left;}
 
   @media (max-width:820px){
     .nav-links{display:none !important;}
@@ -299,8 +415,24 @@
     <section class="docs-section" id="install">
       <h2>Install in 30 seconds</h2>
       <div class="docs-figure-pair">
-        <img src="/assets/landing/img/install-preview1.jpg" alt="Chrome&rsquo;s extensions menu, pinning Grrab to the toolbar" width="797" height="580">
-        <img src="/assets/landing/img/install-preview2.jpg" alt="The Grrab popup, showing the on/off toggle, Shortcut and Output size" width="797" height="580">
+        <figure class="docs-install-card" aria-label="Chrome&rsquo;s extensions menu, pinning Grrab to the toolbar">
+          <div class="docs-install-shot" style="background-image:url(/assets/landing/img/install-preview1.jpg)">
+            <span class="docs-install-bubble" aria-hidden="true">[TODO] Pin Grrab to the toolbar.</span>
+          </div>
+          <figcaption><strong>[TODO] Pin it.</strong> [TODO] Caption for the extensions-menu screenshot.</figcaption>
+        </figure>
+        <figure class="docs-install-card" aria-label="The Grrab popup, showing the on/off toggle, Shortcut and Output size">
+          <div class="docs-install-shot" style="background-image:url(/assets/landing/img/install-preview2.jpg)">
+            <span class="docs-install-bubble" aria-hidden="true">[TODO] Check that Grrab is on.</span>
+          </div>
+          <figcaption><strong>[TODO] Open the popup.</strong> [TODO] Caption for the popup screenshot.</figcaption>
+        </figure>
+        <figure class="docs-install-card" aria-label="The Grrab side panel, showing Account, Saving and the image library">
+          <div class="docs-install-shot" style="background-image:url(/assets/landing/img/install-preview3.jpg)">
+            <span class="docs-install-bubble" aria-hidden="true">[TODO] Open the side panel.</span>
+          </div>
+          <figcaption><strong>[TODO] Open the side panel.</strong> [TODO] Caption for the side-panel screenshot.</figcaption>
+        </figure>
       </div>
       <ol>
         <li>Add Grrab from the <a href="https://chromewebstore.google.com/detail/grrab/mmnjbmjjkcbcbjkimkndljlpdhcbfcgc">Chrome Web Store</a>.</li>
@@ -317,7 +449,14 @@
     </section>
 
     <section class="docs-section" id="first-copy">
-      <h2>Your first copy</h2>
+      <div class="docs-mode-heading">
+        <h2>Your first copy</h2>
+        <div class="docs-mode-switch" role="tablist" data-mode="instant">
+          <span class="docs-mode-pill"></span>
+          <button type="button" role="tab" aria-selected="true">Instant</button>
+          <button type="button" role="tab" aria-selected="false">Editor</button>
+        </div>
+      </div>
       <p>Move your cursor over any image on any page — a purple glow shows which one the shortcut will act on. Press the shortcut and it's on your clipboard, ready to paste.</p>
       <div class="docs-figure-pair" id="firstCopyDemo">
         <div class="docs-demo-browser">
@@ -344,6 +483,39 @@
                 <div class="docs-demo-tile"><img src="/assets/landing/img/rowB/rowB-image-2-before.webp" alt=""></div>
                 <div class="docs-demo-tile"><img src="/assets/landing/img/rowB/rowB-image-5-before.webp" alt=""></div>
               </div>
+              <div class="docs-demo-overlay" aria-hidden="true">
+                <figure class="docs-demo-overlay-figure">
+                  <img class="docs-demo-overlay-img" src="/assets/landing/img/rowB/rowB-image-1-before.webp" alt="" draggable="false">
+                  <img class="docs-demo-overlay-after docs-demo-overlay-after--alpha" src="/assets/landing/img/rowB/rowB-image-1-after.webp" alt="" draggable="false">
+                  <span class="docs-demo-marquee"></span>
+                  <span class="docs-demo-overlay-tools" aria-hidden="true">
+                    <span class="docs-demo-tool"><img src="/assets/landing/icons/rowB/icon_select_brush.svg" alt=""></span>
+                    <span class="docs-demo-tool docs-demo-tool--on"><img src="/assets/landing/icons/rowB/icon_select_box.svg" alt=""></span>
+                    <span class="docs-demo-hint">Drag to select an area to erase</span>
+                  </span>
+                  <span class="docs-demo-overlay-btn">
+                    <img src="/assets/landing/icons/rowB/icon_removebg.svg" alt="">
+                    <span>Remove BG</span>
+                  </span>
+                  <span class="docs-demo-slider">
+                    <span class="docs-demo-slider-handle"></span>
+                  </span>
+                  <span class="docs-demo-busy" aria-hidden="true">
+                    <span class="docs-demo-busy-ring"></span>
+                    <span class="docs-demo-busy-text">Removing…</span>
+                  </span>
+                  <span class="docs-demo-overlay-bar" aria-hidden="true">
+                    <span class="docs-demo-overlay-bar-left">
+                      <span class="docs-demo-overlay-act docs-demo-overlay-act--ghost docs-demo-overlay-act--late"><img src="/assets/landing/icons/rowB/icon_back.svg" alt="">Back</span>
+                      <span class="docs-demo-overlay-act docs-demo-overlay-act--ghost docs-demo-overlay-act--late"><img src="/assets/landing/icons/rowB/icon_refresh.svg" alt="">Refresh</span>
+                    </span>
+                    <span class="docs-demo-overlay-bar-right">
+                      <span class="docs-demo-overlay-act"><img src="/assets/landing/icons/rowB/icon_upscale.svg" alt="">Upscale</span>
+                      <span class="docs-demo-overlay-act"><img src="/assets/landing/icons/rowB/icon_clip.svg" alt="">Copy</span>
+                    </span>
+                  </span>
+                </figure>
+              </div>
               <span class="docs-demo-toast" aria-hidden="true">
                 <img src="/assets/landing/icons/hero/icon_copy.svg" alt="">
                 <span>Image copied</span>
@@ -357,7 +529,13 @@
           </div>
           <div class="docs-demo-canvas-body">
             <div class="docs-demo-canvas-pan">
-              <img class="docs-demo-paste" src="/assets/landing/img/rowB/rowB-image-1-before.webp" alt="" draggable="false">
+              <img class="docs-demo-paste docs-demo-paste--instant" src="" alt="" draggable="false">
+              <img class="docs-demo-paste docs-demo-paste--instant" src="" alt="" draggable="false">
+              <img class="docs-demo-paste docs-demo-paste--instant" src="" alt="" draggable="false">
+              <img class="docs-demo-paste docs-demo-paste--instant" src="" alt="" draggable="false">
+              <img class="docs-demo-paste docs-demo-paste--instant" src="" alt="" draggable="false">
+              <img class="docs-demo-paste docs-demo-paste--editor" src="/assets/landing/img/rowB/rowB-image-1-after.webp" alt="" draggable="false">
+              <img class="docs-demo-paste docs-demo-paste--editor-2" src="/assets/landing/img/rowB/rowB-image-7-after.webp" alt="" draggable="false">
             </div>
           </div>
         </div>
@@ -505,11 +683,39 @@
   var docsCopyTip = firstCopyDemo.querySelector(".docs-demo-tip--copy");
   var docsPasteTip = firstCopyDemo.querySelector(".docs-demo-tip--paste");
   var docsToast = firstCopyDemo.querySelector(".docs-demo-toast");
-  var docsPaste = firstCopyDemo.querySelector(".docs-demo-paste");
+  var docsPaste = firstCopyDemo.querySelector(".docs-demo-paste--editor");
+  var docsPaste2 = firstCopyDemo.querySelector(".docs-demo-paste--editor-2");
+  var docsInstantPastes = firstCopyDemo.querySelectorAll(".docs-demo-paste--instant");
   var docsCanvas = firstCopyDemo.querySelector(".docs-demo-canvas");
   var docsCanvasPan = firstCopyDemo.querySelector(".docs-demo-canvas-pan");
   var docsGallery = firstCopyDemo.querySelector(".docs-demo-gallery");
   var docsTiles = docsGallery ? docsGallery.querySelectorAll(".docs-demo-tile") : [];
+  var docsOverlay = firstCopyDemo.querySelector(".docs-demo-overlay");
+  var docsOverlayImg = firstCopyDemo.querySelector(".docs-demo-overlay-img");
+  var docsOverlayBtn = firstCopyDemo.querySelector(".docs-demo-overlay-btn");
+  var docsOverlayAfter = firstCopyDemo.querySelector(".docs-demo-overlay-after");
+  var docsMarquee = firstCopyDemo.querySelector(".docs-demo-marquee");
+  var docsHint = firstCopyDemo.querySelector(".docs-demo-hint");
+  var docsBusy = firstCopyDemo.querySelector(".docs-demo-busy");
+  var docsSlider = firstCopyDemo.querySelector(".docs-demo-slider");
+  var docsSliderHandle = firstCopyDemo.querySelector(".docs-demo-slider-handle");
+  var docsLateActs = firstCopyDemo.querySelectorAll(".docs-demo-overlay-act--late");
+  var docsActCopy = firstCopyDemo.querySelector(".docs-demo-overlay-bar-right .docs-demo-overlay-act:last-child");
+  var docsPasteBefore = "/assets/landing/img/rowB/rowB-image-1-before.webp";
+  var docsPasteAfter = "/assets/landing/img/rowB/rowB-image-1-after.webp";
+  var docsEditorStep1 = { img: docsPasteBefore, alpha: true };
+  var docsEditorStep2 = { img: "/assets/landing/img/rowB/rowB-image-7-before.webp", alpha: false };
+  var docsPasteOx1 = -0.10;
+  var docsPasteOy1 = -0.10;
+  var docsPasteOx2 = 0.10;
+  var docsPasteOy2 = 0.10;
+  var docsEraseBox = { l: 0.39, t: 0.38, r: 0.59, b: 0.65 };
+  var docsEraseBeatStart = 9480;
+  var docsInstantRepLen = 3200;
+  var docsToastMs = 1200;
+  var docsInstantPasteMin = 0.06;
+  var docsInstantPasteRetries = 24;
+  var docsInstantPlaced = [];
   var docsDemoTimers = [];
   var docsDemoRaf = 0;
   var docsDemoReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -557,14 +763,116 @@
     docsDemoRaf = requestAnimationFrame(tick);
   };
 
-  var docsPasteAt = function(el){
-    if (!el || !docsCanvas || !docsCanvasPan) return;
+  var docsPastePointIn = function(ox, oy){
+    if (!docsCanvas) return { x: 0, y: 0 };
+    if (ox == null) ox = 0;
+    if (oy == null) oy = 0;
     var p = docsCentreIn(docsCanvas);
+    return { x: p.x + docsCanvas.offsetWidth * ox,
+             y: p.y + docsCanvas.offsetHeight * oy };
+  };
+
+  var docsPasteAt = function(el, ox, oy){
+    if (!el || !docsCanvas || !docsCanvasPan) return;
+    if (ox == null) ox = 0;
+    if (oy == null) oy = 0;
+    var p = docsPastePointIn(ox, oy);
     var o = docsOffsetIn(docsCanvasPan);
     el.classList.add("docs-demo-paste--in");
     void el.offsetWidth;
     el.style.left = (p.x - o.x - el.offsetWidth / 2) + "px";
     el.style.top = (p.y - o.y - el.offsetHeight / 2) + "px";
+  };
+
+  var docsTileImgSrc = function(tile){
+    var img = tile ? tile.querySelector("img") : null;
+    return img ? img.getAttribute("src") : "";
+  };
+
+  var docsPickInstantTiles = function(){
+    var order = [docsTiles[0]];
+    var pool = [];
+    for (var ti = 1; ti < docsTiles.length; ti++) pool.push(docsTiles[ti]);
+    for (var sj = pool.length - 1; sj > 0; sj--) {
+      var sk = Math.floor(Math.random() * (sj + 1));
+      var st = pool[sj]; pool[sj] = pool[sk]; pool[sk] = st;
+    }
+    for (var pi = 0; pi < 4 && pi < pool.length; pi++) order.push(pool[pi]);
+    return order;
+  };
+
+  var docsPickPasteSlot = function(){
+    var ox = 0, oy = 0, attempt, ok, pi;
+    for (attempt = 0; attempt < docsInstantPasteRetries; attempt++) {
+      ox = Math.random() * 0.2 - 0.10;
+      oy = Math.random() * 0.2 - 0.10;
+      ok = true;
+      if (docsCanvas && docsCanvas.offsetWidth) {
+        for (pi = 0; pi < docsInstantPlaced.length; pi++) {
+          var dx = (ox - docsInstantPlaced[pi].ox) * docsCanvas.offsetWidth;
+          var dy = (oy - docsInstantPlaced[pi].oy) * docsCanvas.offsetHeight;
+          if (Math.sqrt(dx * dx + dy * dy) < docsCanvas.offsetWidth * docsInstantPasteMin) {
+            ok = false;
+            break;
+          }
+        }
+      }
+      if (ok) break;
+    }
+    var slot = { ox: ox, oy: oy };
+    docsInstantPlaced.push(slot);
+    return slot;
+  };
+
+  var docsSetAction = function(erasing){
+    if (!docsOverlayBtn) return;
+    var icon = docsOverlayBtn.querySelector("img");
+    var label = docsOverlayBtn.querySelector("span");
+    if (icon) {
+      icon.setAttribute("src", erasing
+        ? "/assets/landing/icons/rowB/icon_erase.svg"
+        : "/assets/landing/icons/rowB/icon_removebg.svg");
+    }
+    if (label) label.textContent = erasing ? "Remove" : "Remove BG";
+    if (docsHint) {
+      if (erasing) docsHint.classList.add("docs-demo-hint--off");
+      else docsHint.classList.remove("docs-demo-hint--off");
+    }
+  };
+
+  var docsBoxPoint = function(fx, fy){
+    if (!docsOverlayImg) return { x: 0, y: 0 };
+    var o = docsOffsetIn(docsOverlayImg);
+    return { x: o.x + docsOverlayImg.offsetWidth * fx,
+             y: o.y + docsOverlayImg.offsetHeight * fy };
+  };
+
+  var docsDragTrack = function(box, durationMs){
+    var started = Date.now();
+    var tick = function(){
+      if (!docsOverlayImg || !docsMarquee || !docsCursor) return;
+      var fr = docsOverlayImg.getBoundingClientRect();
+      var cr = docsCursor.getBoundingClientRect();
+      if (fr.width && fr.height) {
+        var w = Math.max(0, Math.min((cr.left - fr.left) / fr.width, 1) - box.l);
+        var h = Math.max(0, Math.min((cr.top - fr.top) / fr.height, 1) - box.t);
+        docsMarquee.style.width = (w * 100) + "%";
+        docsMarquee.style.height = (h * 100) + "%";
+      }
+      if (Date.now() - started < durationMs) docsDemoRaf = requestAnimationFrame(tick);
+      else docsDemoRaf = 0;
+    };
+    docsDemoRaf = requestAnimationFrame(tick);
+  };
+
+  var docsSetStep = function(step){
+    if (!step || !docsOverlayImg) return;
+    docsOverlayImg.setAttribute("src", step.img);
+    if (docsOverlayAfter) {
+      docsOverlayAfter.setAttribute("src", step.img.replace("-before.webp", "-after.webp"));
+      if (step.alpha) docsOverlayAfter.classList.add("docs-demo-overlay-after--alpha");
+      else docsOverlayAfter.classList.remove("docs-demo-overlay-after--alpha");
+    }
   };
 
   var docsDemoReset = function(){
@@ -580,24 +888,287 @@
     if (docsCopyTip) docsCopyTip.classList.remove("docs-demo-tip--in");
     if (docsPasteTip) docsPasteTip.classList.remove("docs-demo-tip--in");
     if (docsToast) docsToast.classList.remove("docs-demo-toast--in");
-    if (docsPaste) {
-      docsPaste.classList.remove("docs-demo-paste--in");
-      docsPaste.style.left = "";
-      docsPaste.style.top = "";
+    docsInstantPlaced = [];
+    var docsAllPastes = firstCopyDemo.querySelectorAll(".docs-demo-canvas-pan .docs-demo-paste");
+    for (var pri = 0; pri < docsAllPastes.length; pri++) {
+      docsAllPastes[pri].classList.remove("docs-demo-paste--in");
+      docsAllPastes[pri].style.left = "";
+      docsAllPastes[pri].style.top = "";
+    }
+    for (var ii = 0; ii < docsInstantPastes.length; ii++) {
+      docsInstantPastes[ii].setAttribute("src", "");
+    }
+    if (docsPaste) docsPaste.setAttribute("src", docsPasteAfter);
+    if (docsMarquee) {
+      docsMarquee.classList.remove("docs-demo-marquee--on");
+      docsMarquee.style.left = "";
+      docsMarquee.style.top = "";
+      docsMarquee.style.width = "";
+      docsMarquee.style.height = "";
+    }
+    docsSetAction(false);
+    docsSetStep(docsEditorStep1);
+    if (docsOverlay) docsOverlay.classList.remove("docs-demo-overlay--on");
+    if (docsOverlayBtn) {
+      docsOverlayBtn.classList.remove("docs-demo-overlay-btn--hover");
+      docsOverlayBtn.classList.remove("docs-demo-overlay-btn--press");
+    }
+    if (docsBusy) docsBusy.classList.remove("docs-demo-busy--on");
+    if (docsSlider) docsSlider.classList.remove("docs-demo-slider--wipe");
+    if (docsSliderHandle) {
+      docsSliderHandle.style.transition = "none";
+      docsSliderHandle.style.left = "";
+      void docsSliderHandle.offsetWidth;
+      docsSliderHandle.style.transition = "";
+    }
+    if (docsOverlayAfter) {
+      docsOverlayAfter.classList.remove("docs-demo-overlay-after--in");
+      docsOverlayAfter.style.clipPath = "";
+      docsOverlayAfter.style.webkitClipPath = "";
+      docsOverlayAfter.style.transition = "none";
+      void docsOverlayAfter.offsetWidth;
+      docsOverlayAfter.style.transition = "";
+    }
+    for (var li = 0; li < docsLateActs.length; li++) {
+      docsLateActs[li].classList.remove("docs-demo-overlay-act--in");
+    }
+    if (docsActCopy) {
+      docsActCopy.classList.remove("docs-demo-overlay-act--hover");
+      docsActCopy.classList.remove("docs-demo-overlay-act--press");
     }
   };
 
   var docsDemoPlay = function(){
+    if (!docsCursor || !docsCanvas || !docsCanvas.offsetWidth || !docsTiles.length) return;
+    docsDemoClearTimers();
+    docsDemoReset();
+
+    var tileOrder = docsPickInstantTiles();
+    var slots = [];
+    for (var si = 0; si < 5; si++) slots.push(docsPickPasteSlot());
+
+    if (docsDemoReduce && docsDemoReduce.matches) {
+      for (var ri = 0; ri < 5; ri++) {
+        var rtile = tileOrder[ri];
+        var rel = docsInstantPastes[ri];
+        if (rtile && rel) {
+          rel.setAttribute("src", docsTileImgSrc(rtile));
+          docsPasteAt(rel, slots[ri].ox, slots[ri].oy);
+        }
+      }
+      if (tileOrder[0]) tileOrder[0].classList.add("docs-demo-tile--hot");
+      docsCursor.classList.add("docs-demo-cursor--on");
+      var lastSlot = slots[4] || slots[0];
+      docsMoveTo(docsPastePointIn(lastSlot.ox, lastSlot.oy));
+      return;
+    }
+
+    var canvasCentre = docsCentreIn(docsCanvas);
+    docsCursor.classList.add("docs-demo-cursor--on");
+    docsCursor.style.transition = "none";
+    docsMoveTo(canvasCentre);
+    void docsCursor.offsetWidth;
+    docsCursor.style.transition = "";
+
+    for (var rep = 0; rep < 5; rep++) {
+      (function(beat, tile, pasteEl, slot){
+        var t0 = beat * docsInstantRepLen;
+
+        docsDemoAt(t0 + 60, function(){
+          if (!tile || !tile.offsetWidth) return;
+          docsMoveTo(docsPointIn(tile));
+          docsTrack(1000);
+        });
+        docsDemoAt(t0 + 1150, function(){
+          if (docsDemoRaf) { cancelAnimationFrame(docsDemoRaf); docsDemoRaf = 0; }
+          docsHotOnly(tile);
+        });
+        docsDemoAt(t0 + 1450, function(){
+          if (docsCopyTip) docsCopyTip.classList.add("docs-demo-tip--in");
+          if (docsToast) docsToast.classList.add("docs-demo-toast--in");
+        });
+        docsDemoAt(t0 + 1450 + docsToastMs, function(){
+          if (docsToast) docsToast.classList.remove("docs-demo-toast--in");
+        });
+        docsDemoAt(t0 + 1790, function(){
+          if (docsCopyTip) docsCopyTip.classList.remove("docs-demo-tip--in");
+          docsMoveTo(docsPastePointIn(slot.ox, slot.oy));
+          docsTrack(1000);
+        });
+        docsDemoAt(t0 + 2790, function(){
+          if (docsPasteTip) docsPasteTip.classList.add("docs-demo-tip--in");
+          if (pasteEl) {
+            pasteEl.setAttribute("src", docsTileImgSrc(tile));
+            docsPasteAt(pasteEl, slot.ox, slot.oy);
+          }
+        });
+        docsDemoAt(t0 + 3130, function(){
+          if (docsPasteTip) docsPasteTip.classList.remove("docs-demo-tip--in");
+        });
+      })(rep, tileOrder[rep], docsInstantPastes[rep], slots[rep]);
+    }
+  };
+
+  var docsEditorReveal = function(){
+    if (docsBusy) docsBusy.classList.remove("docs-demo-busy--on");
+    if (docsOverlayBtn) docsOverlayBtn.classList.remove("docs-demo-overlay-btn--press");
+    if (docsSlider) docsSlider.classList.add("docs-demo-slider--wipe");
+    if (docsSliderHandle) {
+      docsSliderHandle.style.transition = "none";
+      docsSliderHandle.style.left = "100%";
+      void docsSliderHandle.offsetWidth;
+      docsSliderHandle.style.transition = "";
+      docsSliderHandle.style.left = "0%";
+    }
+    if (docsOverlayAfter) docsOverlayAfter.classList.add("docs-demo-overlay-after--in");
+  };
+
+  var docsEditorResetOverlay = function(){
+    if (docsSlider) docsSlider.classList.remove("docs-demo-slider--wipe");
+    if (docsSliderHandle) {
+      docsSliderHandle.style.transition = "none";
+      docsSliderHandle.style.left = "";
+      void docsSliderHandle.offsetWidth;
+      docsSliderHandle.style.transition = "";
+    }
+    if (docsOverlayAfter) {
+      docsOverlayAfter.classList.remove("docs-demo-overlay-after--in");
+      docsOverlayAfter.style.clipPath = "";
+      docsOverlayAfter.style.webkitClipPath = "";
+      docsOverlayAfter.style.transition = "none";
+      void docsOverlayAfter.offsetWidth;
+      docsOverlayAfter.style.transition = "";
+    }
+    if (docsOverlayBtn) {
+      docsOverlayBtn.classList.remove("docs-demo-overlay-btn--hover");
+      docsOverlayBtn.classList.remove("docs-demo-overlay-btn--press");
+    }
+    if (docsBusy) docsBusy.classList.remove("docs-demo-busy--on");
+    if (docsMarquee) {
+      docsMarquee.classList.remove("docs-demo-marquee--on");
+      docsMarquee.style.left = "";
+      docsMarquee.style.top = "";
+      docsMarquee.style.width = "";
+      docsMarquee.style.height = "";
+    }
+    for (var la = 0; la < docsLateActs.length; la++) {
+      docsLateActs[la].classList.remove("docs-demo-overlay-act--in");
+    }
+    if (docsActCopy) {
+      docsActCopy.classList.remove("docs-demo-overlay-act--hover");
+      docsActCopy.classList.remove("docs-demo-overlay-act--press");
+    }
+  };
+
+  var docsEditorPlayErase = function(){
+    var tile = docsTiles[4];
+    if (!tile) return;
+    var t0 = docsEraseBeatStart;
+    var box = docsEraseBox;
+
+    docsDemoAt(t0 + 60, function(){
+      if (!tile.offsetWidth) return;
+      docsMoveTo(docsPointIn(tile));
+      docsTrack(1000);
+    });
+    docsDemoAt(t0 + 1150, function(){
+      if (docsDemoRaf) { cancelAnimationFrame(docsDemoRaf); docsDemoRaf = 0; }
+      docsHotOnly(tile);
+    });
+    docsDemoAt(t0 + 1450, function(){
+      if (docsCopyTip) docsCopyTip.classList.add("docs-demo-tip--in");
+    });
+    docsDemoAt(t0 + 1790, function(){
+      if (docsCopyTip) docsCopyTip.classList.remove("docs-demo-tip--in");
+    });
+    docsDemoAt(t0 + 2090, function(){
+      docsEditorResetOverlay();
+      docsSetStep(docsEditorStep2);
+      docsSetAction(false);
+      if (docsOverlay) docsOverlay.classList.add("docs-demo-overlay--on");
+    });
+    docsDemoAt(t0 + 2370, function(){
+      docsMoveTo(docsBoxPoint(box.l, box.t));
+    });
+    docsDemoAt(t0 + 3370, function(){
+      if (!docsMarquee) return;
+      docsMarquee.style.left = (box.l * 100) + "%";
+      docsMarquee.style.top = (box.t * 100) + "%";
+      docsMarquee.style.width = "0%";
+      docsMarquee.style.height = "0%";
+      docsMarquee.classList.add("docs-demo-marquee--on");
+      docsMoveTo(docsBoxPoint(box.r, box.b));
+      docsDragTrack(box, 820);
+    });
+    docsDemoAt(t0 + 4270, function(){
+      if (docsDemoRaf) { cancelAnimationFrame(docsDemoRaf); docsDemoRaf = 0; }
+      docsSetAction(true);
+      if (docsMarquee) {
+        docsMarquee.style.width = ((box.r - box.l) * 100) + "%";
+        docsMarquee.style.height = ((box.b - box.t) * 100) + "%";
+      }
+    });
+    docsDemoAt(t0 + 4470, function(){
+      if (!docsOverlayBtn) return;
+      docsMoveTo(docsPointIn(docsOverlayBtn));
+    });
+    docsDemoAt(t0 + 5470, function(){
+      if (docsOverlayBtn) docsOverlayBtn.classList.add("docs-demo-overlay-btn--hover");
+    });
+    docsDemoAt(t0 + 5870, function(){
+      if (docsOverlayBtn) docsOverlayBtn.classList.add("docs-demo-overlay-btn--press");
+      if (docsBusy) docsBusy.classList.add("docs-demo-busy--on");
+    });
+    docsDemoAt(t0 + 6870, docsEditorReveal);
+    docsDemoAt(t0 + 8270, function(){
+      for (var la = 0; la < docsLateActs.length; la++) {
+        docsLateActs[la].classList.add("docs-demo-overlay-act--in");
+      }
+      if (docsActCopy) docsMoveTo(docsPointIn(docsActCopy));
+    });
+    docsDemoAt(t0 + 9270, function(){
+      if (docsActCopy) docsActCopy.classList.add("docs-demo-overlay-act--hover");
+    });
+    docsDemoAt(t0 + 9670, function(){
+      if (docsActCopy) docsActCopy.classList.add("docs-demo-overlay-act--press");
+    });
+    docsDemoAt(t0 + 9870, function(){
+      if (docsActCopy) {
+        docsActCopy.classList.remove("docs-demo-overlay-act--press");
+        docsActCopy.classList.remove("docs-demo-overlay-act--hover");
+      }
+      if (docsOverlay) docsOverlay.classList.remove("docs-demo-overlay--on");
+      docsHotOnly(null);
+      if (docsToast) docsToast.classList.add("docs-demo-toast--in");
+      docsMoveTo(docsPastePointIn(docsPasteOx2, docsPasteOy2));
+    });
+    docsDemoAt(t0 + 9870 + docsToastMs, function(){
+      if (docsToast) docsToast.classList.remove("docs-demo-toast--in");
+    });
+    docsDemoAt(t0 + 10870, function(){
+      if (docsPasteTip) docsPasteTip.classList.add("docs-demo-tip--in");
+      if (docsPaste2) docsPasteAt(docsPaste2, docsPasteOx2, docsPasteOy2);
+    });
+    docsDemoAt(t0 + 11210, function(){
+      if (docsPasteTip) docsPasteTip.classList.remove("docs-demo-tip--in");
+    });
+  };
+
+  var docsEditorPlay = function(){
     var tile = docsTiles[0];
-    if (!tile || !docsCursor || !docsCanvas || !docsCanvas.offsetWidth) return;
+    if (!tile || !docsCursor || !docsCanvas || !docsCanvas.offsetWidth || !docsOverlay) return;
     docsDemoClearTimers();
     docsDemoReset();
 
     if (docsDemoReduce && docsDemoReduce.matches) {
       tile.classList.add("docs-demo-tile--hot");
       docsCursor.classList.add("docs-demo-cursor--on");
-      docsMoveTo(docsCentreIn(docsCanvas));
-      docsPasteAt(docsPaste);
+      if (docsPaste) {
+        docsPaste.setAttribute("src", docsPasteAfter);
+        docsPasteAt(docsPaste, docsPasteOx1, docsPasteOy1);
+      }
+      if (docsPaste2) docsPasteAt(docsPaste2, docsPasteOx2, docsPasteOy2);
+      docsMoveTo(docsPastePointIn(docsPasteOx2, docsPasteOy2));
       return;
     }
 
@@ -619,33 +1190,99 @@
     });
     docsDemoAt(1450, function(){
       if (docsCopyTip) docsCopyTip.classList.add("docs-demo-tip--in");
-      if (docsToast) docsToast.classList.add("docs-demo-toast--in");
     });
     docsDemoAt(1790, function(){
       if (docsCopyTip) docsCopyTip.classList.remove("docs-demo-tip--in");
-      docsMoveTo(canvasCentre);
-      docsTrack(1000);
     });
-    docsDemoAt(2790, function(){
-      if (docsDemoRaf) { cancelAnimationFrame(docsDemoRaf); docsDemoRaf = 0; }
-      if (docsPasteTip) docsPasteTip.classList.add("docs-demo-tip--in");
-      docsPasteAt(docsPaste);
+    docsDemoAt(2090, function(){
+      if (docsOverlay) docsOverlay.classList.add("docs-demo-overlay--on");
     });
-    docsDemoAt(3130, function(){
-      if (docsPasteTip) docsPasteTip.classList.remove("docs-demo-tip--in");
+    docsDemoAt(2370, function(){
+      if (!docsOverlayBtn) return;
+      docsMoveTo(docsPointIn(docsOverlayBtn));
     });
-    docsDemoAt(3200, function(){
+    docsDemoAt(3370, function(){
+      if (docsOverlayBtn) docsOverlayBtn.classList.add("docs-demo-overlay-btn--hover");
+    });
+    docsDemoAt(3770, function(){
+      if (docsOverlayBtn) docsOverlayBtn.classList.add("docs-demo-overlay-btn--press");
+      if (docsBusy) docsBusy.classList.add("docs-demo-busy--on");
+    });
+    docsDemoAt(4770, docsEditorReveal);
+    docsDemoAt(6170, function(){
+      for (var la = 0; la < docsLateActs.length; la++) {
+        docsLateActs[la].classList.add("docs-demo-overlay-act--in");
+      }
+      if (docsActCopy) docsMoveTo(docsPointIn(docsActCopy));
+    });
+    docsDemoAt(7170, function(){
+      if (docsActCopy) docsActCopy.classList.add("docs-demo-overlay-act--hover");
+    });
+    docsDemoAt(7570, function(){
+      if (docsActCopy) docsActCopy.classList.add("docs-demo-overlay-act--press");
+    });
+    docsDemoAt(7770, function(){
+      if (docsActCopy) {
+        docsActCopy.classList.remove("docs-demo-overlay-act--press");
+        docsActCopy.classList.remove("docs-demo-overlay-act--hover");
+      }
+      if (docsOverlay) docsOverlay.classList.remove("docs-demo-overlay--on");
+      docsHotOnly(null);
+      if (docsToast) docsToast.classList.add("docs-demo-toast--in");
+      docsMoveTo(docsPastePointIn(docsPasteOx1, docsPasteOy1));
+    });
+    docsDemoAt(7770 + docsToastMs, function(){
       if (docsToast) docsToast.classList.remove("docs-demo-toast--in");
     });
+    docsDemoAt(8770, function(){
+      if (docsPasteTip) docsPasteTip.classList.add("docs-demo-tip--in");
+      if (docsPaste) docsPaste.setAttribute("src", docsPasteAfter);
+      docsPasteAt(docsPaste, docsPasteOx1, docsPasteOy1);
+    });
+    docsDemoAt(9110, function(){
+      if (docsPasteTip) docsPasteTip.classList.remove("docs-demo-tip--in");
+    });
+    docsEditorPlayErase();
+  };
+
+  var docsDemoOnScreen = false;
+
+  var docsPlayCurrent = function(){
+    var sw = document.querySelector("#first-copy .docs-mode-switch");
+    if (sw && sw.getAttribute("data-mode") === "editor") docsEditorPlay();
+    else docsDemoPlay();
   };
 
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(function(entries){
       for (var i = 0; i < entries.length; i++){
-        if (entries[i].isIntersecting) docsDemoPlay();
-        else { docsDemoClearTimers(); docsDemoReset(); }
+        if (entries[i].isIntersecting) {
+          docsDemoOnScreen = true;
+          docsPlayCurrent();
+        } else {
+          docsDemoOnScreen = false;
+          docsDemoClearTimers();
+          docsDemoReset();
+        }
       }
     }, { threshold: 0.6 }).observe(firstCopyDemo);
+  }
+
+  var modeSwitch = document.querySelector("#first-copy .docs-mode-switch");
+  if (modeSwitch) {
+    var modeTabs = modeSwitch.querySelectorAll('[role="tab"]');
+    modeSwitch.addEventListener("click", function(e){
+      var btn = e.target.closest('[role="tab"]');
+      if (!btn || !modeSwitch.contains(btn)) return;
+      var isEditor = modeTabs[1] === btn;
+      docsDemoClearTimers();
+      docsDemoReset();
+      modeSwitch.setAttribute("data-mode", isEditor ? "editor" : "instant");
+      for (var mi = 0; mi < modeTabs.length; mi++) {
+        modeTabs[mi].setAttribute("aria-selected", modeTabs[mi] === btn ? "true" : "false");
+      }
+      if (docsDemoOnScreen) docsPlayCurrent();
+    });
   }
 })();
 </script>
