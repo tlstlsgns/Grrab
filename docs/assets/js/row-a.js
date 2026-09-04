@@ -7,12 +7,11 @@
   var rowACursor = rowA.querySelector(".rowA-cursor");
   var rowACopyTip = rowA.querySelector(".rowA-tip--copy");
   var rowAPasteTip = rowA.querySelector(".rowA-tip--paste");
-  var rowAToast = rowA.querySelector(".rowA-toast");
+  var rowAToast = null;
   var rowAPastes = rowA.querySelectorAll(".rowA-paste");
   var rowACanvas = rowA.querySelector(".rowA-canvas");
   var rowACanvasPan = rowA.querySelector(".rowA-canvas-pan");
-  var rowAGallery = rowA.querySelector(".rowA-gallery");
-  var rowATiles = rowAGallery ? rowAGallery.querySelectorAll(".rowA-tile") : [];
+  var rowATiles = [];
 
   var rowARepLen = 3200;
   var rowAToastMs = 1200;
@@ -42,14 +41,27 @@
     var o = rowAOffsetIn(el);
     return { x: o.x + el.offsetWidth / 2, y: o.y + el.offsetHeight / 2 };
   };
+  var rowABrowserStartIn = function(){
+    var body = rowA.querySelector(".hero-body");
+    if (!body) return { x: 0, y: 0 };
+    var b = rowAOffsetIn(body);
+    return { x: b.x + body.offsetWidth * 0.86, y: b.y + body.offsetHeight * 0.92 };
+  };
   var rowAMoveTo = function(p){
     if (rowACursor) rowACursor.style.transform = "translate(" + p.x + "px," + p.y + "px)";
   };
 
+  var rowARefreshTiles = function(){
+    var gallery = rowA.querySelector(".hero-gallery");
+    rowATiles = gallery ? [].slice.call(gallery.querySelectorAll(".hero-tile")) : [];
+    rowAToast = rowA.querySelector(".hero-toast");
+    return rowATiles;
+  };
+
   var rowAHotOnly = function(tile){
     for (var i = 0; i < rowATiles.length; i++){
-      if (rowATiles[i] === tile) rowATiles[i].classList.add("rowA-tile--hot");
-      else rowATiles[i].classList.remove("rowA-tile--hot");
+      if (rowATiles[i] === tile) rowATiles[i].classList.add("hero-tile--hot");
+      else rowATiles[i].classList.remove("hero-tile--hot");
     }
   };
 
@@ -59,7 +71,7 @@
       if (!rowACursor) return;
       var r = rowACursor.getBoundingClientRect();
       var under = document.elementFromPoint(r.left, r.top);
-      rowAHotOnly(under && under.closest ? under.closest(".rowA-tile") : null);
+      rowAHotOnly(under && under.closest ? under.closest(".hero-tile") : null);
       if (Date.now() - started < durationMs) rowARaf = requestAnimationFrame(tick);
       else rowARaf = 0;
     };
@@ -92,15 +104,41 @@
     return img ? img.getAttribute("src") : "";
   };
 
+  var rowAVisibleTiles = function(){
+    var body = rowA.querySelector(".hero-body");
+    if (!body || !rowATiles.length) return [];
+    var br = body.getBoundingClientRect();
+    var visible = [];
+    for (var vi = 0; vi < rowATiles.length; vi++) {
+      var tr = rowATiles[vi].getBoundingClientRect();
+      if (tr.top >= br.top && tr.left >= br.left &&
+          tr.right <= br.right && tr.bottom <= br.bottom) {
+        visible.push(rowATiles[vi]);
+      }
+    }
+    return visible;
+  };
+
   var rowAPickTiles = function(){
-    var order = [rowATiles[0]];
+    var visible = rowAVisibleTiles();
+    if (!visible.length) return [];
+    var lead = rowATiles[0];
+    var leadOk = false;
+    for (var li = 0; li < visible.length; li++) {
+      if (visible[li] === lead) { leadOk = true; break; }
+    }
+    if (!leadOk) lead = visible[0];
+    var order = [lead];
     var pool = [];
-    for (var ti = 1; ti < rowATiles.length; ti++) pool.push(rowATiles[ti]);
+    for (var ti = 0; ti < visible.length; ti++) {
+      if (visible[ti] !== lead) pool.push(visible[ti]);
+    }
     for (var sj = pool.length - 1; sj > 0; sj--) {
       var sk = Math.floor(Math.random() * (sj + 1));
       var st = pool[sj]; pool[sj] = pool[sk]; pool[sk] = st;
     }
     for (var pi = 0; pi < 4 && pi < pool.length; pi++) order.push(pool[pi]);
+    while (order.length < 5) order.push(visible[order.length % visible.length]);
     return order;
   };
 
@@ -128,6 +166,7 @@
   };
 
   var rowAReset = function(){
+    rowARefreshTiles();
     if (rowARaf) { cancelAnimationFrame(rowARaf); rowARaf = 0; }
     rowAHotOnly(null);
     if (rowACursor) {
@@ -139,7 +178,7 @@
     }
     if (rowACopyTip) rowACopyTip.classList.remove("rowA-tip--in");
     if (rowAPasteTip) rowAPasteTip.classList.remove("rowA-tip--in");
-    if (rowAToast) rowAToast.classList.remove("rowA-toast--in");
+    if (rowAToast) rowAToast.classList.remove("hero-toast--in");
     rowAPlaced = [];
     for (var pri = 0; pri < rowAPastes.length; pri++) {
       rowAPastes[pri].classList.remove("rowA-paste--in");
@@ -150,11 +189,13 @@
   };
 
   var rowAPlay = function(){
+    rowARefreshTiles();
     if (!rowACursor || !rowACanvas || !rowACanvas.offsetWidth || !rowATiles.length) return;
     rowAClearTimers();
     rowAReset();
 
     var tileOrder = rowAPickTiles();
+    if (!tileOrder.length) return;
     var slots = [];
     for (var si = 0; si < 5; si++) slots.push(rowAPickSlot());
 
@@ -167,17 +208,17 @@
           rowAPasteAt(rel, slots[ri].ox, slots[ri].oy);
         }
       }
-      if (tileOrder[0]) tileOrder[0].classList.add("rowA-tile--hot");
+      if (tileOrder[0]) tileOrder[0].classList.add("hero-tile--hot");
       rowACursor.classList.add("rowA-cursor--on");
       var lastSlot = slots[4] || slots[0];
       rowAMoveTo(rowAPastePointIn(lastSlot.ox, lastSlot.oy));
       return;
     }
 
-    var canvasCentre = rowACentreIn(rowACanvas);
+    var browserStart = rowABrowserStartIn();
     rowACursor.classList.add("rowA-cursor--on");
     rowACursor.style.transition = "none";
-    rowAMoveTo(canvasCentre);
+    rowAMoveTo(browserStart);
     void rowACursor.offsetWidth;
     rowACursor.style.transition = "";
 
@@ -196,10 +237,10 @@
         });
         rowAAt(t0 + 1450, function(){
           if (rowACopyTip) rowACopyTip.classList.add("rowA-tip--in");
-          if (rowAToast) rowAToast.classList.add("rowA-toast--in");
+          if (rowAToast) rowAToast.classList.add("hero-toast--in");
         });
         rowAAt(t0 + 1450 + rowAToastMs, function(){
-          if (rowAToast) rowAToast.classList.remove("rowA-toast--in");
+          if (rowAToast) rowAToast.classList.remove("hero-toast--in");
         });
         rowAAt(t0 + 1790, function(){
           if (rowACopyTip) rowACopyTip.classList.remove("rowA-tip--in");
@@ -223,8 +264,14 @@
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(function(entries){
       for (var i = 0; i < entries.length; i++){
-        if (entries[i].isIntersecting) rowAPlay();
-        else { rowAClearTimers(); rowAReset(); }
+        if (entries[i].isIntersecting) {
+          if (window.grrabBrowser) window.grrabBrowser.moveToRowA(rowAPlay);
+          else rowAPlay();
+        } else {
+          rowAClearTimers();
+          rowAReset();
+          if (window.grrabBrowser) window.grrabBrowser.moveToHero();
+        }
       }
     }, { threshold: 0.6 }).observe(rowA);
   }

@@ -23,23 +23,6 @@
     }
   } catch (e) {}
 
-  /* ──────────────────── HERO — ZOOM-OUT TRIGGER ──────────────────── */
-  var heroStage = document.querySelector(".hero-stage");
-
-  if (heroStage) {
-    /* The two zoom animations are declared paused so the very first painted frame is
-       already the zoomed-in one. Adding the class is what starts them, which is how a
-       sequence will later hand off to the pull-back instead of a fixed delay. */
-    var heroZoomOut = function(){ heroStage.classList.add("hero-stage--zoomout"); };
-    var heroReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    /* The sequence calls heroZoomOut when the Clip button is pressed. This timer is
-       only a backstop for the case where the sequence never runs; adding the class
-       twice is harmless. */
-    if (heroReduce && heroReduce.matches) heroZoomOut();
-    else setTimeout(heroZoomOut, 10500);
-  }
-
   /* ──────────────────── HERO — EDIT-MODE SEQUENCE ──────────────────── */
   var heroCamera = document.querySelector(".hero-camera");
   var heroBody = document.querySelector(".hero-body");
@@ -76,14 +59,13 @@
     var heroTimers = [];
     var heroLateTimer = 0;
     var heroRaf = 0;
+    var heroReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
     var heroAt = function(ms, fn){ heroTimers.push(setTimeout(fn, ms)); };
 
     /* Positions come from offsetLeft/offsetTop, walking up to .hero-camera, rather
-       than from getBoundingClientRect. The camera scales this whole subtree, so a
-       screen rect would be 1.7x the value the cursor's own transform needs; offsets
-       are layout pixels and stay correct at any zoom. The walk ends at the camera
-       rather than the window because the cursor now lives there and has to be able
-       to travel between the two windows. */
+       than from getBoundingClientRect. The walk ends at the camera rather than the
+       window because the cursor lives there and has to be able to travel between the
+       two windows. */
     var heroOffsetIn = function(el){
       var x = 0, y = 0, n = el;
       while (n && n !== heroCamera) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
@@ -242,9 +224,8 @@
     var heroClipPress = function(){
       if (heroActClip) heroActClip.classList.add("hero-overlay-act--press");
     };
-    /* One moment does four things: the editor closes, the toast appears, the camera
-       starts pulling back, and the cursor leaves for the canvas. They are deliberately
-       on the same tick so the pull-back reads as a consequence of the click. */
+    /* One moment does three things: the editor closes, the toast appears, and the
+       cursor leaves for the canvas. They are deliberately on the same tick. */
     var heroClipDone = function(){
       if (heroActClip) {
         heroActClip.classList.remove("hero-overlay-act--press");
@@ -255,11 +236,7 @@
          a tile, so nothing should still be lit. */
       heroHotOnly(null);
       if (heroToast) heroToast.classList.add("hero-toast--in");
-      heroZoomOut();
-      if (heroCanvas) {
-        heroCursor.classList.add("hero-cursor--slow");
-        heroMoveTo(heroCentreIn(heroCanvas));
-      }
+      if (heroCanvas) heroMoveTo(heroCentreIn(heroCanvas));
     };
     var heroToastOut = function(){
       if (heroToast) heroToast.classList.remove("hero-toast--in");
@@ -288,8 +265,7 @@
       if (heroTipV) heroTipV.classList.add("hero-tip--in");
       heroPasteAt(heroPaste2, heroSteps[1].ratio);
     };
-    /* Clip's second press has no camera move: the scene is already at rest, so this
-       does only what the editor's closing needs. */
+    /* Clip's second press does only what the editor's closing needs. */
     var heroClipDone2 = function(){
       if (heroActClip) {
         heroActClip.classList.remove("hero-overlay-act--press");
@@ -316,8 +292,6 @@
     var heroTipVOut = function(){
       if (heroTipV) heroTipV.classList.remove("hero-tip--in");
     };
-    /* --slow was for the long drift to the canvas; this hop is short and wants the
-       cursor's normal .75s back. */
     /* A real scroll is impossible here: .hero-body is the flex row holding the sidebar
        as well, so scrolling it would carry the sidebar up too. The gallery is moved by
        transform instead and .hero-body's overflow:hidden does the clipping. */
@@ -344,15 +318,25 @@
                    y: o.y + heroPanY + el.offsetTop + el.offsetHeight });
     };
 
+    var heroClearTimers = function(){
+      for (var ht = 0; ht < heroTimers.length; ht++) clearTimeout(heroTimers[ht]);
+      heroTimers.length = 0;
+      heroLateTimer = 0;
+    };
+
+    var heroStop = function(){
+      heroClearTimers();
+      if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
+      window.heroReset();
+    };
+
     var heroPlay = function(){
       var tile = heroTiles[0];
       if (!tile || !heroBody.offsetWidth) return;
       /* Every cycle queues about thirty timers. Cancelling and emptying the list here
          keeps that from growing without bound, and means a stray call cannot leave two
          sequences running against each other. */
-      for (var ht = 0; ht < heroTimers.length; ht++) clearTimeout(heroTimers[ht]);
-      heroTimers.length = 0;
-      heroLateTimer = 0;
+      heroClearTimers();
       if (heroLateActs) {
         heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
       }
@@ -389,42 +373,35 @@
       heroAt(6400, heroClipHover);
       heroAt(6800, heroClipPress);
       heroAt(7000, heroClipDone);
-      heroAt(8750, heroToastOut);
-      heroAt(8450, heroPasteIn);
-      heroAt(8790, heroTipVOut);
+      heroAt(8100, heroToastOut);
+      heroAt(7750, heroPasteIn);
+      heroAt(8140, heroTipVOut);
       /* One tracking run covers the whole return leg: crossing back in, the scroll, and
          the final approach. During the scroll the cursor is still and the tiles slide
-         under it, which elementFromPoint picks up frame by frame. 2790 runs to 14190,
+         under it, which elementFromPoint picks up frame by frame. 2650 runs to 10790,
          where the glow is locked. */
-      heroAt(8790, function(){
-        /* --slow belonged to the drift out to the canvas. It used to come off in
-           heroCursorAside; with that step gone this is the first move that needs the
-           cursor's normal .75s back.
-           This fires the moment the tooltip clears, so the cursor leaves as soon as the
-           paste has landed. 2650 is 12690 minus 10040 — the tracking has to reach the
-           step that locks the glow, so it moves whenever this does. */
-        heroCursor.classList.remove("hero-cursor--slow");
+      heroAt(8140, function(){
         heroMoveTo(heroCentreIn(heroBody));
         heroTrack(2650);
       });
-      heroAt(9750, heroScrollDown);
-      heroAt(10650, heroHoverLate);
-      heroAt(11440, function(){
+      heroAt(9100, heroScrollDown);
+      heroAt(10000, heroHoverLate);
+      heroAt(10790, function(){
         if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
         heroHotOnly(heroTiles[heroTiles.length - 5]);
       });
 
       /* ── second pass: erase, on the tile the cursor just settled on ── */
       var box = { l:0.39, t:0.38, r:0.59, b:0.65 };
-      heroAt(11850, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
-      heroAt(12190, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
-      heroAt(12490, function(){
+      heroAt(11200, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
+      heroAt(11540, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
+      heroAt(11840, function(){
         heroSetStep(heroSteps[1]);
         heroResetOverlay();
         heroOverlay.classList.add("hero-overlay--on");
       });
-      heroAt(12770, function(){ heroMoveTo(heroBoxPoint(box.l, box.t)); });
-      heroAt(13520, function(){
+      heroAt(12120, function(){ heroMoveTo(heroBoxPoint(box.l, box.t)); });
+      heroAt(12870, function(){
         if (!heroMarquee) return;
         heroMarquee.style.left = (box.l * 100) + "%";
         heroMarquee.style.top = (box.t * 100) + "%";
@@ -434,64 +411,54 @@
         heroMoveTo(heroBoxPoint(box.r, box.b));
         heroDragTrack(box, 820);
       });
-      heroAt(14340, function(){
+      heroAt(13690, function(){
         if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
         heroSetAction(true);
         if (!heroMarquee) return;
         heroMarquee.style.width = ((box.r - box.l) * 100) + "%";
         heroMarquee.style.height = ((box.b - box.t) * 100) + "%";
       });
-      heroAt(14540, function(){
+      heroAt(13900, function(){
         if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
       });
-      heroAt(15290, heroHover);
-      heroAt(15690, heroPress);
-      heroAt(16690, heroReveal);
+      heroAt(14640, heroHover);
+      heroAt(15040, heroPress);
+      heroAt(16040, heroReveal);
 
-      /* ── second clip: no camera move this time, a canvas pan instead ── */
-      heroAt(18090, function(){
+      /* ── second clip: canvas pan instead ── */
+      heroAt(17440, function(){
         if (heroActClip) heroMoveTo(heroCentreIn(heroActClip));
       });
-      heroAt(18840, heroClipHover);
-      heroAt(19240, heroClipPress);
-      heroAt(19440, heroClipDone2);
-      heroAt(19890, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
-      heroAt(21190, heroToastOut);
-      heroAt(20790, heroPanLeft);
-      /* 23250 is exactly when the pan's .75s transition ends, so the cursor sets off
+      heroAt(18190, heroClipHover);
+      heroAt(18590, heroClipPress);
+      heroAt(18790, heroClipDone2);
+      heroAt(19240, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
+      heroAt(20540, heroToastOut);
+      heroAt(20140, heroPanLeft);
+      /* 20890 is exactly when the pan's .75s transition ends, so the cursor sets off
          the instant the canvas stops rather than after a beat. */
-      heroAt(21540, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
-      heroAt(22340, heroPasteIn2);
-      heroAt(22680, heroTipVOut);
-      heroAt(22840, function(){ heroCursorAsideOf(heroPaste2); });
+      heroAt(20890, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
+      heroAt(21690, heroPasteIn2);
+      heroAt(22030, heroTipVOut);
+      heroAt(22190, function(){ heroCursorAsideOf(heroPaste2); });
 
       /* ── the return ── */
-      /* Nothing fades and nothing is moved out of the way. The zoom-in carries the camera
-         back to the browser window, which takes the canvas and the cursor off-screen on
-         its own; by the time the reset clears them they have been out of sight for over a
-         second. The gallery scrolls back at the same time because it is inside the window
-         the camera is closing in on, so it would be seen if left. */
-      heroAt(23790, function(){
-        if (heroStage) {
-          heroStage.classList.remove("hero-stage--zoomout");
-          heroStage.classList.add("hero-stage--zoomin");
-        }
+      heroAt(23140, function(){
         if (heroGallery) {
           heroScrollY = 0;
           heroGallery.style.transform = "translateY(0)";
         }
       });
-      heroAt(25290, function(){ window.heroReset(); });
+      heroAt(23240, function(){ window.heroReset(); });
       /* 100ms after the reset rather than in the same tick: the reset suppresses several
          transitions with a forced reflow, and starting the next cycle inside that same
          frame can show as a flicker. */
-      heroAt(25390, function(){ heroPlay(); });
+      heroAt(23340, function(){ heroPlay(); });
     };
 
     /* Puts everything back to the opening state. Defined here and hung on window so it
        can be called from the console before anything depends on it; the loop wires it up
-       in a later round. The camera is deliberately NOT reset — removing the zoom class
-       would snap it rather than animate, and the zoom-in is its own step. */
+       in a later round. */
     window.heroReset = function(){
       if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
 
@@ -522,7 +489,6 @@
 
       /* the cursor */
       heroCursor.classList.remove("hero-cursor--on");
-      heroCursor.classList.remove("hero-cursor--slow");
       heroCursor.classList.remove("hero-cursor--out");
       heroCursor.style.transition = "none";
       heroCursor.style.transform = "";
@@ -552,11 +518,138 @@
       /* the toast and the tile glow */
       if (heroToast) heroToast.classList.remove("hero-toast--in");
       heroHotOnly(null);
-      /* The zoom-in class is removed but zoom-out is NOT re-added: the stage should be
-         left in its opening, zoomed-in state, which is what no class at all means once
-         the paused zoom-out animation is gone. */
-      if (heroStage) heroStage.classList.remove("hero-stage--zoomin");
     };
+
+    var heroLeft = document.querySelector(".hero-left");
+    var heroMockup = document.querySelector(".hero-mockup-wrap");
+    var rowABrowser = document.querySelector(".rowA-browser");
+    var browserAt = "hero";
+    var browserPlaceholder = null;
+
+    var ensureBrowserPlaceholder = function(){
+      if (browserPlaceholder) return browserPlaceholder;
+      browserPlaceholder = document.createElement("div");
+      browserPlaceholder.className = "hero-browser-placeholder";
+      browserPlaceholder.setAttribute("aria-hidden", "true");
+      browserPlaceholder.style.width = "100%";
+      browserPlaceholder.style.aspectRatio = "593 / 434";
+      return browserPlaceholder;
+    };
+
+    var browserFlying = false;
+    var browserFlightRaf = 0;
+    var browserFlightMs = 400;
+
+    var clearMockupFlightStyles = function(){
+      heroMockup.style.position = "";
+      heroMockup.style.left = "";
+      heroMockup.style.top = "";
+      heroMockup.style.width = "";
+      heroMockup.style.height = "";
+      heroMockup.style.margin = "";
+      heroMockup.style.zIndex = "";
+      heroMockup.style.boxSizing = "";
+    };
+
+    var setMockupFixedRect = function(rect){
+      heroMockup.style.position = "fixed";
+      heroMockup.style.left = rect.left + "px";
+      heroMockup.style.top = rect.top + "px";
+      heroMockup.style.width = rect.width + "px";
+      heroMockup.style.height = rect.height + "px";
+      heroMockup.style.margin = "0";
+      heroMockup.style.zIndex = "100";
+      heroMockup.style.boxSizing = "border-box";
+    };
+
+    var browserFlightEase = function(t){
+      return 1 - Math.pow(1 - t, 3);
+    };
+
+    var browserFlyMockup = function(startRect, destRectFn, onLand, done){
+      browserFlying = true;
+      document.body.appendChild(heroMockup);
+      setMockupFixedRect(startRect);
+      var t0 = performance.now();
+      var tick = function(now){
+        var t = Math.min(1, (now - t0) / browserFlightMs);
+        var e = browserFlightEase(t);
+        var dest = destRectFn();
+        setMockupFixedRect({
+          left: startRect.left + (dest.left - startRect.left) * e,
+          top: startRect.top + (dest.top - startRect.top) * e,
+          width: startRect.width + (dest.width - startRect.width) * e,
+          height: startRect.height + (dest.height - startRect.height) * e
+        });
+        if (t < 1) {
+          browserFlightRaf = requestAnimationFrame(tick);
+          return;
+        }
+        browserFlightRaf = 0;
+        browserFlying = false;
+        clearMockupFlightStyles();
+        onLand();
+        if (done) done();
+      };
+      browserFlightRaf = requestAnimationFrame(tick);
+    };
+
+    var moveToRowA = function(done){
+      if (browserFlying) return;
+      if (browserAt === "rowA") { if (done) done(); return; }
+      if (!heroMockup || !heroLeft || !rowABrowser) return;
+      var startRect = heroMockup.getBoundingClientRect();
+      heroStop();
+      var ph = ensureBrowserPlaceholder();
+      if (!ph.parentNode) heroLeft.insertBefore(ph, heroMockup);
+      browserFlyMockup(startRect, function(){
+        return rowABrowser.getBoundingClientRect();
+      }, function(){
+        rowABrowser.appendChild(heroMockup);
+        browserAt = "rowA";
+      }, done);
+    };
+
+    var heroTopIntersecting = function(){
+      var top = document.getElementById("top");
+      if (!top) return false;
+      var r = top.getBoundingClientRect();
+      if (!r.height) return false;
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var vis = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+      return vis / r.height >= 0.6;
+    };
+
+    var moveToHero = function(done){
+      if (browserFlying) return;
+      if (browserAt === "hero") {
+        if (!(heroReduce && heroReduce.matches) && heroTopIntersecting()) heroPlay();
+        if (done) done();
+        return;
+      }
+      if (!heroMockup || !heroLeft) return;
+      var startRect = heroMockup.getBoundingClientRect();
+      var ph = ensureBrowserPlaceholder();
+      if (!ph.parentNode) heroLeft.insertBefore(ph, heroMockup);
+      browserFlyMockup(startRect, function(){
+        return ph.getBoundingClientRect();
+      }, function(){
+        heroLeft.insertBefore(heroMockup, ph);
+        if (ph.parentNode) ph.parentNode.removeChild(ph);
+        browserAt = "hero";
+        if (!(heroReduce && heroReduce.matches) && heroTopIntersecting()) heroPlay();
+      }, done);
+    };
+
+    window.grrabBrowser = { moveToRowA: moveToRowA, moveToHero: moveToHero };
+    Object.defineProperty(window.grrabBrowser, "at", {
+      get: function(){ return browserAt; },
+      enumerable: true
+    });
+    Object.defineProperty(window.grrabBrowser, "flying", {
+      get: function(){ return browserFlying; },
+      enumerable: true
+    });
 
     if (heroReduce && heroReduce.matches) {
       heroHotOnly(heroTiles[0]);
@@ -567,7 +660,21 @@
       if (heroPaste) heroPasteIn();
       if (heroTipV) heroTipV.classList.remove("hero-tip--in");
     } else {
-      heroPlay();
+      var heroTop = document.getElementById("top");
+      if (heroTop && "IntersectionObserver" in window) {
+        new IntersectionObserver(function(entries){
+          for (var hi = 0; hi < entries.length; hi++){
+            if (entries[hi].isIntersecting) {
+              if (window.grrabBrowser && window.grrabBrowser.at === "hero" &&
+                  !window.grrabBrowser.flying) heroPlay();
+            } else {
+              heroStop();
+            }
+          }
+        }, { threshold: 0.6 }).observe(heroTop);
+      } else {
+        heroPlay();
+      }
     }
   }
 

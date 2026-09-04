@@ -83,81 +83,21 @@
   .rowA-step-kbd{font-family:inherit;font-size:inherit;font-weight:700;
     letter-spacing:.01em;color:var(--accent);}
 
-  /* ── HERO — the Row B mockup at hero scale, on a desktop wallpaper ──
-     The stage keeps the old video's 16:9 footprint; the window sits centred on it at
-     the Figma frame's own 593:434, so its height matches what the video occupied. */
-  .hero-stage{position:relative;width:100%;aspect-ratio:1920/1080;container-type:size;
-    overflow:hidden;border-radius:2.46% / 4.38%;background:var(--surface-key);}
-  /* Percentages, not cqh: border-radius is a property of this element, so resolving its
-     own container units against itself is circular and the browser silently used an
-     ancestor instead — the corner came out 46.9px at every width. Percentages resolve
-     against this box. 4.38% of the height is the 28px it used to be at desktop, and the
-     2.46% horizontal is that divided by the 16:9 ratio so the corner stays round. */
-  /* The camera holds the wallpaper AND both windows, so zooming it moves the whole
-     scene together. Its numbers come from the layout: the window is 105cqh wide and
-     the stage 177.78cqh (16:9), so the window is 59.06% of the stage and its centre
-     sits at 2.8125 + 59.0625/2 = 32.34375%, and bringing that centre to the stage's
-     needs 50 - 32.34375 = 17.65625%. Filling the width exactly would need 1.693122;
-     1.7 is used instead so the window overshoots each side by about 2px and the
-     stage clips it, rather than leaving a sub-pixel seam. The camera handles the
-     width only: height is the window's own job, animating 59% -> 90% on the same
-     curve and timing. The camera's scale multiplies the height too, so an exact fill
-     would be 100 / 1.7 = 58.8235%; 59 is used so the window overshoots top and
-     bottom by about 1px and the stage clips it, the same trade the 1.7 makes on the
-     sides. The two animations must never be retimed apart. */
-  /* overflow:hidden so the cursor cannot extend the document. At 26000 it is sent 400px
-     right with the canvas, which put it outside the stage and produced a horizontal
-     scrollbar; removing that scrollbar at reset moved the whole page 32px, which read as
-     the zoom-in ending badly. */
-  .hero-camera{position:absolute;inset:0;overflow:hidden;
-    display:flex;align-items:center;justify-content:flex-start;gap:2.5cqh;
-    --hero-u:calc(90cqh / 434);
-    background-image:url("/assets/landing/img/macbook-wallpaper.webp");
-    background-size:cover;background-position:center;background-repeat:no-repeat;
-    transform-origin:32.34375% 50%;
-    animation:heroZoomOut 1.4s cubic-bezier(.4,0,.2,1) both;
-    animation-play-state:paused;}
-  @keyframes heroZoomOut{
-    from{transform:translateX(17.65625%) scale(1.7);}
-    to{transform:none;}}
-  /* The reverse of heroZoomOut and heroWindowShrink, at the same 1.4s so the return
-     mirrors the opening. A class cannot simply be removed to animate back — that
-     reverts instantly — so the journey needs its own keyframes. */
-  /* translateX, matching heroZoomOut's from exactly. A pixel matrix was tried here to
-     stop a 32px vertical jump, but that jump came from a two-argument translate written
-     from memory rather than from the file — translateX has no y component, so both axes
-     agree. And a percentage is what keeps the endpoint correct at every width; the matrix
-     was measured at 1646px and overshot by 53px at 900. */
-  @keyframes heroZoomIn{
-    from{transform:none;}
-    to{transform:translateX(17.65625%) scale(1.7);}}
-  @keyframes heroWindowGrow{
-    from{height:90%;}
-    to{height:59%;}}
-  .hero-stage--zoomin .hero-camera{
-    animation:heroZoomIn 1.4s cubic-bezier(.4,0,.2,1) both;
-    animation-play-state:running;}
-  .hero-stage--zoomin .hero-mockup-wrap{
-    animation:heroWindowGrow 1.4s cubic-bezier(.4,0,.2,1) both;
-    animation-play-state:running;}
-  @keyframes heroWindowShrink{
-    from{height:59%;}
-    to{height:90%;}}
-  .hero-stage--zoomout .hero-camera,
-  .hero-stage--zoomout .hero-mockup-wrap{animation-play-state:running;}
-  @media (prefers-reduced-motion:reduce){
-    .hero-camera{animation:none;}
-    .hero-mockup-wrap{animation:none;}
-  }
-  .hero-mockup-wrap{position:relative;height:90%;width:105cqh;
-    flex-shrink:0;margin-left:5cqh;
-    animation:heroWindowShrink 1.4s cubic-bezier(.4,0,.2,1) both;
-    animation-play-state:paused;}
-  .hero-canvas{flex:1;min-width:0;align-self:stretch;overflow:hidden;
+  /* ── HERO — copy over browser, canvas beside ── */
+  .hero-figure.hero-camera{position:relative;display:grid;
+    grid-template-columns:minmax(0,744px) minmax(0,1fr);gap:48px;overflow:hidden;
+    --hero-u:calc(744px / 593);}
+  .hero-left{display:flex;flex-direction:column;gap:24px;min-width:0;
+    container-type:inline-size;}
+  .hero-text{display:flex;flex-direction:column;align-items:flex-start;gap:24px;
+    text-align:left;}
+  .hero-mockup-wrap{position:relative;width:100%;aspect-ratio:593/434;
+    container-type:inline-size;}
+  .hero-canvas{align-self:stretch;min-width:0;min-height:0;overflow:hidden;
     display:flex;flex-direction:column;
-    container-type:size;--hero-u:calc(90cqh / 434);
-    background:#DFDFDF;border-top:1px solid #E6E7EB;
-    border-radius:calc(12 * var(--hero-u)) 0 0 0;}
+    container-type:inline-size;--hero-u:calc(100cqw / 593);
+    background:#DFDFDF;border:1px solid #E6E7EB;
+    border-radius:calc(12 * var(--hero-u));}
   .hero-canvas-body{position:relative;flex:1;min-height:0;width:100%;overflow:hidden;
     background:#000000;}
   /* Centred by computed left/top rather than translate(-50%,-50%): the cursor's next
@@ -169,17 +109,12 @@
   .hero-paste{position:absolute;left:0;top:0;display:none;
     width:70%;aspect-ratio:2000/1333;object-fit:contain;}
   .hero-paste--in{display:block;}
-  /* The unit is 90% of the STAGE's height, not the window's own, and .hero-chrome is
-     deliberately not a container so cqh resolves against the stage. The window's
-     height animates 59% -> 90%, so a unit derived from it would grow as the camera
-     shrank and everything inside would barely change size. This is the same
-     expression .hero-canvas uses, and at rest both give 575 / 434 = 1.325. */
+  /* The unit is the browser column's width over the Figma frame's 593. .hero-chrome is
+     not a container so cqw resolves against .hero-mockup-wrap. */
   .hero-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
-    --hero-u:calc(90cqh / 434);
-    /* The overlay's buttons use their own unit, the main one divided by the camera's
-       1.7. That makes them render at the zoomed-in frame exactly the size they used
-       to reach at rest. The 1.7 is the same number as the scale in heroZoomOut and
-       must be changed with it. */
+    --hero-u:calc(100cqw / 593);
+    /* 1.7 is no longer the camera scale — the zoom is gone. It is the ratio the overlay
+       controls were drawn at on the zoomed frame; the divisor stays so they keep that size. */
     --hero-btn-u:calc(var(--hero-u) / 1.7);
     background:#DFDFDF;
     border-radius:calc(12 * var(--hero-u));box-shadow:0 0 calc(4 * var(--hero-u)) 0 rgba(0,0,0,.25);}
@@ -251,9 +186,8 @@
     justify-content:center;background:rgba(0,0,0,0.82);
     opacity:0;pointer-events:none;transition:opacity .3s ease;}
   .hero-overlay--on{opacity:1;}
-  /* aspect-ratio pins the figure to the image's own 2000x1333. Without it the box
-     takes 62% x 64% of a body whose proportions change with the zoom, so object-fit
-     leaves side gaps — invisible on the before image, but painted by the after
+  /* aspect-ratio pins the figure to the image's own 2000x1333. Without it object-fit
+     can leave side gaps — invisible on the before image, but painted by the after
      image's checkerboard. */
   .hero-overlay-figure{position:relative;display:flex;margin:0;
     max-width:62%;max-height:64%;aspect-ratio:2000/1333;
@@ -373,13 +307,6 @@
   .hero-hint--off{display:none;}
   .hero-overlay-act--hover{background:#BC13FE;border-color:transparent;}
   .hero-overlay-act--press{background:#8A8A8E;border-color:transparent;}
-  /* The last leg of the cursor's travel is slower than its usual .75s so the drift to
-     the canvas reads as unhurried. It deliberately outlasts the 1.4s pull-back: the
-     camera settles first and the pointer keeps gliding. */
-  /* 1.4s to match the zoom-out. The two start together at 7000 — heroClipDone fires the
-     camera and sends the cursor to the canvas in the same tick — and now they finish
-     together too, at 8400. */
-  .hero-cursor--slow{transition:transform 1.4s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
   .hero-toast{position:absolute;z-index:4;
     top:calc(10 * var(--hero-btn-u));right:calc(10 * var(--hero-btn-u));
     display:inline-flex;align-items:center;gap:calc(5 * var(--hero-btn-u));
@@ -688,7 +615,7 @@
   .rowA-tile--hot{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
   .rowA-tile--tall{grid-row:span 2;}
   .rowA-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
-    --rowA-u:calc((min(1352px, 100vw - 64px) - 48px) * 1.329 / 2.329 / 593);
+    --rowA-u:calc((1352px - 48px) * 1.329 / 2.329 / 593);
     width:calc(26 * var(--rowA-u));height:calc(26 * var(--rowA-u));opacity:0;
     transition:transform 1s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
   .rowA-cursor--on{opacity:1;}
@@ -1203,12 +1130,14 @@
          length out. */
       transform:scale(calc((100vw - 64px) / 1136px));
     }
-    /* Row A's figure breaks out and has no scale-wrap; match the other rows' type scale. */
-    .rowA-text .feature-h2{
-      font-size:calc(clamp(24px,3.1vw,30px) * (100vw - 64px) / 1136);
+    .rowA-scale-wrap{
+      height:calc(544.7px * (100vw - 64px) / 1352);
+      overflow:hidden;
     }
-    .rowA-text .feature-sub{
-      font-size:calc(22px * (100vw - 64px) / 1136) !important;
+    .rowA-figure{
+      width:1352px !important;
+      transform-origin:top left;
+      transform:scale(calc((100vw - 64px) / 1352px));
     }
   }
 
@@ -1231,13 +1160,20 @@
     /* The hero mockup's section had no mobile rule and kept its 32px sides, giving up
        16% of a 400px viewport. 20px matches #top, #how and the header — and the
        .browser-frame rules below compute from 100vw - 40px on the same assumption. */
-    section:has(> .hero-stage){ padding:8px 20px 48px !important; }
+    section#top{ padding:56px 20px 48px !important; }
     .feature-h2{ font-size:28px !important; }
     .nav-links{ display:none !important; }
 
-    /* hero CTA: show Add to Chrome only; left-align button row */
-    #top > div{ display:flex !important; justify-content:flex-start !important; }
-    #top > div > .btn-ghost{ display:none !important; }
+    /* Row A — text full width, browser and canvas equal width below */
+    .rowA-scale-wrap{ height:auto !important; overflow:visible !important; }
+    .rowA-figure{ display:grid !important; grid-template-columns:1fr 1fr !important;
+      column-gap:16px !important; row-gap:24px !important;
+      width:100% !important; transform:none !important; }
+    .rowA-side{ display:contents !important; }
+    .rowA-text{ grid-column:1 / -1 !important; order:1 !important; }
+    .rowA-browser{ order:2 !important; }
+    .rowA-canvas{ order:2 !important; }
+    .rowA-cursor{ --rowA-u:calc((100vw - 40px - 16px) / 2 / 593) !important; }
 
     .grrab-rowB{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowB > div:first-child{ gap:14px !important; }
@@ -1380,7 +1316,7 @@
 
     /* FINAL CTA + footer horizontal padding → 16px; CTA button shrink/wrap */
     section[style*="accent-wash"] > div{ padding:44px 16px !important; }
-    section:has(> .hero-stage){ padding:8px 16px 40px !important; }
+    section#top{ padding:56px 16px 40px !important; }
     footer > div{ padding:32px 16px !important; }
     section[style*="accent-wash"] .btn-lg{ height:auto !important; min-height:48px;
       padding:12px 20px !important; font-size:15px !important; white-space:normal !important;
