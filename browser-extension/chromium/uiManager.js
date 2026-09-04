@@ -1634,7 +1634,7 @@ function _kcEscapeHtml(s) { // PHASE_SHORTCUT_TIP_MARKUP
 }
 function _kcSetShortcutTipMarkup(el, text) {
   // PHASE_SHORTCUT_TIP_MARKUP: render "Press {glyph} to copy" with only the glyph
-  // bold, mirroring the landing page's .grab-badge. The tail below must stay in
+  // bold. The tail below must stay in
   // sync with defaultText in coreEntry.js; if it ever stops matching, this falls
   // back to plain text and the glyph silently loses its emphasis.
   try {

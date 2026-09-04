@@ -1,0 +1,1581 @@
+  :root{
+    /* ── accent ── */
+    --accent:#BC13FE; --accent-rgb:188,19,254; --accent-hover:#A810E0; --accent-bright:#CF00FF;
+    --accent-05:rgba(188,19,254,.05); --accent-06:rgba(188,19,254,.06); --accent-10:rgba(188,19,254,.10);
+    --accent-12:rgba(188,19,254,.12); --accent-20:rgba(188,19,254,.20); --accent-30:rgba(188,19,254,.30);
+    --accent-wash:#FAF7FD;
+    /* ── ink ── */
+    --ink:#1A1A1A; --ink-strong:#000; --ink-900:#111; --ink-700:#374151; --ink-muted:#6B7280;
+    --ink-soft:#888; --ink-faint:#9CA3AF;
+    /* ── surfaces ── */
+    --surface:#fff; --surface-canvas:#FAFAFA; --surface-subtle:#F9FAFB; --surface-ios:#F2F2F7; --surface-key:#F4F4F5;
+    /* ── borders ── */
+    --border:#E5E7EB; --border-strong:#D9D9D9; --border-soft:#E5E5E5;
+    /* ── type ── */
+    --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-display:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-ui:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-mono:'SF Mono','SFMono-Regular',Menlo,Monaco,Consolas,monospace;
+    --font-display-weight-hero:800; --font-display-weight-feature:700; --font-display-weight-cta:700;
+    --display-sm:28px; --display-md:40px; --display-lg:56px; --display-xl:72px;
+    --display-hero:46px;
+    --tracking-tight:-0.03em;
+    /* ── radii ── */
+    --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-2xl:24px; --radius-pill:999px;
+    /* ── shadow ── */
+    --shadow-xs:0 1px 3px rgba(0,0,0,.08); --shadow-md:0 2px 8px rgba(0,0,0,.14);
+    --shadow-xl:0 12px 32px rgba(0,0,0,.10); --shadow-2xl:0 24px 64px rgba(0,0,0,.14);
+    /* ── layout ── */
+    --container-max:1200px;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;font-family:var(--font-sans);color:var(--ink);background:var(--surface);-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent);text-decoration:none;transition:color .15s ease;}
+  a:hover{color:var(--accent-hover);}
+  ::selection{background:var(--accent-20);color:var(--ink-strong);}
+
+  /* buttons (flattened from the design-system Button component) */
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;
+    letter-spacing:-0.01em;border-radius:var(--radius-md);cursor:pointer;border:1px solid transparent;
+    transition:background .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease;white-space:nowrap;text-decoration:none;gap:8px;}
+  .btn-md{height:40px;padding:0 18px;font-size:15px;}
+  .btn-lg{height:52px;padding:0 26px;font-size:17px;}
+  .btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(188,19,254,.20);}
+  .btn-accent:hover{background:var(--accent-hover);color:#fff;}
+  .btn-ghost{background:transparent;color:var(--ink-700);border-color:var(--border);}
+  .btn-ghost:hover{background:var(--surface-subtle);color:var(--ink-strong);}
+  .btn-md img{width:18px;height:18px;display:block;flex:0 0 auto;}
+  .btn-lg img{width:20px;height:20px;display:block;flex:0 0 auto;}
+
+  /* All three feature headings share one size. Row A's column is the narrowest, so
+     30px is the ceiling that keeps its single-line heading from wrapping. Set it here
+     only — do not reintroduce a font-size on the individual h2 elements. */
+  .feature-h2{font-size:clamp(24px,3.1vw,30px);}
+  /* Sits directly above each row's heading, inside the same 14px-gap box, so the space
+     between label and heading is the parent's rather than a margin of its own. */
+  .feature-label{font-family:var(--font-sans);font-size:13px;font-weight:700;
+    letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin:0;}
+
+  /* ── Row A — gallery mockup (responsive; cqw basis = Figma 1× frame 593px) ── */
+  /* The mockup stretches to the row height set by the text column, so the gallery
+     rows grow with it and the tiles take up the extra space. */
+  /* 591/470 rather than the Figma frame's 473/305: in the 1.25fr column this is what
+     holds the row at the 470 Rows B and C are pinned to. The window stretches about 10%
+     taller than its own proportions as a result. */
+  /* --rowA-u lives on .rowA-mockup-wrap. The divisor stays 593: this element matches
+     the Figma frame width, so the unit keeps its value and nothing inside the gallery
+     changes size. */
+  /* Fixed height rather than a ratio: below the capped container the ratio made all
+     three rows shrink with the viewport. 470 holds them level from 820px up, where the
+     mobile block takes over anyway. */
+  .rowA-mockup-wrap{position:relative;width:100%;height:470px;
+    container-type:inline-size;--rowA-u:calc(100cqw / 593);}
+  /* Row A alone puts its heading on the right. Done with order rather than by moving the
+     markup, because the heading column has no class of its own and the mobile rules find
+     it with :first-child — which order does not disturb. On mobile the column becomes
+     display:contents, where order has no effect, so this is desktop-only by nature. */
+  .grrab-rowA > div:first-child{order:1;}
+  .rowD-chrome{display:flex;align-items:center;gap:calc(6 / var(--rowD-basis) * 100cqh);width:100%;height:calc(50 / var(--rowD-basis) * 100cqh);flex-shrink:0;
+    padding:calc(10 / var(--rowD-basis) * 100cqh) calc(18 / var(--rowD-basis) * 100cqh) calc(10 / var(--rowD-basis) * 100cqh) 0;}
+  .rowD-urlbar{display:flex;align-items:center;flex:1;height:calc(30 / var(--rowD-basis) * 100cqh);min-width:0;align-self:center;
+    background:var(--surface);border:1px solid var(--border);border-left:0;border-radius:0 calc(70 / var(--rowD-basis) * 100cqh) calc(70 / var(--rowD-basis) * 100cqh) 0;}
+  .rowD-urlbar-line{flex:1;height:calc(3.5 / var(--rowD-basis) * 100cqh);border-radius:calc(10 / var(--rowD-basis) * 100cqh);background:var(--border);min-width:0;}
+  .rowD-urlbar-star{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;
+    height:calc(30 / var(--rowD-basis) * 100cqh);padding-left:calc(12 / var(--rowD-basis) * 100cqh);padding-right:calc(16 / var(--rowD-basis) * 100cqh);}
+  .rowD-urlbar-star-icon{width:calc(15 / var(--rowD-basis) * 100cqh);height:calc(15 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .rowD-profile{display:flex;align-items:center;justify-content:flex-end;gap:calc(13 / var(--rowD-basis) * 100cqh);
+    height:100%;flex-shrink:0;}
+  .rowD-profile-pill{display:flex;align-items:center;gap:calc(2 / var(--rowD-basis) * 100cqh);height:calc(30 / var(--rowD-basis) * 100cqh);
+    border:0.5px solid var(--border-strong);border-radius:calc(30 / var(--rowD-basis) * 100cqh);overflow:hidden;flex-shrink:0;}
+  .rowD-profile-logo{display:flex;align-items:center;justify-content:center;width:calc(30 / var(--rowD-basis) * 100cqh);height:calc(30 / var(--rowD-basis) * 100cqh);
+    background:var(--surface);border-radius:calc(20 / var(--rowD-basis) * 100cqh);padding:0 calc(5 / var(--rowD-basis) * 100cqh) calc(1 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .rowD-profile-logo img{width:calc(20 / var(--rowD-basis) * 100cqh);height:auto;object-fit:contain;display:block;}
+  .rowD-profile-ext{display:flex;align-items:center;justify-content:center;width:calc(30 / var(--rowD-basis) * 100cqh);height:calc(30 / var(--rowD-basis) * 100cqh);
+    padding:0 calc(6 / var(--rowD-basis) * 100cqh) calc(1 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .rowD-profile-ext-icon{width:calc(16 / var(--rowD-basis) * 100cqh);height:calc(16 / var(--rowD-basis) * 100cqh);display:block;}
+  .rowD-profile-sep{width:calc(1 / var(--rowD-basis) * 100cqh);height:calc(20 / var(--rowD-basis) * 100cqh);background:var(--border-strong);flex-shrink:0;}
+  .rowD-profile-avatar{width:calc(20 / var(--rowD-basis) * 100cqh);height:calc(20 / var(--rowD-basis) * 100cqh);aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
+    border:0.3px solid rgba(115,122,136,.3);}
+  .rowD-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
+  /* Three independent columns rather than one grid: a grid cannot move a column on its
+     own, and each of these will scroll at its own speed and direction. */
+  /* justify-content:flex-end is what makes the overflow fall on the left: three columns
+     at their new width need 713.8 where there is 571.1, and the surplus has to go
+     somewhere. Anchored right, the first column is the one cut.
+     Two masks, intersected: one fades the top and bottom, the other the left. The right
+     edge is not faded — the last column ends at the padding and is not cut. The -webkit-
+     pair is not decoration: Safari has no unprefixed mask-composite and spells intersect
+     as source-in. */
+  .rowA-gallery{display:flex;flex-direction:row;overflow:hidden;justify-content:flex-end;
+    cursor:url("/assets/landing/icons/hero/icon_cursor_24.svg") 2 1, auto;
+    gap:calc(12.5 * var(--rowA-u));padding:calc(10 * var(--rowA-u));width:100%;height:100%;
+    background:var(--surface);
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
+                       linear-gradient(to right, transparent 0, #000 8%, #000 100%);
+    -webkit-mask-composite:source-in;
+    mask-image:linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
+               linear-gradient(to right, transparent 0, #000 8%, #000 100%);
+    mask-composite:intersect;}
+  /* align-self:flex-start, not flex-shrink. The gallery is a ROW, so shrink acts on
+     width; what squeezed the column to the gallery's 450 was align-items:stretch on the
+     cross axis. The keyframes move by a percentage OF THE COLUMN, so a squeezed column
+     travelled a third of a set and the loop reset mid-image.
+     flex:1 must stay exactly as it is — it means 1 1 0, and that zero basis is what
+     makes the three columns split the width evenly. */
+  /* A fixed width, not flex:1. flex:1 divides the available room between the three
+     columns, so they could never total more than the gallery — and overflowing is the
+     point. 230 units is 1.25x the 183.7 they were sharing. */
+  .rowA-col{display:flex;flex-direction:column;flex:0 0 auto;width:calc(230 * var(--rowA-u));
+    min-width:0;align-self:flex-start;
+    gap:calc(12.5 * var(--rowA-u));
+    animation:rowAScrollDown 60s linear infinite;}
+  .rowA-col:nth-child(2){animation-name:rowAScrollUp;}
+  /* 31/20 is 1.55, the comparison's proportions, as a whole-number ratio. */
+  .rowA-col .rowA-tile{aspect-ratio:31/20;flex-shrink:0;}
+  .rowA-col:hover{animation-play-state:paused;}
+  /* 50.51 rather than 50: ten tiles have nine gaps between them, but one set is five
+     tiles AND five gaps — the gap leading into the copy belongs to the set. The figure
+     holds at any width because --rowA-u sizes the tile and the gap together. */
+  /* 50.39, down from 50.51: the tile's height is its width over 1.55 while the gap is a
+     plain multiple of the unit, so growing both by 1.25 does not keep the ratio between
+     them. One set is now 803.1 of a 1593.7 column. */
+  @keyframes rowAScrollDown{
+    from{transform:translateY(-50.39%);}
+    to{transform:translateY(0);}}
+  @keyframes rowAScrollUp{
+    from{transform:translateY(0);}
+    to{transform:translateY(-50.39%);}}
+  /* The mobile pair. 50.60 rather than the vertical 50.39: the tiles are a different
+     shape and the ratio between a tile's width and the gap is what sets it. Checked at
+     174, 300 and 500px wide — the same figure at all three, because every dimension comes
+     from --rowA-u. */
+  @keyframes rowAScrollRight{
+    from{transform:translateX(-50.60%);}
+    to{transform:translateX(0);}}
+  @keyframes rowAScrollLeft{
+    from{transform:translateX(0);}
+    to{transform:translateX(-50.60%);}}
+  @media (prefers-reduced-motion:reduce){
+    .rowA-col{animation:none;}
+  }
+  .rowA-tile{position:relative;border-radius:calc(8 * var(--rowA-u));overflow:hidden;
+    background:var(--surface-key);}
+  .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .rowA-tile{transition:box-shadow .18s cubic-bezier(.25,.1,.25,1);}
+  .rowA-tile:hover{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
+  /* translateY(-100%) rather than subtracting the tooltip's height from top: top sets
+     the upper edge, so a fixed number would go stale if the type or padding changed.
+     The -8 in the script is then only the gap above the pointer. */
+  .rowA-tip{position:fixed;left:0;top:0;z-index:60;pointer-events:none;opacity:0;
+    transform:translateY(-100%);
+    font-family:var(--font-sans);font-weight:700;font-size:13px;line-height:1;color:#fff;
+    background:var(--accent-bright);padding:6px 9px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 4px 16px rgba(207,0,255,.35);transition:opacity .12s ease;}
+  .rowA-tip.show{opacity:1;}
+  /* flex:1 replaces align-self:stretch now that this is a flex child of the heading
+     column rather than a grid child of the row. It still receives its height rather than
+     setting it, which is what container-type:size needs. */
+  .rowA-pallette{position:relative;display:flex;align-items:center;justify-content:center;
+    width:100%;height:auto;flex:1;min-height:0;box-sizing:border-box;
+    container-type:size;--rowA-u:calc(100cqh / 340);}
+  .rowA-pallette::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:
+      linear-gradient(to right, rgba(207,0,255,.2) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(207,0,255,.2) 1px, transparent 1px);
+    background-size:calc(10 * var(--rowA-u)) calc(10 * var(--rowA-u));
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%),
+      linear-gradient(to bottom, transparent 0, #000 10%, #000 90%, transparent 100%);
+    mask-image:
+      linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%),
+      linear-gradient(to bottom, transparent 0, #000 10%, #000 90%, transparent 100%);
+    -webkit-mask-composite:source-in;mask-composite:intersect;}
+  .rowA-compare{position:relative;z-index:1;width:100%;height:100%;overflow:hidden;
+    cursor:ew-resize;user-select:none;touch-action:none;
+    background:var(--surface-key);box-shadow:0 calc(4 * var(--rowA-u)) calc(18 * var(--rowA-u)) rgba(0,0,0,.12);}
+  .rowA-compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+    pointer-events:none;}
+  .rowA-compare-before{position:absolute;inset:0;clip-path:inset(0 50% 0 0);
+    -webkit-clip-path:inset(0 50% 0 0);}
+  .rowA-compare-handle{position:absolute;top:0;bottom:0;left:50%;width:calc(3 * var(--rowA-u));
+    background:var(--accent-bright);transform:translateX(-50%);pointer-events:none;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.5);}
+  .rowA-compare-knob{width:calc(40 * var(--rowA-u));height:calc(40 * var(--rowA-u));border-radius:50%;
+    background:#fff;border:calc(2 * var(--rowA-u)) solid var(--accent-bright);
+    box-shadow:0 calc(4 * var(--rowA-u)) calc(16 * var(--rowA-u)) rgba(207,0,255,.28);
+    display:flex;align-items:center;justify-content:center;color:var(--accent-bright);flex-shrink:0;}
+  .rowA-compare-knob svg{width:calc(18 * var(--rowA-u));height:calc(18 * var(--rowA-u));display:block;}
+  .rowA-compare-knob svg + svg{margin-left:calc(-8 * var(--rowA-u));}
+  .rowA-step-kbd{font-family:inherit;font-size:inherit;font-weight:700;
+    letter-spacing:.01em;color:var(--accent);}
+
+  /* ── HERO — the Row B mockup at hero scale, on a desktop wallpaper ──
+     The stage keeps the old video's 16:9 footprint; the window sits centred on it at
+     the Figma frame's own 593:434, so its height matches what the video occupied. */
+  .hero-stage{position:relative;width:100%;aspect-ratio:1920/1080;container-type:size;
+    overflow:hidden;border-radius:2.46% / 4.38%;background:var(--surface-key);}
+  /* Percentages, not cqh: border-radius is a property of this element, so resolving its
+     own container units against itself is circular and the browser silently used an
+     ancestor instead — the corner came out 46.9px at every width. Percentages resolve
+     against this box. 4.38% of the height is the 28px it used to be at desktop, and the
+     2.46% horizontal is that divided by the 16:9 ratio so the corner stays round. */
+  /* The camera holds the wallpaper AND both windows, so zooming it moves the whole
+     scene together. Its numbers come from the layout: the window is 105cqh wide and
+     the stage 177.78cqh (16:9), so the window is 59.06% of the stage and its centre
+     sits at 2.8125 + 59.0625/2 = 32.34375%, and bringing that centre to the stage's
+     needs 50 - 32.34375 = 17.65625%. Filling the width exactly would need 1.693122;
+     1.7 is used instead so the window overshoots each side by about 2px and the
+     stage clips it, rather than leaving a sub-pixel seam. The camera handles the
+     width only: height is the window's own job, animating 59% -> 90% on the same
+     curve and timing. The camera's scale multiplies the height too, so an exact fill
+     would be 100 / 1.7 = 58.8235%; 59 is used so the window overshoots top and
+     bottom by about 1px and the stage clips it, the same trade the 1.7 makes on the
+     sides. The two animations must never be retimed apart. */
+  /* overflow:hidden so the cursor cannot extend the document. At 26000 it is sent 400px
+     right with the canvas, which put it outside the stage and produced a horizontal
+     scrollbar; removing that scrollbar at reset moved the whole page 32px, which read as
+     the zoom-in ending badly. */
+  .hero-camera{position:absolute;inset:0;overflow:hidden;
+    display:flex;align-items:center;justify-content:flex-start;gap:2.5cqh;
+    --hero-u:calc(90cqh / 434);
+    background-image:url("/assets/landing/img/macbook-wallpaper.webp");
+    background-size:cover;background-position:center;background-repeat:no-repeat;
+    transform-origin:32.34375% 50%;
+    animation:heroZoomOut 1.4s cubic-bezier(.4,0,.2,1) both;
+    animation-play-state:paused;}
+  @keyframes heroZoomOut{
+    from{transform:translateX(17.65625%) scale(1.7);}
+    to{transform:none;}}
+  /* The reverse of heroZoomOut and heroWindowShrink, at the same 1.4s so the return
+     mirrors the opening. A class cannot simply be removed to animate back — that
+     reverts instantly — so the journey needs its own keyframes. */
+  /* translateX, matching heroZoomOut's from exactly. A pixel matrix was tried here to
+     stop a 32px vertical jump, but that jump came from a two-argument translate written
+     from memory rather than from the file — translateX has no y component, so both axes
+     agree. And a percentage is what keeps the endpoint correct at every width; the matrix
+     was measured at 1646px and overshot by 53px at 900. */
+  @keyframes heroZoomIn{
+    from{transform:none;}
+    to{transform:translateX(17.65625%) scale(1.7);}}
+  @keyframes heroWindowGrow{
+    from{height:90%;}
+    to{height:59%;}}
+  .hero-stage--zoomin .hero-camera{
+    animation:heroZoomIn 1.4s cubic-bezier(.4,0,.2,1) both;
+    animation-play-state:running;}
+  .hero-stage--zoomin .hero-mockup-wrap{
+    animation:heroWindowGrow 1.4s cubic-bezier(.4,0,.2,1) both;
+    animation-play-state:running;}
+  @keyframes heroWindowShrink{
+    from{height:59%;}
+    to{height:90%;}}
+  .hero-stage--zoomout .hero-camera,
+  .hero-stage--zoomout .hero-mockup-wrap{animation-play-state:running;}
+  @media (prefers-reduced-motion:reduce){
+    .hero-camera{animation:none;}
+    .hero-mockup-wrap{animation:none;}
+  }
+  .hero-mockup-wrap{position:relative;height:90%;width:105cqh;
+    flex-shrink:0;margin-left:5cqh;
+    animation:heroWindowShrink 1.4s cubic-bezier(.4,0,.2,1) both;
+    animation-play-state:paused;}
+  .hero-canvas{flex:1;min-width:0;align-self:stretch;overflow:hidden;
+    display:flex;flex-direction:column;
+    container-type:size;--hero-u:calc(90cqh / 434);
+    background:#DFDFDF;border-top:1px solid #E6E7EB;
+    border-radius:calc(12 * var(--hero-u)) 0 0 0;}
+  .hero-canvas-body{position:relative;flex:1;min-height:0;width:100%;overflow:hidden;
+    background:#000000;}
+  /* Centred by computed left/top rather than translate(-50%,-50%): the cursor's next
+     move reads this element's offsetLeft, which ignores transforms. */
+  /* The pastes live on their own layer so the canvas can be panned: moving this slides
+     everything already dropped, exactly as dragging a workspace would. */
+  .hero-canvas-pan{position:absolute;inset:0;
+    transition:transform .75s cubic-bezier(.4,0,.2,1);}
+  .hero-paste{position:absolute;left:0;top:0;display:none;
+    width:70%;aspect-ratio:2000/1333;object-fit:contain;}
+  .hero-paste--in{display:block;}
+  /* The unit is 90% of the STAGE's height, not the window's own, and .hero-chrome is
+     deliberately not a container so cqh resolves against the stage. The window's
+     height animates 59% -> 90%, so a unit derived from it would grow as the camera
+     shrank and everything inside would barely change size. This is the same
+     expression .hero-canvas uses, and at rest both give 575 / 434 = 1.325. */
+  .hero-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+    --hero-u:calc(90cqh / 434);
+    /* The overlay's buttons use their own unit, the main one divided by the camera's
+       1.7. That makes them render at the zoomed-in frame exactly the size they used
+       to reach at rest. The 1.7 is the same number as the scale in heroZoomOut and
+       must be changed with it. */
+    --hero-btn-u:calc(var(--hero-u) / 1.7);
+    background:#DFDFDF;
+    border-radius:calc(12 * var(--hero-u));box-shadow:0 0 calc(4 * var(--hero-u)) 0 rgba(0,0,0,.25);}
+  .hero-header{display:flex;align-items:center;gap:calc(4.5 * var(--hero-u));width:100%;
+    height:calc(22 * var(--hero-u));flex-shrink:0;
+    padding:calc(4.5 * var(--hero-u)) calc(13 * var(--hero-u)) calc(4.5 * var(--hero-u)) calc(7.5 * var(--hero-u));}
+  .hero-header .browser-traffic{height:calc(13 * var(--hero-u));gap:calc(3.5 * var(--hero-u));
+    padding:0 calc(4.5 * var(--hero-u)) 0 0;border-radius:0 0 calc(3 * var(--hero-u)) 0;}
+  .hero-header .browser-dot{width:calc(6 * var(--hero-u));height:calc(6 * var(--hero-u));}
+  .hero-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding:0 calc(17 * var(--hero-u)) 0 calc(7.5 * var(--hero-u));
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--hero-u));}
+  .hero-urlbar-line{flex:1;min-width:0;height:calc(2 * var(--hero-u));
+    border-radius:calc(10 * var(--hero-u));background:#DEE1E6;}
+  .hero-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(13 * var(--hero-u));height:calc(13 * var(--hero-u));
+    padding:calc(1.5 * var(--hero-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--hero-u));}
+  .hero-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  /* Bottom corners match the window's own 12; the top two stay at 4 because they meet
+     the header and never show a curve. Without this the window's rounded corner clipped
+     at 15.9px while the body stopped at 5.3px, and the overlay's dark fill showed in the
+     wedge between them. */
+  .hero-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;overflow:hidden;
+    margin:0 1px 1px;
+    background:var(--surface);
+    border-radius:calc(4 * var(--hero-u)) calc(4 * var(--hero-u)) calc(12 * var(--hero-u)) calc(12 * var(--hero-u));}
+  .hero-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    width:calc(30 * var(--hero-u));gap:calc(24 * var(--hero-u));
+    padding-top:calc(16 * var(--hero-u));border-right:0.5px solid #C8C8C0;}
+  .hero-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
+  .hero-sidebar-icon{display:block;object-fit:contain;}
+  .hero-sidebar-icon--home{width:calc(10 * var(--hero-u));height:calc(11 * var(--hero-u));}
+  .hero-sidebar-icon--category{width:calc(11 * var(--hero-u));height:calc(11 * var(--hero-u));}
+  .hero-sidebar-icon--add{width:calc(10 * var(--hero-u));height:calc(10 * var(--hero-u));}
+  .hero-sidebar-icon--notification{width:calc(10 * var(--hero-u));height:calc(11 * var(--hero-u));}
+  .hero-sidebar-icon--message{width:calc(12 * var(--hero-u));height:calc(12 * var(--hero-u));}
+  /* No height and align-self:start, so the rows take the tiles' own size and the
+     gallery grows past the window rather than compressing to fit. .hero-body's
+     overflow:hidden does the cutting. With height:100% the six rows were squeezed to
+     75px each while the tiles stayed 98px and overlapped. */
+  .hero-gallery{display:grid;grid-template-columns:repeat(4,1fr);align-content:start;
+    align-self:start;transition:transform .9s cubic-bezier(.4,0,.2,1);
+    gap:calc(10 * var(--hero-u));padding:calc(10 * var(--hero-u));flex:1;min-width:0;
+    background:var(--surface);border-radius:0 calc(14 * var(--hero-u)) 0 0;}
+  .hero-tile{position:relative;border-radius:calc(8 * var(--hero-u));overflow:hidden;
+    aspect-ratio:174.333/121.333;
+    background:var(--surface-key);transition:box-shadow .25s ease,opacity .25s ease;}
+  .hero-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .hero-tile--dim{opacity:.5;}
+  .hero-tile--tall{grid-row:span 2;aspect-ratio:174.333/252.667;}
+  .hero-tile--hot{opacity:1;box-shadow:0 0 calc(13 * var(--hero-u)) 0 var(--accent-bright);}
+  .hero-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
+    width:calc(26 * var(--hero-u));height:calc(26 * var(--hero-u));opacity:0;
+    transition:transform .75s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  .hero-cursor--on{opacity:1;}
+  .hero-cursor img{width:100%;height:100%;display:block;}
+  .hero-tip{position:absolute;left:calc(18 * var(--hero-u));top:calc(-20 * var(--hero-u));
+    display:inline-flex;align-items:center;white-space:nowrap;
+    padding:calc(4 * var(--hero-u)) calc(8 * var(--hero-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--hero-u));
+    font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
+    font-size:calc(11 * var(--hero-u));
+    opacity:0;transition:opacity .3s ease;}
+  .hero-tip--in{opacity:1;transition:none;}
+  /* Colours below are read from browser-extension/chromium/eraseOverlay.js rather than
+     matched by eye: backdrop L91, tools L444-454, hint L369, checkerboard L139-142,
+     spinner ring L173. */
+  .hero-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;
+    justify-content:center;background:rgba(0,0,0,0.82);
+    opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .hero-overlay--on{opacity:1;}
+  /* aspect-ratio pins the figure to the image's own 2000x1333. Without it the box
+     takes 62% x 64% of a body whose proportions change with the zoom, so object-fit
+     leaves side gaps — invisible on the before image, but painted by the after
+     image's checkerboard. */
+  .hero-overlay-figure{position:relative;display:flex;margin:0;
+    max-width:62%;max-height:64%;aspect-ratio:2000/1333;
+    -webkit-user-select:none;user-select:none;}
+  .hero-overlay-figure img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
+  .hero-overlay-img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+    object-fit:contain;}
+  .hero-overlay-after{position:absolute;left:0;top:0;width:100%;height:100%;display:block;
+    object-fit:contain;z-index:2;
+    clip-path:inset(0 0 0 100%);-webkit-clip-path:inset(0 0 0 100%);
+    transition:clip-path 1.4s ease,-webkit-clip-path 1.4s ease;}
+  .hero-overlay-after--in{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0);}
+  .hero-overlay-after--alpha{background-color:#ffffff;
+    background-image:
+      linear-gradient(45deg,#d8d8d8 25%,transparent 25%,transparent 75%,#d8d8d8 75%),
+      linear-gradient(45deg,#d8d8d8 25%,transparent 25%,transparent 75%,#d8d8d8 75%);
+    background-size:calc(10 * var(--hero-u)) calc(10 * var(--hero-u));
+    background-position:0 0,calc(5 * var(--hero-u)) calc(5 * var(--hero-u));}
+  .hero-overlay-btn{position:absolute;right:0;bottom:calc(100% + 12 * var(--hero-btn-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--hero-btn-u));
+    padding:calc(6 * var(--hero-btn-u)) calc(11 * var(--hero-btn-u));
+    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--hero-btn-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--hero-btn-u));color:#f0f0f0;white-space:nowrap;
+    transition:background .15s ease,border-color .15s ease;}
+  .hero-overlay-btn img{width:calc(11 * var(--hero-btn-u));height:calc(11 * var(--hero-btn-u));display:block;
+    filter:brightness(0) invert(1);}
+  .hero-overlay-btn--hover{background:#BC13FE;border-color:transparent;}
+  /* --press must sit after --hover: the cursor is still on the button while it is
+     held down, so both classes are present and the later rule has to win.
+     border-color rather than border:none, so the box does not shrink by 2px on press.
+     The extension has NO pressed state — it disables with opacity 0.45 instead. This
+     grey is kept deliberately, because a demo needs the click to be legible. */
+  .hero-overlay-btn--press{background:#8A8A8E;border-color:transparent;}
+    /* The extension dims the whole stage while a model runs and captions the ring, so the
+       pause explains itself. The overlay covers the figure rather than the image, which is
+       the same box here. */
+    .hero-busy{position:absolute;inset:0;z-index:3;display:none;
+      flex-direction:column;align-items:center;justify-content:center;
+      gap:calc(14 * var(--hero-u));
+      background:rgba(0,0,0,0.45);pointer-events:none;}
+    .hero-busy--on{display:flex;}
+    .hero-busy-ring{width:calc(28 * var(--hero-btn-u));height:calc(28 * var(--hero-btn-u));
+      border:calc(3 * var(--hero-btn-u)) solid rgba(255,255,255,0.2);
+      border-top-color:#BC13FE;border-radius:50%;flex:0 0 auto;
+      animation:heroSpin .8s linear infinite;}
+    .hero-busy-text{font-family:var(--font-sans);font-weight:600;line-height:1.4;
+      font-size:calc(14 * var(--hero-btn-u));color:#ffffff;white-space:nowrap;}
+    /* The extension draws a bar on the wipe's edge so the change is legible when before
+       and after are the same size on screen. Row B has had one since it was built; this
+       is the hero's, wired the same way — hidden until the reveal, then travelling with
+       the clip edge over the same 1.4s. */
+    .hero-wipe{position:absolute;inset:0;z-index:3;display:none;
+      overflow:hidden;pointer-events:none;}
+    .hero-wipe--on{display:block;}
+    /* Travels by transform rather than left. box-shadow is not composited, so animating
+       a layout property repaints the glow every frame across the figure's width and it
+       visibly stutters; a transform puts the bar on its own layer and the shadow is
+       rasterised once. --x is the fraction of the figure it has crossed. */
+    .hero-wipe-bar{position:absolute;top:0;bottom:0;left:0;
+      width:calc(3 * var(--hero-u));background:#BC13FE;
+      --x:0%;transform:translateX(calc(var(--x) - 50%));
+      pointer-events:none;will-change:transform;
+      box-shadow:0 0 calc(12 * var(--hero-u)) rgba(188,19,254,0.9);}
+    .hero-wipe--on .hero-wipe-bar{transition:transform 1.4s ease;}
+  @keyframes heroSpin{to{transform:rotate(360deg);}}
+    /* The extension's editor puts four buttons on one row under the image: Back and
+       Refresh at the left, Upscale beside Clip at the right. The bar spans the figure so
+       the two groups sit at its edges, and Clip stays where it always was — which is why
+       the cursor still finds it by measuring rather than by a fixed number. */
+    .hero-overlay-bar{position:absolute;top:calc(100% + 12 * var(--hero-btn-u));
+      left:0;right:0;display:flex;align-items:center;justify-content:space-between;}
+    .hero-overlay-bar-left,
+    .hero-overlay-bar-right{display:inline-flex;align-items:center;
+      gap:calc(8 * var(--hero-btn-u));}
+
+    .hero-overlay-act{position:static;
+      display:inline-flex;align-items:center;gap:calc(5 * var(--hero-btn-u));
+      padding:calc(6 * var(--hero-btn-u)) calc(11 * var(--hero-btn-u));
+      background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--hero-btn-u));
+      font-family:var(--font-sans);font-weight:600;line-height:1.4;
+      font-size:calc(11 * var(--hero-btn-u));color:#f0f0f0;white-space:nowrap;
+      opacity:1;transition:opacity .35s ease;}
+    /* Back, Refresh and Upscale are shown but not used by the demo. The extension greys
+       a button it cannot act on rather than hiding it, so the row keeps its shape. */
+    .hero-overlay-act--ghost{background:#333333;border-color:#555555;opacity:.55;}
+    /* Every bottom-bar icon is white, ghost or not — the extension's Clip icon is white
+       too. The landing SVGs ship at #E200FF for the Row B cards, which are unfiltered;
+       here the filter overrides that. */
+    .hero-overlay-act img{width:calc(11 * var(--hero-btn-u));
+      height:calc(11 * var(--hero-btn-u));display:block;filter:brightness(0) invert(1);}
+    /* Back and Refresh are only meaningful once something has been done to the image:
+       the extension shows them when there is history. They start hidden and fade in when
+       the wipe lands. visibility rather than display, so the bar's layout — and Clip's
+       position, which the cursor measures — never moves. */
+    .hero-overlay-act--late{opacity:0;visibility:hidden;
+      transition:opacity .35s ease,visibility 0s linear .35s;}
+    .hero-overlay-act--late.hero-overlay-act--in{opacity:.55;visibility:visible;
+      transition:opacity .35s ease,visibility 0s;}
+  /* Sits opposite the action button, on the same line above the image. The two share
+     the 12-unit offset so they stay level however the buttons are scaled. */
+  .hero-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--hero-btn-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--hero-btn-u));}
+  .hero-tool{display:inline-flex;align-items:center;justify-content:center;
+    width:calc(27 * var(--hero-btn-u));height:calc(27 * var(--hero-btn-u));
+    background:#333333;border:1px solid #555555;border-radius:calc(6 * var(--hero-btn-u));
+    transition:background .15s ease,border-color .15s ease;}
+  /* The filter is on the base rule, not just the active one: it forces any source SVG
+     to white, so the icon shows whatever colours the file happens to carry. On a white
+     button a light-stroked icon was invisible. */
+  .hero-tool img{width:calc(12 * var(--hero-btn-u));height:calc(12 * var(--hero-btn-u));
+    display:block;filter:brightness(0) invert(1);}
+  .hero-tool--on{background:#BC13FE;border-color:transparent;}
+  .hero-hint{margin-left:calc(6 * var(--hero-btn-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--hero-btn-u));color:#ffffff;white-space:nowrap;}
+  .hero-hint--off{display:none;}
+  .hero-overlay-act--hover{background:#BC13FE;border-color:transparent;}
+  .hero-overlay-act--press{background:#8A8A8E;border-color:transparent;}
+  /* The last leg of the cursor's travel is slower than its usual .75s so the drift to
+     the canvas reads as unhurried. It deliberately outlasts the 1.4s pull-back: the
+     camera settles first and the pointer keeps gliding. */
+  /* 1.4s to match the zoom-out. The two start together at 7000 — heroClipDone fires the
+     camera and sends the cursor to the canvas in the same tick — and now they finish
+     together too, at 8400. */
+  .hero-cursor--slow{transition:transform 1.4s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  .hero-toast{position:absolute;z-index:4;
+    top:calc(10 * var(--hero-btn-u));right:calc(10 * var(--hero-btn-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--hero-btn-u));
+    padding:calc(6 * var(--hero-btn-u)) calc(11 * var(--hero-btn-u));
+    background:#BC13FE;border:1px solid #BC13FE;border-radius:999px;
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--hero-btn-u));color:#f0f0f0;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .hero-toast img{width:calc(11 * var(--hero-btn-u));height:calc(11 * var(--hero-btn-u));display:block;
+    filter:brightness(0) invert(1);}
+  .hero-toast--in{opacity:1;}
+  .hero-marquee{position:absolute;left:0;top:0;width:0;height:0;display:none;z-index:1;
+    border:1px solid #BC13FE;background:rgba(188,19,254,.18);pointer-events:none;}
+  .hero-marquee--on{display:block;}
+
+  /* ── Row B — step cards + an empty mockup slot ──
+     The card rules are the ones Row A used before its rebuild, renamed to rowB-*. */
+  .rowB-cards{display:flex;flex-direction:column;gap:10px;width:100%;}
+  .rowB-card{display:flex;align-items:flex-start;gap:14px;width:100%;
+    padding:16px 18px;border-radius:12px;background:transparent;
+    border:none;border-left:3px solid transparent;
+    text-align:left;font:inherit;cursor:pointer;outline:none;
+    -webkit-appearance:none;appearance:none;
+    transition:background .15s ease,border-color .15s ease;}
+  .rowB-card--active{background:var(--accent-06);border-left-color:#BC13FE;}
+  .rowB-card-icon{flex-shrink:0;width:40px;height:40px;border-radius:10px;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:var(--surface-subtle);border:1px solid var(--border);
+    transition:background .15s ease,border-color .15s ease;}
+  .rowB-card--active .rowB-card-icon{background:var(--accent-10);border-color:var(--accent-20);}
+  .rowB-card-icon img{width:22px;height:22px;display:block;object-fit:contain;}
+  .rowB-card-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .rowB-card-title{font-family:var(--font-display);font-weight:700;font-size:18px;
+    letter-spacing:-0.01em;color:var(--ink-strong);}
+  .rowB-card-desc{font-size:14.5px;line-height:1.45;color:var(--ink-muted);}
+  /* Row D's cards. Row B's shape without the button: nothing here is clickable, so the
+     active rule, the pointer cursor, the transitions and the 3px left border that marked
+     the active card are all gone. Plain pixels, as Row B's are — --rowD-basis lives
+     inside the sidepanel window and does not reach this column. */
+  /* Percentages, not cqw: border-radius belongs to this element, so its own container
+     units resolve against an ancestor instead — the corner came out 17px on mobile and
+     61 on desktop. The pair is horizontal / vertical and each resolves against its own
+     axis, so both come from dividing the 12px they had on desktop: 12/195 across and
+     12/220 down. Written the other way round they made an ellipse. */
+  .rowD-clip-card{border-radius:6.15% / 5.45%;}
+  .rowD-cards{display:flex;flex-direction:column;gap:10px;width:100%;}
+  .rowD-card{display:flex;align-items:center;gap:14px;width:100%;
+    padding:16px 0;border-radius:12px;background:transparent;text-align:left;}
+  .rowD-card-icon{flex-shrink:0;width:40px;height:40px;border-radius:10px;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:var(--surface-subtle);border:1px solid var(--border);}
+  .rowD-card-icon img{width:22px;height:22px;display:block;object-fit:contain;}
+  .rowD-card-text{min-width:0;}
+  .rowD-card-title{font-family:var(--font-display);font-weight:700;font-size:18px;
+    letter-spacing:-0.01em;color:var(--ink-strong);}
+  .rowD-card-desc{font-size:18px;line-height:1.45;color:var(--ink-muted);}
+  #inspireList svg{width:20px;height:20px;display:block;}
+  /* The bare label is the mobile one; the media block below swaps which is shown. */
+  .rowC-item-label-bare{display:none;}
+  .rowC-active-desc{display:none;}
+  /* 591/440 rather than the Figma frame's 593/434: at --container-max the 1.25fr column
+     is 591px and Row A stands 440 tall, so this makes the two rows match exactly at any
+     viewport of 1200px or more, where the container is capped. Below that Row A's height
+     comes from its text wrapping and cannot be tracked by a ratio; the rows diverge until
+     820px, where everything stacks. The extra ~7px over the Figma height goes to the
+     gallery, which is flex:1, and its 1fr rows pass it to the tiles. --rowB-u stays
+     width-based, so the header, sidebar and icons keep their size. */
+  .rowB-mockup-wrap{position:relative;width:100%;align-self:stretch;height:470px;}
+  .rowB-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+    container-type:inline-size;--rowB-u:calc(100cqw / 593);
+    background:#DFDFDF;border-top:1px solid #E6E7EB;border-right:1px solid #E6E7EB;
+    border-radius:calc(3 * var(--rowB-u));box-shadow:0 0 calc(4 * var(--rowB-u)) 0 rgba(0,0,0,.25);}
+  .rowB-header{display:flex;align-items:center;gap:calc(6 * var(--rowB-u));width:100%;
+    height:calc(30 * var(--rowB-u));flex-shrink:0;
+    padding:calc(6 * var(--rowB-u)) calc(18 * var(--rowB-u)) calc(6 * var(--rowB-u)) calc(10 * var(--rowB-u));}
+  .rowB-header .browser-traffic{height:calc(18 * var(--rowB-u));gap:calc(5 * var(--rowB-u));
+    padding:0 calc(6 * var(--rowB-u)) 0 0;border-radius:0 0 calc(4 * var(--rowB-u)) 0;}
+  .rowB-header .browser-dot{width:calc(8 * var(--rowB-u));height:calc(8 * var(--rowB-u));}
+  .rowB-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding:0 calc(23 * var(--rowB-u)) 0 calc(10 * var(--rowB-u));
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--rowB-u));}
+  .rowB-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--rowB-u));
+    border-radius:calc(10 * var(--rowB-u));background:#DEE1E6;}
+  .rowB-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(18 * var(--rowB-u));height:calc(18 * var(--rowB-u));
+    padding:calc(2 * var(--rowB-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--rowB-u));}
+  .rowB-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  .rowB-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
+    background:var(--surface);border-radius:calc(8 * var(--rowB-u));}
+  .rowB-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    width:calc(30 * var(--rowB-u));gap:calc(24 * var(--rowB-u));
+    padding-top:calc(16 * var(--rowB-u));border-right:0.5px solid #C8C8C0;}
+  .rowB-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
+  .rowB-sidebar-icon{display:block;object-fit:contain;}
+  .rowB-sidebar-icon--home{width:calc(10 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
+  .rowB-sidebar-icon--category{width:calc(11 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
+  .rowB-sidebar-icon--add{width:calc(10 * var(--rowB-u));height:calc(10 * var(--rowB-u));}
+  .rowB-sidebar-icon--notification{width:calc(10 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
+  .rowB-sidebar-icon--message{width:calc(12 * var(--rowB-u));height:calc(12 * var(--rowB-u));}
+  .rowB-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    gap:calc(10 * var(--rowB-u));padding:calc(10 * var(--rowB-u));flex:1;min-width:0;height:100%;
+    background:var(--surface);border-radius:0 calc(14 * var(--rowB-u)) 0 0;}
+  .rowB-tile{position:relative;border-radius:calc(8 * var(--rowB-u));overflow:hidden;
+    background:var(--surface-key);}
+  .rowB-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .rowB-tile--dim{opacity:.5;}
+  .rowB-tile--tall{grid-row:span 2;}
+  .rowB-tile{transition:box-shadow .25s ease,opacity .25s ease;}
+  .rowB-tile--hot{opacity:1;box-shadow:0 0 calc(13 * var(--rowB-u)) 0 var(--accent-bright);}
+  .rowB-cursor{position:absolute;left:0;top:0;z-index:3;pointer-events:none;
+    width:calc(26 * var(--rowB-u));height:calc(26 * var(--rowB-u));opacity:0;
+    transition:transform .75s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  .rowB-cursor--on{opacity:1;}
+  .rowB-cursor img{width:100%;height:100%;display:block;}
+  .rowB-tip{position:absolute;left:calc(18 * var(--rowB-u));top:calc(-20 * var(--rowB-u));
+    display:inline-flex;align-items:center;white-space:nowrap;
+    padding:calc(4 * var(--rowB-u)) calc(8 * var(--rowB-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--rowB-u));
+    font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
+    font-size:calc(11 * var(--rowB-u));
+    opacity:0;transition:opacity .3s ease;}
+  .rowB-tip--in{opacity:1;transition:none;}
+  .rowB-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;
+    justify-content:center;background:rgba(0,0,0,0.82);
+    opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .rowB-overlay--on{opacity:1;}
+  .rowB-overlay-figure{position:relative;display:flex;margin:0;
+    max-width:62%;max-height:64%;
+    -webkit-user-select:none;user-select:none;}
+  .rowB-overlay-figure img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
+  .rowB-overlay-img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;
+    object-fit:contain;}
+  .rowB-overlay-after{position:absolute;left:0;top:0;width:100%;height:100%;display:block;
+    object-fit:contain;z-index:2;
+    clip-path:inset(0 0 0 100%);-webkit-clip-path:inset(0 0 0 100%);
+    transition:clip-path 1.4s ease,-webkit-clip-path 1.4s ease;}
+  .rowB-overlay-after--in{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0);}
+  .rowB-overlay-after--alpha{background-color:#ffffff;
+    background-image:
+      linear-gradient(45deg,#d8d8d8 25%,transparent 25%,transparent 75%,#d8d8d8 75%),
+      linear-gradient(45deg,#d8d8d8 25%,transparent 25%,transparent 75%,#d8d8d8 75%);
+    background-size:calc(10 * var(--rowB-u)) calc(10 * var(--rowB-u));
+    background-position:0 0,calc(5 * var(--rowB-u)) calc(5 * var(--rowB-u));}
+  .rowB-overlay-btn{position:absolute;right:0;bottom:calc(100% + 12 * var(--rowB-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));
+    padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
+    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
+    transition:background .15s ease,border-color .15s ease;}
+  .rowB-overlay-btn img{width:calc(11 * var(--rowB-u));height:calc(11 * var(--rowB-u));display:block;
+    filter:brightness(0) invert(1);}
+  .rowB-overlay-btn--hover{background:#BC13FE;border-color:transparent;}
+  /* --press must sit after --hover: the cursor is still on the button while it is
+     held down, so both classes are present and the later rule has to win.
+     border-color rather than border:none, so the box does not shrink by 2px on press. */
+  .rowB-overlay-btn--press{background:#8A8A8E;border-color:transparent;}
+    /* The extension dims the whole stage while a model runs and captions the ring, so the
+       pause explains itself. The overlay covers the figure rather than the image, which is
+       the same box here. */
+    .rowB-busy{position:absolute;inset:0;z-index:3;display:none;
+      flex-direction:column;align-items:center;justify-content:center;
+      gap:calc(14 * var(--rowB-u));
+      background:rgba(0,0,0,0.45);pointer-events:none;}
+    .rowB-busy--on{display:flex;}
+    .rowB-busy-ring{width:calc(28 * var(--rowB-u));height:calc(28 * var(--rowB-u));
+      border:calc(3 * var(--rowB-u)) solid rgba(255,255,255,0.2);
+      border-top-color:#BC13FE;border-radius:50%;flex:0 0 auto;
+      animation:heroSpin .8s linear infinite;}
+    .rowB-busy-text{font-family:var(--font-sans);font-weight:600;line-height:1.4;
+      font-size:calc(14 * var(--rowB-u));color:#ffffff;white-space:nowrap;}
+    /* The extension's editor puts four buttons on one row under the image: Back and
+       Refresh at the left, Upscale beside Clip at the right. The bar spans the figure so
+       the two groups sit at its edges, and Clip stays where it always was — which is why
+       the cursor still finds it by measuring rather than by a fixed number. */
+    .rowB-overlay-bar{position:absolute;top:calc(100% + 12 * var(--rowB-u));
+      left:0;right:0;display:flex;align-items:center;justify-content:space-between;}
+    .rowB-overlay-bar-left,
+    .rowB-overlay-bar-right{display:inline-flex;align-items:center;
+      gap:calc(8 * var(--rowB-u));}
+
+    .rowB-overlay-act{position:static;
+      display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));
+      padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
+      background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
+      font-family:var(--font-sans);font-weight:600;line-height:1.4;
+      font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
+      opacity:1;transition:opacity .35s ease;}
+    /* Back, Refresh and Upscale are shown but not used by the demo. The extension greys
+       a button it cannot act on rather than hiding it, so the row keeps its shape. */
+    .rowB-overlay-act--ghost{background:#333333;border-color:#555555;opacity:.55;}
+    /* The hero has these for Clip; Row B never got them because nothing pressed a bar
+       button until the upscale card. */
+    .rowB-overlay-act--hover{background:#BC13FE;border-color:transparent;}
+    .rowB-overlay-act--press{background:#8A8A8E;border-color:transparent;}
+    /* Every bottom-bar icon is white, ghost or not — the extension's Clip icon is white
+       too. The landing SVGs ship at #E200FF for the Row B cards, which are unfiltered;
+       here the filter overrides that. */
+    .rowB-overlay-act img{width:calc(11 * var(--rowB-u));
+      height:calc(11 * var(--rowB-u));display:block;filter:brightness(0) invert(1);}
+    /* Back and Refresh are only meaningful once something has been done to the image:
+       the extension shows them when there is history. They start hidden and fade in when
+       the wipe lands. visibility rather than display, so the bar's layout — and Clip's
+       position, which the cursor measures — never moves. */
+    .rowB-overlay-act--late{opacity:0;visibility:hidden;
+      transition:opacity .35s ease,visibility 0s linear .35s;}
+    .rowB-overlay-act--late.rowB-overlay-act--in{opacity:.55;visibility:visible;
+      transition:opacity .35s ease,visibility 0s;}
+  .rowB-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--rowB-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));}
+  .rowB-tool{display:inline-flex;align-items:center;justify-content:center;
+    width:calc(27 * var(--rowB-u));height:calc(27 * var(--rowB-u));
+    background:#333333;border:1px solid #555555;border-radius:calc(6 * var(--rowB-u));
+    transition:background .15s ease,border-color .15s ease;}
+  .rowB-tool img{width:calc(12 * var(--rowB-u));height:calc(12 * var(--rowB-u));
+    display:block;filter:brightness(0) invert(1);}
+  .rowB-tool--on{background:#BC13FE;border-color:transparent;}
+  .rowB-hint{margin-left:calc(6 * var(--rowB-u));
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--rowB-u));color:#ffffff;white-space:nowrap;}
+  .rowB-hint--off{display:none;}
+  .rowB-slider-clip{position:absolute;inset:0;z-index:3;display:none;
+    overflow:hidden;pointer-events:none;}
+  .rowB-slider-handle{position:absolute;top:0;bottom:0;left:0;
+    width:calc(2 * var(--rowB-u));background:var(--accent-bright);
+    transform:translateX(-50%);display:flex;pointer-events:none;
+    align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.5);}
+  .rowB-slider-knob{flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    width:calc(30 * var(--rowB-u));height:calc(30 * var(--rowB-u));border-radius:50%;
+    background:#fff;border:calc(1.5 * var(--rowB-u)) solid var(--accent-bright);
+    box-shadow:0 calc(3 * var(--rowB-u)) calc(12 * var(--rowB-u)) rgba(207,0,255,.28);
+    color:var(--accent-bright);}
+  .rowB-slider-knob svg{width:calc(13 * var(--rowB-u));height:calc(13 * var(--rowB-u));display:block;}
+  .rowB-slider-knob svg + svg{margin-left:calc(-6 * var(--rowB-u));}
+  .rowB-chrome--live{cursor:url("/assets/landing/icons/rowB/icon_cursor_24.svg") 2 1, auto;}
+  .rowB-overlay--live{pointer-events:auto;}
+  .rowB-overlay--live .rowB-overlay-figure{cursor:ew-resize;touch-action:none;}
+  .rowB-overlay--live .rowB-overlay-btn,
+  .rowB-overlay--live .rowB-overlay-act{cursor:url("/assets/landing/icons/rowB/icon_cursor_24.svg") 2 1, auto;}
+  .rowB-overlay--live .rowB-overlay-after{transition:none;will-change:clip-path;}
+  .rowB-overlay--live .rowB-slider-clip{display:block;}
+  .rowB-slider-clip--wipe{display:block;}
+  .rowB-slider-clip--wipe .rowB-slider-knob{display:none;}
+  .rowB-slider-clip--wipe .rowB-slider-handle{transition:left 1.4s ease;}
+    /* Matches the hero's bar and the extension's: 3 units of #BC13FE with a purple glow.
+       Only in the wipe state — the same element is the handle the visitor drags in live
+       mode, and that keeps its own look. */
+    .rowB-slider-clip--wipe .rowB-slider-handle{
+      width:calc(3 * var(--rowB-u));background:#BC13FE;
+      box-shadow:0 0 calc(12 * var(--rowB-u)) rgba(188,19,254,0.9);
+      will-change:left;}
+  .rowB-marquee{position:absolute;left:0;top:0;width:0;height:0;display:none;z-index:1;
+    border:1px solid #BC13FE;background:rgba(188,19,254,.18);pointer-events:none;}
+  .rowB-marquee--on{display:block;}
+
+  /* ── Copy demo — Instant figure (#firstCopyDemo), between Row A and Row B ── */
+  .copyDemo-figure{position:relative;display:grid;grid-template-columns:minmax(0,1.41fr) minmax(0,1fr);gap:16px;margin:0 0 24px;}
+  .copyDemo-browser,
+  .copyDemo-canvas{min-width:0;width:100%;aspect-ratio:593/434;position:relative;overflow:hidden;
+    border:1px solid var(--border);border-radius:var(--radius-lg);}
+  .copyDemo-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+    container-type:inline-size;--copyDemo-u:calc(100cqw / 593);
+    background:#DFDFDF;border-top:1px solid #E6E7EB;
+    border-radius:calc(3 * var(--copyDemo-u));box-shadow:0 0 calc(4 * var(--copyDemo-u)) 0 rgba(0,0,0,.25);}
+  .copyDemo-header{display:flex;align-items:center;gap:calc(6 * var(--copyDemo-u));width:100%;
+    height:calc(30 * var(--copyDemo-u));flex-shrink:0;
+    padding:calc(6 * var(--copyDemo-u)) calc(18 * var(--copyDemo-u)) calc(6 * var(--copyDemo-u)) calc(10 * var(--copyDemo-u));}
+  .copyDemo-traffic{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    height:calc(18 * var(--copyDemo-u));gap:calc(5 * var(--copyDemo-u));
+    padding:0 calc(6 * var(--copyDemo-u)) 0 0;background:#DEE1E6;border-radius:0 0 calc(4 * var(--copyDemo-u)) 0;}
+  .copyDemo-dot{width:calc(8 * var(--copyDemo-u));height:calc(8 * var(--copyDemo-u));border-radius:50%;flex-shrink:0;}
+  .copyDemo-dot--red{background:#FF5F57;}
+  .copyDemo-dot--yellow{background:#FEBC2E;}
+  .copyDemo-dot--green{background:#28C840;}
+  .copyDemo-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding:0 calc(23 * var(--copyDemo-u)) 0 calc(10 * var(--copyDemo-u));
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--copyDemo-u));}
+  .copyDemo-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--copyDemo-u));
+    border-radius:calc(10 * var(--copyDemo-u));background:#DEE1E6;}
+  .copyDemo-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(18 * var(--copyDemo-u));height:calc(18 * var(--copyDemo-u));
+    padding:calc(2 * var(--copyDemo-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--copyDemo-u));}
+  .copyDemo-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  .copyDemo-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
+    background:var(--surface);border-radius:calc(8 * var(--copyDemo-u));}
+  .copyDemo-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    width:calc(30 * var(--copyDemo-u));gap:calc(24 * var(--copyDemo-u));
+    padding-top:calc(16 * var(--copyDemo-u));border-right:0.5px solid #C8C8C0;}
+  .copyDemo-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
+  .copyDemo-sidebar-icon{display:block;object-fit:contain;}
+  .copyDemo-sidebar-icon--home{width:calc(10 * var(--copyDemo-u));height:calc(11 * var(--copyDemo-u));}
+  .copyDemo-sidebar-icon--category{width:calc(11 * var(--copyDemo-u));height:calc(11 * var(--copyDemo-u));}
+  .copyDemo-sidebar-icon--add{width:calc(10 * var(--copyDemo-u));height:calc(10 * var(--copyDemo-u));}
+  .copyDemo-sidebar-icon--notification{width:calc(10 * var(--copyDemo-u));height:calc(11 * var(--copyDemo-u));}
+  .copyDemo-sidebar-icon--message{width:calc(12 * var(--copyDemo-u));height:calc(12 * var(--copyDemo-u));}
+  .copyDemo-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    gap:calc(10 * var(--copyDemo-u));padding:calc(10 * var(--copyDemo-u));flex:1;min-width:0;height:100%;
+    background:var(--surface);border-radius:0 calc(14 * var(--copyDemo-u)) 0 0;}
+  .copyDemo-tile{position:relative;border-radius:calc(8 * var(--copyDemo-u));overflow:hidden;
+    background:var(--surface-key);transition:box-shadow .25s ease;}
+  .copyDemo-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .copyDemo-tile--hot{box-shadow:0 0 calc(13 * var(--copyDemo-u)) 0 var(--accent-bright);}
+  .copyDemo-tile--tall{grid-row:span 2;}
+  .copyDemo-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
+    --copyDemo-u:calc((min(1136px, 100vw) - 16px) / 2 / 593);
+    width:calc(26 * var(--copyDemo-u));height:calc(26 * var(--copyDemo-u));opacity:0;
+    transition:transform 1s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  .copyDemo-cursor--on{opacity:1;}
+  .copyDemo-cursor img{width:100%;height:100%;display:block;}
+  .copyDemo-tip{position:absolute;left:calc(18 * var(--copyDemo-u));top:calc(-20 * var(--copyDemo-u));
+    display:inline-flex;align-items:center;white-space:nowrap;
+    padding:calc(4 * var(--copyDemo-u)) calc(8 * var(--copyDemo-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--copyDemo-u));
+    font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
+    font-size:calc(11 * var(--copyDemo-u));
+    opacity:0;transition:opacity .3s ease;}
+  .copyDemo-tip--in{opacity:1;transition:none;}
+  .copyDemo-toast{position:absolute;z-index:4;
+    top:calc(10 * var(--copyDemo-u));right:calc(10 * var(--copyDemo-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--copyDemo-u));
+    padding:calc(6 * var(--copyDemo-u)) calc(11 * var(--copyDemo-u));
+    background:#BC13FE;border:1px solid #BC13FE;border-radius:999px;
+    font-family:var(--font-sans);font-weight:600;line-height:1.4;
+    font-size:calc(11 * var(--copyDemo-u));color:#f0f0f0;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .copyDemo-toast img{width:calc(11 * var(--copyDemo-u));height:calc(11 * var(--copyDemo-u));display:block;
+    filter:brightness(0) invert(1);}
+  .copyDemo-toast--in{opacity:1;}
+  .copyDemo-canvas{display:flex;flex-direction:column;overflow:hidden;
+    container-type:inline-size;--copyDemo-u:calc(100cqw / 593);
+    background:#DFDFDF;}
+  .copyDemo-canvas-header{display:flex;align-items:center;gap:calc(6 * var(--copyDemo-u));width:100%;
+    height:calc(30 * var(--copyDemo-u));flex-shrink:0;
+    padding:calc(6 * var(--copyDemo-u)) calc(18 * var(--copyDemo-u)) calc(6 * var(--copyDemo-u)) calc(10 * var(--copyDemo-u));
+    border-bottom:1px solid #E6E7EB;}
+  .copyDemo-canvas-body{position:relative;flex:1;min-height:0;width:100%;overflow:hidden;background:#000;}
+  .copyDemo-canvas-pan{position:absolute;inset:0;}
+  .copyDemo-paste{position:absolute;left:0;top:0;display:none;width:70%;aspect-ratio:2000/1333;object-fit:contain;}
+  .copyDemo-paste--in{display:block;}
+
+  /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
+  /* No order: the DOM already puts the mockup first, so removing it is what moves the
+     mockup to the left. 545px rather than 100% keeps the panel the size it is now — the
+     column grew from 545 to 591 and the mockup would otherwise have grown with it. The
+     46px left over sits to its right, which suits a panel whose shadow reaches left. */
+  /* An explicit height, not 100%. Row D's height used to come from the fanned cards; with
+     those gone, height:100% resolved against a flex box sized by its tallest child — the
+     346px card — and the row collapsed to that. 551 is the same figure .rowD-scale-wrap
+     multiplies by; the two must move together. */
+  .rowD-mockup-wrap{position:relative;width:380px;height:551px;overflow:hidden;
+    border-radius:0 var(--radius-2xl) 0 0;}
+  /* 0.8 from the top-left. The wrapper keeps its 545x551 box because a transform does
+     not change layout, so the panel simply occupies less of it. container-type is
+     unaffected for the same reason — the cqw units inside keep their values and the
+     contents scale with the window instead of reflowing. */
+  .rowD-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+    background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
+    /* size, not inline-size: the panel is now measured from the window's height, and
+       inline-size only exposes cqw. Safe here because the window is inset:0 inside a
+       fixed 300x551 wrapper, so its size never depends on its contents. */
+    border-radius:0 var(--radius-2xl) 0 0;container-type:size;
+    /* The divisor for every dimension inside. At 545 — this element's own width — the
+       panel renders at 1:1. 681.25 is 545 / 0.8, which shrinks everything inside to
+       four fifths while the window itself stays 545 wide. */
+    --rowD-basis:688.75;}
+  .rowD-viewport{position:relative;display:flex;flex-direction:row;justify-content:flex-end;align-items:flex-start;
+    flex:1;min-height:0;width:100%;gap:calc(6 / var(--rowD-basis) * 100cqh);padding:0 calc(6 / var(--rowD-basis) * 100cqh);overflow:hidden;}
+  .rowD-body{display:flex;flex-direction:column;align-items:flex-end;gap:calc(12 / var(--rowD-basis) * 100cqh);
+    width:calc(520 / var(--rowD-basis) * 100cqh);height:100%;margin-left:calc(-243 / var(--rowD-basis) * 100cqh);padding:calc(12 / var(--rowD-basis) * 100cqh);flex-shrink:0;
+    background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);
+    border-radius:0 calc(8 / var(--rowD-basis) * 100cqh) 0 0;overflow:hidden;}
+  .rowD-topbar{display:flex;align-items:center;width:100%;padding:calc(6 / var(--rowD-basis) * 100cqh) 0;opacity:.3;flex-shrink:0;}
+  .rowD-search{display:flex;align-items:center;justify-content:flex-end;flex:1;height:calc(30 / var(--rowD-basis) * 100cqh);min-width:0;
+    padding:calc(4 / var(--rowD-basis) * 100cqh) calc(12 / var(--rowD-basis) * 100cqh);background:#E5E5E1;border-radius:calc(8 / var(--rowD-basis) * 100cqh);overflow:hidden;}
+  .rowD-search-icon--close{width:calc(8 / var(--rowD-basis) * 100cqh);height:calc(8 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .rowD-gallery{display:flex;gap:calc(10 / var(--rowD-basis) * 100cqh);width:100%;opacity:.3;flex-shrink:0;}
+  .rowD-gallery-col{display:flex;flex-direction:column;gap:calc(10 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
+  .rowD-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:calc(8 / var(--rowD-basis) * 100cqh);overflow:hidden;flex-shrink:0;}
+  .rowD-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:calc(8 / var(--rowD-basis) * 100cqh);}
+  .rowD-sidepanel{display:flex;flex-direction:column;width:calc(320 / var(--rowD-basis) * 100cqh);height:100%;flex-shrink:0;
+    padding:calc(13.85 / var(--rowD-basis) * 100cqh) calc(8.31 / var(--rowD-basis) * 100cqh) 0;background:var(--surface);border-top:1.39px solid var(--border);
+    border-left:1.39px solid var(--border);border-right:1.39px solid var(--border);
+    border-radius:calc(11.08 / var(--rowD-basis) * 100cqh) calc(11.08 / var(--rowD-basis) * 100cqh) 0 0;overflow:hidden;
+    font-family:'Instrument Sans',var(--font-sans);}
+  .sidepanel-top{display:flex;flex-direction:column;gap:calc(13.85 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .sidepanel-header{display:flex;align-items:center;gap:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-logo{display:flex;align-items:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
+  .sidepanel-logo-icon{width:calc(16.62 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;object-fit:contain;flex-shrink:0;}
+  .sidepanel-logo-name{font-weight:700;font-size:calc(11.08 / var(--rowD-basis) * 100cqh);line-height:1.2;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-ctrl{display:flex;align-items:center;gap:calc(11.08 / var(--rowD-basis) * 100cqh);flex-shrink:0;height:calc(6.93 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-ctrl-icon{display:block;flex-shrink:0;}
+  .sidepanel-ctrl-icon--pin{width:calc(6.93 / var(--rowD-basis) * 100cqh);height:calc(6.93 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-ctrl-icon--close{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(5.54 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-section{display:flex;flex-direction:column;gap:calc(6.93 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-profile{display:flex;align-items:flex-end;justify-content:space-between;padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);width:100%;}
+  .sidepanel-profile-user{display:flex;align-items:center;gap:calc(5.54 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .sidepanel-profile-avatar{width:calc(23.55 / var(--rowD-basis) * 100cqh);height:calc(23.55 / var(--rowD-basis) * 100cqh);border-radius:50%;overflow:hidden;flex-shrink:0;
+    border:0.42px solid rgba(115,122,136,.3);}
+  .sidepanel-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
+  .sidepanel-profile-name{font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1.2;color:#737A88;opacity:.7;white-space:nowrap;}
+  .sidepanel-profile-signout{display:flex;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
+  .sidepanel-signout-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;}
+  .sidepanel-clip{display:flex;flex-direction:column;width:100%;}
+  .sidepanel-clip-row{display:flex;align-items:center;justify-content:space-between;
+    height:calc(33.25 / var(--rowD-basis) * 100cqh);padding:calc(6.93 / var(--rowD-basis) * 100cqh) calc(5.54 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) calc(9.7 / var(--rowD-basis) * 100cqh);}
+  /* 500 and #6b7280 are the extension's own .sp-setting-label, read from
+     browser-extension/dist/prod/sidepanel.html L418-420. Only the size is scaled down:
+     the real one is 16.62px against this mockup's 9.7px. */
+  .sidepanel-clip-row-label{font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#6b7280;white-space:nowrap;}
+  .sidepanel-clip-row-value{display:flex;align-items:center;gap:calc(2.77 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .sidepanel-kbd{display:flex;align-items:center;justify-content:center;
+    padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);
+    font-weight:600;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#737A88;white-space:nowrap;}
+  .sidepanel-clip-sep{width:100%;height:0.42px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
+  .sidepanel-size-toggle{display:flex;align-items:center;justify-content:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);
+    width:calc(65.11 / var(--rowD-basis) * 100cqh);padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-size-value{flex:1;font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;letter-spacing:-0.69px;
+    color:#737A88;text-align:center;white-space:nowrap;}
+  .sidepanel-chevron{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(2.77 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .sidepanel-main{display:flex;flex-direction:column;width:calc(303.38 / var(--rowD-basis) * 100cqh);flex:1;min-height:0;overflow:hidden;
+    background:var(--surface-ios);border-top:1.39px solid rgba(0,0,0,.2);}
+  .sidepanel-directory{display:flex;align-items:center;gap:calc(8.31 / var(--rowD-basis) * 100cqh);width:100%;padding:calc(6.93 / var(--rowD-basis) * 100cqh) calc(5.54 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);
+    background:#F5F5F5;border-bottom:0.69px solid rgba(0,0,0,.2);flex-shrink:0;}
+  .sidepanel-directory-bar{display:flex;align-items:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;
+    padding:calc(5.54 / var(--rowD-basis) * 100cqh) calc(9.7 / var(--rowD-basis) * 100cqh);background:#F6EBF7;border:1.39px solid var(--accent-bright);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);}
+  .sidepanel-directory-icon{width:calc(12.47 / var(--rowD-basis) * 100cqh);height:calc(11.08 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .sidepanel-directory-name{font-weight:500;font-size:calc(11.08 / var(--rowD-basis) * 100cqh);line-height:1.2;letter-spacing:0.39px;
+    color:var(--accent-bright);white-space:nowrap;}
+    /* v1.5.6 moved bulk saving into the directory bar. The button and the dropdown
+       together are exactly as wide as the dropdown alone used to be, so the folder pill
+       beside them keeps the space it had. */
+    .sidepanel-directory-group{display:flex;align-items:center;flex-shrink:0;
+      gap:calc(2.89 / var(--rowD-basis) * 100cqh);
+      width:calc(65.11 / var(--rowD-basis) * 100cqh);}
+    .sidepanel-download-btn{display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;width:calc(20.26 / var(--rowD-basis) * 100cqh);
+      height:calc(20.26 / var(--rowD-basis) * 100cqh);}
+    .sidepanel-download-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);
+      height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;}
+  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:calc(1.45 / var(--rowD-basis) * 100cqh);
+    width:calc(41.96 / var(--rowD-basis) * 100cqh);height:100%;padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(2.89 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
+  .sidepanel-directory-file-type{flex:1;font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1.2;
+    letter-spacing:-0.34px;color:#737A88;text-align:center;white-space:nowrap;}
+  .sidepanel-gallery{display:flex;flex-direction:column;width:100%;flex:1;min-height:0;overflow:hidden;}
+  .sidepanel-gallery-top{display:flex;align-items:center;justify-content:flex-end;gap:calc(6.93 / var(--rowD-basis) * 100cqh);
+    padding:calc(5.54 / var(--rowD-basis) * 100cqh) calc(11.08 / var(--rowD-basis) * 100cqh);opacity:.2;flex-shrink:0;}
+  .sidepanel-delete-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(15.24 / var(--rowD-basis) * 100cqh);display:block;}
+  .sidepanel-gallery-row{display:flex;flex-direction:column;width:100%;flex-shrink:0;}
+  .sidepanel-gallery-time{display:flex;align-items:center;justify-content:center;gap:calc(11.08 / var(--rowD-basis) * 100cqh);
+    height:calc(22.16 / var(--rowD-basis) * 100cqh);padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);opacity:.3;flex-shrink:0;}
+  .sidepanel-gallery-time-line{flex:1;height:0;border-top:0.69px solid rgba(0,0,0,.25);}
+  .sidepanel-gallery-time-label{font-weight:500;font-size:calc(8.31 / var(--rowD-basis) * 100cqh);line-height:1.7;color:var(--ink-strong);white-space:nowrap;}
+  .sidepanel-gallery-grid{display:flex;flex-wrap:wrap;gap:calc(2.77 / var(--rowD-basis) * 100cqh);padding:0 calc(1.39 / var(--rowD-basis) * 100cqh);width:100%;}
+  .sidepanel-card{display:flex;flex-direction:column;width:calc(98.35 / var(--rowD-basis) * 100cqh);height:calc(110.82 / var(--rowD-basis) * 100cqh);flex-shrink:0;
+    background:var(--surface);border-radius:calc(2.77 / var(--rowD-basis) * 100cqh);overflow:visible;position:relative;}
+  .sidepanel-card--active{border:1.39px solid var(--accent-bright);
+    box-shadow:0 2.77px 5.54px 0 rgba(0,0,0,.25);}
+  .sidepanel-card--dim{border:1.39px solid var(--border-strong);}
+  .sidepanel-card-header{display:flex;align-items:center;height:calc(18.01 / var(--rowD-basis) * 100cqh);width:100%;flex-shrink:0;}
+  .sidepanel-card-header-link{display:flex;align-items:center;justify-content:center;
+    width:calc(18.01 / var(--rowD-basis) * 100cqh);height:calc(18.01 / var(--rowD-basis) * 100cqh);background:var(--accent-bright);flex-shrink:0;}
+  .sidepanel-card-link-icon{width:calc(8.31 / var(--rowD-basis) * 100cqh);height:calc(8.31 / var(--rowD-basis) * 100cqh);display:block;}
+  .sidepanel-card-header-meta{display:flex;align-items:center;gap:calc(13.85 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;
+    padding:calc(2.77 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) 0 calc(2.77 / var(--rowD-basis) * 100cqh);height:100%;}
+  .sidepanel-card-meta-line{font-weight:700;font-size:calc(6.93 / var(--rowD-basis) * 100cqh);line-height:1.8;color:var(--accent-bright);white-space:nowrap;}
+  .sidepanel-card-meta-btn{display:flex;align-items:center;justify-content:flex-end;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
+  .sidepanel-card-copy-icon{width:calc(8.31 / var(--rowD-basis) * 100cqh);height:calc(8.31 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .sidepanel-card-cancel-icon{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(5.54 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
+  .sidepanel-card-header--dim{padding:calc(2.77 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) 0;}
+  .sidepanel-card-thumb{flex:1;min-height:0;width:100%;overflow:hidden;position:relative;}
+  .sidepanel-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .sidepanel-card-pointer{position:absolute;left:74.65%;top:calc(calc(18.01 / var(--rowD-basis) * 100cqh) + calc(48.48 / var(--rowD-basis) * 100cqh));width:calc(24.94 / var(--rowD-basis) * 100cqh);height:calc(24.94 / var(--rowD-basis) * 100cqh);
+    transform:translateY(-50%);pointer-events:none;z-index:2;}
+
+  /* ── Row B — browser mockup shell (responsive; cqw basis = Figma 1× frame 645px) ── */
+  #inspirePanes{flex:1;min-height:0;}
+  /* Hovering a mockup hands control to the visitor: the built-in active tile and its
+     pointer step aside, and the frame takes the same cursor the hero's live mode uses.
+     Both the glow and the pointer are addressed by class rather than removed from the
+     DOM, so leaving restores them with nothing to rebuild. */
+  #inspirePanes.inspire-hover{cursor:url("/assets/landing/icons/hero/icon_cursor_24.svg") 2 1, auto;}
+  #inspirePanes.inspire-hover .mock-pointer{display:none;}
+  /* :not(:hover) on the tile that OWNS the glow, not on the glowing element itself: in
+     YouTube and Instagram the glow sits on a child, so the hover has to be tested on the
+     card. Without this the id in #inspirePanes outweighed the hover rule below and the
+     authored active tile stayed dark when you pointed at it. */
+  #inspirePanes.inspire-hover .yt-video-card:not(:hover) .yt-thumb--glow,
+  #inspirePanes.inspire-hover .yt-short-card:not(:hover) .yt-thumb--glow,
+  #inspirePanes.inspire-hover .ig-feed-card:not(:hover) .ig-feed-thumb--glow,
+  #inspirePanes.inspire-hover .pin-feed-card--glow:not(:hover),
+  #inspirePanes.inspire-hover .vid-screen-video--glow:not(:hover){box-shadow:none;}
+
+  /* Per-tile hover — glow only. Nothing is faded any more, here or at rest: the mockups
+     are meant to read as a real browser, and a real feed does not dim the tiles you are
+     not pointing at. The four sources still need separate selectors because their tiles
+     and glow targets are named differently, and in YouTube and Instagram the glow sits
+     on a CHILD of the tile that receives the hover. */
+  .inspire-hover .yt-video-card:hover .yt-thumb,
+  .inspire-hover .yt-short-card:hover .yt-thumb{box-shadow:0 0 calc(13 / 645 * 100cqw) 0 var(--accent-bright);}
+  .inspire-hover .ig-feed-card:hover .ig-feed-thumb{box-shadow:0 0 calc(20 / 645 * 100cqw) 0 #BC13FE;}
+  .inspire-hover .pin-feed-card:hover{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 #CF00FF;}
+  .inspire-hover .vid-screen-video:hover{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 var(--accent-bright);}
+  .browser-mockup-wrap{width:100%;height:100%;overflow:hidden;background:var(--surface);position:relative;align-self:stretch;}
+  .browser-frame{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;background:#DFDFDF;font-family:var(--font-sans);container-type:inline-size;container-name:ytmock;}
+  /* rowC-header replaces the old two-tier .browser-chrome with Row B's single bar.
+     Every number is Row B's multiplied by 593/645 — its frame width over this one — so
+     the bar renders at the same on-screen size in both mockups. */
+  .rowC-header{display:flex;align-items:center;gap:calc(5.52 / 645 * 100cqw);width:100%;
+    height:calc(27.58 / 645 * 100cqw);flex-shrink:0;
+    padding:calc(5.52 / 645 * 100cqw) calc(16.55 / 645 * 100cqw) calc(5.52 / 645 * 100cqw) calc(9.19 / 645 * 100cqw);}
+  .rowC-header .browser-traffic{height:calc(16.55 / 645 * 100cqw);gap:calc(4.6 / 645 * 100cqw);
+    padding:0 calc(5.52 / 645 * 100cqw) 0 0;border-radius:0 0 calc(3.68 / 645 * 100cqw) 0;
+    background:#DEE1E6;}
+  .rowC-header .browser-dot{width:calc(7.36 / 645 * 100cqw);height:calc(7.36 / 645 * 100cqw);}
+  .rowC-urlbar{display:flex;align-items:center;gap:calc(4.6 / 645 * 100cqw);flex:1;min-width:0;height:100%;
+    padding:0 calc(21.14 / 645 * 100cqw) 0 calc(9.19 / 645 * 100cqw);
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(64.34 / 645 * 100cqw);}
+  .rowC-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(16.55 / 645 * 100cqw);height:calc(16.55 / 645 * 100cqw);
+    padding:calc(1.84 / 645 * 100cqw) 0;background:#E1E1E2;border-radius:calc(18.38 / 645 * 100cqw);}
+  .rowC-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  /* The tab parts were sized for an 11px tab strip; inside a 27.58px urlbar they need to
+     grow. Scoped to .rowC-urlbar so the shared .browser-tab-* rules are untouched. */
+  /* line-height:1 rather than the shared rule's 1.2: this label is always one line, and
+     a taller line box only adds space above and below the glyphs. The bar centres it
+     either way — measured 3.17 above, 3.19 below — so this is about the box hugging the
+     text, not about moving it. */
+  .rowC-urlbar .browser-tab-label{font-size:calc(8 / 645 * 100cqw);color:#5F6267;line-height:1;}
+  .browser-traffic{display:flex;align-items:center;justify-content:center;gap:3px;height:13px;padding:0 4px;background:#DEE1E6;border-radius:0 0 4px 0;flex-shrink:0;}
+  .browser-dot{width:4.5px;height:4.5px;border-radius:50%;flex-shrink:0;}
+  .browser-dot--red{background:#FF5F57;}
+  .browser-dot--yellow{background:#FEBC2E;}
+  .browser-dot--green{background:#28C840;}
+  .browser-tab-platform{display:flex;flex-direction:row;align-items:center;gap:2.5px;flex-shrink:0;}
+  .browser-tab-label{font-family:var(--font-sans);font-size:5px;font-weight:500;color:#000;line-height:1.2;white-space:nowrap;}
+  .yt-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
+  .yt-body{display:flex;flex:1;min-height:0;background:var(--surface);overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
+  .yt-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 0 8px;}
+  .yt-sidebar-menu{width:100%;height:19px;display:flex;align-items:center;justify-content:center;}
+  .yt-sidebar-menu-icon{width:6px;height:5px;display:block;flex-shrink:0;}
+  .yt-sidebar-nav{display:flex;flex-direction:column;align-items:center;gap:11px;width:100%;}
+  .yt-sidebar-item{display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .yt-sidebar-icon{width:8px;height:8px;opacity:.85;display:block;flex-shrink:0;}
+  .yt-sidebar-icon.yt-sidebar-icon--shorts{height:9px;}
+  .yt-sidebar-label{font-size:3.5px;font-weight:600;color:var(--ink-strong);opacity:.7;white-space:nowrap;letter-spacing:-0.02em;}
+  .yt-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(4 / 645 * 100cqw);}
+  .yt-topbar{display:flex;align-items:center;padding:calc(4 / 645 * 100cqw);gap:0;flex-shrink:0;width:100%;}
+  .yt-logo{width:calc(35 / 645 * 100cqw);height:calc(15 / 645 * 100cqw);flex-shrink:0;display:block;}
+  .yt-logo .yt-slot-img{object-position:left center;}
+  .yt-search-wrap{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding-inline:calc(10 / 645 * 100cqw);}
+  .yt-search{display:flex;align-items:stretch;width:100%;max-width:calc(211 / 645 * 100cqw);height:calc(14 / 645 * 100cqw);margin-inline:auto;border:max(1px,calc(0.3 / 645 * 100cqw)) solid #D3D3D3;border-radius:calc(9 / 645 * 100cqw);overflow:hidden;flex-shrink:0;}
+  .yt-search-input{flex:1;display:flex;align-items:center;padding:0 calc(6 / 645 * 100cqw);min-width:0;}
+  .yt-search-input span{font-size:clamp(8px,calc(6 / 645 * 100cqw),12px);color:#757575;letter-spacing:calc(-0.258 / 645 * 100cqw);white-space:nowrap;}
+  .yt-search-btn{width:calc(22 / 645 * 100cqw);background:#F8F8F8;border-left:max(1px,calc(0.3 / 645 * 100cqw)) solid #D3D3D3;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .yt-search-btn svg{width:calc(7 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);stroke:#333;fill:none;stroke-width:2;}
+  .yt-topbar-right{width:calc(80 / 645 * 100cqw);flex-shrink:0;}
+  .yt-chips{display:flex;align-items:center;gap:calc(4 / 645 * 100cqw);padding:0 calc(8 / 645 * 100cqw);overflow:hidden;flex-shrink:0;min-height:calc(11 / 645 * 100cqw);width:100%;}
+  .yt-chip{display:flex;align-items:center;justify-content:center;padding:calc(3 / 645 * 100cqw) calc(4 / 645 * 100cqw);border-radius:calc(2.5 / 645 * 100cqw);font-size:clamp(8px,calc(4.5 / 645 * 100cqw),10px);font-weight:600;white-space:nowrap;line-height:1;flex-shrink:0;}
+  .yt-chip--active{background:#000;color:#fff;}
+  .yt-chip--idle{background:#EAEAEA;color:var(--ink-strong);}
+  .yt-feed{flex:1;min-height:0;display:flex;flex-direction:column;gap:calc(12 / 645 * 100cqw);padding:calc(12 / 645 * 100cqw) calc(8 / 645 * 100cqw);overflow:hidden;}
+  .yt-videos{display:flex;gap:calc(6 / 645 * 100cqw);flex-shrink:0;width:100%;}
+  .yt-video-card{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(4 / 645 * 100cqw);aspect-ratio:197.33/131;}
+
+  .yt-thumb{position:relative;background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);border-radius:calc(5 / 645 * 100cqw);flex:1;min-height:0;overflow:hidden;}
+  .yt-thumb--glow{box-shadow:0 0 calc(13 / 645 * 100cqw) 0 var(--accent-bright);}
+  .yt-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .yt-thumb--short{flex-shrink:0;aspect-ratio:116/182.29;border-radius:calc(3 / 645 * 100cqw);}
+  .yt-meta{display:flex;gap:calc(3 / 645 * 100cqw);align-items:flex-start;opacity:.5;flex-shrink:0;min-height:calc(16 / 645 * 100cqw);}
+  .yt-meta-avatar{width:calc(13 / 645 * 100cqw);aspect-ratio:1/1;border-radius:50%;background:#2D1A61;flex-shrink:0;}
+  .yt-meta-lines{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(3 / 645 * 100cqw);padding:calc(2 / 645 * 100cqw) 0;justify-content:center;}
+  .yt-meta-line{height:calc(5 / 645 * 100cqw);border-radius:calc(10 / 645 * 100cqw);background:#D7D8DD;}
+  .yt-meta-line--short{width:calc(45 / 645 * 100cqw);height:calc(4 / 645 * 100cqw);}
+  .yt-shorts-section{display:flex;flex-direction:column;gap:calc(6 / 645 * 100cqw);flex-shrink:0;width:100%;}
+  .yt-shorts-label{display:flex;align-items:center;gap:calc(2 / 645 * 100cqw);font-size:clamp(8px,calc(5 / 645 * 100cqw),11px);font-weight:700;color:var(--ink-strong);}
+  .yt-shorts-icon{width:calc(5 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);flex-shrink:0;object-fit:contain;}
+  .yt-shorts{display:flex;gap:calc(6 / 645 * 100cqw);width:100%;}
+  .yt-short-card{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(4 / 645 * 100cqw);aspect-ratio:82/143;}
+
+  /* ── Row B — Instagram-in-browser mockup body (responsive content; fixed sidebar rail) ── */
+  .ig-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
+  .ig-body{display:flex;flex:1;min-height:0;align-items:center;background:#FFFFFF;overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
+  .ig-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:stretch;gap:9px;height:100%;}
+  .ig-logo{width:100%;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-logo .ig-slot-img{width:12px;height:12px;}
+  .ig-sidebar-nav{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;width:100%;}
+  .ig-sidebar-item{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:11px;}
+  .ig-sidebar-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-sidebar-icon--home{width:11px;height:9px;}
+  .ig-sidebar-icon--shorts{width:11px;height:9px;}
+  .ig-sidebar-icon--message{width:11px;height:8px;}
+  .ig-sidebar-icon--search{width:11px;height:9px;}
+  .ig-sidebar-icon--favorite{width:11px;height:8.59px;}
+  .ig-sidebar-icon--add{width:11px;height:9px;}
+  .ig-sidebar-icon--hamburgerbar{width:11px;height:9.67px;}
+  .ig-sidebar-icon--category{width:11px;height:9px;}
+  .ig-profile-avatar{width:10px;height:10px;aspect-ratio:1/1;border:1px solid rgba(217,217,217,.5);border-radius:20px;overflow:hidden;flex-shrink:0;}
+  .ig-profile-avatar .ig-slot-img{width:100%;height:100%;object-fit:cover;border-radius:20px;}
+  .ig-sidebar-footer{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:15px;padding-bottom:20px;opacity:.5;width:100%;flex-shrink:0;}
+  .ig-main{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:hidden;}
+  .ig-feed-card{display:flex;flex-direction:column;width:100%;max-width:223px;aspect-ratio:225/326.063;gap:calc(10 / 645 * 100cqw);padding:calc(6 / 645 * 100cqw) calc(12 / 645 * 100cqw);background:#FFFFFF;flex-shrink:0;box-sizing:border-box;}
+
+  .ig-feed{display:flex;flex-direction:column;align-items:flex-start;gap:calc(12 / 645 * 100cqw);width:100%;flex:1;min-height:0;}
+  .ig-feed-header{display:flex;align-items:center;gap:calc(10 / 645 * 100cqw);padding:0 calc(1 / 645 * 100cqw);width:100%;box-sizing:border-box;flex-shrink:0;}
+  .ig-feed-profile{display:flex;align-items:center;gap:calc(4 / 645 * 100cqw);flex:1;min-width:0;}
+  .ig-feed-profile-avatar{width:18px;height:18px;aspect-ratio:1/1;background:#000000;border-radius:50%;flex-shrink:0;}
+  .ig-feed-profile-lines{display:flex;flex-direction:column;align-items:flex-start;gap:calc(2 / 645 * 100cqw);flex:1;min-width:0;height:calc(16 / 645 * 100cqw);}
+  .ig-feed-profile-line{width:100%;max-width:calc(94 / 645 * 100cqw);height:calc(4 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);flex-shrink:0;}
+  .ig-feed-profile-sub{font-family:var(--font-sans);font-size:clamp(6px,calc(6 / 645 * 100cqw),8px);font-weight:400;color:#000000;line-height:1;width:100%;}
+  .ig-feed-btn{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-shrink:0;overflow:hidden;}
+  .ig-feed-follow{display:flex;align-items:center;justify-content:center;padding:6px 10px;background:#F1F2F5;border-radius:4px;flex-shrink:0;}
+  .ig-feed-follow span{font-family:var(--font-sans);font-size:clamp(6px,calc(7 / 645 * 100cqw),9px);font-weight:600;color:#000000;line-height:1;white-space:nowrap;}
+  .ig-feed-menubar{width:5px;height:1px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-feed-menubar .ig-slot-img{width:5px;height:1px;object-fit:contain;}
+  .ig-feed-thumb{position:relative;width:100%;aspect-ratio:269/336;border-radius:calc(4 / 645 * 100cqw);background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;overflow:hidden;}
+  .ig-feed-thumb--glow{box-shadow:0 0 calc(20 / 645 * 100cqw) 0 #BC13FE;}
+  .ig-feed-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .ig-meta{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:calc(6 / 645 * 100cqw);padding:0 calc(1 / 645 * 100cqw);width:100%;opacity:.3;box-sizing:border-box;flex-shrink:0;}
+
+  .ig-chips-wrap{display:flex;align-items:center;justify-content:space-between;padding:0 calc(1 / 645 * 100cqw);width:100%;box-sizing:border-box;}
+  .ig-chips-left{display:flex;align-items:center;gap:calc(8 / 645 * 100cqw);flex-shrink:0;}
+  .ig-chips-right{display:flex;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
+  .ig-chip{display:flex;align-items:center;gap:calc(4 / 645 * 100cqw);flex-shrink:0;}
+  .ig-chip-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-chip-icon--likes{width:calc(9 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);}
+  .ig-chip-icon--reply{width:calc(8 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);}
+  .ig-chip-icon--retweet{width:calc(6 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);}
+  .ig-chip-icon--send{width:calc(9 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);}
+  .ig-chip-icon--save{width:calc(7 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);}
+  .ig-chip-count{font-family:var(--font-sans);font-size:clamp(6px,calc(7 / 645 * 100cqw),9px);font-weight:600;color:#000000;letter-spacing:calc(0.3 / 645 * 100cqw);line-height:1;white-space:nowrap;}
+  .ig-meta-lines{display:flex;align-items:center;gap:calc(4 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);width:100%;flex-shrink:0;}
+  .ig-meta-line{width:calc(46 / 645 * 100cqw);height:calc(4 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);flex-shrink:0;}
+  .ig-meta-line--short{flex:1;min-width:0;max-width:calc(46 / 645 * 100cqw);height:calc(3 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);}
+
+  /* ── Row B — Pinterest-in-browser mockup body (responsive content; fixed sidebar + topbar heights) ── */
+  .pin-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
+  .pin-body{display:flex;flex:1;min-height:0;overflow:hidden;background:#FFFFFF;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;box-shadow:calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) rgba(0,0,0,.25);}
+  .pin-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:9px;height:100%;border-right:0.5px solid #C8C8C0;box-sizing:border-box;}
+  .pin-logo{width:100%;height:43px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-logo .pin-slot-img{width:13px;height:13px;}
+  .pin-sidebar-nav{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:21px;width:100%;opacity:.5;}
+  .pin-sidebar-item{width:100%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-sidebar-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-sidebar-icon--home{width:9px;height:10px;}
+  .pin-sidebar-icon--category{width:10px;height:10px;}
+  .pin-sidebar-icon--add{width:9px;height:9px;}
+  .pin-sidebar-icon--notification{width:9px;height:10px;}
+  .pin-sidebar-icon--message{width:11px;height:11px;}
+  .pin-main{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .pin-topbar{display:flex;align-items:center;width:100%;height:43px;padding:calc(4 / 645 * 100cqw) calc(6 / 645 * 100cqw);flex-shrink:0;box-sizing:border-box;}
+  .pin-search{display:flex;align-items:center;gap:calc(4 / 645 * 100cqw);flex:1;height:15px;padding:calc(4 / 645 * 100cqw) calc(7 / 645 * 100cqw);background:#E5E5E1;border-radius:calc(3 / 645 * 100cqw);overflow:hidden;box-sizing:border-box;}
+  .pin-search-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-search-icon--search{height:100%;width:auto;aspect-ratio:61/62.5;}
+  .pin-search-icon--search .pin-slot-img{height:100%;width:auto;object-fit:contain;}
+  .pin-search-icon--close{width:calc(6 / 645 * 100cqw);height:calc(6 / 645 * 100cqw);}
+  .pin-search-input{display:flex;align-items:center;flex:1;min-width:0;height:100%;}
+  .pin-search-skeleton{width:100%;max-width:187px;height:calc(2 / 645 * 100cqw);background:rgba(98,98,90,.5);opacity:.3;border-radius:calc(10 / 645 * 100cqw);flex-shrink:0;}
+  .pin-feed{display:flex;flex-direction:row;align-items:flex-start;gap:calc(5 / 645 * 100cqw);padding:calc(4 / 645 * 100cqw);width:100%;flex-shrink:0;box-sizing:border-box;}
+  .pin-feed-col{display:flex;flex-direction:column;align-items:stretch;gap:calc(5 / 645 * 100cqw);flex:1;min-width:0;}
+
+  .pin-feed-card{position:relative;width:100%;border-radius:calc(8 / 645 * 100cqw);background:linear-gradient(145deg,#E4E5EA 0%,#D0D2D8 55%,#C4C6CE 100%);flex-shrink:0;overflow:hidden;}
+  .pin-feed-card--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 #CF00FF;}
+  .pin-feed-card img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+
+
+
+  /* ── Row B — Video mockup (Figma .browser-frame 645x442, body 645x414) ── */
+  .vid-body{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;background:#FFFFFF;overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
+  /* Fixed to the frame's own scale rather than height:100%. With 100% it swallowed the
+     whole body, so the row's extra height went to .vid-screen and stretched the video;
+     .vid-bottom was left at 5px. 334 is the measured 336 converted to the 645 basis the
+     rest of this mockup uses, so .vid-bottom now takes the remainder. */
+  .vid-main{display:flex;flex-direction:column;width:100%;height:calc(334 / 645 * 100cqw);flex-shrink:0;background:#0F0F0F;overflow:hidden;}
+  .vid-bottom{display:flex;flex-direction:row;align-items:flex-start;flex:1;min-height:0;width:100%;gap:calc(10 / 645 * 100cqw);padding:calc(5 / 645 * 100cqw) calc(10 / 645 * 100cqw) 0;box-sizing:border-box;overflow:hidden;}
+  .vid-topbar{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(27 / 645 * 100cqw);padding:calc(4 / 645 * 100cqw);flex-shrink:0;gap:calc(4 / 645 * 100cqw);}
+  .vid-sidebar-menu{width:calc(19 / 645 * 100cqw);height:calc(19 / 645 * 100cqw);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .vid-sidebar-menu img{width:calc(6 / 645 * 100cqw);height:calc(5 / 645 * 100cqw);display:block;}
+  .vid-logo{width:calc(36 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);flex-shrink:0;display:block;}
+  .vid-logo img{width:100%;height:100%;display:block;}
+  .vid-search-wrap{display:flex;flex-direction:column;flex:1;min-width:0;align-items:center;padding-inline:calc(10 / 645 * 100cqw);}
+  .vid-search{display:flex;flex-direction:row;justify-content:space-between;align-items:center;width:100%;max-width:calc(211 / 645 * 100cqw);height:calc(14 / 645 * 100cqw);border-radius:calc(9 / 645 * 100cqw);border:max(0.5px,calc(0.3 / 645 * 100cqw)) solid rgba(255,255,255,.1);overflow:hidden;box-sizing:border-box;flex-shrink:0;}
+  .vid-search-input{display:flex;flex-direction:row;align-items:center;padding:0 calc(6 / 645 * 100cqw);flex:1;min-width:0;}
+  .vid-search-text{font-family:var(--font-ui);font-size:calc(6 / 645 * 100cqw);line-height:1;color:#757575;white-space:nowrap;}
+  .vid-search-btn{display:flex;flex-direction:row;align-items:center;justify-content:center;width:calc(22 / 645 * 100cqw);height:100%;background:rgba(255,255,255,.1);flex-shrink:0;border-left:max(0.5px,calc(0.3 / 645 * 100cqw)) solid rgba(255,255,255,.1);}
+  .vid-search-btn img{width:calc(7 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;}
+  .vid-topbar-right{width:calc(80 / 645 * 100cqw);height:calc(16 / 645 * 100cqw);flex-shrink:0;}
+  .vid-screen{position:relative;flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;}
+  .vid-screen-video{position:relative;width:calc(606.222 / 645 * 100cqw);height:100%;flex-shrink:0;overflow:hidden;}
+  .vid-screen-video img{width:100%;height:100%;object-fit:cover;display:block;}
+  .vid-screen-controller{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;height:calc(19 / 645 * 100cqw);padding:0 calc(3 / 645 * 100cqw);box-sizing:border-box;z-index:2;}
+  .vid-control-playbar{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(2 / 645 * 100cqw);background:#544E4B;border-radius:calc(6 / 645 * 100cqw);flex-shrink:0;}
+  .vid-playbar-played{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;position:relative;width:15.8%;height:100%;background:#FF0025;border-radius:calc(6 / 645 * 100cqw);}
+  .vid-playbar-point{width:calc(5 / 645 * 100cqw);height:calc(5 / 645 * 100cqw);border-radius:50%;background:#FFFFFF;flex-shrink:0;margin-right:calc(-2.5 / 645 * 100cqw);}
+  .vid-control-container{display:flex;flex-direction:row;align-items:center;gap:calc(3 / 645 * 100cqw);flex:1;min-height:0;padding:calc(2 / 645 * 100cqw) calc(5 / 645 * 100cqw);box-sizing:border-box;}
+  .vid-control-left{display:flex;flex-direction:row;align-items:center;gap:calc(3 / 645 * 100cqw);flex-shrink:0;}
+  .vid-control-playbtn{width:calc(7 / 645 * 100cqw);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .vid-control-playbtn img{width:calc(7 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;}
+  .vid-control-etc{display:flex;flex-direction:row;align-items:center;gap:calc(10 / 645 * 100cqw);padding:0 calc(5 / 645 * 100cqw);background:rgba(0,0,0,.3);border-radius:calc(8 / 645 * 100cqw);height:calc(13 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-icon-volume{width:calc(8 / 645 * 100cqw);height:calc(6 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-control-time{display:flex;flex-direction:row;justify-content:space-between;align-items:center;width:calc(22 / 645 * 100cqw);font-family:var(--font-ui);font-size:calc(4 / 645 * 100cqw);line-height:1;color:#FFFFFF;flex-shrink:0;}
+  .vid-control-chapter{display:flex;flex-direction:row;align-items:center;gap:calc(3 / 645 * 100cqw);padding:0 calc(5 / 645 * 100cqw);background:rgba(0,0,0,.3);border-radius:calc(8 / 645 * 100cqw);height:calc(13 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-chapter-label{font-family:var(--font-ui);font-size:calc(5 / 645 * 100cqw);line-height:1;color:#FFFFFF;white-space:nowrap;}
+  .vid-icon-chapter{width:calc(2 / 645 * 100cqw);height:calc(3.5 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-control-right{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
+  .vid-control-setting{display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:calc(79 / 645 * 100cqw);height:calc(13 / 645 * 100cqw);padding:calc(3 / 645 * 100cqw) calc(4 / 645 * 100cqw);background:rgba(0,0,0,.3);border-radius:calc(8 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-setting-relay{display:inline-flex;align-items:center;justify-content:flex-end;width:calc(10 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) calc(0.3 / 645 * 100cqw);box-sizing:border-box;background:#FFFFFF;border-radius:calc(8 / 645 * 100cqw);flex-shrink:0;overflow:hidden;}
+  .vid-setting-relay img{height:100%;width:auto;aspect-ratio:1;display:block;flex-shrink:0;}
+  .vid-icon-transcription{width:calc(8.556 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-icon-setting{width:calc(6.822 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-icon-view{width:calc(8.522 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-icon-size{width:calc(6.968 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
+  .vid-screen-video--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 var(--accent-bright);}
+  /* Cursor size: Figma is 55.527 x 55.625. The multiplier below is the only value to
+     tune — the child <img> is 100%/100%, so it follows. left/top anchor the SVG's tip
+     at the top-left corner, so scaling does not move where it points. */
+  /* 34.2 is back-derived, not a Figma number: the hero renders its cursor at 26 *
+     --hero-u = 34.4px once zoomed out, and this frame is 649 wide against a 645 basis,
+     so 34.2 units lands at the same on-screen size. All three mockups share one SVG
+     (md5 33e3cbf0), so only the size differs. Square, because the SVG is 67x67. */
+  .mock-pointer{position:absolute;
+    width:calc(34.2 / 645 * 100cqw);
+    height:calc(34.2 / 645 * 100cqw);
+    z-index:3;pointer-events:none;}
+  .mock-pointer img{width:100%;height:100%;display:block;}
+  .vid-meta{display:flex;flex-direction:column;width:100%;}
+  .vid-meta-title{display:flex;flex-direction:column;justify-content:center;width:calc(187 / 645 * 100cqw);height:calc(19 / 645 * 100cqw);padding:calc(6 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-meta-title-bar{width:100%;height:calc(7 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-meta-info{display:flex;flex-direction:row;align-items:flex-start;gap:calc(10 / 645 * 100cqw);width:100%;height:calc(17 / 645 * 100cqw);}
+  .vid-meta-profile{display:flex;flex-direction:row;align-items:flex-start;gap:calc(3 / 645 * 100cqw);width:auto;opacity:.5;flex-shrink:0;}
+  .vid-profile-avatar{width:calc(17 / 645 * 100cqw);height:calc(17 / 645 * 100cqw);border-radius:50%;background:#2D1A61;flex-shrink:0;display:block;}
+  .vid-profile-lines{display:flex;flex-direction:column;justify-content:center;width:calc(85 / 645 * 100cqw);height:calc(17 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-profile-line{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(7.5 / 645 * 100cqw);}
+  .vid-profile-line-bar{width:calc(50 / 645 * 100cqw);height:calc(5.5 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-profile-line-bar--long{width:100%;height:calc(4.5 / 645 * 100cqw);}
+  .vid-meta-action{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:calc(2 / 645 * 100cqw);flex:1;min-width:0;align-self:stretch;}
+  .vid-action-react{display:flex;flex-direction:row;align-items:center;height:calc(12 / 645 * 100cqw);padding:calc(2 / 645 * 100cqw) calc(3 / 645 * 100cqw);background:#F2F2F2;border-radius:calc(8 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-react-good,.vid-react-bad{display:inline-flex;align-items:center;justify-content:center;width:calc(16.85 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);flex-shrink:0;}
+  .vid-react-good img{width:calc(7 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);display:block;}
+  .vid-react-bad img{width:calc(7 / 645 * 100cqw);height:calc(8 / 645 * 100cqw);display:block;}
+  .vid-react-separator{width:max(0.5px,calc(0.3 / 645 * 100cqw));height:calc(8 / 645 * 100cqw);background:rgba(0,0,0,.15);flex-shrink:0;display:block;}
+  .vid-action-share,.vid-action-save{display:flex;flex-direction:row;align-items:center;gap:calc(2 / 645 * 100cqw);height:calc(12 / 645 * 100cqw);padding:calc(2 / 645 * 100cqw) calc(3 / 645 * 100cqw);background:#F2F2F2;border-radius:calc(8 / 645 * 100cqw);box-sizing:border-box;flex-shrink:0;}
+  .vid-action-share img{width:calc(7 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;}
+  .vid-action-save img{width:calc(6 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;}
+  .vid-action-label{font-family:var(--font-ui);font-size:calc(5 / 645 * 100cqw);font-weight:600;line-height:1;color:#000000;white-space:nowrap;}
+  .vid-action-more{display:inline-flex;align-items:center;justify-content:center;width:calc(12 / 645 * 100cqw);height:calc(12 / 645 * 100cqw);flex-shrink:0;}
+  .vid-action-more img{width:calc(5.5 / 645 * 100cqw);height:calc(1.5 / 645 * 100cqw);display:block;}
+  .vid-addition{display:flex;flex-direction:column;gap:calc(6 / 645 * 100cqw);width:calc(194 / 645 * 100cqw);padding-top:calc(6 / 645 * 100cqw);flex-shrink:0;box-sizing:border-box;overflow:hidden;}
+  .vid-addition-chips{display:flex;flex-direction:row;gap:calc(4 / 645 * 100cqw);width:100%;}
+  .vid-addition-chip{display:inline-flex;align-items:center;justify-content:center;height:calc(11 / 645 * 100cqw);padding:calc(3 / 645 * 100cqw) calc(4 / 645 * 100cqw);border-radius:calc(2.5 / 645 * 100cqw);font-family:var(--font-ui);font-size:calc(4.5 / 645 * 100cqw);font-weight:600;line-height:1;white-space:nowrap;box-sizing:border-box;flex-shrink:0;}
+  .vid-addition-chip--active{background:#000000;color:#FFFFFF;}
+  .vid-addition-chip--idle{background:#EAEAEA;color:#000000;}
+  .vid-addition-card{display:flex;flex-direction:row;gap:calc(4 / 645 * 100cqw);width:100%;}
+
+  .vid-card-thumb{width:calc(96 / 645 * 100cqw);aspect-ratio:197.333 / 111;border-radius:calc(5 / 645 * 100cqw);overflow:hidden;flex-shrink:0;}
+  .vid-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .vid-card-meta-lines{display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0;height:calc(16 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-card-meta-line{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(7 / 645 * 100cqw);}
+  .vid-card-meta-line-bar{width:100%;height:calc(5 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-card-meta-line-bar--short{width:calc(45 / 645 * 100cqw);height:calc(4 / 645 * 100cqw);}
+  .vid-info{display:flex;flex-direction:column;flex:1;min-width:0;gap:calc(10 / 645 * 100cqw);align-items:flex-start;}
+  .vid-addition-list{display:flex;flex-direction:column;gap:calc(6 / 645 * 100cqw);width:100%;}
+  .vid-description{display:flex;flex-direction:column;width:100%;gap:calc(6 / 645 * 100cqw);padding:calc(10 / 645 * 100cqw);box-sizing:border-box;background:#F2F2F2;border-radius:calc(8 / 645 * 100cqw);flex-shrink:0;}
+  .vid-desc-lines{display:flex;flex-direction:column;width:100%;gap:calc(3 / 645 * 100cqw);padding:calc(1.5 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-desc-line{display:flex;flex-direction:row;align-items:center;width:100%;box-sizing:border-box;}
+  .vid-desc-line-bar{width:100%;background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-comments{display:flex;flex-direction:column;width:100%;gap:calc(6 / 645 * 100cqw);flex-shrink:0;}
+  .vid-comments-label{font-family:var(--font-ui);font-size:calc(8 / 645 * 100cqw);font-weight:600;line-height:1;color:#5F6267;display:block;}
+  .vid-comments-list{display:flex;flex-direction:column;width:100%;gap:calc(6 / 645 * 100cqw);}
+  .vid-comment-box{display:flex;flex-direction:row;align-items:flex-start;width:100%;gap:calc(3 / 645 * 100cqw);height:calc(17 / 645 * 100cqw);opacity:.5;}
+  .vid-comment-avatar{width:calc(17 / 645 * 100cqw);height:calc(17 / 645 * 100cqw);border-radius:50%;flex-shrink:0;display:block;}
+  .vid-comment-lines{display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0;height:calc(17 / 645 * 100cqw);padding:calc(1 / 645 * 100cqw) 0;box-sizing:border-box;}
+  .vid-comment-line{display:flex;flex-direction:row;align-items:center;width:100%;height:calc(7.5 / 645 * 100cqw);}
+  .vid-comment-line-bar{width:calc(50 / 645 * 100cqw);height:calc(5.5 / 645 * 100cqw);background:#D7D8DD;border-radius:calc(10 / 645 * 100cqw);display:block;}
+  .vid-comment-line-bar--long{width:calc(85 / 645 * 100cqw);height:calc(4.5 / 645 * 100cqw);}
+
+  @keyframes gfloatA{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(-1.6deg)}}
+  @keyframes gfloatB{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-10px) rotate(1.3deg)}}
+  @keyframes gfloatC{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(.9deg)}}
+
+  /* Below the capped container Row B is drawn at its full width and scaled down whole,
+     so the heading, the cards and the mockup shrink together. Everything else on the
+     page still reflows the usual way — this is a trial on one row. */
+  @media (max-width:1199px) and (min-width:821px){
+    .rowA-scale-wrap{
+      height:calc(470px * (100vw - 64px) / 1136);
+      overflow:hidden;
+    }
+    .grrab-rowA{
+      width:1136px !important;
+      transform-origin:top left;
+      transform:scale(calc((100vw - 64px) / 1136px));
+    }
+    .rowC-scale-wrap{
+      height:calc(470px * (100vw - 64px) / 1136);
+      overflow:hidden;
+    }
+    .grrab-inspire-grid{
+      width:1136px !important;
+      transform-origin:top left;
+      transform:scale(calc((100vw - 64px) / 1136px));
+    }
+    /* Row D is 551 tall where the others are 470 — the only number that differs. */
+    .rowD-scale-wrap{
+      height:calc(551px * (100vw - 64px) / 1136);
+      overflow:hidden;
+    }
+    .grrab-rowD{
+      width:1136px !important;
+      transform-origin:top left;
+      transform:scale(calc((100vw - 64px) / 1136px));
+    }
+    /* The ratio is written out in both places rather than held in a custom property.
+       An unregistered variable substitutes as untyped tokens, so scale(var(--x)) and
+       calc(470px * var(--x)) were both invalid and silently dropped — only the width,
+       which did not use it, applied. The mobile block below does it the same way. */
+    .rowB-scale-wrap{
+      height:calc(470px * (100vw - 64px) / 1136);
+      overflow:hidden;
+    }
+    .grrab-rowB{
+      width:1136px !important;
+      transform-origin:top left;
+      /* 1136px, not 1136: scale() takes a unitless number, and a length divided by a
+         plain number is still a length. Dividing by a length cancels the unit. The
+         height rule above divides by a bare 1136 for the opposite reason — it needs a
+         length out. */
+      transform:scale(calc((100vw - 64px) / 1136px));
+    }
+  }
+
+  @media (max-width:820px){
+    /* header + hero + section chrome */
+    header > div{ padding:14px 20px !important; }
+    header > div > a.btn{ display:none !important; }
+    #top{ padding:56px 20px 40px !important;
+      align-items:flex-start !important; text-align:left !important; }
+    .hero-h1{ font-size:34px !important; }
+    /* The CTA heading reads as the hero's below 820. Its weight moves too — the CTA token
+       is 700 and the hero's is 800 — so this sets both rather than the size alone. */
+    .cta-h2{ font-size:34px !important; font-weight:800 !important; }
+    .hero-sub{ font-size:20px !important; }
+    /* The rows' subtitles read as the hero's below 820. Their desktop sizes differ from
+       each other — 22px in Rows A and B, 20 in C and D — and stay that way; it is only
+       here they converge. The weight moves too: they are 500 inline and the hero is 600. */
+    .feature-sub{ font-size:20px !important; font-weight:600 !important; }
+    #how{ padding:56px 20px !important; gap:56px !important; }
+    /* The hero mockup's section had no mobile rule and kept its 32px sides, giving up
+       16% of a 400px viewport. 20px matches #top, #how and the header — and the
+       .browser-frame rules below compute from 100vw - 40px on the same assumption. */
+    section:has(> .hero-stage){ padding:8px 20px 48px !important; }
+    .feature-h2{ font-size:28px !important; }
+    .nav-links{ display:none !important; }
+
+    /* hero CTA: show Add to Chrome only; left-align button row */
+    #top > div{ display:flex !important; justify-content:flex-start !important; }
+    #top > div > .btn-ghost{ display:none !important; }
+
+    /* Row A does NOT stack: the chrome and the palette sit side by side and
+       together reassemble the Figma frame (281 + 312 = 593 wide, 434 tall). */
+    .grrab-rowA{ grid-template-columns:281fr 312fr !important;
+      grid-template-areas:"head head" "mock pal" !important;
+      column-gap:0 !important; row-gap:24px !important; }
+    .grrab-rowA > div:first-child{ display:contents !important; }
+    .grrab-rowA > div:first-child > div:first-child{ grid-area:head !important; }
+    .rowA-mockup-wrap{ grid-area:mock !important; }
+    .rowA-pallette{ grid-area:pal !important; }
+    .grrab-rowB{ grid-template-columns:1fr !important; gap:24px !important; }
+    .grrab-rowB > div:first-child{ gap:14px !important; }
+    .rowB-cards{ gap:8px !important; }
+    .rowB-card{ padding:14px 14px !important; gap:12px !important; }
+    .rowB-card-icon{ width:34px !important; height:34px !important; }
+    .rowB-card-icon img{ width:19px !important; height:19px !important; }
+    .rowB-card-title{ font-size:16px !important; }
+    .rowB-card-desc{ font-size:13.5px !important; }
+    /* The desktop pins this to 470px so Rows A, B and C stand level. Below 820 the row
+       stacks and there is nothing to level against, but the height stayed while the width
+       fell to 368 — the window ended up upright. 591/470 is the shape the desktop
+       renders; --rowB-u is width-based, so the contents follow on their own. */
+    .rowB-mockup-wrap{ aspect-ratio:591/470 !important; height:auto !important; }
+    /* Side by side, so the marker moves from the left edge to the bottom. The left border
+       has to be zeroed as well as the bottom given a width — the base rule sets
+       border-left:3px and leaving it would keep reserving that space. */
+    .rowB-cards{ flex-direction:row !important; }
+    .rowB-card{ flex:1 !important; min-width:0 !important;
+      align-items:center !important;
+      border-left-width:0 !important;
+      border-bottom:3px solid transparent !important;
+      border-radius:12px 12px 0 0 !important; }
+    .rowB-card--active{ border-left-color:transparent !important;
+      border-bottom-color:#BC13FE !important; }
+    .rowB-card-desc{ display:none !important; }
+    /* Four across, icon above title. Every declaration needs !important: the rows are
+       built in JavaScript with inline cssText, which a stylesheet cannot otherwise beat.
+       The description is hidden rather than removed — it still shows on desktop. */
+    .rowC-list{ flex-direction:row !important; gap:4px !important; }
+    .rowC-item{ flex:1 !important; min-width:0 !important;
+      flex-direction:column !important; align-items:center !important;
+      gap:6px !important; padding:10px 4px !important; }
+    .rowC-item-text{ font-size:13px !important; text-align:center !important;
+      line-height:1.2 !important; }
+    .rowC-item-desc{ display:none !important; }
+    .rowC-item-label{ display:none !important; }
+    .rowC-item-label-bare{ display:inline !important; }
+    .rowC-subtitle{ display:none !important; }
+    .rowC-active-desc{ display:block !important; }
+    .rowD-cards{ gap:8px !important; }
+    .rowD-card{ padding:14px 14px !important; gap:12px !important; }
+    .rowD-card-icon{ width:34px !important; height:34px !important; }
+    .rowD-card-icon img{ width:19px !important; height:19px !important; }
+    .rowD-card-title{ font-size:16px !important; }
+    .rowD-card-desc{ font-size:13.5px !important; }
+    /* Three across, icon above title. align-items centres them horizontally here — the
+       card is a column, so that is its cross axis, where Row B's row-wise cards used the
+       same property for vertical centring. */
+    .rowD-cards{ flex-direction:row !important; gap:8px !important; }
+    .rowD-card{ flex:1 !important; min-width:0 !important;
+      flex-direction:column !important; align-items:center !important;
+      gap:8px !important; padding:12px 6px !important; }
+    .rowD-card-text{ align-items:center !important; }
+    .rowD-card-title{ text-align:center !important; }
+    .rowD-card-desc{ display:none !important; }
+    .grrab-rowD{ grid-template-columns:1fr !important; gap:24px !important; }
+    .grrab-rowD > div:last-child{ gap:14px !important; }
+    /* That selector used to find the fanned card stack, which is gone; it now finds
+       .rowD-cards and was hiding the three cards entirely. The box's height is released
+       here too — 551px is a desktop figure and the contents scale down on mobile. */
+    /* The whole media box scales as one piece: 591 x 551 is what it measures on desktop,
+       so holding that ratio keeps the panel and its cards in the same relationship at any
+       width. The gap goes to a percentage of the same 591 for the same reason. */
+    .rowD-media{ height:auto !important; aspect-ratio:591/551 !important;
+      gap:2.7% !important; }
+    .grrab-inspire-grid{ grid-template-columns:1fr !important; align-items:start !important; gap:24px !important; }
+    /* nth-child(2), not last-child: #inspireDesc was added after the mockup and took over
+       :last-child, so the rule was releasing its height instead and the mockup kept the
+       470px the desktop gives it. The grid has three children and the mockup is second. */
+    .grrab-inspire-grid > div:nth-child(2){ min-height:auto !important; height:auto !important; }
+
+    /* text/heading FIRST, mockup below. Only Row D needs an explicit order now that
+       every row puts its text first in the DOM. */
+    /* The order belongs on the flex box, not the mockup: the mockup now sits inside that
+       box with the cards, so ordering it only rearranged the two of them. */
+    .rowD-media{ order:2 !important; }
+
+    /* ---- uniform-scale mockups (option A) ----
+       Each mockup renders at a fixed REFERENCE size, then scales to fit the mobile
+       content width (100vw minus 2×20px section padding = 100vw-40px). The wrapper
+       reserves the scaled height. Internal cqw stays 1× (window keeps its fixed ref
+       width as its own container). */
+
+    /* Row A — the wrapper now holds the chrome alone, so it takes the chrome's
+       own Figma ratio; the palette stretches to match its row height. */
+    .rowA-mockup-wrap{ position:relative !important; width:100% !important;
+      aspect-ratio:281/434 !important; height:auto !important; }
+    .rowA-mockup-wrap{ --rowA-u:calc(100cqw / 281) !important; }
+    .rowA-pallette{ aspect-ratio:auto !important; height:100% !important;
+      padding:0 !important; --rowA-u:calc(100cqh / 434) !important; }
+    /* Touch holds :hover on whatever was last tapped, so tapping a tile would stop its
+       column for good. The desktop pause stays; this cancels it here. The tile's glow is
+       the same stuck hover and is deliberately left alone. */
+    .rowA-col:hover{ animation-play-state:running !important; }
+    /* Rows, not columns. The tiles take 312/434 — the comparison's proportion, which is a
+       constant here because the mockup is 281/434 and the grid splits 281fr/312fr, so the
+       width cancels out of the ratio. flex:1 gives each row a third of the height and the
+       aspect-ratio settles the tile's width from there, so nothing needs a fixed number. */
+    /* One mask, both sides. The rows run sideways so the cut is horizontal; the three of
+       them divide the height exactly, so a top or bottom fade would dim tiles that are
+       whole. With a single mask there is nothing to composite, and mask-composite is
+       overridden back to its default so the desktop's intersect does not linger. */
+    .rowA-gallery{ flex-direction:column !important; justify-content:flex-start !important;
+      -webkit-mask-image:linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%) !important;
+      mask-image:linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%) !important;
+      -webkit-mask-composite:source-over !important;
+      mask-composite:add !important; }
+    /* min-height:0 is what makes flex:1 authoritative here. A flex item defaults to
+       min-height:auto and refuses to shrink below its content, so the tile asking for
+       height:100% of a row whose height was not yet known resolved to the image's own
+       1252px and the row grew to match. */
+    .rowA-col{ flex-direction:row !important; flex:1 !important; width:auto !important;
+      min-height:0 !important; align-self:stretch !important;
+      animation-name:rowAScrollRight !important; }
+    .rowA-col:nth-child(2){ animation-name:rowAScrollLeft !important; }
+    .rowA-col .rowA-tile{ aspect-ratio:312/434 !important; height:100% !important;
+      width:auto !important; }
+    /* The comparison splits horizontally here and is dragged up and down. inset(50% 0 0 0)
+       hides the before-image's top half, so after is above the line and before below. */
+    /* No !important: the script writes clip-path inline as you drag, and !important beats
+       an inline style — the clip stayed at 50% while the handle moved. This rule still
+       provides the starting value, because it matches the desktop rule's specificity and
+       comes later in the sheet. */
+    .rowA-compare-before{ clip-path:inset(50% 0 0 0);
+      -webkit-clip-path:inset(50% 0 0 0); }
+    /* translateY, not the desktop's translateX: the bar spans the full width from left:0
+       here, so a horizontal shift only pushes it off the edge — it is the vertical centre
+       on its `top` that needs correcting. */
+    /* top has no !important because the script writes it inline as you drag, and
+       !important beats inline — the bar sat at 50% while the split moved. It still gets
+       its starting 50% from here: the desktop rule sets top:0, and this comes later in
+       the sheet at equal specificity. The others keep theirs; the script never writes
+       them and each has a desktop value to override. */
+    .rowA-compare-handle{ left:0 !important; right:0 !important; top:50%;
+      bottom:auto !important; width:auto !important;
+      height:calc(3 * var(--rowA-u)) !important;
+      transform:translateY(-50%) !important; }
+    .rowA-compare-knob{ transform:rotate(90deg) !important; }
+
+    /* Row C — ref 520×554 */
+    /* 64.3% is 380/591 — the width it has inside the box on desktop. The height comes
+       from the box's ratio rather than a calc against the viewport, so the two children
+       stay in step however wide the screen is. */
+    .rowD-mockup-wrap{ position:relative !important; width:64.3% !important;
+      height:100% !important; flex-shrink:0 !important; overflow:hidden !important; }
+
+
+    /* Row B — frame ref 645×442, scaled by width; wrapper reserves 16:9 to match Row A */
+    #inspirePanes{ position:relative !important; flex:none !important; width:100% !important;
+      height:calc((100vw - 40px) * 1080 / 1920) !important; overflow:hidden !important; }
+    .browser-frame{ position:absolute !important; top:0 !important; left:0 !important;
+      width:645px !important; height:calc(645px * 1080 / 1920) !important;
+      transform-origin:top left; transform:scale(calc((100vw - 40px) / 645px)) !important; }
+
+    /* ===== minimal mobile mockup chrome (Obsidian-style) ===== */
+
+    /* Row C chrome (.rowD-chrome) — no url text; inject domain */
+    /* The star stays hidden — it computes to about 7px here. The line does not: with the
+       injected "grrab.app" gone, hiding it would leave the address field empty. */
+    .rowD-urlbar-star{ display:none !important; }
+    /* The pill's outline and the logo's white disc read as clutter at this size — they
+       are ornament on a header 25px tall. The urlbar's padding is the 16 units the star
+       reserves on desktop; with the star hidden the line would otherwise run to the edge. */
+    .rowD-profile-pill{ border:0 !important; }
+    .rowD-profile-logo{ background:transparent !important; }
+    .rowD-urlbar{ padding-right:calc(16 / var(--rowD-basis) * 100cqh) !important; }
+    .rowD-profile-ext,
+    .rowD-profile-sep,
+    .rowD-profile-avatar{ display:none !important; }
+
+    /* The chrome's fixed sizes are gone. They were written when .rowD-window carried a
+       transform:scale and the header needed simplifying by hand; the window is now sized
+       by --rowD-basis from its own height, so the desktop rules scale the header on their
+       own. What remains hidden above is hidden because it is too small to read, not
+       because it is the wrong size. */
+
+    /* FINAL CTA + footer: reduce horizontal padding to 20px */
+    section[style*="accent-wash"] > div{ padding:54px 20px !important; }
+    footer > div{ padding:36px 20px !important; }
+  }
+  @media (max-width:480px){
+    header > div{ padding:12px 16px !important; }
+    #top{ padding:44px 16px 32px !important; }
+    .hero-h1{ font-size:28px !important; }
+    .cta-h2{ font-size:28px !important; }
+    .hero-sub{ font-size:18px !important; }
+    .feature-sub{ font-size:18px !important; }
+    #how{ padding:44px 16px !important; gap:44px !important; }
+    .feature-h2{ font-size:24px !important; }
+
+    /* side padding now 16px each → 100vw-32px in the mockup scale math */
+
+    #inspirePanes{ height:calc((100vw - 32px) * 1080 / 1920) !important; }
+    .browser-frame{ transform:scale(calc((100vw - 32px) / 645px)) !important; }
+
+    /* FINAL CTA + footer horizontal padding → 16px; CTA button shrink/wrap */
+    section[style*="accent-wash"] > div{ padding:44px 16px !important; }
+    section:has(> .hero-stage){ padding:8px 16px 40px !important; }
+    footer > div{ padding:32px 16px !important; }
+    section[style*="accent-wash"] .btn-lg{ height:auto !important; min-height:48px;
+      padding:12px 20px !important; font-size:15px !important; white-space:normal !important;
+      max-width:100%; text-align:center; }
+  }
