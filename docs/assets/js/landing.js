@@ -9,9 +9,7 @@
      detection it uses, so the page never shows a shortcut the visitor
      cannot press. Failing open leaves the macOS text in place. */
   var KC_SHORTCUT_SELECTOR =
-    /* .rowA-tip-key, not .rowA-tip: the swap overwrites textContent wholesale, so
-       pointing it at the tooltip would take the word "Press" with it. */
-    ".rowA-step-kbd, .rowA-tip-key, .rowB-tip, .hero-tip, .sidepanel-kbd";
+    ".rowA-step-kbd, .rowB-tip, .hero-tip, .sidepanel-kbd";
   try {
     var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
                 navigator.userAgent.indexOf("Mac") !== -1;
@@ -24,111 +22,6 @@
       if (heroTipV) heroTipV.textContent = "Ctrl+V";
     }
   } catch (e) {}
-
-  /* ─────────────────────────── ROW A — GALLERY ─────────────────────────── */
-  var rowAGallery = document.querySelector(".rowA-gallery");
-  var rowATip = document.getElementById("rowATip");
-  var rowACompare = document.getElementById("rowACompare");
-  var rowACompareBefore = document.getElementById("rowACompareBefore");
-  var rowACompareBeforeImg = document.getElementById("rowACompareBeforeImg");
-  var rowACompareAfter = document.getElementById("rowACompareAfter");
-  var rowACompareHandle = document.getElementById("rowACompareHandle");
-
-  if (rowAGallery) {
-    var rowATiles = [].slice.call(rowAGallery.querySelectorAll(".rowA-tile"));
-    var rowAHovered = null;
-
-    var rowAActivate = function(tile){
-      if(!tile) return;
-      var img = tile.querySelector("img");
-      if(!img) return;
-      var beforeSrc = img.getAttribute("src");
-      if(rowACompareBeforeImg && rowACompareAfter){
-        rowACompareBeforeImg.setAttribute("src", beforeSrc);
-        rowACompareAfter.setAttribute("src", beforeSrc.replace("-before.webp", "-after.webp"));
-      }
-      if(rowATip) rowATip.classList.remove("show");
-    };
-
-    var rowATipHide = function(){ if(rowATip) rowATip.classList.remove("show"); };
-
-    rowATiles.forEach(function(tile){
-      tile.addEventListener("mouseenter", function(){
-        rowAHovered = tile;
-        if(rowATip && !tile.classList.contains("rowA-tile--active")) rowATip.classList.add("show");
-      });
-      tile.addEventListener("mousemove", function(e){
-        if(!rowATip) return;
-        rowATip.style.left = (e.clientX +8) + "px";
-        rowATip.style.top  = (e.clientY -4) + "px";
-      });
-      tile.addEventListener("mouseleave", function(){
-        if(rowAHovered === tile) rowAHovered = null;
-        rowATipHide();
-      });
-      tile.addEventListener("click", function(){ rowAActivate(tile); });
-    });
-
-    document.addEventListener("keydown", function(e){
-      var isCopy = (e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C");
-      if(isCopy && rowAHovered) rowAActivate(rowAHovered);
-    });
-  }
-
-  /* ──────────────────── ROW A — BEFORE/AFTER SLIDER ──────────────────── */
-  if (rowACompare && rowACompareBefore && rowACompareHandle) {
-    var rowACompareDragging = false;
-
-    var rowAVertical = window.matchMedia("(max-width:820px)");
-    var rowASetComparePos = function(client){
-      var r = rowACompare.getBoundingClientRect();
-      var vert = rowAVertical.matches;
-      var size = vert ? r.height : r.width;
-      if (!size) return;
-      var p = ((vert ? client - r.top : client - r.left) / size) * 100;
-      p = Math.max(0, Math.min(100, p));
-      /* inset trims from the side the before-image should not cover: the right on
-         desktop, the top on mobile, where after sits above the line. */
-      var clip = vert ? "inset(" + p + "% 0 0 0)" : "inset(0 " + (100 - p) + "% 0 0)";
-      rowACompareBefore.style.clipPath = clip;
-      rowACompareBefore.style.webkitClipPath = clip;
-      /* Both are written on every call rather than one being cleared in a branch. The
-         branch only ran on a drag, so resizing after a vertical drag left `top` inline on
-         a handle the desktop rule positions with top:0;bottom:0 — and it went out of the
-         frame. */
-      rowACompareHandle.style.top  = vert ? p + "%" : "";
-      rowACompareHandle.style.left = vert ? "" : p + "%";
-    };
-
-    rowACompare.addEventListener("pointerdown", function(e){
-      rowACompareDragging = true;
-      try { rowACompare.setPointerCapture(e.pointerId); } catch(_){}
-      rowASetComparePos(rowAVertical.matches ? e.clientY : e.clientX);
-    });
-    rowACompare.addEventListener("pointermove", function(e){
-      if(rowACompareDragging) rowASetComparePos(rowAVertical.matches ? e.clientY : e.clientX);
-    });
-    rowACompare.addEventListener("pointerup", function(e){
-      rowACompareDragging = false;
-      try { rowACompare.releasePointerCapture(e.pointerId); } catch(_){}
-    });
-    rowACompare.addEventListener("pointercancel", function(){ rowACompareDragging = false; });
-    /* Crossing the breakpoint leaves the inline top or left from the last drag applying on
-       the wrong axis — the desktop rules do not use !important, because the mobile drag
-       needs the inline value to win. Re-centring on the flip is enough; a drag at the new
-       width would fix it anyway, but until then the handle sits somewhere arbitrary. */
-    var rowARecentre = function(){
-      var vert = rowAVertical.matches;
-      var clip = vert ? "inset(50% 0 0 0)" : "inset(0 50% 0 0)";
-      rowACompareBefore.style.clipPath = clip;
-      rowACompareBefore.style.webkitClipPath = clip;
-      rowACompareHandle.style.top  = vert ? "50%" : "";
-      rowACompareHandle.style.left = vert ? "" : "50%";
-    };
-    if (rowAVertical.addEventListener) rowAVertical.addEventListener("change", rowARecentre);
-    else if (rowAVertical.addListener) rowAVertical.addListener(rowARecentre);
-    rowACompare.addEventListener("pointerleave", function(){ rowACompareDragging = false; });
-  }
 
   /* ──────────────────── HERO — ZOOM-OUT TRIGGER ──────────────────── */
   var heroStage = document.querySelector(".hero-stage");

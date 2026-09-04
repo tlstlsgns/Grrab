@@ -26,7 +26,7 @@
     --shadow-xs:0 1px 3px rgba(0,0,0,.08); --shadow-md:0 2px 8px rgba(0,0,0,.14);
     --shadow-xl:0 12px 32px rgba(0,0,0,.10); --shadow-2xl:0 24px 64px rgba(0,0,0,.14);
     /* ── layout ── */
-    --container-max:1200px;
+    --container-max:1416px;
     color-scheme:light;
   }
   *{box-sizing:border-box;}
@@ -58,25 +58,6 @@
   .feature-label{font-family:var(--font-sans);font-size:13px;font-weight:700;
     letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin:0;}
 
-  /* ── Row A — gallery mockup (responsive; cqw basis = Figma 1× frame 593px) ── */
-  /* The mockup stretches to the row height set by the text column, so the gallery
-     rows grow with it and the tiles take up the extra space. */
-  /* 591/470 rather than the Figma frame's 473/305: in the 1.25fr column this is what
-     holds the row at the 470 Rows B and C are pinned to. The window stretches about 10%
-     taller than its own proportions as a result. */
-  /* --rowA-u lives on .rowA-mockup-wrap. The divisor stays 593: this element matches
-     the Figma frame width, so the unit keeps its value and nothing inside the gallery
-     changes size. */
-  /* Fixed height rather than a ratio: below the capped container the ratio made all
-     three rows shrink with the viewport. 470 holds them level from 820px up, where the
-     mobile block takes over anyway. */
-  .rowA-mockup-wrap{position:relative;width:100%;height:470px;
-    container-type:inline-size;--rowA-u:calc(100cqw / 593);}
-  /* Row A alone puts its heading on the right. Done with order rather than by moving the
-     markup, because the heading column has no class of its own and the mobile rules find
-     it with :first-child — which order does not disturb. On mobile the column becomes
-     display:contents, where order has no effect, so this is desktop-only by nature. */
-  .grrab-rowA > div:first-child{order:1;}
   .rowD-chrome{display:flex;align-items:center;gap:calc(6 / var(--rowD-basis) * 100cqh);width:100%;height:calc(50 / var(--rowD-basis) * 100cqh);flex-shrink:0;
     padding:calc(10 / var(--rowD-basis) * 100cqh) calc(18 / var(--rowD-basis) * 100cqh) calc(10 / var(--rowD-basis) * 100cqh) 0;}
   .rowD-urlbar{display:flex;align-items:center;flex:1;height:calc(30 / var(--rowD-basis) * 100cqh);min-width:0;align-self:center;
@@ -99,116 +80,6 @@
   .rowD-profile-avatar{width:calc(20 / var(--rowD-basis) * 100cqh);height:calc(20 / var(--rowD-basis) * 100cqh);aspect-ratio:1/1;border-radius:50%;overflow:hidden;flex-shrink:0;
     border:0.3px solid rgba(115,122,136,.3);}
   .rowD-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
-  /* Three independent columns rather than one grid: a grid cannot move a column on its
-     own, and each of these will scroll at its own speed and direction. */
-  /* justify-content:flex-end is what makes the overflow fall on the left: three columns
-     at their new width need 713.8 where there is 571.1, and the surplus has to go
-     somewhere. Anchored right, the first column is the one cut.
-     Two masks, intersected: one fades the top and bottom, the other the left. The right
-     edge is not faded — the last column ends at the padding and is not cut. The -webkit-
-     pair is not decoration: Safari has no unprefixed mask-composite and spells intersect
-     as source-in. */
-  .rowA-gallery{display:flex;flex-direction:row;overflow:hidden;justify-content:flex-end;
-    cursor:url("/assets/landing/icons/hero/icon_cursor_24.svg") 2 1, auto;
-    gap:calc(12.5 * var(--rowA-u));padding:calc(10 * var(--rowA-u));width:100%;height:100%;
-    background:var(--surface);
-    -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
-                       linear-gradient(to right, transparent 0, #000 8%, #000 100%);
-    -webkit-mask-composite:source-in;
-    mask-image:linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%),
-               linear-gradient(to right, transparent 0, #000 8%, #000 100%);
-    mask-composite:intersect;}
-  /* align-self:flex-start, not flex-shrink. The gallery is a ROW, so shrink acts on
-     width; what squeezed the column to the gallery's 450 was align-items:stretch on the
-     cross axis. The keyframes move by a percentage OF THE COLUMN, so a squeezed column
-     travelled a third of a set and the loop reset mid-image.
-     flex:1 must stay exactly as it is — it means 1 1 0, and that zero basis is what
-     makes the three columns split the width evenly. */
-  /* A fixed width, not flex:1. flex:1 divides the available room between the three
-     columns, so they could never total more than the gallery — and overflowing is the
-     point. 230 units is 1.25x the 183.7 they were sharing. */
-  .rowA-col{display:flex;flex-direction:column;flex:0 0 auto;width:calc(230 * var(--rowA-u));
-    min-width:0;align-self:flex-start;
-    gap:calc(12.5 * var(--rowA-u));
-    animation:rowAScrollDown 60s linear infinite;}
-  .rowA-col:nth-child(2){animation-name:rowAScrollUp;}
-  /* 31/20 is 1.55, the comparison's proportions, as a whole-number ratio. */
-  .rowA-col .rowA-tile{aspect-ratio:31/20;flex-shrink:0;}
-  .rowA-col:hover{animation-play-state:paused;}
-  /* 50.51 rather than 50: ten tiles have nine gaps between them, but one set is five
-     tiles AND five gaps — the gap leading into the copy belongs to the set. The figure
-     holds at any width because --rowA-u sizes the tile and the gap together. */
-  /* 50.39, down from 50.51: the tile's height is its width over 1.55 while the gap is a
-     plain multiple of the unit, so growing both by 1.25 does not keep the ratio between
-     them. One set is now 803.1 of a 1593.7 column. */
-  @keyframes rowAScrollDown{
-    from{transform:translateY(-50.39%);}
-    to{transform:translateY(0);}}
-  @keyframes rowAScrollUp{
-    from{transform:translateY(0);}
-    to{transform:translateY(-50.39%);}}
-  /* The mobile pair. 50.60 rather than the vertical 50.39: the tiles are a different
-     shape and the ratio between a tile's width and the gap is what sets it. Checked at
-     174, 300 and 500px wide — the same figure at all three, because every dimension comes
-     from --rowA-u. */
-  @keyframes rowAScrollRight{
-    from{transform:translateX(-50.60%);}
-    to{transform:translateX(0);}}
-  @keyframes rowAScrollLeft{
-    from{transform:translateX(0);}
-    to{transform:translateX(-50.60%);}}
-  @media (prefers-reduced-motion:reduce){
-    .rowA-col{animation:none;}
-  }
-  .rowA-tile{position:relative;border-radius:calc(8 * var(--rowA-u));overflow:hidden;
-    background:var(--surface-key);}
-  .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .rowA-tile{transition:box-shadow .18s cubic-bezier(.25,.1,.25,1);}
-  .rowA-tile:hover{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
-  /* translateY(-100%) rather than subtracting the tooltip's height from top: top sets
-     the upper edge, so a fixed number would go stale if the type or padding changed.
-     The -8 in the script is then only the gap above the pointer. */
-  .rowA-tip{position:fixed;left:0;top:0;z-index:60;pointer-events:none;opacity:0;
-    transform:translateY(-100%);
-    font-family:var(--font-sans);font-weight:700;font-size:13px;line-height:1;color:#fff;
-    background:var(--accent-bright);padding:6px 9px;border-radius:6px;white-space:nowrap;
-    box-shadow:0 4px 16px rgba(207,0,255,.35);transition:opacity .12s ease;}
-  .rowA-tip.show{opacity:1;}
-  /* flex:1 replaces align-self:stretch now that this is a flex child of the heading
-     column rather than a grid child of the row. It still receives its height rather than
-     setting it, which is what container-type:size needs. */
-  .rowA-pallette{position:relative;display:flex;align-items:center;justify-content:center;
-    width:100%;height:auto;flex:1;min-height:0;box-sizing:border-box;
-    container-type:size;--rowA-u:calc(100cqh / 340);}
-  .rowA-pallette::before{content:"";position:absolute;inset:0;pointer-events:none;
-    background-image:
-      linear-gradient(to right, rgba(207,0,255,.2) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(207,0,255,.2) 1px, transparent 1px);
-    background-size:calc(10 * var(--rowA-u)) calc(10 * var(--rowA-u));
-    -webkit-mask-image:
-      linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%),
-      linear-gradient(to bottom, transparent 0, #000 10%, #000 90%, transparent 100%);
-    mask-image:
-      linear-gradient(to right, transparent 0, #000 10%, #000 90%, transparent 100%),
-      linear-gradient(to bottom, transparent 0, #000 10%, #000 90%, transparent 100%);
-    -webkit-mask-composite:source-in;mask-composite:intersect;}
-  .rowA-compare{position:relative;z-index:1;width:100%;height:100%;overflow:hidden;
-    cursor:ew-resize;user-select:none;touch-action:none;
-    background:var(--surface-key);box-shadow:0 calc(4 * var(--rowA-u)) calc(18 * var(--rowA-u)) rgba(0,0,0,.12);}
-  .rowA-compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
-    pointer-events:none;}
-  .rowA-compare-before{position:absolute;inset:0;clip-path:inset(0 50% 0 0);
-    -webkit-clip-path:inset(0 50% 0 0);}
-  .rowA-compare-handle{position:absolute;top:0;bottom:0;left:50%;width:calc(3 * var(--rowA-u));
-    background:var(--accent-bright);transform:translateX(-50%);pointer-events:none;
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 0 0 1px rgba(255,255,255,.5);}
-  .rowA-compare-knob{width:calc(40 * var(--rowA-u));height:calc(40 * var(--rowA-u));border-radius:50%;
-    background:#fff;border:calc(2 * var(--rowA-u)) solid var(--accent-bright);
-    box-shadow:0 calc(4 * var(--rowA-u)) calc(16 * var(--rowA-u)) rgba(207,0,255,.28);
-    display:flex;align-items:center;justify-content:center;color:var(--accent-bright);flex-shrink:0;}
-  .rowA-compare-knob svg{width:calc(18 * var(--rowA-u));height:calc(18 * var(--rowA-u));display:block;}
-  .rowA-compare-knob svg + svg{margin-left:calc(-8 * var(--rowA-u));}
   .rowA-step-kbd{font-family:inherit;font-size:inherit;font-weight:700;
     letter-spacing:.01em;color:var(--accent);}
 
@@ -766,89 +637,92 @@
   .rowB-marquee--on{display:block;}
 
   /* ── Copy demo — Instant figure (#firstCopyDemo), between Row A and Row B ── */
-  .copyDemo-figure{position:relative;display:grid;grid-template-columns:minmax(0,1.41fr) minmax(0,1fr);gap:16px;margin:0 0 24px;}
-  .copyDemo-browser,
-  .copyDemo-canvas{min-width:0;width:100%;aspect-ratio:593/434;position:relative;overflow:hidden;
+  .rowA-figure{position:relative;display:grid;grid-template-columns:minmax(0,1.329fr) minmax(0,1fr);gap:48px;margin-bottom:24px;}
+  .rowA-side{display:flex;flex-direction:column;gap:24px;}
+  .rowA-text{display:flex;flex-direction:column;gap:14px;}
+  .rowA-text .feature-sub{font-size:22px;}
+  .rowA-browser,
+  .rowA-canvas{min-width:0;width:100%;aspect-ratio:593/434;position:relative;overflow:hidden;
     border:1px solid var(--border);border-radius:var(--radius-lg);}
-  .copyDemo-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
-    container-type:inline-size;--copyDemo-u:calc(100cqw / 593);
+  .rowA-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
+    container-type:inline-size;--rowA-u:calc(100cqw / 593);
     background:#DFDFDF;border-top:1px solid #E6E7EB;
-    border-radius:calc(3 * var(--copyDemo-u));box-shadow:0 0 calc(4 * var(--copyDemo-u)) 0 rgba(0,0,0,.25);}
-  .copyDemo-header{display:flex;align-items:center;gap:calc(6 * var(--copyDemo-u));width:100%;
-    height:calc(30 * var(--copyDemo-u));flex-shrink:0;
-    padding:calc(6 * var(--copyDemo-u)) calc(18 * var(--copyDemo-u)) calc(6 * var(--copyDemo-u)) calc(10 * var(--copyDemo-u));}
-  .copyDemo-traffic{display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    height:calc(18 * var(--copyDemo-u));gap:calc(5 * var(--copyDemo-u));
-    padding:0 calc(6 * var(--copyDemo-u)) 0 0;background:#DEE1E6;border-radius:0 0 calc(4 * var(--copyDemo-u)) 0;}
-  .copyDemo-dot{width:calc(8 * var(--copyDemo-u));height:calc(8 * var(--copyDemo-u));border-radius:50%;flex-shrink:0;}
-  .copyDemo-dot--red{background:#FF5F57;}
-  .copyDemo-dot--yellow{background:#FEBC2E;}
-  .copyDemo-dot--green{background:#28C840;}
-  .copyDemo-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
-    padding:0 calc(23 * var(--copyDemo-u)) 0 calc(10 * var(--copyDemo-u));
-    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--copyDemo-u));}
-  .copyDemo-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--copyDemo-u));
-    border-radius:calc(10 * var(--copyDemo-u));background:#DEE1E6;}
-  .copyDemo-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    width:calc(18 * var(--copyDemo-u));height:calc(18 * var(--copyDemo-u));
-    padding:calc(2 * var(--copyDemo-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--copyDemo-u));}
-  .copyDemo-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
-  .copyDemo-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
-    background:var(--surface);border-radius:calc(8 * var(--copyDemo-u));}
-  .copyDemo-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
-    width:calc(30 * var(--copyDemo-u));gap:calc(24 * var(--copyDemo-u));
-    padding-top:calc(16 * var(--copyDemo-u));border-right:0.5px solid #C8C8C0;}
-  .copyDemo-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
-  .copyDemo-sidebar-icon{display:block;object-fit:contain;}
-  .copyDemo-sidebar-icon--home{width:calc(10 * var(--copyDemo-u));height:calc(11 * var(--copyDemo-u));}
-  .copyDemo-sidebar-icon--category{width:calc(11 * var(--copyDemo-u));height:calc(11 * var(--copyDemo-u));}
-  .copyDemo-sidebar-icon--add{width:calc(10 * var(--copyDemo-u));height:calc(10 * var(--copyDemo-u));}
-  .copyDemo-sidebar-icon--notification{width:calc(10 * var(--copyDemo-u));height:calc(11 * var(--copyDemo-u));}
-  .copyDemo-sidebar-icon--message{width:calc(12 * var(--copyDemo-u));height:calc(12 * var(--copyDemo-u));}
-  .copyDemo-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
-    gap:calc(10 * var(--copyDemo-u));padding:calc(10 * var(--copyDemo-u));flex:1;min-width:0;height:100%;
-    background:var(--surface);border-radius:0 calc(14 * var(--copyDemo-u)) 0 0;}
-  .copyDemo-tile{position:relative;border-radius:calc(8 * var(--copyDemo-u));overflow:hidden;
+    border-radius:calc(3 * var(--rowA-u));box-shadow:0 0 calc(4 * var(--rowA-u)) 0 rgba(0,0,0,.25);}
+  .rowA-header{display:flex;align-items:center;gap:calc(6 * var(--rowA-u));width:100%;
+    height:calc(30 * var(--rowA-u));flex-shrink:0;
+    padding:calc(6 * var(--rowA-u)) calc(18 * var(--rowA-u)) calc(6 * var(--rowA-u)) calc(10 * var(--rowA-u));}
+  .rowA-traffic{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    height:calc(18 * var(--rowA-u));gap:calc(5 * var(--rowA-u));
+    padding:0 calc(6 * var(--rowA-u)) 0 0;background:#DEE1E6;border-radius:0 0 calc(4 * var(--rowA-u)) 0;}
+  .rowA-dot{width:calc(8 * var(--rowA-u));height:calc(8 * var(--rowA-u));border-radius:50%;flex-shrink:0;}
+  .rowA-dot--red{background:#FF5F57;}
+  .rowA-dot--yellow{background:#FEBC2E;}
+  .rowA-dot--green{background:#28C840;}
+  .rowA-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding:0 calc(23 * var(--rowA-u)) 0 calc(10 * var(--rowA-u));
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--rowA-u));}
+  .rowA-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--rowA-u));
+    border-radius:calc(10 * var(--rowA-u));background:#DEE1E6;}
+  .rowA-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(18 * var(--rowA-u));height:calc(18 * var(--rowA-u));
+    padding:calc(2 * var(--rowA-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--rowA-u));}
+  .rowA-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  .rowA-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
+    background:var(--surface);border-radius:calc(8 * var(--rowA-u));}
+  .rowA-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    width:calc(30 * var(--rowA-u));gap:calc(24 * var(--rowA-u));
+    padding-top:calc(16 * var(--rowA-u));border-right:0.5px solid #C8C8C0;}
+  .rowA-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
+  .rowA-sidebar-icon{display:block;object-fit:contain;}
+  .rowA-sidebar-icon--home{width:calc(10 * var(--rowA-u));height:calc(11 * var(--rowA-u));}
+  .rowA-sidebar-icon--category{width:calc(11 * var(--rowA-u));height:calc(11 * var(--rowA-u));}
+  .rowA-sidebar-icon--add{width:calc(10 * var(--rowA-u));height:calc(10 * var(--rowA-u));}
+  .rowA-sidebar-icon--notification{width:calc(10 * var(--rowA-u));height:calc(11 * var(--rowA-u));}
+  .rowA-sidebar-icon--message{width:calc(12 * var(--rowA-u));height:calc(12 * var(--rowA-u));}
+  .rowA-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    gap:calc(10 * var(--rowA-u));padding:calc(10 * var(--rowA-u));flex:1;min-width:0;height:100%;
+    background:var(--surface);border-radius:0 calc(14 * var(--rowA-u)) 0 0;}
+  .rowA-tile{position:relative;border-radius:calc(8 * var(--rowA-u));overflow:hidden;
     background:var(--surface-key);transition:box-shadow .25s ease;}
-  .copyDemo-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .copyDemo-tile--hot{box-shadow:0 0 calc(13 * var(--copyDemo-u)) 0 var(--accent-bright);}
-  .copyDemo-tile--tall{grid-row:span 2;}
-  .copyDemo-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
-    --copyDemo-u:calc((min(1136px, 100vw) - 16px) / 2 / 593);
-    width:calc(26 * var(--copyDemo-u));height:calc(26 * var(--copyDemo-u));opacity:0;
+  .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
+  .rowA-tile--hot{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
+  .rowA-tile--tall{grid-row:span 2;}
+  .rowA-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
+    --rowA-u:calc((min(1352px, 100vw - 64px) - 48px) * 1.329 / 2.329 / 593);
+    width:calc(26 * var(--rowA-u));height:calc(26 * var(--rowA-u));opacity:0;
     transition:transform 1s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
-  .copyDemo-cursor--on{opacity:1;}
-  .copyDemo-cursor img{width:100%;height:100%;display:block;}
-  .copyDemo-tip{position:absolute;left:calc(18 * var(--copyDemo-u));top:calc(-20 * var(--copyDemo-u));
+  .rowA-cursor--on{opacity:1;}
+  .rowA-cursor img{width:100%;height:100%;display:block;}
+  .rowA-tip{position:absolute;left:calc(18 * var(--rowA-u));top:calc(-20 * var(--rowA-u));
     display:inline-flex;align-items:center;white-space:nowrap;
-    padding:calc(4 * var(--copyDemo-u)) calc(8 * var(--copyDemo-u));
-    background:var(--accent-bright);border-radius:calc(5 * var(--copyDemo-u));
+    padding:calc(4 * var(--rowA-u)) calc(8 * var(--rowA-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--rowA-u));
     font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
-    font-size:calc(11 * var(--copyDemo-u));
+    font-size:calc(11 * var(--rowA-u));
     opacity:0;transition:opacity .3s ease;}
-  .copyDemo-tip--in{opacity:1;transition:none;}
-  .copyDemo-toast{position:absolute;z-index:4;
-    top:calc(10 * var(--copyDemo-u));right:calc(10 * var(--copyDemo-u));
-    display:inline-flex;align-items:center;gap:calc(5 * var(--copyDemo-u));
-    padding:calc(6 * var(--copyDemo-u)) calc(11 * var(--copyDemo-u));
+  .rowA-tip--in{opacity:1;transition:none;}
+  .rowA-toast{position:absolute;z-index:4;
+    top:calc(10 * var(--rowA-u));right:calc(10 * var(--rowA-u));
+    display:inline-flex;align-items:center;gap:calc(5 * var(--rowA-u));
+    padding:calc(6 * var(--rowA-u)) calc(11 * var(--rowA-u));
     background:#BC13FE;border:1px solid #BC13FE;border-radius:999px;
     font-family:var(--font-sans);font-weight:600;line-height:1.4;
-    font-size:calc(11 * var(--copyDemo-u));color:#f0f0f0;white-space:nowrap;
+    font-size:calc(11 * var(--rowA-u));color:#f0f0f0;white-space:nowrap;
     opacity:0;pointer-events:none;transition:opacity .3s ease;}
-  .copyDemo-toast img{width:calc(11 * var(--copyDemo-u));height:calc(11 * var(--copyDemo-u));display:block;
+  .rowA-toast img{width:calc(11 * var(--rowA-u));height:calc(11 * var(--rowA-u));display:block;
     filter:brightness(0) invert(1);}
-  .copyDemo-toast--in{opacity:1;}
-  .copyDemo-canvas{display:flex;flex-direction:column;overflow:hidden;
-    container-type:inline-size;--copyDemo-u:calc(100cqw / 593);
+  .rowA-toast--in{opacity:1;}
+  .rowA-canvas{display:flex;flex-direction:column;overflow:hidden;
+    container-type:inline-size;--rowA-u:calc(100cqw / 593);
     background:#DFDFDF;}
-  .copyDemo-canvas-header{display:flex;align-items:center;gap:calc(6 * var(--copyDemo-u));width:100%;
-    height:calc(30 * var(--copyDemo-u));flex-shrink:0;
-    padding:calc(6 * var(--copyDemo-u)) calc(18 * var(--copyDemo-u)) calc(6 * var(--copyDemo-u)) calc(10 * var(--copyDemo-u));
+  .rowA-canvas-header{display:flex;align-items:center;gap:calc(6 * var(--rowA-u));width:100%;
+    height:calc(30 * var(--rowA-u));flex-shrink:0;
+    padding:calc(6 * var(--rowA-u)) calc(18 * var(--rowA-u)) calc(6 * var(--rowA-u)) calc(10 * var(--rowA-u));
     border-bottom:1px solid #E6E7EB;}
-  .copyDemo-canvas-body{position:relative;flex:1;min-height:0;width:100%;overflow:hidden;background:#000;}
-  .copyDemo-canvas-pan{position:absolute;inset:0;}
-  .copyDemo-paste{position:absolute;left:0;top:0;display:none;width:70%;aspect-ratio:2000/1333;object-fit:contain;}
-  .copyDemo-paste--in{display:block;}
+  .rowA-canvas-body{position:relative;flex:1;min-height:0;width:100%;overflow:hidden;background:#000;}
+  .rowA-canvas-pan{position:absolute;inset:0;}
+  .rowA-paste{position:absolute;left:0;top:0;display:none;width:70%;aspect-ratio:2000/1333;object-fit:contain;}
+  .rowA-paste--in{display:block;}
 
   /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */
   /* No order: the DOM already puts the mockup first, so removing it is what moves the
@@ -1293,15 +1167,6 @@
      so the heading, the cards and the mockup shrink together. Everything else on the
      page still reflows the usual way — this is a trial on one row. */
   @media (max-width:1199px) and (min-width:821px){
-    .rowA-scale-wrap{
-      height:calc(470px * (100vw - 64px) / 1136);
-      overflow:hidden;
-    }
-    .grrab-rowA{
-      width:1136px !important;
-      transform-origin:top left;
-      transform:scale(calc((100vw - 64px) / 1136px));
-    }
     .rowC-scale-wrap{
       height:calc(470px * (100vw - 64px) / 1136);
       overflow:hidden;
@@ -1338,6 +1203,13 @@
          length out. */
       transform:scale(calc((100vw - 64px) / 1136px));
     }
+    /* Row A's figure breaks out and has no scale-wrap; match the other rows' type scale. */
+    .rowA-text .feature-h2{
+      font-size:calc(clamp(24px,3.1vw,30px) * (100vw - 64px) / 1136);
+    }
+    .rowA-text .feature-sub{
+      font-size:calc(22px * (100vw - 64px) / 1136) !important;
+    }
   }
 
   @media (max-width:820px){
@@ -1367,15 +1239,6 @@
     #top > div{ display:flex !important; justify-content:flex-start !important; }
     #top > div > .btn-ghost{ display:none !important; }
 
-    /* Row A does NOT stack: the chrome and the palette sit side by side and
-       together reassemble the Figma frame (281 + 312 = 593 wide, 434 tall). */
-    .grrab-rowA{ grid-template-columns:281fr 312fr !important;
-      grid-template-areas:"head head" "mock pal" !important;
-      column-gap:0 !important; row-gap:24px !important; }
-    .grrab-rowA > div:first-child{ display:contents !important; }
-    .grrab-rowA > div:first-child > div:first-child{ grid-area:head !important; }
-    .rowA-mockup-wrap{ grid-area:mock !important; }
-    .rowA-pallette{ grid-area:pal !important; }
     .grrab-rowB{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowB > div:first-child{ gap:14px !important; }
     .rowB-cards{ gap:8px !important; }
@@ -1458,62 +1321,6 @@
        content width (100vw minus 2×20px section padding = 100vw-40px). The wrapper
        reserves the scaled height. Internal cqw stays 1× (window keeps its fixed ref
        width as its own container). */
-
-    /* Row A — the wrapper now holds the chrome alone, so it takes the chrome's
-       own Figma ratio; the palette stretches to match its row height. */
-    .rowA-mockup-wrap{ position:relative !important; width:100% !important;
-      aspect-ratio:281/434 !important; height:auto !important; }
-    .rowA-mockup-wrap{ --rowA-u:calc(100cqw / 281) !important; }
-    .rowA-pallette{ aspect-ratio:auto !important; height:100% !important;
-      padding:0 !important; --rowA-u:calc(100cqh / 434) !important; }
-    /* Touch holds :hover on whatever was last tapped, so tapping a tile would stop its
-       column for good. The desktop pause stays; this cancels it here. The tile's glow is
-       the same stuck hover and is deliberately left alone. */
-    .rowA-col:hover{ animation-play-state:running !important; }
-    /* Rows, not columns. The tiles take 312/434 — the comparison's proportion, which is a
-       constant here because the mockup is 281/434 and the grid splits 281fr/312fr, so the
-       width cancels out of the ratio. flex:1 gives each row a third of the height and the
-       aspect-ratio settles the tile's width from there, so nothing needs a fixed number. */
-    /* One mask, both sides. The rows run sideways so the cut is horizontal; the three of
-       them divide the height exactly, so a top or bottom fade would dim tiles that are
-       whole. With a single mask there is nothing to composite, and mask-composite is
-       overridden back to its default so the desktop's intersect does not linger. */
-    .rowA-gallery{ flex-direction:column !important; justify-content:flex-start !important;
-      -webkit-mask-image:linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%) !important;
-      mask-image:linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%) !important;
-      -webkit-mask-composite:source-over !important;
-      mask-composite:add !important; }
-    /* min-height:0 is what makes flex:1 authoritative here. A flex item defaults to
-       min-height:auto and refuses to shrink below its content, so the tile asking for
-       height:100% of a row whose height was not yet known resolved to the image's own
-       1252px and the row grew to match. */
-    .rowA-col{ flex-direction:row !important; flex:1 !important; width:auto !important;
-      min-height:0 !important; align-self:stretch !important;
-      animation-name:rowAScrollRight !important; }
-    .rowA-col:nth-child(2){ animation-name:rowAScrollLeft !important; }
-    .rowA-col .rowA-tile{ aspect-ratio:312/434 !important; height:100% !important;
-      width:auto !important; }
-    /* The comparison splits horizontally here and is dragged up and down. inset(50% 0 0 0)
-       hides the before-image's top half, so after is above the line and before below. */
-    /* No !important: the script writes clip-path inline as you drag, and !important beats
-       an inline style — the clip stayed at 50% while the handle moved. This rule still
-       provides the starting value, because it matches the desktop rule's specificity and
-       comes later in the sheet. */
-    .rowA-compare-before{ clip-path:inset(50% 0 0 0);
-      -webkit-clip-path:inset(50% 0 0 0); }
-    /* translateY, not the desktop's translateX: the bar spans the full width from left:0
-       here, so a horizontal shift only pushes it off the edge — it is the vertical centre
-       on its `top` that needs correcting. */
-    /* top has no !important because the script writes it inline as you drag, and
-       !important beats inline — the bar sat at 50% while the split moved. It still gets
-       its starting 50% from here: the desktop rule sets top:0, and this comes later in
-       the sheet at equal specificity. The others keep theirs; the script never writes
-       them and each has a desktop value to override. */
-    .rowA-compare-handle{ left:0 !important; right:0 !important; top:50%;
-      bottom:auto !important; width:auto !important;
-      height:calc(3 * var(--rowA-u)) !important;
-      transform:translateY(-50%) !important; }
-    .rowA-compare-knob{ transform:rotate(90deg) !important; }
 
     /* Row C — ref 520×554 */
     /* 64.3% is 380/591 — the width it has inside the box on desktop. The height comes

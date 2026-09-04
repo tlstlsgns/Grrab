@@ -165,134 +165,61 @@
 <!-- ══ FEATURES ══ -->
 <section id="how" style="max-width:var(--container-max);margin:0 auto;padding:104px 32px;display:flex;flex-direction:column;gap:120px;">
 
-  <!-- Row A — text + browser mockup left, before/after slider right -->
-  <div class="rowA-scale-wrap">
-  <div class="grrab-rowA" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:72px;align-items:stretch;">
-    <!-- LEFT: heading + description + browser mockup -->
-    <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <p class="feature-label">RESOLUTION</p>
-        <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Always usable.</h2>
-        <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>Copied to your clipboard, never low-res.</p>
-      </div>
-
-      <div class="rowA-pallette">
-        <div class="rowA-compare" id="rowACompare">
-          <img id="rowACompareAfter" src="/assets/landing/img/rowA/rowA-image-4-after.webp" alt="">
-          <div class="rowA-compare-before" id="rowACompareBefore">
-            <img id="rowACompareBeforeImg" src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt="">
+  <div class="rowA-figure" id="rowA">
+    <div class="rowA-browser">
+      <div class="rowA-chrome">
+        <div class="rowA-header">
+          <div class="rowA-traffic"><span class="rowA-dot rowA-dot--red"></span><span class="rowA-dot rowA-dot--yellow"></span><span class="rowA-dot rowA-dot--green"></span></div>
+          <div class="rowA-urlbar"><div class="rowA-urlbar-line"></div></div>
+          <div class="rowA-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
+        </div>
+        <div class="rowA-body">
+          <div class="rowA-sidebar">
+            <div class="rowA-sidebar-item"><img class="rowA-sidebar-icon rowA-sidebar-icon--home" src="/assets/landing/icons/rowB/icon_home.svg" alt=""></div>
+            <div class="rowA-sidebar-item"><img class="rowA-sidebar-icon rowA-sidebar-icon--category" src="/assets/landing/icons/rowB/icon_category.svg" alt=""></div>
+            <div class="rowA-sidebar-item"><img class="rowA-sidebar-icon rowA-sidebar-icon--add" src="/assets/landing/icons/rowB/icon_add.svg" alt=""></div>
+            <div class="rowA-sidebar-item"><img class="rowA-sidebar-icon rowA-sidebar-icon--notification" src="/assets/landing/icons/rowB/icon_notification.svg" alt=""></div>
+            <div class="rowA-sidebar-item"><img class="rowA-sidebar-icon rowA-sidebar-icon--message" src="/assets/landing/icons/rowB/icon_message.svg" alt=""></div>
           </div>
-          <div class="rowA-compare-handle" id="rowACompareHandle">
-            <div class="rowA-compare-knob">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </div>
+          <div class="rowA-gallery">
+            <div class="rowA-tile rowA-tile--tall"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
+            <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
+            <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
+            <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
+            <div class="rowA-tile rowA-tile--tall"><img src="/assets/landing/img/rowA/rowA-image-7-before.webp" alt=""></div>
+            <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
+            <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="rowA-mockup-wrap">
-      <div class="rowA-gallery">
-        <div class="rowA-col">
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
-        </div>
-        <div class="rowA-col">
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-        </div>
-        <div class="rowA-col">
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
-          <div class="rowA-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
-
-  <!-- divider A / B -->
-  <div style="width:100%;height:1px;background:#E5E7EB;"></div>
-
-  <div class="copyDemo-figure" id="copyDemo">
-    <div class="copyDemo-browser">
-      <div class="copyDemo-chrome">
-        <div class="copyDemo-header">
-          <div class="copyDemo-traffic"><span class="copyDemo-dot copyDemo-dot--red"></span><span class="copyDemo-dot copyDemo-dot--yellow"></span><span class="copyDemo-dot copyDemo-dot--green"></span></div>
-          <div class="copyDemo-urlbar"><div class="copyDemo-urlbar-line"></div></div>
-          <div class="copyDemo-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
-        </div>
-        <div class="copyDemo-body">
-          <div class="copyDemo-sidebar">
-            <div class="copyDemo-sidebar-item"><img class="copyDemo-sidebar-icon copyDemo-sidebar-icon--home" src="/assets/landing/icons/rowB/icon_home.svg" alt=""></div>
-            <div class="copyDemo-sidebar-item"><img class="copyDemo-sidebar-icon copyDemo-sidebar-icon--category" src="/assets/landing/icons/rowB/icon_category.svg" alt=""></div>
-            <div class="copyDemo-sidebar-item"><img class="copyDemo-sidebar-icon copyDemo-sidebar-icon--add" src="/assets/landing/icons/rowB/icon_add.svg" alt=""></div>
-            <div class="copyDemo-sidebar-item"><img class="copyDemo-sidebar-icon copyDemo-sidebar-icon--notification" src="/assets/landing/icons/rowB/icon_notification.svg" alt=""></div>
-            <div class="copyDemo-sidebar-item"><img class="copyDemo-sidebar-icon copyDemo-sidebar-icon--message" src="/assets/landing/icons/rowB/icon_message.svg" alt=""></div>
-          </div>
-          <div class="copyDemo-gallery">
-            <div class="copyDemo-tile copyDemo-tile--tall"><img src="/assets/landing/img/rowA/rowA-image-1-before.webp" alt=""></div>
-            <div class="copyDemo-tile"><img src="/assets/landing/img/rowA/rowA-image-3-before.webp" alt=""></div>
-            <div class="copyDemo-tile"><img src="/assets/landing/img/rowA/rowA-image-6-before.webp" alt=""></div>
-            <div class="copyDemo-tile"><img src="/assets/landing/img/rowA/rowA-image-4-before.webp" alt=""></div>
-            <div class="copyDemo-tile copyDemo-tile--tall"><img src="/assets/landing/img/rowA/rowA-image-7-before.webp" alt=""></div>
-            <div class="copyDemo-tile"><img src="/assets/landing/img/rowA/rowA-image-2-before.webp" alt=""></div>
-            <div class="copyDemo-tile"><img src="/assets/landing/img/rowA/rowA-image-5-before.webp" alt=""></div>
-          </div>
-          <span class="copyDemo-toast" aria-hidden="true">
+          <span class="rowA-toast" aria-hidden="true">
             <img src="/assets/landing/icons/hero/icon_copy.svg" alt="">
             <span>Image copied</span>
           </span>
         </div>
       </div>
     </div>
-    <div class="copyDemo-side">
-      <div class="copyDemo-text">
+    <div class="rowA-side">
+      <div class="rowA-text">
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Always usable.</h2>
-        <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>Copied to your clipboard, never low-res.</p>
+        <p class="feature-sub" style="line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>Copied to your clipboard, never low-res.</p>
       </div>
-      <div class="copyDemo-canvas">
-        <div class="copyDemo-canvas-header">
-          <div class="copyDemo-traffic"><span class="copyDemo-dot copyDemo-dot--red"></span><span class="copyDemo-dot copyDemo-dot--yellow"></span><span class="copyDemo-dot copyDemo-dot--green"></span></div>
+      <div class="rowA-canvas">
+        <div class="rowA-canvas-header">
+          <div class="rowA-traffic"><span class="rowA-dot rowA-dot--red"></span><span class="rowA-dot rowA-dot--yellow"></span><span class="rowA-dot rowA-dot--green"></span></div>
         </div>
-        <div class="copyDemo-canvas-body">
-          <div class="copyDemo-canvas-pan">
-            <img class="copyDemo-paste" src="" alt="" draggable="false">
-            <img class="copyDemo-paste" src="" alt="" draggable="false">
-            <img class="copyDemo-paste" src="" alt="" draggable="false">
-            <img class="copyDemo-paste" src="" alt="" draggable="false">
-            <img class="copyDemo-paste" src="" alt="" draggable="false">
+        <div class="rowA-canvas-body">
+          <div class="rowA-canvas-pan">
+            <img class="rowA-paste" src="" alt="" draggable="false">
+            <img class="rowA-paste" src="" alt="" draggable="false">
+            <img class="rowA-paste" src="" alt="" draggable="false">
+            <img class="rowA-paste" src="" alt="" draggable="false">
+            <img class="rowA-paste" src="" alt="" draggable="false">
           </div>
         </div>
       </div>
     </div>
-    <span class="copyDemo-cursor" aria-hidden="true">
-      <span class="copyDemo-tip copyDemo-tip--copy">&#8984;C</span>
-      <span class="copyDemo-tip copyDemo-tip--paste">&#8984;V</span>
+    <span class="rowA-cursor" aria-hidden="true">
+      <span class="rowA-tip rowA-tip--copy">&#8984;C</span>
+      <span class="rowA-tip rowA-tip--paste">&#8984;V</span>
       <img src="/assets/landing/icons/rowB/icon_cursor.svg" alt="">
     </span>
   </div>
@@ -749,9 +676,7 @@
   </div>
 </footer>
 
-<div id="rowATip" class="rowA-tip" aria-hidden="true">Press <span class="rowA-tip-key">⌘C</span></div>
-
 <script src="/assets/js/landing.js?v=1" defer></script>
-<script src="/assets/js/copy-demo.js?v=1" defer></script>
+<script src="/assets/js/row-a.js?v=1" defer></script>
 </body>
 </html>
