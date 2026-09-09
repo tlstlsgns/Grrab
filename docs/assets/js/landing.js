@@ -32,8 +32,8 @@
   var heroOverlayAfter = document.getElementById("heroOverlayAfter");
   var heroOverlayBtn = document.getElementById("heroOverlayBtn");
   var heroBusy = document.getElementById("heroBusy");
-  var heroWipe = document.getElementById("heroWipe");
-  var heroWipeBar = document.getElementById("heroWipeBar");
+  var heroHandle = document.getElementById("heroHandle");
+  var heroClip = document.querySelector(".hero-slider-clip");
   var heroFigure = document.querySelector(".hero-overlay-figure");
   var heroOverlayImg = document.getElementById("heroOverlayImg");
   var heroOverlayBtnIcon = document.getElementById("heroOverlayBtnIcon");
@@ -47,8 +47,6 @@
   var heroCanvas = document.querySelector(".hero-canvas");
   var heroCanvasBody = document.querySelector(".hero-canvas-body");
   var heroCanvasPan = document.getElementById("heroCanvasPan");
-  var heroPaste = document.getElementById("heroPaste");
-  var heroPaste2 = document.getElementById("heroPaste2");
   var heroTipV = document.getElementById("heroTipV");
   var heroGallery = document.querySelector(".hero-gallery");
   var heroMarquee = document.getElementById("heroMarquee");
@@ -118,14 +116,13 @@
     var heroReveal = function(){
       if (heroBusy) heroBusy.classList.remove("hero-busy--on");
       if (heroOverlayBtn) heroOverlayBtn.classList.remove("hero-overlay-btn--press");
-      if (heroWipe && heroWipeBar) {
-        var hw = heroFigure ? heroFigure.offsetWidth : 0;
-        heroWipe.classList.add("hero-wipe--on");
-        heroWipeBar.style.transition = "none";
-        heroWipeBar.style.transform = "translateX(calc(" + hw + "px - 50%))";
-        void heroWipeBar.offsetWidth;
-        heroWipeBar.style.transition = "";
-        heroWipeBar.style.transform = "translateX(-50%)";
+      if (heroClip) heroClip.classList.add("hero-slider-clip--wipe");
+      if (heroHandle) {
+        heroHandle.style.transition = "none";
+        heroHandle.style.left = "100%";
+        void heroHandle.offsetWidth;
+        heroHandle.style.transition = "";
+        heroHandle.style.left = "0%";
       }
       if (heroOverlayAfter) heroOverlayAfter.classList.add("hero-overlay-after--in");
       if (heroLateTimer) { clearTimeout(heroLateTimer); heroLateTimer = 0; }
@@ -134,7 +131,7 @@
         if (heroLateActs) {
           heroLateActs.forEach(function(el){ el.classList.add("hero-overlay-act--in"); });
         }
-        if (heroWipe) heroWipe.classList.remove("hero-wipe--on");
+        if (heroClip) heroClip.classList.remove("hero-slider-clip--wipe");
       }, 1400);
       heroTimers.push(heroLateTimer);
     };
@@ -163,11 +160,10 @@
     var heroSetStep = function(s){
       if (heroOverlayImg) heroOverlayImg.setAttribute("src", s.img);
       if (heroOverlayAfter) {
-        heroOverlayAfter.setAttribute("src", s.img.replace("-before.webp", "-after.webp"));
+        heroOverlayAfter.setAttribute("src", s.img.replace(/-before\.(webp|jpe?g)$/, "-after.$1"));
         if (s.alpha) heroOverlayAfter.classList.add("hero-overlay-after--alpha");
         else heroOverlayAfter.classList.remove("hero-overlay-after--alpha");
       }
-      if (heroFigure) heroFigure.style.aspectRatio = s.ratio;
       heroSetAction(false);
     };
     /* Reopening the editor needs the first pass's leftovers cleared: the result would
@@ -184,10 +180,10 @@
         void heroOverlayAfter.offsetWidth;
         heroOverlayAfter.style.transition = "";
       }
-      if (heroWipe) heroWipe.classList.remove("hero-wipe--on");
-      if (heroWipeBar) {
-        heroWipeBar.style.transition = "none";
-        heroWipeBar.style.transform = "translateX(-50%)";
+      if (heroClip) heroClip.classList.remove("hero-slider-clip--wipe");
+      if (heroHandle) {
+        heroHandle.style.transition = "none";
+        heroHandle.style.left = "0%";
       }
       if (heroMarquee) {
         heroMarquee.classList.remove("hero-marquee--on");
@@ -236,34 +232,95 @@
          a tile, so nothing should still be lit. */
       heroHotOnly(null);
       if (heroToast) heroToast.classList.add("hero-toast--in");
-      if (heroCanvas) heroMoveTo(heroCentreIn(heroCanvas));
+      heroSlot1 = heroPickSlot();
+      heroMoveTo(heroPastePointIn(heroSlot1.ox, heroSlot1.oy));
     };
     var heroToastOut = function(){
       if (heroToast) heroToast.classList.remove("hero-toast--in");
     };
-    /* The paste is shown first so its laid-out size can be read, then positioned so its
-       centre sits under the cursor's point. No fade: a paste is instantaneous. */
-    /* heroPanX is added back because the pan layer is what the paste's left is measured
-       against. With the layer shifted, the point under the cursor sits that much further
-       along the layer than it does on screen. */
-    var heroPanX = 0;
-    var heroPanY = 0;
-    var heroPasteAt = function(el, ratio){
-      if (!el || !heroCanvas || !heroCanvasPan) return;
+    /* The paste is shown first so its laid-out size can be read, then positioned at a
+       random offset near the canvas centre. No fade: a paste is instantaneous. */
+    var heroPasteMin = 0.06;
+    var heroPasteRetries = 24;
+    var heroPasteMax = 10;
+    var heroPasteCount = 0;
+    var heroPlaced = [];
+    var heroSlot1 = null;
+    var heroSlot2 = null;
+    var heroPastePointIn = function(ox, oy){
+      if (!heroCanvas) return { x: 0, y: 0 };
+      if (ox == null) ox = 0;
+      if (oy == null) oy = 0;
       var p = heroCentreIn(heroCanvas);
+      return { x: p.x + heroCanvas.offsetWidth * ox,
+               y: p.y + heroCanvas.offsetHeight * oy };
+    };
+    var heroPickSlot = function(){
+      var ox = 0, oy = 0, attempt, ok, pi;
+      for (attempt = 0; attempt < heroPasteRetries; attempt++) {
+        ox = Math.random() * 0.2 - 0.10;
+        oy = Math.random() * 0.6 - 0.30;
+        ok = true;
+        if (heroCanvas && heroCanvas.offsetWidth) {
+          for (pi = 0; pi < heroPlaced.length; pi++) {
+            var dx = (ox - heroPlaced[pi].ox) * heroCanvas.offsetWidth;
+            var dy = (oy - heroPlaced[pi].oy) * heroCanvas.offsetHeight;
+            if (Math.sqrt(dx * dx + dy * dy) < heroCanvas.offsetWidth * heroPasteMin) {
+              ok = false;
+              break;
+            }
+          }
+        }
+        if (ok) break;
+      }
+      var slot = { ox: ox, oy: oy };
+      heroPlaced.push(slot);
+      return slot;
+    };
+    var heroClearPastes = function(){
+      if (!heroCanvasPan) return;
+      var nodes = heroCanvasPan.querySelectorAll(".hero-paste");
+      for (var hi = 0; hi < nodes.length; hi++) nodes[hi].remove();
+      heroPlaced = [];
+      heroPasteCount = 0;
+    };
+    var heroPasteAfterSrc = function(stepIndex){
+      return heroSteps[stepIndex].img.replace(/-before\.(webp|jpe?g)$/, "-after.$1");
+    };
+    var heroPasteAt = function(el, ox, oy, ratio){
+      if (!el || !heroCanvas || !heroCanvasPan) return;
+      if (ox == null) ox = 0;
+      if (oy == null) oy = 0;
+      var p = heroPastePointIn(ox, oy);
       var o = heroOffsetIn(heroCanvasPan);
-      el.style.aspectRatio = ratio;
+      if (ratio) el.style.aspectRatio = ratio;
       el.classList.add("hero-paste--in");
-      el.style.left = (p.x - o.x - heroPanX - el.offsetWidth / 2) + "px";
-      el.style.top = (p.y - o.y - heroPanY - el.offsetHeight / 2) + "px";
+      void el.offsetWidth;
+      el.style.left = (p.x - o.x - el.offsetWidth / 2) + "px";
+      el.style.top = (p.y - o.y - el.offsetHeight / 2) + "px";
+    };
+    var heroCreatePaste = function(stepIndex, ox, oy){
+      if (!heroCanvasPan) return null;
+      if (heroPasteCount >= heroPasteMax) heroClearPastes();
+      var el = document.createElement("img");
+      el.className = "hero-paste";
+      el.setAttribute("src", heroPasteAfterSrc(stepIndex));
+      el.setAttribute("alt", "");
+      el.setAttribute("draggable", "false");
+      heroCanvasPan.appendChild(el);
+      heroPasteAt(el, ox, oy, heroSteps[stepIndex].ratio);
+      heroPasteCount++;
+      return el;
     };
     var heroPasteIn = function(){
       if (heroTipV) heroTipV.classList.add("hero-tip--in");
-      heroPasteAt(heroPaste, heroSteps[0].ratio);
+      if (!heroSlot1) heroSlot1 = heroPickSlot();
+      heroCreatePaste(0, heroSlot1.ox, heroSlot1.oy);
     };
     var heroPasteIn2 = function(){
       if (heroTipV) heroTipV.classList.add("hero-tip--in");
-      heroPasteAt(heroPaste2, heroSteps[1].ratio);
+      if (!heroSlot2) heroSlot2 = heroPickSlot();
+      heroCreatePaste(1, heroSlot2.ox, heroSlot2.oy);
     };
     /* Clip's second press does only what the editor's closing needs. */
     var heroClipDone2 = function(){
@@ -275,47 +332,10 @@
       heroHotOnly(null);
       if (heroToast) heroToast.classList.add("hero-toast--in");
     };
-    /* The layer and the cursor move the same distance over the same .75s, which is the
-       only thing that makes this read as a drag rather than the canvas sliding on its
-       own. Both offsets go negative: content moves up and left, so a point on screen
-       maps to a LARGER coordinate on the layer.
-       0.72 and 0.55 of the paste's own size leave roughly its bottom-right eighth in
-       view — enough to say there is more over there without clearing the middle. */
-    var heroPanLeft = function(){
-      if (!heroCanvasPan || !heroPaste || !heroCanvas) return;
-      heroPanX = -heroPaste.offsetWidth * 0.72;
-      heroPanY = -heroPaste.offsetHeight * 0.55;
-      heroCanvasPan.style.transform = "translate(" + heroPanX + "px," + heroPanY + "px)";
-      var p = heroCentreIn(heroCanvas);
-      heroMoveTo({ x: p.x + heroPanX, y: p.y + heroPanY });
-    };
+    /* The opposite conversion to heroPasteAt: a layer coordinate back to a screen one,
+       because the cursor lives outside the layer. */
     var heroTipVOut = function(){
       if (heroTipV) heroTipV.classList.remove("hero-tip--in");
-    };
-    /* A real scroll is impossible here: .hero-body is the flex row holding the sidebar
-       as well, so scrolling it would carry the sidebar up too. The gallery is moved by
-       transform instead and .hero-body's overflow:hidden does the clipping. */
-    var heroScrollY = 0;
-    var heroScrollDown = function(){
-      if (!heroGallery) return;
-      heroScrollY = Math.max(0, heroGallery.offsetHeight - heroBody.clientHeight);
-      heroGallery.style.transform = "translateY(" + (-heroScrollY) + "px)";
-    };
-    /* offsetTop ignores transforms, so the scrolled distance has to come off by hand.
-       elementFromPoint in heroTrack does see the real position and needs no adjusting. */
-    var heroHoverLate = function(){
-      var tile = heroTiles[heroTiles.length - 5];
-      if (!tile) return;
-      var p = heroCentreIn(tile);
-      heroMoveTo({ x: p.x, y: p.y - heroScrollY });
-    };
-    /* The opposite conversion to heroPasteAt: a layer coordinate back to a screen one,
-       because the cursor lives outside the layer. Hence + heroPanX, not - . */
-    var heroCursorAsideOf = function(el){
-      if (!el || !heroCanvasPan) return;
-      var o = heroOffsetIn(heroCanvasPan);
-      heroMoveTo({ x: o.x + heroPanX + el.offsetLeft + el.offsetWidth,
-                   y: o.y + heroPanY + el.offsetTop + el.offsetHeight });
     };
 
     var heroClearTimers = function(){
@@ -331,12 +351,17 @@
     };
 
     var heroPlay = function(){
+      if (window.grrabBrowser && window.grrabBrowser.stopRowA) window.grrabBrowser.stopRowA();
+      if (window.grrabBrowser && window.grrabBrowser.stopRowB) window.grrabBrowser.stopRowB();
       var tile = heroTiles[0];
       if (!tile || !heroBody.offsetWidth) return;
       /* Every cycle queues about thirty timers. Cancelling and emptying the list here
          keeps that from growing without bound, and means a stray call cannot leave two
          sequences running against each other. */
       heroClearTimers();
+      if (heroPasteCount + 2 > heroPasteMax) heroClearPastes();
+      heroSlot1 = null;
+      heroSlot2 = null;
       if (heroLateActs) {
         heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
       }
@@ -376,32 +401,28 @@
       heroAt(8100, heroToastOut);
       heroAt(7750, heroPasteIn);
       heroAt(8140, heroTipVOut);
-      /* One tracking run covers the whole return leg: crossing back in, the scroll, and
-         the final approach. During the scroll the cursor is still and the tiles slide
-         under it, which elementFromPoint picks up frame by frame. 2650 runs to 10790,
-         where the glow is locked. */
       heroAt(8140, function(){
-        heroMoveTo(heroCentreIn(heroBody));
-        heroTrack(2650);
+        var lateTile = heroTiles[5];
+        if (!lateTile) return;
+        heroMoveTo(heroCentreIn(lateTile));
+        heroTrack(790);
       });
-      heroAt(9100, heroScrollDown);
-      heroAt(10000, heroHoverLate);
-      heroAt(10790, function(){
+      heroAt(8960, function(){
         if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
-        heroHotOnly(heroTiles[heroTiles.length - 5]);
+        heroHotOnly(heroTiles[5]);
       });
 
       /* ── second pass: erase, on the tile the cursor just settled on ── */
       var box = { l:0.39, t:0.38, r:0.59, b:0.65 };
-      heroAt(11200, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
-      heroAt(11540, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
-      heroAt(11840, function(){
+      heroAt(9370, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
+      heroAt(9710, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
+      heroAt(10010, function(){
         heroSetStep(heroSteps[1]);
         heroResetOverlay();
         heroOverlay.classList.add("hero-overlay--on");
       });
-      heroAt(12120, function(){ heroMoveTo(heroBoxPoint(box.l, box.t)); });
-      heroAt(12870, function(){
+      heroAt(10290, function(){ heroMoveTo(heroBoxPoint(box.l, box.t)); });
+      heroAt(11040, function(){
         if (!heroMarquee) return;
         heroMarquee.style.left = (box.l * 100) + "%";
         heroMarquee.style.top = (box.t * 100) + "%";
@@ -411,49 +432,34 @@
         heroMoveTo(heroBoxPoint(box.r, box.b));
         heroDragTrack(box, 820);
       });
-      heroAt(13690, function(){
+      heroAt(11860, function(){
         if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
         heroSetAction(true);
         if (!heroMarquee) return;
         heroMarquee.style.width = ((box.r - box.l) * 100) + "%";
         heroMarquee.style.height = ((box.b - box.t) * 100) + "%";
       });
-      heroAt(13900, function(){
+      heroAt(12070, function(){
         if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
       });
-      heroAt(14640, heroHover);
-      heroAt(15040, heroPress);
-      heroAt(16040, heroReveal);
+      heroAt(12810, heroHover);
+      heroAt(13210, heroPress);
+      heroAt(14210, heroReveal);
 
-      /* ── second clip: canvas pan instead ── */
-      heroAt(17440, function(){
+      /* ── second clip: second paste on the canvas ── */
+      heroAt(15610, function(){
         if (heroActClip) heroMoveTo(heroCentreIn(heroActClip));
       });
-      heroAt(18190, heroClipHover);
-      heroAt(18590, heroClipPress);
-      heroAt(18790, heroClipDone2);
-      heroAt(19240, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
-      heroAt(20540, heroToastOut);
-      heroAt(20140, heroPanLeft);
-      /* 20890 is exactly when the pan's .75s transition ends, so the cursor sets off
-         the instant the canvas stops rather than after a beat. */
-      heroAt(20890, function(){ heroMoveTo(heroCentreIn(heroCanvas)); });
-      heroAt(21690, heroPasteIn2);
-      heroAt(22030, heroTipVOut);
-      heroAt(22190, function(){ heroCursorAsideOf(heroPaste2); });
-
-      /* ── the return ── */
-      heroAt(23140, function(){
-        if (heroGallery) {
-          heroScrollY = 0;
-          heroGallery.style.transform = "translateY(0)";
-        }
+      heroAt(16360, heroClipHover);
+      heroAt(16760, heroClipPress);
+      heroAt(16960, heroClipDone2);
+      heroAt(17410, function(){
+        heroSlot2 = heroPickSlot();
+        heroMoveTo(heroPastePointIn(heroSlot2.ox, heroSlot2.oy));
       });
-      heroAt(23240, function(){ window.heroReset(); });
-      /* 100ms after the reset rather than in the same tick: the reset suppresses several
-         transitions with a forced reflow, and starting the next cycle inside that same
-         frame can show as a flicker. */
-      heroAt(23340, function(){ heroPlay(); });
+      heroAt(18710, heroToastOut);
+      heroAt(18160, heroPasteIn2);
+      heroAt(18550, heroTipVOut);
     };
 
     /* Puts everything back to the opening state. Defined here and hung on window so it
@@ -462,30 +468,8 @@
     window.heroReset = function(){
       if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
 
-      /* pan and scroll, both the variables and what they drew */
-      heroPanX = 0; heroPanY = 0; heroScrollY = 0;
-      /* Transitions off for the snap back: by the time this runs the sequence has already
-         animated both, and letting them glide would send them travelling a second time. */
-      if (heroCanvasPan) {
-        heroCanvasPan.style.transition = "none";
-        heroCanvasPan.style.transform = "";
-        void heroCanvasPan.offsetWidth;
-        heroCanvasPan.style.transition = "";
-      }
-      if (heroGallery) {
-        heroGallery.style.transition = "none";
-        heroGallery.style.transform = "";
-        void heroGallery.offsetWidth;
-        heroGallery.style.transition = "";
-      }
-
-      /* the two pasted images */
-      if (heroPaste) { heroPaste.classList.remove("hero-paste--in");
-        heroPaste.classList.remove("hero-paste--out");
-        heroPaste.style.left = ""; heroPaste.style.top = ""; }
-      if (heroPaste2) { heroPaste2.classList.remove("hero-paste--in");
-        heroPaste2.classList.remove("hero-paste--out");
-        heroPaste2.style.left = ""; heroPaste2.style.top = ""; }
+      heroSlot1 = null;
+      heroSlot2 = null;
 
       /* the cursor */
       heroCursor.classList.remove("hero-cursor--on");
@@ -520,25 +504,72 @@
       heroHotOnly(null);
     };
 
-    var heroLeft = document.querySelector(".hero-left");
+    var heroSlot = document.querySelector(".hero-browser-slot");
     var heroMockup = document.querySelector(".hero-mockup-wrap");
     var rowABrowser = document.querySelector(".rowA-browser");
+    var rowBSlot = document.querySelector(".rowB-mockup-wrap");
     var browserAt = "hero";
-    var browserPlaceholder = null;
-
-    var ensureBrowserPlaceholder = function(){
-      if (browserPlaceholder) return browserPlaceholder;
-      browserPlaceholder = document.createElement("div");
-      browserPlaceholder.className = "hero-browser-placeholder";
-      browserPlaceholder.setAttribute("aria-hidden", "true");
-      browserPlaceholder.style.width = "100%";
-      browserPlaceholder.style.aspectRatio = "593 / 434";
-      return browserPlaceholder;
-    };
 
     var browserFlying = false;
     var browserFlightRaf = 0;
     var browserFlightMs = 400;
+    var browserPlaced = false;
+    var browserPending = null;
+    var browserFlightDone = null;
+
+    var browserSetPending = function(at, done){
+      browserPending = { at: at, done: done || null };
+    };
+
+    var browserContinueAfterLanding = function(){
+      if (browserAt === "rowA") {
+        if (rowBIntersecting()) {
+          browserFlightDone = null;
+          moveToRowB(window.grrabBrowser && window.grrabBrowser.playRowB);
+          return true;
+        }
+        if (!rowAIntersecting()) {
+          browserFlightDone = null;
+          return true;
+        }
+        return false;
+      }
+      if (browserAt === "hero") {
+        if (rowBIntersecting()) {
+          browserFlightDone = null;
+          moveToRowB(window.grrabBrowser && window.grrabBrowser.playRowB);
+          return true;
+        }
+        if (rowAIntersecting()) {
+          browserFlightDone = null;
+          moveToRowA(window.grrabBrowser && window.grrabBrowser.playRowA);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    var browserFinishMove = function(){
+      if (browserPending) {
+        var pending = browserPending;
+        browserPending = null;
+        browserFlightDone = null;
+        if (pending.at === browserAt) {
+          if (pending.done) pending.done();
+          return;
+        }
+        if (pending.at === "rowA") moveToRowA(pending.done);
+        else if (pending.at === "rowB") moveToRowB(pending.done);
+        else moveToHero(pending.done);
+        return;
+      }
+      if (browserContinueAfterLanding()) return;
+      if (browserFlightDone) {
+        var flightDone = browserFlightDone;
+        browserFlightDone = null;
+        flightDone();
+      }
+    };
 
     var clearMockupFlightStyles = function(){
       heroMockup.style.position = "";
@@ -558,7 +589,7 @@
       heroMockup.style.width = rect.width + "px";
       heroMockup.style.height = rect.height + "px";
       heroMockup.style.margin = "0";
-      heroMockup.style.zIndex = "100";
+      heroMockup.style.zIndex = "10";
       heroMockup.style.boxSizing = "border-box";
     };
 
@@ -568,6 +599,7 @@
 
     var browserFlyMockup = function(startRect, destRectFn, onLand, done){
       browserFlying = true;
+      browserFlightDone = done || null;
       document.body.appendChild(heroMockup);
       setMockupFixedRect(startRect);
       var t0 = performance.now();
@@ -589,20 +621,40 @@
         browserFlying = false;
         clearMockupFlightStyles();
         onLand();
-        if (done) done();
+        browserFinishMove();
       };
       browserFlightRaf = requestAnimationFrame(tick);
     };
 
+    var browserPlaceMockup = function(slot, atValue, done){
+      clearMockupFlightStyles();
+      slot.appendChild(heroMockup);
+      browserAt = atValue;
+      browserPlaced = true;
+      if (done) done();
+    };
+
     var moveToRowA = function(done){
-      if (browserFlying) return;
-      if (browserAt === "rowA") { if (done) done(); return; }
-      if (!heroMockup || !heroLeft || !rowABrowser) return;
-      var startRect = heroMockup.getBoundingClientRect();
-      heroStop();
-      var ph = ensureBrowserPlaceholder();
-      if (!ph.parentNode) heroLeft.insertBefore(ph, heroMockup);
-      browserFlyMockup(startRect, function(){
+      if (browserAt === "rowA") {
+        if (done) done();
+        return;
+      }
+      if (browserFlying) {
+        browserSetPending("rowA", done);
+        return;
+      }
+      if (!heroMockup || !heroSlot || !rowABrowser) return;
+      if (browserAt === "hero") {
+        heroStop();
+      } else if (browserAt === "rowB") {
+        if (window.grrabBrowser && window.grrabBrowser.stopRowB) window.grrabBrowser.stopRowB();
+      }
+      if (!browserPlaced) {
+        browserPlaceMockup(rowABrowser, "rowA", done);
+        return;
+      }
+      var startRectA = heroMockup.getBoundingClientRect();
+      browserFlyMockup(startRectA, function(){
         return rowABrowser.getBoundingClientRect();
       }, function(){
         rowABrowser.appendChild(heroMockup);
@@ -620,34 +672,112 @@
       return vis / r.height >= 0.6;
     };
 
+    var rowAIntersecting = function(){
+      var rowAEl = document.getElementById("rowA");
+      if (!rowAEl) return false;
+      var r = rowAEl.getBoundingClientRect();
+      if (!r.height) return false;
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var vis = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+      return vis / r.height >= 0.6;
+    };
+
+    var rowBIntersecting = function(){
+      var rowBRow = document.querySelector(".grrab-rowB");
+      if (!rowBRow) return false;
+      var r = rowBRow.getBoundingClientRect();
+      if (!r.height) return false;
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var vis = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+      return vis / r.height >= 0.6;
+    };
+
+    var moveToRowB = function(done){
+      if (browserAt === "rowB") {
+        if (done) done();
+        return;
+      }
+      if (browserFlying) {
+        browserSetPending("rowB", done);
+        return;
+      }
+      if (!heroMockup || !rowBSlot) return;
+      if (browserAt === "rowA") {
+        if (window.grrabBrowser && window.grrabBrowser.stopRowA) window.grrabBrowser.stopRowA();
+      } else if (browserAt === "hero") {
+        heroStop();
+      }
+      if (!browserPlaced) {
+        browserPlaceMockup(rowBSlot, "rowB", done);
+        return;
+      }
+      var startRectB = heroMockup.getBoundingClientRect();
+      browserFlyMockup(startRectB, function(){
+        return rowBSlot.getBoundingClientRect();
+      }, function(){
+        rowBSlot.appendChild(heroMockup);
+        browserAt = "rowB";
+      }, done);
+    };
+
     var moveToHero = function(done){
-      if (browserFlying) return;
       if (browserAt === "hero") {
         if (!(heroReduce && heroReduce.matches) && heroTopIntersecting()) heroPlay();
         if (done) done();
         return;
       }
-      if (!heroMockup || !heroLeft) return;
-      var startRect = heroMockup.getBoundingClientRect();
-      var ph = ensureBrowserPlaceholder();
-      if (!ph.parentNode) heroLeft.insertBefore(ph, heroMockup);
-      browserFlyMockup(startRect, function(){
-        return ph.getBoundingClientRect();
+      if (browserFlying) {
+        browserSetPending("hero", done);
+        return;
+      }
+      if (!heroMockup || !heroSlot) return;
+      if (window.grrabBrowser && window.grrabBrowser.stopRowA) window.grrabBrowser.stopRowA();
+      if (window.grrabBrowser && window.grrabBrowser.stopRowB) window.grrabBrowser.stopRowB();
+      if (!browserPlaced) {
+        browserPlaceMockup(heroSlot, "hero", function(){
+          if (!(heroReduce && heroReduce.matches) && heroTopIntersecting()) heroPlay();
+          if (done) done();
+        });
+        return;
+      }
+      var startRectH = heroMockup.getBoundingClientRect();
+      browserFlyMockup(startRectH, function(){
+        return heroSlot.getBoundingClientRect();
       }, function(){
-        heroLeft.insertBefore(heroMockup, ph);
-        if (ph.parentNode) ph.parentNode.removeChild(ph);
+        heroSlot.appendChild(heroMockup);
         browserAt = "hero";
         if (!(heroReduce && heroReduce.matches) && heroTopIntersecting()) heroPlay();
       }, done);
     };
 
-    window.grrabBrowser = { moveToRowA: moveToRowA, moveToHero: moveToHero };
+    window.grrabBrowser = {
+      moveToRowA: moveToRowA,
+      moveToRowB: moveToRowB,
+      moveToHero: moveToHero,
+      stopHero: heroStop
+    };
     Object.defineProperty(window.grrabBrowser, "at", {
       get: function(){ return browserAt; },
       enumerable: true
     });
     Object.defineProperty(window.grrabBrowser, "flying", {
       get: function(){ return browserFlying; },
+      enumerable: true
+    });
+    Object.defineProperty(window.grrabBrowser, "heroVisible", {
+      get: function(){ return heroTopIntersecting(); },
+      enumerable: true
+    });
+    Object.defineProperty(window.grrabBrowser, "rowAIntersecting", {
+      get: function(){ return rowAIntersecting(); },
+      enumerable: true
+    });
+    Object.defineProperty(window.grrabBrowser, "rowBIntersecting", {
+      get: function(){ return rowBIntersecting(); },
+      enumerable: true
+    });
+    Object.defineProperty(window.grrabBrowser, "placed", {
+      get: function(){ return browserPlaced; },
       enumerable: true
     });
 
@@ -657,18 +787,40 @@
       heroOverlay.classList.add("hero-overlay--on");
       heroReveal();
       if (heroToast) heroToast.classList.add("hero-toast--in");
-      if (heroPaste) heroPasteIn();
+      heroPasteIn();
       if (heroTipV) heroTipV.classList.remove("hero-tip--in");
+      browserPlaced = true;
     } else {
       var heroTop = document.getElementById("top");
       if (heroTop && "IntersectionObserver" in window) {
+        var heroHasEntered = false;
         new IntersectionObserver(function(entries){
           for (var hi = 0; hi < entries.length; hi++){
             if (entries[hi].isIntersecting) {
-              if (window.grrabBrowser && window.grrabBrowser.at === "hero" &&
-                  !window.grrabBrowser.flying) heroPlay();
+              heroHasEntered = true;
+              if (window.grrabBrowser) {
+                if (window.grrabBrowser.at === "hero") {
+                  if (!window.grrabBrowser.flying) {
+                    heroPlay();
+                    browserPlaced = true;
+                  }
+                } else {
+                  window.grrabBrowser.moveToHero();
+                }
+              }
             } else {
+              if (!heroHasEntered) continue;
               heroStop();
+              var he = entries[hi];
+              if (window.grrabBrowser &&
+                  window.grrabBrowser.at === "hero" &&
+                  he.boundingClientRect.top < 0) {
+                if (rowBIntersecting()) {
+                  window.grrabBrowser.moveToRowB(window.grrabBrowser.playRowB);
+                } else if (rowAIntersecting()) {
+                  window.grrabBrowser.moveToRowA(window.grrabBrowser.playRowA);
+                }
+              }
             }
           }
         }, { threshold: 0.6 }).observe(heroTop);
@@ -679,44 +831,72 @@
   }
 
   /* ──────────────────── ROW B — EDIT-MODE DEMO ──────────────────── */
-  var rowBChrome = document.querySelector(".rowB-chrome");
-  var rowBBody = document.querySelector(".rowB-body");
-  var rowBFigure = document.querySelector(".rowB-overlay-figure");
-  var rowBHandle = document.getElementById("rowBHandle");
-  var rowBClip = document.querySelector(".rowB-slider-clip");
-  var rowBCursor = document.getElementById("rowBCursor");
+  var rowBMockupWrap = document.querySelector(".rowB-mockup-wrap");
+  var rowBCursor = rowBMockupWrap ? rowBMockupWrap.querySelector(".rowB-cursor") : null;
   var rowBTip = document.getElementById("rowBTip");
-  var rowBOverlay = document.getElementById("rowBOverlay");
-  var rowBOverlayImg = document.getElementById("rowBOverlayImg");
-  var rowBOverlayAfter = document.getElementById("rowBOverlayAfter");
-  var rowBOverlayBtn = document.getElementById("rowBOverlayBtn");
-  var rowBActUpscale = document.getElementById("rowBActUpscale");
-  var rowBActs = [].slice.call(document.querySelectorAll(".rowB-overlay-act"));
-  var rowBLateActs = rowBOverlay
-    ? [].slice.call(rowBOverlay.querySelectorAll(".rowB-overlay-act--late"))
-    : [];
-  var rowBMarquee = document.getElementById("rowBMarquee");
-  var rowBBusy = document.getElementById("rowBBusy");
-  var rowBBusyText = document.getElementById("rowBBusyText");
-  var rowBOverlayBtnIcon = document.getElementById("rowBOverlayBtnIcon");
-  var rowBOverlayBtnLabel = document.getElementById("rowBOverlayBtnLabel");
-  var rowBHint = document.getElementById("rowBHint");
   var rowBCards = [].slice.call(document.querySelectorAll(".rowB-card"));
-  var rowBTiles = [].slice.call(document.querySelectorAll(".rowB-tile"));
+  var rowBChrome = null;
+  var rowBBody = null;
+  var rowBFigure = null;
+  var rowBHandle = null;
+  var rowBClip = null;
+  var rowBOverlay = null;
+  var rowBOverlayImg = null;
+  var rowBOverlayAfter = null;
+  var rowBOverlayBtn = null;
+  var rowBActUpscale = null;
+  var rowBActs = [];
+  var rowBLateActs = [];
+  var rowBMarquee = null;
+  var rowBBusy = null;
+  var rowBBusyText = null;
+  var rowBOverlayBtnIcon = null;
+  var rowBOverlayBtnLabel = null;
+  var rowBHint = null;
+  var rowBTiles = [];
 
-  if (rowBBody && rowBCursor && rowBOverlay && rowBOverlayImg && rowBCards.length && rowBTiles.length) {
+  if (rowBMockupWrap && rowBCursor && rowBCards.length) {
+    var rowBRefreshBrowser = function(){
+      var chrome = (rowBMockupWrap && rowBMockupWrap.querySelector(".hero-chrome")) ||
+        document.querySelector(".hero-mockup-wrap .hero-chrome");
+      rowBChrome = chrome;
+      rowBBody = chrome ? chrome.querySelector(".hero-body") : null;
+      rowBTiles = rowBBody ? [].slice.call(rowBBody.querySelectorAll(".hero-tile")) : [];
+      rowBFigure = document.querySelector(".hero-overlay-figure");
+      rowBHandle = document.getElementById("heroHandle");
+      rowBClip = document.querySelector(".hero-slider-clip");
+      rowBOverlay = document.getElementById("heroOverlay");
+      rowBOverlayImg = document.getElementById("heroOverlayImg");
+      rowBOverlayAfter = document.getElementById("heroOverlayAfter");
+      rowBOverlayBtn = document.getElementById("heroOverlayBtn");
+      rowBActUpscale = document.getElementById("heroActUpscale");
+      rowBActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
+      rowBLateActs = rowBOverlay
+        ? [].slice.call(rowBOverlay.querySelectorAll(".hero-overlay-act--late"))
+        : [];
+      rowBMarquee = document.getElementById("heroMarquee");
+      rowBBusy = document.getElementById("heroBusy");
+      rowBBusyText = document.getElementById("heroBusyText");
+      rowBOverlayBtnIcon = document.getElementById("heroOverlayBtnIcon");
+      rowBOverlayBtnLabel = document.getElementById("heroOverlayBtnLabel");
+      rowBHint = document.getElementById("heroHint");
+      if (rowBCursor && rowBMockupWrap && rowBMockupWrap.offsetWidth) {
+        rowBCursor.style.setProperty("--rowB-u", "calc(" + rowBMockupWrap.offsetWidth + "px / 593)");
+      }
+      return rowBBody;
+    };
     var rowBSteps = [
-      { tile:0, img:"/assets/landing/img/rowB/rowB-image-1-before.webp",
+      { tile:0, img:"/assets/landing/img/hero-image-1-before.webp", ratio:"2000/1333",
         icon:"/assets/landing/icons/rowB/icon_removebg.svg", label:"Remove BG", alpha:true },
       /* "Remove" is the extension's own wording for the erase action, and it is written
          out again in the hero's heroSetAction — change both together. */
-      { tile:4, img:"/assets/landing/img/rowB/rowB-image-7-before.webp",
+      { tile:5, img:"/assets/landing/img/hero-image-7-before.webp", ratio:"2000/1335",
         icon:"/assets/landing/icons/rowB/icon_erase.svg", label:"Remove",
         box:{ l:0.39, t:0.38, r:0.59, b:0.65 } },
       /* The bottom bar's Upscale, not the top button — target says which. The images are
          a stand-in: 5-before and 5-after are currently identical, so the wipe runs but
          shows no change. Replacing them is part of the final asset pass. */
-      { tile:6, img:"/assets/landing/img/rowB/rowB-image-5-before.webp",
+      { tile:3, img:"/assets/landing/img/hero-image-8-before.webp", ratio:"999/666",
         icon:"/assets/landing/icons/rowB/icon_upscale.svg", label:"Upscale",
         busy:"Upscaling…", target:"upscale" }
     ];
@@ -730,8 +910,8 @@
       if (rowBOverlayBtnLabel) rowBOverlayBtnLabel.textContent =
         erasing ? step.label : "Remove BG";
       if (rowBHint) {
-        if (erasing) rowBHint.classList.add("rowB-hint--off");
-        else rowBHint.classList.remove("rowB-hint--off");
+        if (erasing) rowBHint.classList.add("hero-hint--off");
+        else rowBHint.classList.remove("hero-hint--off");
       }
     };
     var rowBTimers = [];
@@ -748,12 +928,16 @@
       rowBTimers = [];
       rowBLateTimer = 0;
     };
+    var rowBStop = function(){
+      rowBClearTimers();
+      rowBReset();
+    };
     var rowBAt = function(ms, fn){ rowBTimers.push(setTimeout(fn, ms)); };
 
     var rowBHotOnly = function(tile){
       for (var i = 0; i < rowBTiles.length; i++){
-        if (rowBTiles[i] === tile) rowBTiles[i].classList.add("rowB-tile--hot");
-        else rowBTiles[i].classList.remove("rowB-tile--hot");
+        if (rowBTiles[i] === tile) rowBTiles[i].classList.add("hero-tile--hot");
+        else rowBTiles[i].classList.remove("hero-tile--hot");
       }
     };
 
@@ -762,7 +946,7 @@
       var tick = function(){
         var r = rowBCursor.getBoundingClientRect();
         var under = document.elementFromPoint(r.left, r.top);
-        rowBHotOnly(under && under.closest ? under.closest(".rowB-tile") : null);
+        rowBHotOnly(under && under.closest ? under.closest(".hero-tile") : null);
         if (Date.now() - started < durationMs) rowBRaf = requestAnimationFrame(tick);
         else rowBRaf = 0;
       };
@@ -778,7 +962,7 @@
        pixels and the transform applies to them exactly once. */
     var rowBOffsetIn = function(el){
       var x = 0, y = 0, n = el;
-      while (n && n !== rowBBody) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+      while (n && n !== rowBMockupWrap) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
       return { x: x, y: y };
     };
     var rowBPointIn = function(el){
@@ -818,7 +1002,7 @@
     };
     var rowBTargetCls = function(){
       var s = rowBSteps[rowBCurrent];
-      return (s && s.target === "upscale") ? "rowB-overlay-act" : "rowB-overlay-btn";
+      return (s && s.target === "upscale") ? "hero-overlay-act" : "hero-overlay-btn";
     };
     var rowBHover = function(){
       var el = rowBTargetEl();
@@ -827,19 +1011,19 @@
     var rowBPress = function(){
       var el = rowBTargetEl();
       if (el) el.classList.add(rowBTargetCls() + "--press");
-      if (rowBBusy) rowBBusy.classList.add("rowB-busy--on");
+      if (rowBBusy) rowBBusy.classList.add("hero-busy--on");
       if (rowBMarquee) {
-        rowBMarquee.classList.remove("rowB-marquee--on");
+        rowBMarquee.classList.remove("hero-marquee--on");
         rowBMarquee.style.width = "0%";
         rowBMarquee.style.height = "0%";
       }
     };
     var rowBReveal = function(){
-      if (rowBBusy) rowBBusy.classList.remove("rowB-busy--on");
+      if (rowBBusy) rowBBusy.classList.remove("hero-busy--on");
       var el = rowBTargetEl();
       if (el) el.classList.remove(rowBTargetCls() + "--press");
-      if (rowBMarquee) rowBMarquee.classList.remove("rowB-marquee--on");
-      if (rowBClip) rowBClip.classList.add("rowB-slider-clip--wipe");
+      if (rowBMarquee) rowBMarquee.classList.remove("hero-marquee--on");
+      if (rowBClip) rowBClip.classList.add("hero-slider-clip--wipe");
       if (rowBHandle) {
         rowBHandle.style.transition = "none";
         rowBHandle.style.left = "100%";
@@ -847,17 +1031,17 @@
         rowBHandle.style.transition = "";
         rowBHandle.style.left = "0%";
       }
-      if (rowBOverlayAfter) rowBOverlayAfter.classList.add("rowB-overlay-after--in");
+      if (rowBOverlayAfter) rowBOverlayAfter.classList.add("hero-overlay-after--in");
       if (rowBLateTimer) { clearTimeout(rowBLateTimer); rowBLateTimer = 0; }
       rowBLateTimer = setTimeout(function(){
         rowBLateTimer = 0;
         if (rowBLateActs) {
-          rowBLateActs.forEach(function(el){ el.classList.add("rowB-overlay-act--in"); });
+          rowBLateActs.forEach(function(el){ el.classList.add("hero-overlay-act--in"); });
         }
         var s = rowBSteps[rowBCurrent];
         if (rowBActUpscale && s && s.target === "upscale") {
-          rowBActUpscale.classList.remove("rowB-overlay-act--hover");
-          rowBActUpscale.classList.add("rowB-overlay-act--ghost");
+          rowBActUpscale.classList.remove("hero-overlay-act--hover");
+          rowBActUpscale.classList.add("hero-overlay-act--ghost");
         }
       }, 1400);
       rowBTimers.push(rowBLateTimer);
@@ -878,59 +1062,64 @@
          rowBReset's own removal never runs on this path. */
       var el = rowBTargetEl();
       if (el) el.classList.remove(rowBTargetCls() + "--hover");
-      if (rowBClip) rowBClip.classList.remove("rowB-slider-clip--wipe");
+      if (rowBClip) rowBClip.classList.remove("hero-slider-clip--wipe");
       if (rowBHandle) rowBHandle.style.transition = "";
-      if (rowBChrome) rowBChrome.classList.add("rowB-chrome--live");
-      rowBOverlay.classList.add("rowB-overlay--live");
+      if (rowBChrome) rowBChrome.classList.add("hero-chrome--live");
+      rowBOverlay.classList.add("hero-overlay--live");
       rowBSetSplit(0);
     };
 
     var rowBReset = function(){
+      rowBRefreshBrowser();
       if (rowBRaf) { cancelAnimationFrame(rowBRaf); rowBRaf = 0; }
       rowBLive = false;
       rowBSplitDragging = false;
       if (rowBLateTimer) { clearTimeout(rowBLateTimer); rowBLateTimer = 0; }
       if (rowBLateActs) {
-        rowBLateActs.forEach(function(el){ el.classList.remove("rowB-overlay-act--in"); });
+        rowBLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
       }
-      if (rowBChrome) rowBChrome.classList.remove("rowB-chrome--live");
-      rowBOverlay.classList.remove("rowB-overlay--live");
-      if (rowBClip) rowBClip.classList.remove("rowB-slider-clip--wipe");
+      if (rowBChrome) rowBChrome.classList.remove("hero-chrome--live");
+      rowBOverlay.classList.remove("hero-overlay--live");
+      if (rowBClip) rowBClip.classList.remove("hero-slider-clip--wipe");
       if (rowBHandle) {
         rowBHandle.style.transition = "none";
         rowBHandle.style.left = "0%";
       }
-      rowBOverlay.classList.remove("rowB-overlay--on");
+      rowBOverlay.classList.remove("hero-overlay--on");
       rowBCursor.classList.remove("rowB-cursor--on");
       if (rowBTip) rowBTip.classList.remove("rowB-tip--in");
       if (rowBOverlayBtn) {
-        rowBOverlayBtn.classList.remove("rowB-overlay-btn--press");
-        rowBOverlayBtn.classList.remove("rowB-overlay-btn--hover");
+        rowBOverlayBtn.classList.remove("hero-overlay-btn--press");
+        rowBOverlayBtn.classList.remove("hero-overlay-btn--hover");
       }
       if (rowBActUpscale) {
-        rowBActUpscale.classList.remove("rowB-overlay-act--press");
-        rowBActUpscale.classList.remove("rowB-overlay-act--hover");
-        rowBActUpscale.classList.remove("rowB-overlay-act--ghost");
+        rowBActUpscale.classList.remove("hero-overlay-act--press");
+        rowBActUpscale.classList.remove("hero-overlay-act--hover");
+        rowBActUpscale.classList.remove("hero-overlay-act--ghost");
       }
-      if (rowBBusy) rowBBusy.classList.remove("rowB-busy--on");
-      if (rowBHint) rowBHint.classList.remove("rowB-hint--off");
+      if (rowBBusy) rowBBusy.classList.remove("hero-busy--on");
+      if (rowBHint) rowBHint.classList.remove("hero-hint--off");
       if (rowBOverlayAfter) {
         rowBOverlayAfter.style.clipPath = "";
         rowBOverlayAfter.style.webkitClipPath = "";
         rowBOverlayAfter.style.transition = "none";
-        rowBOverlayAfter.classList.remove("rowB-overlay-after--in");
+        rowBOverlayAfter.classList.remove("hero-overlay-after--in");
         void rowBOverlayAfter.offsetWidth;
         rowBOverlayAfter.style.transition = "";
       }
       if (rowBMarquee) {
-        rowBMarquee.classList.remove("rowB-marquee--on");
+        rowBMarquee.classList.remove("hero-marquee--on");
         rowBMarquee.style.width = "0%";
         rowBMarquee.style.height = "0%";
       }
-      for (var i = 0; i < rowBTiles.length; i++) rowBTiles[i].classList.remove("rowB-tile--hot");
+      for (var i = 0; i < rowBTiles.length; i++) rowBTiles[i].classList.remove("hero-tile--hot");
     };
 
     var rowBPlay = function(index){
+      if (window.grrabBrowser && window.grrabBrowser.stopHero) window.grrabBrowser.stopHero();
+      if (window.grrabBrowser && window.grrabBrowser.stopRowA) window.grrabBrowser.stopRowA();
+      rowBRefreshBrowser();
+      if (!rowBOverlayImg) return;
       var step = rowBSteps[index];
       if (!step) return;
       var tile = rowBTiles[step.tile];
@@ -942,9 +1131,9 @@
 
       rowBOverlayImg.setAttribute("src", step.img);
       if (rowBOverlayAfter) {
-        rowBOverlayAfter.setAttribute("src", step.img.replace("-before.webp", "-after.webp"));
-        if (step.alpha) rowBOverlayAfter.classList.add("rowB-overlay-after--alpha");
-        else rowBOverlayAfter.classList.remove("rowB-overlay-after--alpha");
+        rowBOverlayAfter.setAttribute("src", step.img.replace(/-before\.(webp|jpe?g)$/, "-after.$1"));
+        if (step.alpha) rowBOverlayAfter.classList.add("hero-overlay-after--alpha");
+        else rowBOverlayAfter.classList.remove("hero-overlay-after--alpha");
       }
       rowBSetAction(step, false);
       for (var c = 0; c < rowBCards.length; c++){
@@ -953,8 +1142,8 @@
       }
 
       if (rowBReduce && rowBReduce.matches) {
-        tile.classList.add("rowB-tile--hot");
-        rowBOverlay.classList.add("rowB-overlay--on");
+        tile.classList.add("hero-tile--hot");
+        rowBOverlay.classList.add("hero-overlay--on");
         rowBReveal();
         rowBEnterLive();
         return;
@@ -980,7 +1169,7 @@
       });
       rowBAt(1180, function(){ if (rowBTip) rowBTip.classList.add("rowB-tip--in"); });
       rowBAt(1520, function(){ if (rowBTip) rowBTip.classList.remove("rowB-tip--in"); });
-      rowBAt(1820, function(){ rowBOverlay.classList.add("rowB-overlay--on"); });
+      rowBAt(1820, function(){ rowBOverlay.classList.add("hero-overlay--on"); });
 
       if (!step.box) {
         rowBAt(2100, function(){
@@ -1004,7 +1193,7 @@
           rowBMarquee.style.top = (step.box.t * 100) + "%";
           rowBMarquee.style.width = "0%";
           rowBMarquee.style.height = "0%";
-          rowBMarquee.classList.add("rowB-marquee--on");
+          rowBMarquee.classList.add("hero-marquee--on");
           var p = rowBBoxPoint(step.box.r, step.box.b);
           rowBMoveTo(p.x, p.y);
           rowBDragTrack(step.box, 820);
@@ -1032,44 +1221,70 @@
       card.addEventListener("click", function(){ rowBPlay(i); });
     });
 
-    if (rowBFigure) {
+    var rowBLiveFigure = document.querySelector(".hero-overlay-figure");
+    if (rowBLiveFigure) {
       var rowBSplitFrom = function(clientX){
+        if (!rowBOverlayImg) return;
         var r = rowBOverlayImg.getBoundingClientRect();
         if (!r.width) return;
         rowBSetSplit((clientX - r.left) / r.width);
       };
-      rowBFigure.addEventListener("dragstart", function(e){ e.preventDefault(); });
+      rowBLiveFigure.addEventListener("dragstart", function(e){ e.preventDefault(); });
       var rowBOnChrome = function(target){
         return !!(target && target.closest &&
-          target.closest(".rowB-overlay-btn, .rowB-overlay-act"));
+          target.closest(".hero-overlay-btn, .hero-overlay-act"));
       };
-      rowBFigure.addEventListener("pointerdown", function(e){
+      rowBLiveFigure.addEventListener("pointerdown", function(e){
         if (!rowBLive) return;
         if (rowBOnChrome(e.target)) return;
         e.preventDefault();
         rowBSplitDragging = true;
-        try { rowBFigure.setPointerCapture(e.pointerId); } catch(_){}
+        try { rowBLiveFigure.setPointerCapture(e.pointerId); } catch(_){}
         rowBSplitFrom(e.clientX);
       });
-      rowBFigure.addEventListener("pointermove", function(e){
+      rowBLiveFigure.addEventListener("pointermove", function(e){
         if (rowBLive && rowBSplitDragging) rowBSplitFrom(e.clientX);
       });
-      rowBFigure.addEventListener("pointerup", function(e){
+      rowBLiveFigure.addEventListener("pointerup", function(e){
         rowBSplitDragging = false;
-        try { rowBFigure.releasePointerCapture(e.pointerId); } catch(_){}
+        try { rowBLiveFigure.releasePointerCapture(e.pointerId); } catch(_){}
       });
-      rowBFigure.addEventListener("pointercancel", function(){ rowBSplitDragging = false; });
+      rowBLiveFigure.addEventListener("pointercancel", function(){ rowBSplitDragging = false; });
     }
 
     var rowBRow = document.querySelector(".grrab-rowB");
     if (rowBRow && "IntersectionObserver" in window) {
+      var rowBHasEntered = false;
       new IntersectionObserver(function(entries){
         for (var i = 0; i < entries.length; i++){
           if (rowBDone) continue;
-          if (entries[i].isIntersecting) rowBPlay(rowBCurrent);
-          else { rowBClearTimers(); rowBReset(); }
+          if (entries[i].isIntersecting) {
+            rowBHasEntered = true;
+            if (window.grrabBrowser && window.grrabBrowser.at === "rowA") {
+              window.grrabBrowser.moveToRowB(function(){ rowBPlay(rowBCurrent); });
+            } else if (window.grrabBrowser && window.grrabBrowser.at === "hero") {
+              window.grrabBrowser.moveToRowB(function(){ rowBPlay(rowBCurrent); });
+            } else if (!window.grrabBrowser || window.grrabBrowser.at === "rowB") {
+              rowBPlay(rowBCurrent);
+            }
+          } else {
+            if (!rowBHasEntered) continue;
+            rowBStop();
+            if (window.grrabBrowser && entries[i].boundingClientRect.top > 0) {
+              if (window.grrabBrowser.rowAIntersecting) {
+                window.grrabBrowser.moveToRowA(window.grrabBrowser.playRowA);
+              } else {
+                window.grrabBrowser.moveToHero();
+              }
+            }
+          }
         }
       }, { threshold: 0.6 }).observe(rowBRow);
+    }
+
+    if (window.grrabBrowser) {
+      window.grrabBrowser.stopRowB = rowBStop;
+      window.grrabBrowser.playRowB = function(){ rowBPlay(rowBCurrent); };
     }
   }
 

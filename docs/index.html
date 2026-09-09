@@ -48,7 +48,8 @@
 </header>
 
 <!-- ══ HERO ══ -->
-<section id="top" style="max-width:var(--container-max);margin:0 auto;padding:100px 32px 80px;">
+<section id="top" style="max-width:var(--container-max);margin:0 auto;padding:100px 32px 184px;">
+  <div class="hero-scale-wrap">
   <div class="hero-figure hero-camera">
     <div class="hero-left">
       <div class="hero-text">
@@ -59,6 +60,7 @@
           You copy an image and get something you can't use — blurry, watermarked, background and all. <span style="font-weight:600;">Fix it and copy it, right on the page.</span>
   </p>
   </div>
+    <div class="hero-browser-slot">
     <div class="hero-mockup-wrap">
       <div class="hero-chrome">
         <div class="hero-header">
@@ -78,17 +80,17 @@
             <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-1-before.webp" alt=""></div>
             <div class="hero-tile"><img src="/assets/landing/img/hero-image-3-before.webp" alt=""></div>
             <div class="hero-tile"><img src="/assets/landing/img/hero-image-6-before.webp" alt=""></div>
-            <div class="hero-tile"><img src="/assets/landing/img/hero-image-5-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-8-before.webp" alt=""></div>
             <div class="hero-tile"><img src="/assets/landing/img/hero-image-4-before.webp" alt=""></div>
             <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-7-before.webp" alt=""></div>
-            <div class="hero-tile"><img src="/assets/landing/img/hero-image-3-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-9-before.webp" alt=""></div>
             <div class="hero-tile"><img src="/assets/landing/img/hero-image-2-before.webp" alt=""></div>
             <div class="hero-tile"><img src="/assets/landing/img/hero-image-5-before.webp" alt=""></div>
-            <div class="hero-tile"><img src="/assets/landing/img/hero-image-1-before.webp" alt=""></div>
-            <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-1-before.webp" alt=""></div>
-            <div class="hero-tile"><img src="/assets/landing/img/hero-image-3-before.webp" alt=""></div>
-            <div class="hero-tile"><img src="/assets/landing/img/hero-image-6-before.webp" alt=""></div>
-            <div class="hero-tile"><img src="/assets/landing/img/hero-image-5-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-10-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-11-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-12-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-13-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-14-before.webp" alt=""></div>
             <div class="hero-tile"><img src="/assets/landing/img/hero-image-4-before.webp" alt=""></div>
             <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-7-before.webp" alt=""></div>
             <div class="hero-tile"><img src="/assets/landing/img/hero-image-3-before.webp" alt=""></div>
@@ -98,8 +100,19 @@
           </div>
           <div class="hero-overlay" id="heroOverlay" aria-hidden="true">
             <figure class="hero-overlay-figure">
-              <img class="hero-overlay-img" id="heroOverlayImg" src="/assets/landing/img/hero-image-1-before.webp" alt="" draggable="false">
-              <img class="hero-overlay-after" id="heroOverlayAfter" src="/assets/landing/img/hero-image-1-after.webp" alt="" draggable="false">
+              <div class="hero-overlay-picture">
+                <img class="hero-overlay-img" id="heroOverlayImg" src="/assets/landing/img/hero-image-1-before.webp" alt="" draggable="false">
+                <img class="hero-overlay-after" id="heroOverlayAfter" src="/assets/landing/img/hero-image-1-after.webp" alt="" draggable="false">
+                <span class="hero-marquee" id="heroMarquee" aria-hidden="true"></span>
+                <span class="hero-slider-clip">
+                  <span class="hero-slider-handle" id="heroHandle">
+                    <span class="hero-slider-knob">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </span>
+                  </span>
+                </span>
+              </div>
               <span class="hero-overlay-tools" aria-hidden="true">
                 <span class="hero-tool" id="heroToolBrush"><img src="/assets/landing/icons/hero/icon_select_brush.svg" alt=""></span>
                 <span class="hero-tool hero-tool--on" id="heroToolBox"><img src="/assets/landing/icons/hero/icon_select_box.svg" alt=""></span>
@@ -109,42 +122,36 @@
                 <img id="heroOverlayBtnIcon" src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
                 <span id="heroOverlayBtnLabel">Remove BG</span>
               </span>
-              <span class="hero-marquee" id="heroMarquee" aria-hidden="true"></span>
-                <span class="hero-wipe" id="heroWipe" aria-hidden="true">
-                  <span class="hero-wipe-bar" id="heroWipeBar"></span>
+              <span class="hero-busy" id="heroBusy" aria-hidden="true">
+                <span class="hero-busy-ring"></span>
+                <span class="hero-busy-text" id="heroBusyText">Removing…</span>
+              </span>
+              <span class="hero-overlay-bar" aria-hidden="true">
+                <span class="hero-overlay-bar-left">
+                  <span class="hero-overlay-act hero-overlay-act--ghost hero-overlay-act--late" id="heroActBack"><img src="/assets/landing/icons/hero/icon_back.svg" alt="">Back</span>
+                  <span class="hero-overlay-act hero-overlay-act--ghost hero-overlay-act--late" id="heroActRefresh"><img src="/assets/landing/icons/hero/icon_refresh.svg" alt="">Refresh</span>
                 </span>
-                <span class="hero-busy" id="heroBusy" aria-hidden="true">
-                  <span class="hero-busy-ring"></span>
-                  <span class="hero-busy-text" id="heroBusyText">Removing…</span>
+                <span class="hero-overlay-bar-right">
+                  <span class="hero-overlay-act" id="heroActUpscale"><img src="/assets/landing/icons/hero/icon_upscale.svg" alt="">Upscale</span>
+                  <span class="hero-overlay-act" id="heroActClip"><img src="/assets/landing/icons/hero/icon_clip.svg" alt="">Copy</span>
                 </span>
-                <span class="hero-overlay-bar" aria-hidden="true">
-                  <span class="hero-overlay-bar-left">
-                    <span class="hero-overlay-act hero-overlay-act--ghost hero-overlay-act--late" id="heroActBack"><img src="/assets/landing/icons/hero/icon_back.svg" alt="">Back</span>
-                    <span class="hero-overlay-act hero-overlay-act--ghost hero-overlay-act--late" id="heroActRefresh"><img src="/assets/landing/icons/hero/icon_refresh.svg" alt="">Refresh</span>
-                  </span>
-                  <span class="hero-overlay-bar-right">
-                    <span class="hero-overlay-act" id="heroActUpscale"><img src="/assets/landing/icons/hero/icon_upscale.svg" alt="">Upscale</span>
-                    <span class="hero-overlay-act" id="heroActClip"><img src="/assets/landing/icons/hero/icon_clip.svg" alt="">Copy</span>
-                  </span>
-                </span>
+              </span>
             </figure>
           </div>
           <span class="hero-toast" id="heroToast" aria-hidden="true">
             <img src="/assets/landing/icons/hero/icon_copy.svg" alt="">
               <span>Image copied</span>
           </span>
-          </div>
         </div>
       </div>
     </div>
-    <div class="hero-canvas">
-      <div class="hero-header">
-        <div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>
       </div>
+    </div>
+    <div class="hero-canvas">
       <div class="hero-canvas-body">
+        <div class="hero-canvas-bleed">
         <div class="hero-canvas-pan" id="heroCanvasPan">
-          <img class="hero-paste" id="heroPaste" src="/assets/landing/img/hero-image-1-after.webp" alt="" draggable="false">
-          <img class="hero-paste" id="heroPaste2" src="/assets/landing/img/hero-image-7-after.webp" alt="" draggable="false">
+        </div>
         </div>
       </div>
     </div>
@@ -153,11 +160,17 @@
       <span class="hero-tip" id="heroTipV">⌘V</span>
       <img src="/assets/landing/icons/hero/icon_cursor.svg" alt="">
     </span>
+    </div>
   </div>
 </section>
 
+<!-- divider hero / features -->
+<div style="max-width:var(--container-max);margin:0 auto 184px;padding:0 32px;">
+  <div style="width:100%;height:1px;background:#E5E7EB;"></div>
+</div>
+
 <!-- ══ FEATURES ══ -->
-<section id="how" style="max-width:var(--container-max);margin:0 auto;padding:104px 32px;display:flex;flex-direction:column;gap:120px;">
+<section id="how" style="max-width:var(--container-max);margin:0 auto;padding:0 32px 104px;display:flex;flex-direction:column;gap:184px;">
 
   <div class="rowA-scale-wrap">
   <div class="rowA-figure" id="rowA">
@@ -168,35 +181,31 @@
         <p class="feature-sub" style="line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Hover any image, press&nbsp;<kbd class="rowA-step-kbd">⌘C</kbd><br>Copied to your clipboard, never low-res.</p>
       </div>
       <div class="rowA-canvas">
-        <div class="rowA-canvas-header">
-          <div class="rowA-traffic"><span class="rowA-dot rowA-dot--red"></span><span class="rowA-dot rowA-dot--yellow"></span><span class="rowA-dot rowA-dot--green"></span></div>
-          </div>
         <div class="rowA-canvas-body">
+          <div class="rowA-canvas-bleed">
           <div class="rowA-canvas-pan">
-            <img class="rowA-paste" src="" alt="" draggable="false">
-            <img class="rowA-paste" src="" alt="" draggable="false">
-            <img class="rowA-paste" src="" alt="" draggable="false">
-            <img class="rowA-paste" src="" alt="" draggable="false">
-            <img class="rowA-paste" src="" alt="" draggable="false">
+          </div>
             </div>
           </div>
         </div>
-      </div>
     <span class="rowA-cursor" aria-hidden="true">
       <span class="rowA-tip rowA-tip--copy">&#8984;C</span>
       <span class="rowA-tip rowA-tip--paste">&#8984;V</span>
       <img src="/assets/landing/icons/rowB/icon_cursor.svg" alt="">
     </span>
+    </div>
   </div>
   </div>
 
+  <!-- divider A / B -->
+  <div style="width:100%;height:1px;background:#E5E7EB;"></div>
+
   <!-- Row B — text + step cards left, mockup slot right (mockup not built yet) -->
   <div class="rowB-scale-wrap">
-  <div class="grrab-rowB" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
+  <div class="grrab-rowB" style="display:grid;grid-template-columns:minmax(0,1.329fr) minmax(0,1fr);gap:48px;align-items:stretch;">
     <!-- LEFT: heading + description + step cards -->
     <div style="display:flex;flex-direction:column;gap:24px;align-items:flex-start;">
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <p class="feature-label">TOUCH-UP</p>
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Edit it where you found it.</h2>
         <p class="feature-sub" style="font-size:22px;line-height:1.35;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Get the image the way you need it, then copy.<br>No downloads, no round trip to another tool.</p>
       </div>
@@ -218,73 +227,10 @@
     </div>
 
     <div class="rowB-mockup-wrap">
-      <div class="rowB-chrome">
-        <div class="rowB-header">
-          <div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>
-          <div class="rowB-urlbar"><div class="rowB-urlbar-line"></div></div>
-          <div class="rowB-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
-        </div>
-        <div class="rowB-body">
-          <div class="rowB-sidebar">
-          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--home" src="/assets/landing/icons/rowB/icon_home.svg" alt=""></div>
-          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--category" src="/assets/landing/icons/rowB/icon_category.svg" alt=""></div>
-          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--add" src="/assets/landing/icons/rowB/icon_add.svg" alt=""></div>
-          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--notification" src="/assets/landing/icons/rowB/icon_notification.svg" alt=""></div>
-          <div class="rowB-sidebar-item"><img class="rowB-sidebar-icon rowB-sidebar-icon--message" src="/assets/landing/icons/rowB/icon_message.svg" alt=""></div>
-          </div>
-          <div class="rowB-gallery">
-            <div class="rowB-tile rowB-tile--dim rowB-tile--tall"><img src="/assets/landing/img/rowB/rowB-image-1-before.webp" alt=""></div>
-            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-3-before.webp" alt=""></div>
-            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-6-before.webp" alt=""></div>
-            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-4-before.webp" alt=""></div>
-            <div class="rowB-tile rowB-tile--dim rowB-tile--tall"><img src="/assets/landing/img/rowB/rowB-image-7-before.webp" alt=""></div>
-            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-2-before.webp" alt=""></div>
-            <div class="rowB-tile rowB-tile--dim"><img src="/assets/landing/img/rowB/rowB-image-5-before.webp" alt=""></div>
-          </div>
           <span class="rowB-cursor" id="rowBCursor" aria-hidden="true">
             <span class="rowB-tip" id="rowBTip">⌘C</span>
             <img src="/assets/landing/icons/rowB/icon_cursor.svg" alt="">
           </span>
-          <div class="rowB-overlay" id="rowBOverlay" aria-hidden="true">
-            <figure class="rowB-overlay-figure">
-              <img class="rowB-overlay-img" id="rowBOverlayImg" src="/assets/landing/img/rowB/rowB-image-1-before.webp" alt="" draggable="false">
-              <img class="rowB-overlay-after" id="rowBOverlayAfter" src="/assets/landing/img/rowB/rowB-image-1-after.webp" alt="" draggable="false">
-              <span class="rowB-marquee" id="rowBMarquee"></span>
-              <span class="rowB-overlay-tools" aria-hidden="true">
-                <span class="rowB-tool" id="rowBToolBrush"><img src="/assets/landing/icons/rowB/icon_select_brush.svg" alt=""></span>
-                <span class="rowB-tool rowB-tool--on" id="rowBToolBox"><img src="/assets/landing/icons/rowB/icon_select_box.svg" alt=""></span>
-                <span class="rowB-hint" id="rowBHint">Drag to select an area to erase</span>
-              </span>
-              <span class="rowB-overlay-btn" id="rowBOverlayBtn">
-                <img id="rowBOverlayBtnIcon" src="/assets/landing/icons/rowB/icon_removebg.svg" alt="">
-                <span id="rowBOverlayBtnLabel">Remove BG</span>
-              </span>
-              <span class="rowB-slider-clip">
-                <span class="rowB-slider-handle" id="rowBHandle">
-                  <span class="rowB-slider-knob">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </span>
-                </span>
-              </span>
-              <span class="rowB-busy" id="rowBBusy" aria-hidden="true">
-                <span class="rowB-busy-ring"></span>
-                <span class="rowB-busy-text" id="rowBBusyText">Removing…</span>
-              </span>
-              <span class="rowB-overlay-bar" aria-hidden="true">
-                <span class="rowB-overlay-bar-left">
-                  <span class="rowB-overlay-act rowB-overlay-act--ghost rowB-overlay-act--late" id="rowBActBack"><img src="/assets/landing/icons/rowB/icon_back.svg" alt="">Back</span>
-                  <span class="rowB-overlay-act rowB-overlay-act--ghost rowB-overlay-act--late" id="rowBActRefresh"><img src="/assets/landing/icons/rowB/icon_refresh.svg" alt="">Refresh</span>
-                </span>
-                <span class="rowB-overlay-bar-right">
-                  <span class="rowB-overlay-act" id="rowBActUpscale"><img src="/assets/landing/icons/rowB/icon_upscale.svg" alt="">Upscale</span>
-                  <span class="rowB-overlay-act" id="rowBActClip"><img src="/assets/landing/icons/rowB/icon_clip.svg" alt="">Copy</span>
-                </span>
-              </span>
-            </figure>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
   </div>

@@ -8,7 +8,6 @@
   var rowACopyTip = rowA.querySelector(".rowA-tip--copy");
   var rowAPasteTip = rowA.querySelector(".rowA-tip--paste");
   var rowAToast = null;
-  var rowAPastes = rowA.querySelectorAll(".rowA-paste");
   var rowACanvas = rowA.querySelector(".rowA-canvas");
   var rowACanvasPan = rowA.querySelector(".rowA-canvas-pan");
   var rowATiles = [];
@@ -17,6 +16,8 @@
   var rowAToastMs = 1200;
   var rowAPasteMin = 0.06;
   var rowAPasteRetries = 24;
+  var rowAPasteMax = 10;
+  var rowAPasteCount = 0;
   var rowAPlaced = [];
   var rowATimers = [];
   var rowARaf = 0;
@@ -165,6 +166,28 @@
     return slot;
   };
 
+  var rowAClearPastes = function(){
+    if (!rowACanvasPan) return;
+    var nodes = rowACanvasPan.querySelectorAll(".rowA-paste");
+    for (var ci = 0; ci < nodes.length; ci++) nodes[ci].remove();
+    rowAPlaced = [];
+    rowAPasteCount = 0;
+  };
+
+  var rowACreatePaste = function(src, ox, oy){
+    if (!rowACanvasPan) return null;
+    if (rowAPasteCount >= rowAPasteMax) rowAClearPastes();
+    var el = document.createElement("img");
+    el.className = "rowA-paste";
+    el.setAttribute("src", src);
+    el.setAttribute("alt", "");
+    el.setAttribute("draggable", "false");
+    rowACanvasPan.appendChild(el);
+    rowAPasteAt(el, ox, oy);
+    rowAPasteCount++;
+    return el;
+  };
+
   var rowAReset = function(){
     rowARefreshTiles();
     if (rowARaf) { cancelAnimationFrame(rowARaf); rowARaf = 0; }
@@ -179,19 +202,19 @@
     if (rowACopyTip) rowACopyTip.classList.remove("rowA-tip--in");
     if (rowAPasteTip) rowAPasteTip.classList.remove("rowA-tip--in");
     if (rowAToast) rowAToast.classList.remove("hero-toast--in");
-    rowAPlaced = [];
-    for (var pri = 0; pri < rowAPastes.length; pri++) {
-      rowAPastes[pri].classList.remove("rowA-paste--in");
-      rowAPastes[pri].style.left = "";
-      rowAPastes[pri].style.top = "";
-      rowAPastes[pri].setAttribute("src", "");
-    }
+  };
+
+  var rowAStop = function(){
+    rowAClearTimers();
+    rowAReset();
   };
 
   var rowAPlay = function(){
+    if (window.grrabBrowser && window.grrabBrowser.stopHero) window.grrabBrowser.stopHero();
     rowARefreshTiles();
     if (!rowACursor || !rowACanvas || !rowACanvas.offsetWidth || !rowATiles.length) return;
     rowAClearTimers();
+    if (rowAPasteCount + 5 > rowAPasteMax) rowAClearPastes();
     rowAReset();
 
     var tileOrder = rowAPickTiles();
@@ -202,10 +225,8 @@
     if (rowAReduce && rowAReduce.matches) {
       for (var ri = 0; ri < 5; ri++) {
         var rtile = tileOrder[ri];
-        var rel = rowAPastes[ri];
-        if (rtile && rel) {
-          rel.setAttribute("src", rowATileImgSrc(rtile));
-          rowAPasteAt(rel, slots[ri].ox, slots[ri].oy);
+        if (rtile) {
+          rowACreatePaste(rowATileImgSrc(rtile), slots[ri].ox, slots[ri].oy);
         }
       }
       if (tileOrder[0]) tileOrder[0].classList.add("hero-tile--hot");
@@ -223,7 +244,7 @@
     rowACursor.style.transition = "";
 
     for (var rep = 0; rep < 5; rep++) {
-      (function(beat, tile, pasteEl, slot){
+      (function(beat, tile, slot){
         var t0 = beat * rowARepLen;
 
         rowAAt(t0 + 60, function(){
@@ -249,30 +270,48 @@
         });
         rowAAt(t0 + 2790, function(){
           if (rowAPasteTip) rowAPasteTip.classList.add("rowA-tip--in");
-          if (pasteEl) {
-            pasteEl.setAttribute("src", rowATileImgSrc(tile));
-            rowAPasteAt(pasteEl, slot.ox, slot.oy);
-          }
+          if (tile) rowACreatePaste(rowATileImgSrc(tile), slot.ox, slot.oy);
         });
         rowAAt(t0 + 3130, function(){
           if (rowAPasteTip) rowAPasteTip.classList.remove("rowA-tip--in");
         });
-      })(rep, tileOrder[rep], rowAPastes[rep], slots[rep]);
+      })(rep, tileOrder[rep], slots[rep]);
     }
   };
 
   if ("IntersectionObserver" in window) {
+    var rowAHasEntered = false;
     new IntersectionObserver(function(entries){
       for (var i = 0; i < entries.length; i++){
         if (entries[i].isIntersecting) {
-          if (window.grrabBrowser) window.grrabBrowser.moveToRowA(rowAPlay);
-          else rowAPlay();
+          rowAHasEntered = true;
+          if (window.grrabBrowser && window.grrabBrowser.flying) return;
+          if (window.grrabBrowser && window.grrabBrowser.at === "hero") {
+            if (window.grrabBrowser.heroVisible) return;
+            window.grrabBrowser.moveToRowA(rowAPlay);
+          } else if (window.grrabBrowser && window.grrabBrowser.at === "rowB") {
+            window.grrabBrowser.moveToRowA(rowAPlay);
+          } else if (window.grrabBrowser && window.grrabBrowser.at === "rowA") {
+            if (!window.grrabBrowser.heroVisible) rowAPlay();
+          } else {
+            rowAPlay();
+          }
         } else {
-          rowAClearTimers();
-          rowAReset();
-          if (window.grrabBrowser) window.grrabBrowser.moveToHero();
+          if (!rowAHasEntered) continue;
+          rowAStop();
+          if (window.grrabBrowser && window.grrabBrowser.flying) return;
+          if (window.grrabBrowser && entries[i].boundingClientRect.top > 0) {
+            window.grrabBrowser.moveToHero();
+          } else if (window.grrabBrowser && window.grrabBrowser.rowBIntersecting) {
+            window.grrabBrowser.moveToRowB(window.grrabBrowser.playRowB);
+          }
         }
       }
     }, { threshold: 0.6 }).observe(rowA);
+  }
+
+  if (window.grrabBrowser) {
+    window.grrabBrowser.stopRowA = rowAStop;
+    window.grrabBrowser.playRowA = rowAPlay;
   }
 })();
