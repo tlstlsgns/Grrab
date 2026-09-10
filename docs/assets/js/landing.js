@@ -48,6 +48,30 @@
     apply();
     if (!img.naturalWidth) img.addEventListener("load", apply, { once: true });
   };
+  var whenOverlayImgReady = function(img, fn){
+    if (!img) { fn(); return; }
+    var done = false;
+    var finish = function(){
+      if (done) return;
+      done = true;
+      fn();
+    };
+    var fallback = setTimeout(finish, 4000);
+    var ready = function(){
+      clearTimeout(fallback);
+      finish();
+    };
+    if (img.complete && img.naturalWidth) {
+      if (img.decode) img.decode().then(ready, ready);
+      else ready();
+      return;
+    }
+    img.addEventListener("load", function(){
+      if (img.decode) img.decode().then(ready, ready);
+      else ready();
+    }, { once: true });
+    img.addEventListener("error", ready, { once: true });
+  };
   var heroOverlayBtnIcon = document.getElementById("heroOverlayBtnIcon");
   var heroOverlayBtnLabel = document.getElementById("heroOverlayBtnLabel");
   var heroActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
@@ -154,14 +178,13 @@
       if (heroBusy) heroBusy.classList.remove("hero-busy--on");
       if (heroOverlayBtn) heroOverlayBtn.classList.remove("hero-overlay-btn--press");
       if (heroClip) heroClip.classList.add("hero-slider-clip--wipe");
-      if (heroHandle) {
-        heroHandle.style.transition = "none";
-        heroHandle.style.left = "100%";
-        void heroHandle.offsetWidth;
-        heroHandle.style.transition = "";
-        heroHandle.style.left = "0%";
+      if (heroOverlayPicture) {
+        heroOverlayPicture.style.transition = "none";
+        heroOverlayPicture.style.setProperty("--hero-split", "1");
+        void heroOverlayPicture.offsetWidth;
+        heroOverlayPicture.style.transition = "";
+        heroOverlayPicture.style.setProperty("--hero-split", "0");
       }
-      if (heroOverlayAfter) heroOverlayAfter.classList.add("hero-overlay-after--in");
       if (heroLateTimer) { clearTimeout(heroLateTimer); heroLateTimer = 0; }
       heroLateTimer = setTimeout(function(){
         heroLateTimer = 0;
@@ -241,19 +264,16 @@
        around the class removal stops the result rewinding on screen. */
     var heroResetOverlay = function(){
       if (heroLateTimer) { clearTimeout(heroLateTimer); heroLateTimer = 0; }
+      if (browserAt === "rowB") return;
       if (heroLateActs) {
         heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
       }
-      if (heroOverlayAfter) {
-        heroOverlayAfter.style.transition = "none";
-        heroOverlayAfter.classList.remove("hero-overlay-after--in");
-        void heroOverlayAfter.offsetWidth;
-        heroOverlayAfter.style.transition = "";
-      }
       if (heroClip) heroClip.classList.remove("hero-slider-clip--wipe");
-      if (heroHandle) {
-        heroHandle.style.transition = "none";
-        heroHandle.style.left = "0%";
+      if (heroOverlayPicture) {
+        heroOverlayPicture.style.transition = "none";
+        heroOverlayPicture.style.setProperty("--hero-split", "1");
+        void heroOverlayPicture.offsetWidth;
+        heroOverlayPicture.style.transition = "";
       }
       if (heroMarquee) {
         heroMarquee.classList.remove("hero-marquee--on");
@@ -590,6 +610,7 @@
         heroAt(overlayAt, function(){ heroOverlay.classList.add("hero-overlay--on"); });
       } else {
         heroAt(base + 0, function(){
+          heroSetStep(step);
           heroMoveTo(heroTileTargetIn(tile, step));
           heroTrack(790);
           heroTipVOut();
@@ -602,7 +623,6 @@
         heroAt(base + 1570, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
         overlayAt = base + 1870;
         heroAt(overlayAt, function(){
-          heroSetStep(step);
           heroResetOverlay();
           heroOverlay.classList.add("hero-overlay--on");
         });
@@ -670,14 +690,16 @@
       void heroCursor.offsetWidth;
       heroCursor.style.transition = "";
 
-      var offset = 0;
-      var si;
-      for (si = 0; si < picked.length; si++) {
-        offset = heroPlayStep(offset, picked[si], {
-          isFirst: si === 0,
-          isLast: si === picked.length - 1
-        });
-      }
+      whenOverlayImgReady(heroOverlayImg, function(){
+        var offset = 0;
+        var si;
+        for (si = 0; si < picked.length; si++) {
+          offset = heroPlayStep(offset, picked[si], {
+            isFirst: si === 0,
+            isLast: si === picked.length - 1
+          });
+        }
+      });
     };
 
     /* Puts everything back to the opening state. Defined here and hung on window so it
@@ -1007,12 +1029,16 @@
     if (heroReduce && heroReduce.matches) {
       heroHotOnly(heroTiles[heroSteps[0].tile]);
       heroSetStep(heroSteps[0]);
-      heroOverlay.classList.add("hero-overlay--on");
-      heroReveal();
-      if (heroToast) heroToast.classList.add("hero-toast--in");
-      heroPasteIn();
-      if (heroTipV) heroTipV.classList.remove("hero-tip--in");
-      browserPlaced = true;
+      whenOverlayImgReady(heroOverlayImg, function(){
+        whenOverlayImgReady(heroOverlayAfter, function(){
+          heroOverlay.classList.add("hero-overlay--on");
+          heroReveal();
+          if (heroToast) heroToast.classList.add("hero-toast--in");
+          heroPasteIn();
+          if (heroTipV) heroTipV.classList.remove("hero-tip--in");
+          browserPlaced = true;
+        });
+      });
     } else {
       var heroTop = document.getElementById("top");
       if (heroTop && "IntersectionObserver" in window) {
@@ -1125,10 +1151,12 @@
         rowBOverlayBtnIcon = document.getElementById("heroOverlayBtnIcon");
         rowBOverlayBtnLabel = document.getElementById("heroOverlayBtnLabel");
         rowBHint = document.getElementById("heroHint");
-        rowBFigure = document.querySelector(".hero-overlay-figure");
-        rowBPicture = document.querySelector("#heroOverlay .hero-overlay-picture");
-        rowBClip = document.querySelector(".hero-slider-clip");
-        rowBActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
+        rowBFigure = rowBOverlay ? rowBOverlay.querySelector(".hero-overlay-figure") : null;
+        rowBPicture = rowBOverlay ? rowBOverlay.querySelector(".hero-overlay-picture") : null;
+        rowBClip = rowBOverlay ? rowBOverlay.querySelector(".hero-slider-clip") : null;
+        rowBActs = rowBOverlay
+          ? [].slice.call(rowBOverlay.querySelectorAll(".hero-overlay-act"))
+          : [];
       }
       rowBLateActs = rowBOverlay
         ? [].slice.call(rowBOverlay.querySelectorAll(".hero-overlay-act--late"))
@@ -1276,15 +1304,15 @@
       var el = rowBTargetEl();
       if (el) el.classList.remove(rowBTargetCls() + "--press");
       if (rowBMarquee) rowBMarquee.classList.remove("hero-marquee--on");
+      if (rowBOverlay) rowBOverlay.classList.remove("hero-overlay--live");
       if (rowBClip) rowBClip.classList.add("hero-slider-clip--wipe");
-      if (rowBHandle) {
-        rowBHandle.style.transition = "none";
-        rowBHandle.style.left = "100%";
-        void rowBHandle.offsetWidth;
-        rowBHandle.style.transition = "";
-        rowBHandle.style.left = "0%";
+      if (rowBPicture) {
+        rowBPicture.style.transition = "none";
+        rowBPicture.style.setProperty("--hero-split", "1");
+        void rowBPicture.offsetWidth;
+        rowBPicture.style.transition = "";
+        rowBPicture.style.setProperty("--hero-split", "0");
       }
-      if (rowBOverlayAfter) rowBOverlayAfter.classList.add("hero-overlay-after--in");
       if (rowBLateTimer) { clearTimeout(rowBLateTimer); rowBLateTimer = 0; }
       rowBLateTimer = setTimeout(function(){
         rowBLateTimer = 0;
@@ -1300,12 +1328,9 @@
       rowBTimers.push(rowBLateTimer);
     };
     var rowBSetSplit = function(f){
-      if (!rowBOverlayAfter) return;
+      if (!rowBPicture) return;
       f = Math.max(0, Math.min(1, f));
-      var clip = "inset(0 0 0 " + (f * 100) + "%)";
-      rowBOverlayAfter.style.clipPath = clip;
-      rowBOverlayAfter.style.webkitClipPath = clip;
-      if (rowBHandle) rowBHandle.style.left = (f * 100) + "%";
+      rowBPicture.style.setProperty("--hero-split", String(f));
     };
     var rowBEnterLive = function(){
       rowBLive = true;
@@ -1316,7 +1341,6 @@
       var el = rowBTargetEl();
       if (el) el.classList.remove(rowBTargetCls() + "--hover");
       if (rowBClip) rowBClip.classList.remove("hero-slider-clip--wipe");
-      if (rowBHandle) rowBHandle.style.transition = "";
       if (rowBChrome) rowBChrome.classList.add("hero-chrome--live");
       rowBOverlay.classList.add("hero-overlay--live");
       rowBSetSplit(0);
@@ -1334,9 +1358,11 @@
       if (rowBChrome) rowBChrome.classList.remove("hero-chrome--live");
       rowBOverlay.classList.remove("hero-overlay--live");
       if (rowBClip) rowBClip.classList.remove("hero-slider-clip--wipe");
-      if (rowBHandle) {
-        rowBHandle.style.transition = "none";
-        rowBHandle.style.left = "0%";
+      if (rowBPicture) {
+        rowBPicture.style.transition = "none";
+        rowBPicture.style.setProperty("--hero-split", "1");
+        void rowBPicture.offsetWidth;
+        rowBPicture.style.transition = "";
       }
       rowBOverlay.classList.remove("hero-overlay--on");
       rowBCursor.classList.remove("rowB-cursor--on");
@@ -1352,14 +1378,6 @@
       }
       if (rowBBusy) rowBBusy.classList.remove("hero-busy--on");
       if (rowBHint) rowBHint.classList.remove("hero-hint--off");
-      if (rowBOverlayAfter) {
-        rowBOverlayAfter.style.clipPath = "";
-        rowBOverlayAfter.style.webkitClipPath = "";
-        rowBOverlayAfter.style.transition = "none";
-        rowBOverlayAfter.classList.remove("hero-overlay-after--in");
-        void rowBOverlayAfter.offsetWidth;
-        rowBOverlayAfter.style.transition = "";
-      }
       if (rowBMarquee) {
         rowBMarquee.classList.remove("hero-marquee--on");
         rowBMarquee.style.width = "0%";
@@ -1395,11 +1413,14 @@
         else rowBCards[c].classList.remove("rowB-card--active");
       }
 
+      whenOverlayImgReady(rowBOverlayImg, function(){
       if (rowBReduce && rowBReduce.matches) {
-        tile.classList.add("hero-tile--hot");
-        rowBOverlay.classList.add("hero-overlay--on");
-        rowBReveal();
-        rowBEnterLive();
+        whenOverlayImgReady(rowBOverlayAfter, function(){
+          tile.classList.add("hero-tile--hot");
+          rowBOverlay.classList.add("hero-overlay--on");
+          rowBReveal();
+          rowBEnterLive();
+        });
         return;
       }
 
@@ -1469,25 +1490,25 @@
         rowBAt(6000, rowBReveal);
         rowBAt(7890, rowBEnterLive);
       }
+      });
     };
 
     rowBCards.forEach(function(card, i){
       card.addEventListener("click", function(){ rowBPlay(i); });
     });
 
-    var rowBLiveFigure = document.querySelector(".hero-overlay-figure");
-    if (rowBLiveFigure) {
-      var rowBSplitFrom = function(clientX){
-        if (!rowBOverlayImg) return;
-        var r = rowBOverlayImg.getBoundingClientRect();
-        if (!r.width) return;
-        rowBSetSplit((clientX - r.left) / r.width);
-      };
+    var rowBSplitFrom = function(clientX){
+      if (!rowBOverlayImg) return;
+      var r = rowBOverlayImg.getBoundingClientRect();
+      if (!r.width) return;
+      rowBSetSplit((clientX - r.left) / r.width);
+    };
+    var rowBOnChrome = function(target){
+      return !!(target && target.closest &&
+        target.closest(".hero-overlay-btn, .hero-overlay-act"));
+    };
+    var rowBBindLiveFigure = function(rowBLiveFigure){
       rowBLiveFigure.addEventListener("dragstart", function(e){ e.preventDefault(); });
-      var rowBOnChrome = function(target){
-        return !!(target && target.closest &&
-          target.closest(".hero-overlay-btn, .hero-overlay-act"));
-      };
       rowBLiveFigure.addEventListener("pointerdown", function(e){
         if (!rowBLive) return;
         if (rowBOnChrome(e.target)) return;
@@ -1504,7 +1525,8 @@
         try { rowBLiveFigure.releasePointerCapture(e.pointerId); } catch(_){}
       });
       rowBLiveFigure.addEventListener("pointercancel", function(){ rowBSplitDragging = false; });
-    }
+    };
+    [].slice.call(document.querySelectorAll(".hero-overlay-figure")).forEach(rowBBindLiveFigure);
 
     var rowBRow = document.querySelector(".grrab-rowB");
     if (rowBRow && "IntersectionObserver" in window) {
