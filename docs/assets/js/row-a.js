@@ -28,12 +28,31 @@
   var rowATimers = [];
   var rowARaf = 0;
   var rowAReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+  var rowAMobile = window.matchMedia && window.matchMedia("(max-width:820px)");
 
   var rowAClearTimers = function(){
     for (var i = 0; i < rowATimers.length; i++) clearTimeout(rowATimers[i]);
     rowATimers = [];
   };
   var rowAAt = function(ms, fn){ rowATimers.push(setTimeout(fn, ms)); };
+  var rowASetCanvasFront = function(on){
+    if (!rowA) return;
+    if (on) rowA.classList.add("canvas-front");
+    else rowA.classList.remove("canvas-front");
+  };
+  var rowACheckCanvasCross = function(){
+    if (!rowA || !rowACanvas || !rowACursor) return;
+    if (!rowA.classList.contains("canvas-front")) return;
+    var cr = rowACursor.getBoundingClientRect();
+    var lr = rowACanvas.getBoundingClientRect();
+    if (cr.left < lr.left) rowASetCanvasFront(false);
+  };
+  var rowATileBehindCanvas = function(tile){
+    if (!tile || !rowACanvas) return false;
+    var tr = tile.getBoundingClientRect();
+    var lr = rowACanvas.getBoundingClientRect();
+    return tr.right > lr.left;
+  };
 
   var rowAOffsetIn = function(el){
     var x = 0, y = 0, n = el;
@@ -79,6 +98,7 @@
       var r = rowACursor.getBoundingClientRect();
       var under = document.elementFromPoint(r.left, r.top);
       rowAHotOnly(under && under.closest ? under.closest(".hero-tile") : null);
+      rowACheckCanvasCross();
       if (Date.now() - started < durationMs) rowARaf = requestAnimationFrame(tick);
       else rowARaf = 0;
     };
@@ -106,8 +126,9 @@
     var h = el.offsetHeight;
     var left = parseFloat(el.style.left) || 0;
     var top = parseFloat(el.style.top) || 0;
-    if (w <= W) left = Math.max(minLeft, Math.min(left, minLeft + W - w));
-    else left = minLeft;
+    var leftPad = (rowAMobile && rowAMobile.matches) ? W * 0.07 : 0;
+    if (w <= W - leftPad) left = Math.max(minLeft + leftPad, Math.min(left, minLeft + W - w));
+    else left = minLeft + leftPad;
     if (h <= H) top = Math.max(minTop, Math.min(top, minTop + H - h));
     else top = minTop;
     el.style.left = left + "px";
@@ -167,6 +188,7 @@
     var br = body.getBoundingClientRect();
     var visible = [];
     for (var vi = 0; vi < rowATiles.length; vi++) {
+      if (rowATileBehindCanvas(rowATiles[vi])) continue;
       var tr = rowATiles[vi].getBoundingClientRect();
       if (tr.top >= br.top && tr.left >= br.left &&
           tr.right <= br.right && tr.bottom <= br.bottom) {
@@ -281,6 +303,7 @@
   var rowAReset = function(){
     rowARefreshTiles();
     if (rowARaf) { cancelAnimationFrame(rowARaf); rowARaf = 0; }
+    rowASetCanvasFront(false);
     rowAHotOnly(null);
     if (rowACursor) {
       rowACursor.classList.remove("rowA-cursor--on");
@@ -321,7 +344,10 @@
       }
       if (tileOrder[0]) tileOrder[0].classList.add("hero-tile--hot");
       rowACursor.classList.add("rowA-cursor--on");
-      if (lastSlot) rowAMoveTo(rowAPastePointIn(lastSlot.ox, lastSlot.oy));
+      if (lastSlot) {
+        rowASetCanvasFront(true);
+        rowAMoveTo(rowAPastePointIn(lastSlot.ox, lastSlot.oy));
+      }
       return;
     }
 
@@ -356,8 +382,8 @@
         rowAAt(t0 + 1790, function(){
           if (rowACopyTip) rowACopyTip.classList.remove("rowA-tip--in");
           slot = rowAPickSlot();
+          rowASetCanvasFront(true);
           rowAMoveTo(rowAPastePointIn(slot.ox, slot.oy));
-          rowATrack(1000);
         });
         rowAAt(t0 + 2790, function(){
           if (rowAPasteTip) rowAPasteTip.classList.add("rowA-tip--in");
@@ -393,7 +419,8 @@
           if (window.grrabBrowser && window.grrabBrowser.flying) return;
           if (window.grrabBrowser && entries[i].boundingClientRect.top > 0) {
             window.grrabBrowser.moveToHero();
-          } else if (window.grrabBrowser && window.grrabBrowser.rowBIntersecting) {
+          } else if (window.grrabBrowser && window.grrabBrowser.rowBIntersecting &&
+                     !(rowAMobile && rowAMobile.matches)) {
             window.grrabBrowser.moveToRowB(window.grrabBrowser.playRowB);
           }
         }

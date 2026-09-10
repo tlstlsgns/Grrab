@@ -91,10 +91,10 @@
     container-type:inline-size;}
   .hero-text{display:flex;flex-direction:column;align-items:flex-start;gap:24px;
     text-align:left;}
-  .hero-browser-slot{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;
-    overflow:hidden;border-radius:var(--radius-lg);}
+  .hero-browser-slot{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;}
   .hero-mockup-wrap{position:absolute;inset:0;z-index:2;
-    container-type:inline-size;}
+    container-type:inline-size;
+    border-radius:calc(12 * 100cqw / 593);box-shadow:var(--shadow-xl);}
   .hero-canvas{align-self:stretch;min-width:0;min-height:0;position:relative;z-index:1;
     display:flex;flex-direction:column;
     container-type:inline-size;--hero-u:calc(100cqw / 593);
@@ -209,8 +209,8 @@
   .hero-overlay-figure{position:relative;display:flex;align-items:center;justify-content:center;
     margin:0;max-width:62%;max-height:64%;aspect-ratio:2000/1333;background:rgb(51,51,51);
     -webkit-user-select:none;user-select:none;}
-  .hero-overlay-picture{position:relative;flex:0 1 auto;width:auto;height:auto;
-    max-width:100%;max-height:100%;}
+  .hero-overlay-picture{position:relative;flex:1 1 auto;width:100%;height:100%;
+    max-width:100%;max-height:100%;min-width:0;min-height:0;}
   .hero-overlay-figure img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
   .hero-overlay-img{display:block;width:100%;height:100%;object-fit:contain;}
   .hero-overlay-after{position:absolute;left:0;top:0;width:100%;height:100%;display:block;
@@ -403,8 +403,8 @@
      820px, where everything stacks. The extra ~7px over the Figma height goes to the
      gallery, which is flex:1, and its 1fr rows pass it to the tiles. --rowB-u stays
      width-based, so the header, sidebar and icons keep their size. */
-  .rowB-mockup-wrap{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;
-    overflow:hidden;border-radius:var(--radius-lg);}
+  .rowB-mockup-wrap{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;}
+  .rowB-browser-copy{display:none;}
   .grrab-rowB > .rowB-mockup-wrap{order:-1;}
   .rowB-cursor{position:absolute;left:0;top:0;z-index:3;pointer-events:none;
     width:calc(26 * var(--rowB-u));height:calc(26 * var(--rowB-u));opacity:0;
@@ -425,8 +425,7 @@
   .rowA-side{display:flex;flex-direction:column;gap:24px;}
   .rowA-text{display:flex;flex-direction:column;gap:14px;}
   .rowA-text .feature-sub{font-size:22px;}
-  .rowA-browser{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;overflow:hidden;
-    border-radius:var(--radius-lg);}
+  .rowA-browser{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;}
   .rowA-canvas{min-width:0;width:100%;aspect-ratio:593/434;position:relative;}
   .rowA-canvas{border:1px solid var(--border);}
   .rowA-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
@@ -972,18 +971,73 @@
     .feature-h2{ font-size:28px !important; }
     .nav-links{ display:none !important; }
 
-    /* Row A — text full width, browser and canvas equal width below */
+    /* Hero + Row A — text full width; browser and canvas share one grid row and overlap */
     .hero-scale-wrap{ height:auto !important; overflow:visible !important; }
-    .hero-figure.hero-camera{ width:100% !important; transform:none !important; }
+    .hero-figure.hero-camera{
+      display:grid !important; grid-template-columns:1fr !important;
+      row-gap:24px !important;
+      width:100% !important; transform:none !important;
+      overflow:visible !important; }
+    .hero-left{ display:contents !important; }
+    .hero-text{ grid-column:1 / -1 !important; }
+    .hero-browser-slot{
+      grid-column:1 !important; grid-row:2 !important;
+      width:70% !important; justify-self:start !important;
+      aspect-ratio:593/434 !important;
+      position:relative !important; z-index:3 !important; }
+    .hero-canvas{
+      grid-column:1 !important; grid-row:2 !important;
+      width:45% !important; justify-self:end !important; align-self:stretch !important;
+      aspect-ratio:unset !important; min-height:0 !important;
+      position:relative !important; z-index:2 !important; }
+    .hero-figure.hero-camera.canvas-front .hero-browser-slot{ z-index:2 !important; }
+    .hero-figure.hero-camera.canvas-front .hero-canvas{ z-index:3 !important; }
+    .hero-figure.hero-camera.canvas-front .hero-mockup-wrap{ box-shadow:none !important; }
+    .hero-cursor{ z-index:5 !important; }
+    .hero-canvas-body,
+    .rowA-canvas-body{ background:var(--surface) !important; }
+    .hero-canvas-bleed,
+    .rowA-canvas-bleed{
+      inset:-10% -10% -10% 0 !important;
+      -webkit-mask-image:
+        linear-gradient(to left,transparent 0%,#000 10%),
+        linear-gradient(to bottom,transparent 0%,#000 10%),
+        linear-gradient(to top,transparent 0%,#000 10%) !important;
+      -webkit-mask-composite:source-in !important;
+      mask-image:
+        linear-gradient(to left,transparent 0%,#000 10%),
+        linear-gradient(to bottom,transparent 0%,#000 10%),
+        linear-gradient(to top,transparent 0%,#000 10%) !important;
+      mask-composite:intersect !important; }
+
     .rowA-scale-wrap{ height:auto !important; overflow:visible !important; }
-    .rowA-figure{ display:grid !important; grid-template-columns:1fr 1fr !important;
-      column-gap:16px !important; row-gap:24px !important;
+    .rowA-figure{
+      display:grid !important; grid-template-columns:1fr !important;
+      row-gap:24px !important;
       width:100% !important; transform:none !important; }
     .rowA-side{ display:contents !important; }
-    .rowA-text{ grid-column:1 / -1 !important; order:1 !important; }
-    .rowA-browser{ order:2 !important; }
-    .rowA-canvas{ order:2 !important; }
-    .rowA-cursor{ --rowA-u:calc((100vw - 40px - 16px) / 2 / 593) !important; }
+    .rowA-text{ grid-column:1 / -1 !important; }
+    .rowA-browser{
+      grid-column:1 !important; grid-row:2 !important;
+      width:70% !important; justify-self:start !important;
+      aspect-ratio:593/434 !important;
+      position:relative !important; z-index:3 !important; }
+    .rowA-canvas{
+      grid-column:1 !important; grid-row:2 !important;
+      width:45% !important; justify-self:end !important; align-self:stretch !important;
+      aspect-ratio:unset !important; min-height:0 !important;
+      position:relative !important; z-index:2 !important; }
+    .rowA-figure.canvas-front .rowA-browser{ z-index:2 !important; }
+    .rowA-figure.canvas-front .rowA-canvas{ z-index:3 !important; }
+    .rowA-figure.canvas-front .hero-mockup-wrap{ box-shadow:none !important; }
+    .rowA-cursor{
+      z-index:5 !important;
+      --rowA-u:calc((100vw - 40px) * 0.7 / 593) !important; }
+
+    .hero-toast{
+      left:0 !important; right:0 !important;
+      margin-inline:auto !important; width:fit-content !important;
+      top:calc(10 * var(--hero-btn-u)) !important; }
 
     .grrab-rowB{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowB > div:first-child{ order:1 !important; gap:14px !important; }
@@ -999,6 +1053,7 @@
        fell to 368 — the window ended up upright. 591/470 is the shape the desktop
        renders; --rowB-u is width-based, so the contents follow on their own. */
     .rowB-mockup-wrap{ aspect-ratio:593/434 !important; height:auto !important; }
+    .rowB-browser-copy{ display:block !important; }
     /* Side by side, so the marker moves from the left edge to the bottom. The left border
        has to be zeroed as well as the bottom given a width — the base rule sets
        border-left:3px and leaving it would keep reserving that space. */

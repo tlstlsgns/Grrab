@@ -35,14 +35,15 @@
   var heroHandle = document.getElementById("heroHandle");
   var heroClip = document.querySelector(".hero-slider-clip");
   var heroFigure = document.querySelector(".hero-overlay-figure");
-  var heroOverlayPicture = document.querySelector(".hero-overlay-picture");
+  var heroOverlayPicture = document.querySelector("#heroOverlay .hero-overlay-picture");
   var heroOverlayImg = document.getElementById("heroOverlayImg");
-  var heroSetPictureRatio = function(img, fallback){
-    if (!heroOverlayPicture || !img) return;
+  var heroSetPictureRatio = function(img, fallback, picture){
+    picture = picture || heroOverlayPicture;
+    if (!picture || !img) return;
     var apply = function(){
       if (img.naturalWidth && img.naturalHeight) {
-        heroOverlayPicture.style.aspectRatio = img.naturalWidth + "/" + img.naturalHeight;
-      } else if (fallback) heroOverlayPicture.style.aspectRatio = fallback;
+        picture.style.aspectRatio = img.naturalWidth + "/" + img.naturalHeight;
+      } else if (fallback) picture.style.aspectRatio = fallback;
     };
     apply();
     if (!img.naturalWidth) img.addEventListener("load", apply, { once: true });
@@ -69,7 +70,26 @@
     var heroLateTimer = 0;
     var heroRaf = 0;
     var heroReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+    var heroMobile = window.matchMedia && window.matchMedia("(max-width:820px)");
     var heroAt = function(ms, fn){ heroTimers.push(setTimeout(fn, ms)); };
+    var heroSetCanvasFront = function(on){
+      if (!heroCamera) return;
+      if (on) heroCamera.classList.add("canvas-front");
+      else heroCamera.classList.remove("canvas-front");
+    };
+    var heroCheckCanvasCross = function(){
+      if (!heroCamera || !heroCanvas || !heroCursor) return;
+      if (!heroCamera.classList.contains("canvas-front")) return;
+      var cr = heroCursor.getBoundingClientRect();
+      var lr = heroCanvas.getBoundingClientRect();
+      if (cr.left < lr.left) heroSetCanvasFront(false);
+    };
+    var heroTileBehindCanvas = function(tile){
+      if (!tile || !heroCanvas) return false;
+      var tr = tile.getBoundingClientRect();
+      var lr = heroCanvas.getBoundingClientRect();
+      return tr.right > lr.left;
+    };
 
     /* Positions come from offsetLeft/offsetTop, walking up to .hero-camera, rather
        than from getBoundingClientRect. The walk ends at the camera rather than the
@@ -108,6 +128,7 @@
         var r = heroCursor.getBoundingClientRect();
         var under = document.elementFromPoint(r.left, r.top);
         heroHotOnly(under && under.closest ? under.closest(".hero-tile") : null);
+        heroCheckCanvasCross();
         if (Date.now() - started < durationMs) heroRaf = requestAnimationFrame(tick);
         else heroRaf = 0;
       };
@@ -282,6 +303,7 @@
       heroHotOnly(null);
       if (heroToast) heroToast.classList.add("hero-toast--in");
       heroSlot1 = heroPickSlot();
+      heroSetCanvasFront(true);
       heroMoveTo(heroPastePointIn(heroSlot1.ox, heroSlot1.oy));
     };
     var heroToastOut = function(){
@@ -377,6 +399,7 @@
         for (ui = 0; ui < heroUsedTiles.length; ui++) {
           if (heroUsedTiles[ui] === t) { used = true; break; }
         }
+        if (heroTileBehindCanvas(heroTiles[t])) continue;
         if (!used) pool.push(hi);
       }
       for (var sj = pool.length - 1; sj > 0; sj--) {
@@ -415,8 +438,9 @@
       var h = el.offsetHeight;
       var left = parseFloat(el.style.left) || 0;
       var top = parseFloat(el.style.top) || 0;
-      if (w <= W) left = Math.max(minLeft, Math.min(left, minLeft + W - w));
-      else left = minLeft;
+      var leftPad = (heroMobile && heroMobile.matches) ? W * 0.07 : 0;
+      if (w <= W - leftPad) left = Math.max(minLeft + leftPad, Math.min(left, minLeft + W - w));
+      else left = minLeft + leftPad;
       if (h <= H) top = Math.max(minTop, Math.min(top, minTop + H - h));
       else top = minTop;
       el.style.left = left + "px";
@@ -463,6 +487,7 @@
       return el;
     };
     var heroPasteIn = function(){
+      heroSetCanvasFront(true);
       if (heroTipV) heroTipV.classList.add("hero-tip--in");
       if (!heroSlot1) heroSlot1 = heroPickSlot();
       heroCreatePaste(0, heroSlot1.ox, heroSlot1.oy);
@@ -595,6 +620,7 @@
         heroAt(revealAt + 2750, heroClipDone2);
         heroAt(revealAt + 3200, function(){
           heroSlot2 = heroPickSlot();
+          heroSetCanvasFront(true);
           heroMoveTo(heroPastePointIn(heroSlot2.ox, heroSlot2.oy));
         });
         heroAt(revealAt + 3950, function(){
@@ -628,6 +654,7 @@
          keeps that from growing without bound, and means a stray call cannot leave two
          sequences running against each other. */
       heroClearTimers();
+      heroSetCanvasFront(false);
       if (heroPasteCount + 5 > heroPasteMax) heroClearPastes();
       heroSlot1 = null;
       heroSlot2 = null;
@@ -661,6 +688,7 @@
 
       heroSlot1 = null;
       heroSlot2 = null;
+      heroSetCanvasFront(false);
 
       /* the cursor */
       heroCursor.classList.remove("hero-cursor--on");
@@ -714,7 +742,7 @@
 
     var browserContinueAfterLanding = function(){
       if (browserAt === "rowA") {
-        if (rowBIntersecting()) {
+        if (rowBIntersecting() && !(heroMobile && heroMobile.matches)) {
           browserFlightDone = null;
           moveToRowB(window.grrabBrowser && window.grrabBrowser.playRowB);
           return true;
@@ -726,7 +754,7 @@
         return false;
       }
       if (browserAt === "hero") {
-        if (rowBIntersecting()) {
+        if (rowBIntersecting() && !(heroMobile && heroMobile.matches)) {
           browserFlightDone = null;
           moveToRowB(window.grrabBrowser && window.grrabBrowser.playRowB);
           return true;
@@ -884,6 +912,10 @@
     };
 
     var moveToRowB = function(done){
+      if (heroMobile && heroMobile.matches) {
+        if (done) done();
+        return;
+      }
       if (browserAt === "rowB") {
         if (done) done();
         return;
@@ -1006,7 +1038,7 @@
               if (window.grrabBrowser &&
                   window.grrabBrowser.at === "hero" &&
                   he.boundingClientRect.top < 0) {
-                if (rowBIntersecting()) {
+                if (rowBIntersecting() && !(heroMobile && heroMobile.matches)) {
                   window.grrabBrowser.moveToRowB(window.grrabBrowser.playRowB);
                 } else if (rowAIntersecting()) {
                   window.grrabBrowser.moveToRowA(window.grrabBrowser.playRowA);
@@ -1029,6 +1061,7 @@
   var rowBChrome = null;
   var rowBBody = null;
   var rowBFigure = null;
+  var rowBPicture = null;
   var rowBHandle = null;
   var rowBClip = null;
   var rowBOverlay = null;
@@ -1045,32 +1078,61 @@
   var rowBOverlayBtnLabel = null;
   var rowBHint = null;
   var rowBTiles = [];
+  var rowBMobile = window.matchMedia && window.matchMedia("(max-width:820px)");
 
   if (rowBMockupWrap && rowBCursor && rowBCards.length) {
     var rowBRefreshBrowser = function(){
-      var chrome = (rowBMockupWrap && rowBMockupWrap.querySelector(".hero-chrome")) ||
-        document.querySelector(".hero-mockup-wrap .hero-chrome");
+      var mobile = rowBMobile && rowBMobile.matches;
+      var chrome;
+      if (mobile) {
+        chrome = rowBMockupWrap && rowBMockupWrap.querySelector(".rowB-browser-copy .hero-chrome");
+      } else {
+        chrome = (rowBMockupWrap && rowBMockupWrap.querySelector(".hero-mockup-wrap:not(.rowB-browser-copy) .hero-chrome")) ||
+          document.querySelector(".hero-mockup-wrap:not(.rowB-browser-copy) .hero-chrome");
+      }
       rowBChrome = chrome;
       rowBBody = chrome ? chrome.querySelector(".hero-body") : null;
       rowBTiles = rowBBody ? [].slice.call(rowBBody.querySelectorAll(".hero-tile")) : [];
-      rowBFigure = document.querySelector(".hero-overlay-figure");
-      rowBHandle = document.getElementById("heroHandle");
-      rowBClip = document.querySelector(".hero-slider-clip");
-      rowBOverlay = document.getElementById("heroOverlay");
-      rowBOverlayImg = document.getElementById("heroOverlayImg");
-      rowBOverlayAfter = document.getElementById("heroOverlayAfter");
-      rowBOverlayBtn = document.getElementById("heroOverlayBtn");
-      rowBActUpscale = document.getElementById("heroActUpscale");
-      rowBActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
+      if (mobile) {
+        rowBOverlay = document.getElementById("rowBOverlay");
+        rowBOverlayImg = document.getElementById("rowBOverlayImg");
+        rowBOverlayAfter = document.getElementById("rowBOverlayAfter");
+        rowBOverlayBtn = document.getElementById("rowBOverlayBtn");
+        rowBActUpscale = document.getElementById("rowBActUpscale");
+        rowBMarquee = document.getElementById("rowBMarquee");
+        rowBHandle = document.getElementById("rowBHandle");
+        rowBBusy = document.getElementById("rowBBusy");
+        rowBBusyText = document.getElementById("rowBBusyText");
+        rowBOverlayBtnIcon = document.getElementById("rowBOverlayBtnIcon");
+        rowBOverlayBtnLabel = document.getElementById("rowBOverlayBtnLabel");
+        rowBHint = document.getElementById("rowBHint");
+        rowBFigure = rowBOverlay ? rowBOverlay.querySelector(".hero-overlay-figure") : null;
+        rowBPicture = rowBOverlay ? rowBOverlay.querySelector(".hero-overlay-picture") : null;
+        rowBClip = rowBOverlay ? rowBOverlay.querySelector(".hero-slider-clip") : null;
+        rowBActs = rowBOverlay
+          ? [].slice.call(rowBOverlay.querySelectorAll(".hero-overlay-act"))
+          : [];
+      } else {
+        rowBOverlay = document.getElementById("heroOverlay");
+        rowBOverlayImg = document.getElementById("heroOverlayImg");
+        rowBOverlayAfter = document.getElementById("heroOverlayAfter");
+        rowBOverlayBtn = document.getElementById("heroOverlayBtn");
+        rowBActUpscale = document.getElementById("heroActUpscale");
+        rowBMarquee = document.getElementById("heroMarquee");
+        rowBHandle = document.getElementById("heroHandle");
+        rowBBusy = document.getElementById("heroBusy");
+        rowBBusyText = document.getElementById("heroBusyText");
+        rowBOverlayBtnIcon = document.getElementById("heroOverlayBtnIcon");
+        rowBOverlayBtnLabel = document.getElementById("heroOverlayBtnLabel");
+        rowBHint = document.getElementById("heroHint");
+        rowBFigure = document.querySelector(".hero-overlay-figure");
+        rowBPicture = document.querySelector("#heroOverlay .hero-overlay-picture");
+        rowBClip = document.querySelector(".hero-slider-clip");
+        rowBActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
+      }
       rowBLateActs = rowBOverlay
         ? [].slice.call(rowBOverlay.querySelectorAll(".hero-overlay-act--late"))
         : [];
-      rowBMarquee = document.getElementById("heroMarquee");
-      rowBBusy = document.getElementById("heroBusy");
-      rowBBusyText = document.getElementById("heroBusyText");
-      rowBOverlayBtnIcon = document.getElementById("heroOverlayBtnIcon");
-      rowBOverlayBtnLabel = document.getElementById("heroOverlayBtnLabel");
-      rowBHint = document.getElementById("heroHint");
       if (rowBCursor && rowBMockupWrap && rowBMockupWrap.offsetWidth) {
         rowBCursor.style.setProperty("--rowB-u", "calc(" + rowBMockupWrap.offsetWidth + "px / 593)");
       }
@@ -1326,7 +1388,7 @@
         if (step.alpha) rowBOverlayAfter.classList.add("hero-overlay-after--alpha");
         else rowBOverlayAfter.classList.remove("hero-overlay-after--alpha");
       }
-      heroSetPictureRatio(rowBOverlayImg, step.ratio || "");
+      heroSetPictureRatio(rowBOverlayImg, step.ratio || "", rowBPicture);
       rowBSetAction(step, false);
       for (var c = 0; c < rowBCards.length; c++){
         if (c === index) rowBCards[c].classList.add("rowB-card--active");
@@ -1452,7 +1514,9 @@
           if (rowBDone) continue;
           if (entries[i].isIntersecting) {
             rowBHasEntered = true;
-            if (window.grrabBrowser && window.grrabBrowser.at === "rowA") {
+            if (rowBMobile && rowBMobile.matches) {
+              rowBPlay(rowBCurrent);
+            } else if (window.grrabBrowser && window.grrabBrowser.at === "rowA") {
               window.grrabBrowser.moveToRowB(function(){ rowBPlay(rowBCurrent); });
             } else if (window.grrabBrowser && window.grrabBrowser.at === "hero") {
               window.grrabBrowser.moveToRowB(function(){ rowBPlay(rowBCurrent); });
