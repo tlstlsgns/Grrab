@@ -126,8 +126,7 @@
   /* Centred by computed left/top rather than translate(-50%,-50%): the cursor's next
      move reads this element's offsetLeft, which ignores transforms. */
   .hero-canvas-pan{position:absolute;inset:0;z-index:1;}
-  .hero-paste{position:absolute;left:0;top:0;display:none;
-    width:70%;aspect-ratio:2000/1333;object-fit:contain;}
+  .hero-paste{position:absolute;left:0;top:0;display:none;object-fit:contain;}
   .hero-paste--in{display:block;}
   /* The unit is the browser column's width over the Figma frame's 593. .hero-chrome is
      not a container so cqw resolves against .hero-mockup-wrap. */
@@ -183,7 +182,6 @@
     aspect-ratio:174.333/121.333;
     background:var(--surface-key);transition:box-shadow .25s ease,opacity .25s ease;}
   .hero-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .hero-tile--dim{opacity:.5;}
   .hero-tile--tall{grid-row:span 2;aspect-ratio:174.333/252.667;}
   .hero-tile--hot{opacity:1;box-shadow:0 0 calc(13 * var(--hero-u)) 0 var(--accent-bright);}
   .hero-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
@@ -206,16 +204,15 @@
     justify-content:center;background:rgba(0,0,0,0.82);
     opacity:0;pointer-events:none;transition:opacity .3s ease;}
   .hero-overlay--on{opacity:1;}
-  /* Fixed 2000×1333 frame; the picture wrapper shrink-wraps to the contained image.
+  /* Fixed 2000×1333 frame; the picture wrapper carries the image ratio and fits inside.
      Letterbox gaps stay on the figure background rgb(51,51,51). */
   .hero-overlay-figure{position:relative;display:flex;align-items:center;justify-content:center;
     margin:0;max-width:62%;max-height:64%;aspect-ratio:2000/1333;background:rgb(51,51,51);
     -webkit-user-select:none;user-select:none;}
-  .hero-overlay-picture{position:relative;flex:0 0 auto;max-width:100%;max-height:100%;
-    height:100%;width:fit-content;}
+  .hero-overlay-picture{position:relative;flex:0 1 auto;width:auto;height:auto;
+    max-width:100%;max-height:100%;}
   .hero-overlay-figure img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
-  .hero-overlay-img{display:block;height:100%;width:auto;max-width:100%;max-height:100%;
-    object-fit:contain;}
+  .hero-overlay-img{display:block;width:100%;height:100%;object-fit:contain;}
   .hero-overlay-after{position:absolute;left:0;top:0;width:100%;height:100%;display:block;
     object-fit:contain;z-index:2;
     clip-path:inset(0 0 0 100%);-webkit-clip-path:inset(0 0 0 100%);
@@ -409,47 +406,6 @@
   .rowB-mockup-wrap{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;
     overflow:hidden;border-radius:var(--radius-lg);}
   .grrab-rowB > .rowB-mockup-wrap{order:-1;}
-  .rowB-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
-    container-type:inline-size;--rowB-u:calc(100cqw / 593);
-    background:#DFDFDF;border-top:1px solid #E6E7EB;border-right:1px solid #E6E7EB;
-    border-radius:calc(3 * var(--rowB-u));box-shadow:0 0 calc(4 * var(--rowB-u)) 0 rgba(0,0,0,.25);}
-  .rowB-header{display:flex;align-items:center;gap:calc(6 * var(--rowB-u));width:100%;
-    height:calc(30 * var(--rowB-u));flex-shrink:0;
-    padding:calc(6 * var(--rowB-u)) calc(18 * var(--rowB-u)) calc(6 * var(--rowB-u)) calc(10 * var(--rowB-u));}
-  .rowB-header .browser-traffic{height:calc(18 * var(--rowB-u));gap:calc(5 * var(--rowB-u));
-    padding:0 calc(6 * var(--rowB-u)) 0 0;border-radius:0 0 calc(4 * var(--rowB-u)) 0;}
-  .rowB-header .browser-dot{width:calc(8 * var(--rowB-u));height:calc(8 * var(--rowB-u));}
-  .rowB-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
-    padding:0 calc(23 * var(--rowB-u)) 0 calc(10 * var(--rowB-u));
-    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--rowB-u));}
-  .rowB-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--rowB-u));
-    border-radius:calc(10 * var(--rowB-u));background:#DEE1E6;}
-  .rowB-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    width:calc(18 * var(--rowB-u));height:calc(18 * var(--rowB-u));
-    padding:calc(2 * var(--rowB-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--rowB-u));}
-  .rowB-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
-  .rowB-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
-    background:var(--surface);border-radius:calc(8 * var(--rowB-u));}
-  .rowB-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
-    width:calc(30 * var(--rowB-u));gap:calc(24 * var(--rowB-u));
-    padding-top:calc(16 * var(--rowB-u));border-right:0.5px solid #C8C8C0;}
-  .rowB-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
-  .rowB-sidebar-icon{display:block;object-fit:contain;}
-  .rowB-sidebar-icon--home{width:calc(10 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
-  .rowB-sidebar-icon--category{width:calc(11 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
-  .rowB-sidebar-icon--add{width:calc(10 * var(--rowB-u));height:calc(10 * var(--rowB-u));}
-  .rowB-sidebar-icon--notification{width:calc(10 * var(--rowB-u));height:calc(11 * var(--rowB-u));}
-  .rowB-sidebar-icon--message{width:calc(12 * var(--rowB-u));height:calc(12 * var(--rowB-u));}
-  .rowB-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
-    gap:calc(10 * var(--rowB-u));padding:calc(10 * var(--rowB-u));flex:1;min-width:0;height:100%;
-    background:var(--surface);border-radius:0 calc(14 * var(--rowB-u)) 0 0;}
-  .rowB-tile{position:relative;border-radius:calc(8 * var(--rowB-u));overflow:hidden;
-    background:var(--surface-key);}
-  .rowB-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .rowB-tile--dim{opacity:.5;}
-  .rowB-tile--tall{grid-row:span 2;}
-  .rowB-tile{transition:box-shadow .25s ease,opacity .25s ease;}
-  .rowB-tile--hot{opacity:1;box-shadow:0 0 calc(13 * var(--rowB-u)) 0 var(--accent-bright);}
   .rowB-cursor{position:absolute;left:0;top:0;z-index:3;pointer-events:none;
     width:calc(26 * var(--rowB-u));height:calc(26 * var(--rowB-u));opacity:0;
     transition:transform .75s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
@@ -463,139 +419,6 @@
     font-size:calc(11 * var(--rowB-u));
     opacity:0;transition:opacity .3s ease;}
   .rowB-tip--in{opacity:1;transition:none;}
-  .rowB-overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;
-    justify-content:center;background:rgba(0,0,0,0.82);
-    opacity:0;pointer-events:none;transition:opacity .3s ease;}
-  .rowB-overlay--on{opacity:1;}
-  .rowB-overlay-figure{position:relative;display:flex;margin:0;
-    max-width:62%;max-height:64%;
-    -webkit-user-select:none;user-select:none;}
-  .rowB-overlay-figure img{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
-  .rowB-overlay-img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;
-    object-fit:contain;}
-  .rowB-overlay-after{position:absolute;left:0;top:0;width:100%;height:100%;display:block;
-    object-fit:contain;z-index:2;
-    clip-path:inset(0 0 0 100%);-webkit-clip-path:inset(0 0 0 100%);
-    transition:clip-path 1.4s ease,-webkit-clip-path 1.4s ease;}
-  .rowB-overlay-after--in{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0);}
-  .rowB-overlay-after--alpha{background-color:#ffffff;
-    background-image:
-      linear-gradient(45deg,#d8d8d8 25%,transparent 25%,transparent 75%,#d8d8d8 75%),
-      linear-gradient(45deg,#d8d8d8 25%,transparent 25%,transparent 75%,#d8d8d8 75%);
-    background-size:calc(10 * var(--rowB-u)) calc(10 * var(--rowB-u));
-    background-position:0 0,calc(5 * var(--rowB-u)) calc(5 * var(--rowB-u));}
-  .rowB-overlay-btn{position:absolute;right:0;bottom:calc(100% + 12 * var(--rowB-u));
-    display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));
-    padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
-    background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
-    font-family:var(--font-sans);font-weight:600;line-height:1.4;
-    font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
-    transition:background .15s ease,border-color .15s ease;}
-  .rowB-overlay-btn img{width:calc(11 * var(--rowB-u));height:calc(11 * var(--rowB-u));display:block;
-    filter:brightness(0) invert(1);}
-  .rowB-overlay-btn--hover{background:#BC13FE;border-color:transparent;}
-  /* --press must sit after --hover: the cursor is still on the button while it is
-     held down, so both classes are present and the later rule has to win.
-     border-color rather than border:none, so the box does not shrink by 2px on press. */
-  .rowB-overlay-btn--press{background:#8A8A8E;border-color:transparent;}
-    /* The extension dims the whole stage while a model runs and captions the ring, so the
-       pause explains itself. The overlay covers the figure rather than the image, which is
-       the same box here. */
-    .rowB-busy{position:absolute;inset:0;z-index:3;display:none;
-      flex-direction:column;align-items:center;justify-content:center;
-      gap:calc(14 * var(--rowB-u));
-      background:rgba(0,0,0,0.45);pointer-events:none;}
-    .rowB-busy--on{display:flex;}
-    .rowB-busy-ring{width:calc(28 * var(--rowB-u));height:calc(28 * var(--rowB-u));
-      border:calc(3 * var(--rowB-u)) solid rgba(255,255,255,0.2);
-      border-top-color:#BC13FE;border-radius:50%;flex:0 0 auto;
-      animation:heroSpin .8s linear infinite;}
-    .rowB-busy-text{font-family:var(--font-sans);font-weight:600;line-height:1.4;
-      font-size:calc(14 * var(--rowB-u));color:#ffffff;white-space:nowrap;}
-    /* The extension's editor puts four buttons on one row under the image: Back and
-       Refresh at the left, Upscale beside Clip at the right. The bar spans the figure so
-       the two groups sit at its edges, and Clip stays where it always was — which is why
-       the cursor still finds it by measuring rather than by a fixed number. */
-    .rowB-overlay-bar{position:absolute;top:calc(100% + 12 * var(--rowB-u));
-      left:0;right:0;display:flex;align-items:center;justify-content:space-between;}
-    .rowB-overlay-bar-left,
-    .rowB-overlay-bar-right{display:inline-flex;align-items:center;
-      gap:calc(8 * var(--rowB-u));}
-
-    .rowB-overlay-act{position:static;
-      display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));
-      padding:calc(6 * var(--rowB-u)) calc(11 * var(--rowB-u));
-      background:#7C1FA8;border:1px solid #BC13FE;border-radius:calc(6 * var(--rowB-u));
-      font-family:var(--font-sans);font-weight:600;line-height:1.4;
-      font-size:calc(11 * var(--rowB-u));color:#f0f0f0;white-space:nowrap;
-      opacity:1;transition:opacity .35s ease;}
-    /* Back, Refresh and Upscale are shown but not used by the demo. The extension greys
-       a button it cannot act on rather than hiding it, so the row keeps its shape. */
-    .rowB-overlay-act--ghost{background:#333333;border-color:#555555;opacity:.55;}
-    /* The hero has these for Clip; Row B never got them because nothing pressed a bar
-       button until the upscale card. */
-    .rowB-overlay-act--hover{background:#BC13FE;border-color:transparent;}
-    .rowB-overlay-act--press{background:#8A8A8E;border-color:transparent;}
-    /* Every bottom-bar icon is white, ghost or not — the extension's Clip icon is white
-       too. The landing SVGs ship at #E200FF for the Row B cards, which are unfiltered;
-       here the filter overrides that. */
-    .rowB-overlay-act img{width:calc(11 * var(--rowB-u));
-      height:calc(11 * var(--rowB-u));display:block;filter:brightness(0) invert(1);}
-    /* Back and Refresh are only meaningful once something has been done to the image:
-       the extension shows them when there is history. They start hidden and fade in when
-       the wipe lands. visibility rather than display, so the bar's layout — and Clip's
-       position, which the cursor measures — never moves. */
-    .rowB-overlay-act--late{opacity:0;visibility:hidden;
-      transition:opacity .35s ease,visibility 0s linear .35s;}
-    .rowB-overlay-act--late.rowB-overlay-act--in{opacity:.55;visibility:visible;
-      transition:opacity .35s ease,visibility 0s;}
-  .rowB-overlay-tools{position:absolute;left:0;bottom:calc(100% + 12 * var(--rowB-u));
-    display:inline-flex;align-items:center;gap:calc(5 * var(--rowB-u));}
-  .rowB-tool{display:inline-flex;align-items:center;justify-content:center;
-    width:calc(27 * var(--rowB-u));height:calc(27 * var(--rowB-u));
-    background:#333333;border:1px solid #555555;border-radius:calc(6 * var(--rowB-u));
-    transition:background .15s ease,border-color .15s ease;}
-  .rowB-tool img{width:calc(12 * var(--rowB-u));height:calc(12 * var(--rowB-u));
-    display:block;filter:brightness(0) invert(1);}
-  .rowB-tool--on{background:#BC13FE;border-color:transparent;}
-  .rowB-hint{margin-left:calc(6 * var(--rowB-u));
-    font-family:var(--font-sans);font-weight:600;line-height:1.4;
-    font-size:calc(11 * var(--rowB-u));color:#ffffff;white-space:nowrap;}
-  .rowB-hint--off{display:none;}
-  .rowB-slider-clip{position:absolute;inset:0;z-index:3;display:none;
-    overflow:hidden;pointer-events:none;}
-  .rowB-slider-handle{position:absolute;top:0;bottom:0;left:0;
-    width:calc(2 * var(--rowB-u));background:var(--accent-bright);
-    transform:translateX(-50%);display:flex;pointer-events:none;
-    align-items:center;justify-content:center;
-    box-shadow:0 0 0 1px rgba(255,255,255,.5);}
-  .rowB-slider-knob{flex-shrink:0;display:flex;align-items:center;justify-content:center;
-    width:calc(30 * var(--rowB-u));height:calc(30 * var(--rowB-u));border-radius:50%;
-    background:#fff;border:calc(1.5 * var(--rowB-u)) solid var(--accent-bright);
-    box-shadow:0 calc(3 * var(--rowB-u)) calc(12 * var(--rowB-u)) rgba(207,0,255,.28);
-    color:var(--accent-bright);}
-  .rowB-slider-knob svg{width:calc(13 * var(--rowB-u));height:calc(13 * var(--rowB-u));display:block;}
-  .rowB-slider-knob svg + svg{margin-left:calc(-6 * var(--rowB-u));}
-  .rowB-chrome--live{cursor:url("/assets/landing/icons/rowB/icon_cursor_24.svg") 2 1, auto;}
-  .rowB-overlay--live{pointer-events:auto;}
-  .rowB-overlay--live .rowB-overlay-figure{cursor:ew-resize;touch-action:none;}
-  .rowB-overlay--live .rowB-overlay-btn,
-  .rowB-overlay--live .rowB-overlay-act{cursor:url("/assets/landing/icons/rowB/icon_cursor_24.svg") 2 1, auto;}
-  .rowB-overlay--live .rowB-overlay-after{transition:none;will-change:clip-path;}
-  .rowB-overlay--live .rowB-slider-clip{display:block;}
-  .rowB-slider-clip--wipe{display:block;}
-  .rowB-slider-clip--wipe .rowB-slider-knob{display:none;}
-  .rowB-slider-clip--wipe .rowB-slider-handle{transition:left 1.4s ease;}
-    /* Matches the hero's bar and the extension's: 3 units of #BC13FE with a purple glow.
-       Only in the wipe state — the same element is the handle the visitor drags in live
-       mode, and that keeps its own look. */
-    .rowB-slider-clip--wipe .rowB-slider-handle{
-      width:calc(3 * var(--rowB-u));background:#BC13FE;
-      box-shadow:0 0 calc(12 * var(--rowB-u)) rgba(188,19,254,0.9);
-      will-change:left;}
-  .rowB-marquee{position:absolute;left:0;top:0;width:0;height:0;display:none;z-index:1;
-    border:1px solid #BC13FE;background:rgba(188,19,254,.18);pointer-events:none;}
-  .rowB-marquee--on{display:block;}
 
   /* ── Copy demo — Instant figure (#firstCopyDemo), between Row A and Row B ── */
   .rowA-figure{position:relative;display:grid;grid-template-columns:minmax(0,1.329fr) minmax(0,1fr);gap:48px;margin-bottom:24px;}
@@ -606,42 +429,6 @@
     border-radius:var(--radius-lg);}
   .rowA-canvas{min-width:0;width:100%;aspect-ratio:593/434;position:relative;}
   .rowA-canvas{border:1px solid var(--border);}
-  .rowA-chrome{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
-    container-type:inline-size;--rowA-u:calc(100cqw / 593);
-    background:#DFDFDF;border-top:1px solid #E6E7EB;
-    border-radius:calc(3 * var(--rowA-u));box-shadow:0 0 calc(4 * var(--rowA-u)) 0 rgba(0,0,0,.25);}
-  .rowA-header{display:flex;align-items:center;gap:calc(6 * var(--rowA-u));width:100%;
-    height:calc(30 * var(--rowA-u));flex-shrink:0;
-    padding:calc(6 * var(--rowA-u)) calc(18 * var(--rowA-u)) calc(6 * var(--rowA-u)) calc(10 * var(--rowA-u));}
-  .rowA-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
-    padding:0 calc(23 * var(--rowA-u)) 0 calc(10 * var(--rowA-u));
-    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--rowA-u));}
-  .rowA-urlbar-line{flex:1;min-width:0;height:calc(2.5 * var(--rowA-u));
-    border-radius:calc(10 * var(--rowA-u));background:#DEE1E6;}
-  .rowA-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    width:calc(18 * var(--rowA-u));height:calc(18 * var(--rowA-u));
-    padding:calc(2 * var(--rowA-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--rowA-u));}
-  .rowA-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
-  .rowA-body{position:relative;display:flex;flex-direction:row;flex:1;min-height:0;width:100%;overflow:hidden;
-    background:var(--surface);border-radius:calc(8 * var(--rowA-u));}
-  .rowA-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
-    width:calc(30 * var(--rowA-u));gap:calc(24 * var(--rowA-u));
-    padding-top:calc(16 * var(--rowA-u));border-right:0.5px solid #C8C8C0;}
-  .rowA-sidebar-item{display:flex;align-items:center;justify-content:center;width:100%;opacity:.5;}
-  .rowA-sidebar-icon{display:block;object-fit:contain;}
-  .rowA-sidebar-icon--home{width:calc(10 * var(--rowA-u));height:calc(11 * var(--rowA-u));}
-  .rowA-sidebar-icon--category{width:calc(11 * var(--rowA-u));height:calc(11 * var(--rowA-u));}
-  .rowA-sidebar-icon--add{width:calc(10 * var(--rowA-u));height:calc(10 * var(--rowA-u));}
-  .rowA-sidebar-icon--notification{width:calc(10 * var(--rowA-u));height:calc(11 * var(--rowA-u));}
-  .rowA-sidebar-icon--message{width:calc(12 * var(--rowA-u));height:calc(12 * var(--rowA-u));}
-  .rowA-gallery{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
-    gap:calc(10 * var(--rowA-u));padding:calc(10 * var(--rowA-u));flex:1;min-width:0;height:100%;
-    background:var(--surface);border-radius:0 calc(14 * var(--rowA-u)) 0 0;}
-  .rowA-tile{position:relative;border-radius:calc(8 * var(--rowA-u));overflow:hidden;
-    background:var(--surface-key);transition:box-shadow .25s ease;}
-  .rowA-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
-  .rowA-tile--hot{box-shadow:0 0 calc(13 * var(--rowA-u)) 0 var(--accent-bright);}
-  .rowA-tile--tall{grid-row:span 2;}
   .rowA-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
     --rowA-u:calc((1352px - 48px) * 1.329 / 2.329 / 593);
     width:calc(26 * var(--rowA-u));height:calc(26 * var(--rowA-u));opacity:0;
@@ -656,22 +443,11 @@
     font-size:calc(11 * var(--rowA-u));
     opacity:0;transition:opacity .3s ease;}
   .rowA-tip--in{opacity:1;transition:none;}
-  .rowA-toast{position:absolute;z-index:4;
-    top:calc(10 * var(--rowA-u));right:calc(10 * var(--rowA-u));
-    display:inline-flex;align-items:center;gap:calc(5 * var(--rowA-u));
-    padding:calc(6 * var(--rowA-u)) calc(11 * var(--rowA-u));
-    background:#BC13FE;border:1px solid #BC13FE;border-radius:999px;
-    font-family:var(--font-sans);font-weight:600;line-height:1.4;
-    font-size:calc(11 * var(--rowA-u));color:#f0f0f0;white-space:nowrap;
-    opacity:0;pointer-events:none;transition:opacity .3s ease;}
-  .rowA-toast img{width:calc(11 * var(--rowA-u));height:calc(11 * var(--rowA-u));display:block;
-    filter:brightness(0) invert(1);}
-  .rowA-toast--in{opacity:1;}
   .rowA-canvas{display:flex;flex-direction:column;position:relative;z-index:1;
     container-type:inline-size;--rowA-u:calc(100cqw / 593);}
   .rowA-canvas-body{--canvas-u:var(--rowA-u);}
   .rowA-canvas-pan{position:absolute;inset:0;z-index:1;}
-  .rowA-paste{position:absolute;left:0;top:0;display:none;width:70%;aspect-ratio:2000/1333;object-fit:contain;}
+  .rowA-paste{position:absolute;left:0;top:0;display:none;object-fit:contain;}
   .rowA-paste--in{display:block;}
 
   /* ── Row C — sidepanel mockup (responsive; cqw basis = Figma 1× frame 520px) ── */

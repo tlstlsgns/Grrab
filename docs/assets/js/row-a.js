@@ -14,11 +14,17 @@
 
   var rowARepLen = 3200;
   var rowAToastMs = 1200;
-  var rowAPasteMin = 0.06;
+  var rowAPasteMin = 0.10;
   var rowAPasteRetries = 24;
   var rowAPasteMax = 10;
   var rowAPasteCount = 0;
   var rowAPlaced = [];
+  var rowAUsedAnchors = [];
+  var rowAPasteAnchors = [
+    { ox: -0.25, oy: -0.25 }, { ox: 0, oy: -0.25 }, { ox: 0.25, oy: -0.25 },
+    { ox: -0.25, oy: 0 }, { ox: 0, oy: 0 }, { ox: 0.25, oy: 0 },
+    { ox: -0.25, oy: 0.25 }, { ox: 0, oy: 0.25 }, { ox: 0.25, oy: 0.25 }
+  ];
   var rowATimers = [];
   var rowARaf = 0;
   var rowAReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -88,21 +94,71 @@
              y: p.y + rowACanvas.offsetHeight * oy };
   };
 
-  var rowAPasteAt = function(el, ox, oy){
+  var rowAClampPaste = function(el){
+    if (!el || !rowACanvas || !rowACanvasPan) return;
+    var panO = rowAOffsetIn(rowACanvasPan);
+    var canvasO = rowAOffsetIn(rowACanvas);
+    var minLeft = canvasO.x - panO.x;
+    var minTop = canvasO.y - panO.y;
+    var W = rowACanvas.offsetWidth;
+    var H = rowACanvas.offsetHeight;
+    var w = el.offsetWidth;
+    var h = el.offsetHeight;
+    var left = parseFloat(el.style.left) || 0;
+    var top = parseFloat(el.style.top) || 0;
+    if (w <= W) left = Math.max(minLeft, Math.min(left, minLeft + W - w));
+    else left = minLeft;
+    if (h <= H) top = Math.max(minTop, Math.min(top, minTop + H - h));
+    else top = minTop;
+    el.style.left = left + "px";
+    el.style.top = top + "px";
+  };
+  var rowAPastePosition = function(el, ox, oy){
+    var p = rowAPastePointIn(ox, oy);
+    var o = rowAOffsetIn(rowACanvasPan);
+    el.style.left = (p.x - o.x - el.offsetWidth / 2) + "px";
+    el.style.top = (p.y - o.y - el.offsetHeight / 2) + "px";
+    rowAClampPaste(el);
+  };
+  var rowAPasteSize = function(el, rw, rh){
+    if (!el || !rw || !rh) return false;
+    el.style.aspectRatio = rw + "/" + rh;
+    if (rw > rh) {
+      el.style.width = "50%";
+      el.style.height = "";
+    } else {
+      el.style.height = "50%";
+      el.style.width = "";
+    }
+    return true;
+  };
+  var rowAPasteAt = function(el, ox, oy, rw, rh){
     if (!el || !rowACanvas || !rowACanvasPan) return;
     if (ox == null) ox = 0;
     if (oy == null) oy = 0;
-    var p = rowAPastePointIn(ox, oy);
-    var o = rowAOffsetIn(rowACanvasPan);
+    var place = function(){
+      void el.offsetWidth;
+      rowAPastePosition(el, ox, oy);
+    };
     el.classList.add("rowA-paste--in");
-    void el.offsetWidth;
-    el.style.left = (p.x - o.x - el.offsetWidth / 2) + "px";
-    el.style.top = (p.y - o.y - el.offsetHeight / 2) + "px";
+    if (rowAPasteSize(el, rw, rh)) place();
+    else {
+      el.addEventListener("load", function(){
+        rowAPasteSize(el, el.naturalWidth, el.naturalHeight);
+        place();
+      }, { once: true });
+      place();
+    }
   };
 
   var rowATileImgSrc = function(tile){
     var img = tile ? tile.querySelector("img") : null;
     return img ? img.getAttribute("src") : "";
+  };
+  var rowATileNatural = function(tile){
+    var img = tile ? tile.querySelector("img") : null;
+    if (!img || !img.naturalWidth) return null;
+    return { w: img.naturalWidth, h: img.naturalHeight };
   };
 
   var rowAVisibleTiles = function(){
@@ -143,11 +199,36 @@
     return order;
   };
 
+  var rowAAnchorTiers = [[4], [0, 2, 6, 8], [1, 3, 5, 7]];
+  var rowAPickAnchor = function(){
+    var ai, pi, ti, ki, pool = [], tierPool = [];
+    for (ai = 0; ai < rowAPasteAnchors.length; ai++) {
+      var taken = false;
+      for (pi = 0; pi < rowAUsedAnchors.length; pi++) {
+        if (rowAUsedAnchors[pi] === ai) { taken = true; break; }
+      }
+      if (!taken) pool.push(ai);
+    }
+    if (!pool.length) return Math.floor(Math.random() * rowAPasteAnchors.length);
+    for (ti = 0; ti < rowAAnchorTiers.length; ti++) {
+      tierPool = [];
+      for (ki = 0; ki < rowAAnchorTiers[ti].length; ki++) {
+        ai = rowAAnchorTiers[ti][ki];
+        for (pi = 0; pi < pool.length; pi++) {
+          if (pool[pi] === ai) { tierPool.push(ai); break; }
+        }
+      }
+      if (tierPool.length) return tierPool[Math.floor(Math.random() * tierPool.length)];
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
   var rowAPickSlot = function(){
+    var anchorIdx = rowAPickAnchor();
+    var anchor = rowAPasteAnchors[anchorIdx];
     var ox = 0, oy = 0, attempt, ok, pi;
     for (attempt = 0; attempt < rowAPasteRetries; attempt++) {
-      ox = Math.random() * 0.2 - 0.10;
-      oy = Math.random() * 0.2 - 0.10;
+      ox = anchor.ox + (Math.random() * 0.15 - 0.075);
+      oy = anchor.oy + (Math.random() * 0.15 - 0.075);
       ok = true;
       if (rowACanvas && rowACanvas.offsetWidth) {
         for (pi = 0; pi < rowAPlaced.length; pi++) {
@@ -161,6 +242,7 @@
       }
       if (ok) break;
     }
+    rowAUsedAnchors.push(anchorIdx);
     var slot = { ox: ox, oy: oy };
     rowAPlaced.push(slot);
     return slot;
@@ -171,10 +253,11 @@
     var nodes = rowACanvasPan.querySelectorAll(".rowA-paste");
     for (var ci = 0; ci < nodes.length; ci++) nodes[ci].remove();
     rowAPlaced = [];
+    rowAUsedAnchors = [];
     rowAPasteCount = 0;
   };
 
-  var rowACreatePaste = function(src, ox, oy){
+  var rowACreatePaste = function(src, ox, oy, tile){
     if (!rowACanvasPan) return null;
     if (rowAPasteCount >= rowAPasteMax) rowAClearPastes();
     var el = document.createElement("img");
@@ -183,9 +266,16 @@
     el.setAttribute("alt", "");
     el.setAttribute("draggable", "false");
     rowACanvasPan.appendChild(el);
-    rowAPasteAt(el, ox, oy);
+    var nat = rowATileNatural(tile);
+    var rw = nat ? nat.w : 0;
+    var rh = nat ? nat.h : 0;
+    if (!rw && el.complete && el.naturalWidth) {
+      rw = el.naturalWidth;
+      rh = el.naturalHeight;
+    }
+    rowAPasteAt(el, ox, oy, rw, rh);
     rowAPasteCount++;
-    return el;
+    return { ox: ox, oy: oy };
   };
 
   var rowAReset = function(){
@@ -219,20 +309,19 @@
 
     var tileOrder = rowAPickTiles();
     if (!tileOrder.length) return;
-    var slots = [];
-    for (var si = 0; si < 5; si++) slots.push(rowAPickSlot());
 
     if (rowAReduce && rowAReduce.matches) {
+      var lastSlot = null;
       for (var ri = 0; ri < 5; ri++) {
         var rtile = tileOrder[ri];
         if (rtile) {
-          rowACreatePaste(rowATileImgSrc(rtile), slots[ri].ox, slots[ri].oy);
+          var rslot = rowAPickSlot();
+          lastSlot = rowACreatePaste(rowATileImgSrc(rtile), rslot.ox, rslot.oy, rtile);
         }
       }
       if (tileOrder[0]) tileOrder[0].classList.add("hero-tile--hot");
       rowACursor.classList.add("rowA-cursor--on");
-      var lastSlot = slots[4] || slots[0];
-      rowAMoveTo(rowAPastePointIn(lastSlot.ox, lastSlot.oy));
+      if (lastSlot) rowAMoveTo(rowAPastePointIn(lastSlot.ox, lastSlot.oy));
       return;
     }
 
@@ -244,8 +333,9 @@
     rowACursor.style.transition = "";
 
     for (var rep = 0; rep < 5; rep++) {
-      (function(beat, tile, slot){
+      (function(beat, tile){
         var t0 = beat * rowARepLen;
+        var slot = null;
 
         rowAAt(t0 + 60, function(){
           if (!tile || !tile.offsetWidth) return;
@@ -265,17 +355,18 @@
         });
         rowAAt(t0 + 1790, function(){
           if (rowACopyTip) rowACopyTip.classList.remove("rowA-tip--in");
+          slot = rowAPickSlot();
           rowAMoveTo(rowAPastePointIn(slot.ox, slot.oy));
           rowATrack(1000);
         });
         rowAAt(t0 + 2790, function(){
           if (rowAPasteTip) rowAPasteTip.classList.add("rowA-tip--in");
-          if (tile) rowACreatePaste(rowATileImgSrc(tile), slot.ox, slot.oy);
+          if (tile && slot) rowACreatePaste(rowATileImgSrc(tile), slot.ox, slot.oy, tile);
         });
         rowAAt(t0 + 3130, function(){
           if (rowAPasteTip) rowAPasteTip.classList.remove("rowA-tip--in");
         });
-      })(rep, tileOrder[rep], slots[rep]);
+      })(rep, tileOrder[rep]);
     }
   };
 

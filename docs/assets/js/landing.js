@@ -35,7 +35,18 @@
   var heroHandle = document.getElementById("heroHandle");
   var heroClip = document.querySelector(".hero-slider-clip");
   var heroFigure = document.querySelector(".hero-overlay-figure");
+  var heroOverlayPicture = document.querySelector(".hero-overlay-picture");
   var heroOverlayImg = document.getElementById("heroOverlayImg");
+  var heroSetPictureRatio = function(img, fallback){
+    if (!heroOverlayPicture || !img) return;
+    var apply = function(){
+      if (img.naturalWidth && img.naturalHeight) {
+        heroOverlayPicture.style.aspectRatio = img.naturalWidth + "/" + img.naturalHeight;
+      } else if (fallback) heroOverlayPicture.style.aspectRatio = fallback;
+    };
+    apply();
+    if (!img.naturalWidth) img.addEventListener("load", apply, { once: true });
+  };
   var heroOverlayBtnIcon = document.getElementById("heroOverlayBtnIcon");
   var heroOverlayBtnLabel = document.getElementById("heroOverlayBtnLabel");
   var heroActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
@@ -72,6 +83,11 @@
     var heroCentreIn = function(el){
       var p = heroOffsetIn(el);
       return { x: p.x + el.offsetWidth / 2, y: p.y + el.offsetHeight / 2 };
+    };
+    var heroTileTargetIn = function(tile, step){
+      var p = heroCentreIn(tile);
+      if (step && step.hoverY) p.y -= tile.offsetHeight * step.hoverY;
+      return p;
     };
     var heroMoveTo = function(p){
       heroCursor.style.transform = "translate(" + p.x + "px," + p.y + "px)";
@@ -141,8 +157,40 @@
        2000x1335 differ by only 0.6px at this size, but the figure has to match its
        image exactly or the checkerboard shows past the picture's edge. */
     var heroSteps = [
-      { img:"/assets/landing/img/hero-image-1-before.webp", ratio:"2000/1333", alpha:true },
-      { img:"/assets/landing/img/hero-image-7-before.webp", ratio:"2000/1335", alpha:false }
+      { tile:13, img:"/assets/landing/img/hero-image-14-before.webp", ratio:"2000/1125",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:12, img:"/assets/landing/img/hero-image-13-before.webp", ratio:"2000/1343",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:11, img:"/assets/landing/img/hero-image-12-before.webp", ratio:"2000/1333",
+        icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
+        /* Placeholder — maintainer will set the real region from a screenshot. */
+        box:{ l:0.42, t:0.32, r:0.53, b:0.55 }, alpha:false },
+      { tile:10, img:"/assets/landing/img/hero-image-11-before.webp", ratio:"2000/3019",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true,
+        hoverY:0.2 },
+      { tile:9, img:"/assets/landing/img/hero-image-10-before.webp", ratio:"2000/1333",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:7, img:"/assets/landing/img/hero-image-2-before.webp", ratio:"2000/1333",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:6, img:"/assets/landing/img/hero-image-9-before.webp", ratio:"500/333",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:5, img:"/assets/landing/img/hero-image-7-before.webp", ratio:"1932/2898",
+        icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
+        /* Measured from a screenshot — approximate, not derived. */
+        box: { l:0.45, t:0.51, r:0.90, b:0.96 }, alpha:false },
+      { tile:4, img:"/assets/landing/img/hero-image-4-before.webp", ratio:"2000/1333",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:2, img:"/assets/landing/img/hero-image-6-before.webp", ratio:"2000/1333",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:1, img:"/assets/landing/img/hero-image-3-before.webp", ratio:"2000/1500",
+        icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
+        /* Measured from a screenshot — approximate, not derived. */
+        box:{ l:0.44, t:0.43, r:0.58, b:0.61 }, alpha:false },
+      { tile:0, img:"/assets/landing/img/hero-image-1-before.webp", ratio:"2000/2768",
+        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:8, img:"/assets/landing/img/hero-image-5-before.webp", ratio:"2000/1335",
+        icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
+        box:{ l:0.39, t:0.38, r:0.59, b:0.65 }, alpha:false }
     ];
     /* The action button no longer belongs to the step. In the extension it always opens
        as Remove BG with the hint beside it, and only becomes Remove once a selection
@@ -164,6 +212,7 @@
         if (s.alpha) heroOverlayAfter.classList.add("hero-overlay-after--alpha");
         else heroOverlayAfter.classList.remove("hero-overlay-after--alpha");
       }
+      heroSetPictureRatio(heroOverlayImg, s.ratio || "");
       heroSetAction(false);
     };
     /* Reopening the editor needs the first pass's leftovers cleared: the result would
@@ -240,11 +289,18 @@
     };
     /* The paste is shown first so its laid-out size can be read, then positioned at a
        random offset near the canvas centre. No fade: a paste is instantaneous. */
-    var heroPasteMin = 0.06;
+    var heroPasteMin = 0.10;
     var heroPasteRetries = 24;
     var heroPasteMax = 10;
     var heroPasteCount = 0;
     var heroPlaced = [];
+    var heroUsedAnchors = [];
+    var heroUsedTiles = [];
+    var heroPasteAnchors = [
+      { ox: -0.25, oy: -0.25 }, { ox: 0, oy: -0.25 }, { ox: 0.25, oy: -0.25 },
+      { ox: -0.25, oy: 0 }, { ox: 0, oy: 0 }, { ox: 0.25, oy: 0 },
+      { ox: -0.25, oy: 0.25 }, { ox: 0, oy: 0.25 }, { ox: 0.25, oy: 0.25 }
+    ];
     var heroSlot1 = null;
     var heroSlot2 = null;
     var heroPastePointIn = function(ox, oy){
@@ -255,11 +311,36 @@
       return { x: p.x + heroCanvas.offsetWidth * ox,
                y: p.y + heroCanvas.offsetHeight * oy };
     };
+    var heroAnchorTiers = [[4], [0, 2, 6, 8], [1, 3, 5, 7]];
+    var heroPickAnchor = function(){
+      var ai, pi, ti, ki, pool = [], tierPool = [];
+      for (ai = 0; ai < heroPasteAnchors.length; ai++) {
+        var taken = false;
+        for (pi = 0; pi < heroUsedAnchors.length; pi++) {
+          if (heroUsedAnchors[pi] === ai) { taken = true; break; }
+        }
+        if (!taken) pool.push(ai);
+      }
+      if (!pool.length) return Math.floor(Math.random() * heroPasteAnchors.length);
+      for (ti = 0; ti < heroAnchorTiers.length; ti++) {
+        tierPool = [];
+        for (ki = 0; ki < heroAnchorTiers[ti].length; ki++) {
+          ai = heroAnchorTiers[ti][ki];
+          for (pi = 0; pi < pool.length; pi++) {
+            if (pool[pi] === ai) { tierPool.push(ai); break; }
+          }
+        }
+        if (tierPool.length) return tierPool[Math.floor(Math.random() * tierPool.length)];
+      }
+      return pool[Math.floor(Math.random() * pool.length)];
+    };
     var heroPickSlot = function(){
+      var anchorIdx = heroPickAnchor();
+      var anchor = heroPasteAnchors[anchorIdx];
       var ox = 0, oy = 0, attempt, ok, pi;
       for (attempt = 0; attempt < heroPasteRetries; attempt++) {
-        ox = Math.random() * 0.2 - 0.10;
-        oy = Math.random() * 0.6 - 0.30;
+        ox = anchor.ox + (Math.random() * 0.15 - 0.075);
+        oy = anchor.oy + (Math.random() * 0.15 - 0.075);
         ok = true;
         if (heroCanvas && heroCanvas.offsetWidth) {
           for (pi = 0; pi < heroPlaced.length; pi++) {
@@ -273,6 +354,7 @@
         }
         if (ok) break;
       }
+      heroUsedAnchors.push(anchorIdx);
       var slot = { ox: ox, oy: oy };
       heroPlaced.push(slot);
       return slot;
@@ -282,10 +364,63 @@
       var nodes = heroCanvasPan.querySelectorAll(".hero-paste");
       for (var hi = 0; hi < nodes.length; hi++) nodes[hi].remove();
       heroPlaced = [];
+      heroUsedAnchors = [];
+      heroUsedTiles = [];
       heroPasteCount = 0;
+    };
+    var heroPickSteps = function(){
+      var pool = [];
+      var hi, ui, t, used;
+      for (hi = 0; hi < heroSteps.length; hi++) {
+        t = heroSteps[hi].tile;
+        used = false;
+        for (ui = 0; ui < heroUsedTiles.length; ui++) {
+          if (heroUsedTiles[ui] === t) { used = true; break; }
+        }
+        if (!used) pool.push(hi);
+      }
+      for (var sj = pool.length - 1; sj > 0; sj--) {
+        var sk = Math.floor(Math.random() * (sj + 1));
+        var st = pool[sj]; pool[sj] = pool[sk]; pool[sk] = st;
+      }
+      return pool.slice(0, pool.length < 5 ? pool.length : 5);
     };
     var heroPasteAfterSrc = function(stepIndex){
       return heroSteps[stepIndex].img.replace(/-before\.(webp|jpe?g)$/, "-after.$1");
+    };
+    var heroPasteSize = function(el, ratio){
+      if (!el || !ratio) return;
+      var parts = String(ratio).split("/");
+      var rw = parseFloat(parts[0]);
+      var rh = parseFloat(parts[1]);
+      if (!rw || !rh) return;
+      el.style.aspectRatio = rw + "/" + rh;
+      if (rw > rh) {
+        el.style.width = "50%";
+        el.style.height = "";
+      } else {
+        el.style.height = "50%";
+        el.style.width = "";
+      }
+    };
+    var heroClampPaste = function(el){
+      if (!el || !heroCanvas || !heroCanvasPan) return;
+      var panO = heroOffsetIn(heroCanvasPan);
+      var canvasO = heroOffsetIn(heroCanvas);
+      var minLeft = canvasO.x - panO.x;
+      var minTop = canvasO.y - panO.y;
+      var W = heroCanvas.offsetWidth;
+      var H = heroCanvas.offsetHeight;
+      var w = el.offsetWidth;
+      var h = el.offsetHeight;
+      var left = parseFloat(el.style.left) || 0;
+      var top = parseFloat(el.style.top) || 0;
+      if (w <= W) left = Math.max(minLeft, Math.min(left, minLeft + W - w));
+      else left = minLeft;
+      if (h <= H) top = Math.max(minTop, Math.min(top, minTop + H - h));
+      else top = minTop;
+      el.style.left = left + "px";
+      el.style.top = top + "px";
     };
     var heroPasteAt = function(el, ox, oy, ratio){
       if (!el || !heroCanvas || !heroCanvasPan) return;
@@ -293,11 +428,12 @@
       if (oy == null) oy = 0;
       var p = heroPastePointIn(ox, oy);
       var o = heroOffsetIn(heroCanvasPan);
-      if (ratio) el.style.aspectRatio = ratio;
+      heroPasteSize(el, ratio);
       el.classList.add("hero-paste--in");
       void el.offsetWidth;
       el.style.left = (p.x - o.x - el.offsetWidth / 2) + "px";
       el.style.top = (p.y - o.y - el.offsetHeight / 2) + "px";
+      heroClampPaste(el);
     };
     var heroCreatePaste = function(stepIndex, ox, oy){
       if (!heroCanvasPan) return null;
@@ -308,7 +444,21 @@
       el.setAttribute("alt", "");
       el.setAttribute("draggable", "false");
       heroCanvasPan.appendChild(el);
-      heroPasteAt(el, ox, oy, heroSteps[stepIndex].ratio);
+      var pasteFallback = heroSteps[stepIndex].ratio;
+      var pasteApply = function(){
+        var pr = pasteFallback;
+        if (el.naturalWidth && el.naturalHeight) {
+          pr = el.naturalWidth + "/" + el.naturalHeight;
+        }
+        heroPasteAt(el, ox, oy, pr);
+      };
+      if (el.complete && el.naturalWidth) pasteApply();
+      else {
+        el.addEventListener("load", pasteApply, { once: true });
+        pasteApply();
+      }
+      var pt = heroSteps[stepIndex].tile;
+      if (heroUsedTiles.indexOf(pt) < 0) heroUsedTiles.push(pt);
       heroPasteCount++;
       return el;
     };
@@ -350,79 +500,21 @@
       window.heroReset();
     };
 
-    var heroPlay = function(){
-      if (window.grrabBrowser && window.grrabBrowser.stopRowA) window.grrabBrowser.stopRowA();
-      if (window.grrabBrowser && window.grrabBrowser.stopRowB) window.grrabBrowser.stopRowB();
-      var tile = heroTiles[0];
-      if (!tile || !heroBody.offsetWidth) return;
-      /* Every cycle queues about thirty timers. Cancelling and emptying the list here
-         keeps that from growing without bound, and means a stray call cannot leave two
-         sequences running against each other. */
-      heroClearTimers();
-      if (heroPasteCount + 2 > heroPasteMax) heroClearPastes();
-      heroSlot1 = null;
-      heroSlot2 = null;
-      if (heroLateActs) {
-        heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
+    /* One step's editor beats, relative to overlayAt. No box goes to the button; a box
+       draws the marquee first. Returns the reveal time. */
+    var heroPlayEditor = function(overlayAt, step){
+      if (!step.box) {
+        heroAt(overlayAt + 280, function(){
+          if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
+        });
+        heroAt(overlayAt + 1030, heroHover);
+        heroAt(overlayAt + 1430, heroPress);
+        heroAt(overlayAt + 2430, heroReveal);
+        return overlayAt + 2430;
       }
-      heroSetStep(heroSteps[0]);
-
-      var b = heroOffsetIn(heroBody);
-      heroCursor.style.transition = "none";
-      heroCursor.style.transform = "translate(" + (b.x + heroBody.offsetWidth * 0.86) + "px," +
-                                                  (b.y + heroBody.offsetHeight * 0.92) + "px)";
-      void heroCursor.offsetWidth;
-      heroCursor.style.transition = "";
-
-      heroAt(60, function(){
-        heroCursor.classList.add("hero-cursor--on");
-        heroMoveTo(heroCentreIn(tile));
-        heroTrack(790);
-      });
-      heroAt(880, function(){
-        if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
-        heroHotOnly(tile);
-      });
-      heroAt(1180, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
-      heroAt(1520, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
-      heroAt(1820, function(){ heroOverlay.classList.add("hero-overlay--on"); });
-      heroAt(2100, function(){
-        if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
-      });
-      heroAt(2850, heroHover);
-      heroAt(3250, heroPress);
-      heroAt(4250, heroReveal);
-      heroAt(5650, function(){
-        if (heroActClip) heroMoveTo(heroCentreIn(heroActClip));
-      });
-      heroAt(6400, heroClipHover);
-      heroAt(6800, heroClipPress);
-      heroAt(7000, heroClipDone);
-      heroAt(8100, heroToastOut);
-      heroAt(7750, heroPasteIn);
-      heroAt(8140, heroTipVOut);
-      heroAt(8140, function(){
-        var lateTile = heroTiles[5];
-        if (!lateTile) return;
-        heroMoveTo(heroCentreIn(lateTile));
-        heroTrack(790);
-      });
-      heroAt(8960, function(){
-        if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
-        heroHotOnly(heroTiles[5]);
-      });
-
-      /* ── second pass: erase, on the tile the cursor just settled on ── */
-      var box = { l:0.39, t:0.38, r:0.59, b:0.65 };
-      heroAt(9370, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
-      heroAt(9710, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
-      heroAt(10010, function(){
-        heroSetStep(heroSteps[1]);
-        heroResetOverlay();
-        heroOverlay.classList.add("hero-overlay--on");
-      });
-      heroAt(10290, function(){ heroMoveTo(heroBoxPoint(box.l, box.t)); });
-      heroAt(11040, function(){
+      var box = step.box;
+      heroAt(overlayAt + 280, function(){ heroMoveTo(heroBoxPoint(box.l, box.t)); });
+      heroAt(overlayAt + 1030, function(){
         if (!heroMarquee) return;
         heroMarquee.style.left = (box.l * 100) + "%";
         heroMarquee.style.top = (box.t * 100) + "%";
@@ -432,34 +524,133 @@
         heroMoveTo(heroBoxPoint(box.r, box.b));
         heroDragTrack(box, 820);
       });
-      heroAt(11860, function(){
+      heroAt(overlayAt + 1850, function(){
         if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
         heroSetAction(true);
         if (!heroMarquee) return;
         heroMarquee.style.width = ((box.r - box.l) * 100) + "%";
         heroMarquee.style.height = ((box.b - box.t) * 100) + "%";
       });
-      heroAt(12070, function(){
+      heroAt(overlayAt + 2060, function(){
         if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
       });
-      heroAt(12810, heroHover);
-      heroAt(13210, heroPress);
-      heroAt(14210, heroReveal);
+      heroAt(overlayAt + 2800, heroHover);
+      heroAt(overlayAt + 3200, heroPress);
+      heroAt(overlayAt + 4200, heroReveal);
+      return overlayAt + 4200;
+    };
 
-      /* ── second clip: second paste on the canvas ── */
-      heroAt(15610, function(){
+    /* Schedules one hero step at base ms. Returns the absolute time where the next step
+       should begin — base plus the stride for this step. */
+    var heroPlayStep = function(base, stepIndex, opts){
+      var step = heroSteps[stepIndex];
+      var tile = heroTiles[step.tile];
+      if (!tile) return base;
+      var overlayAt;
+      var revealAt;
+
+      if (opts.isFirst) {
+        heroAt(base + 60, function(){
+          heroCursor.classList.add("hero-cursor--on");
+          heroMoveTo(heroTileTargetIn(tile, step));
+          heroTrack(790);
+        });
+        heroAt(base + 880, function(){
+          if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
+          heroHotOnly(tile);
+        });
+        heroAt(base + 1180, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
+        heroAt(base + 1520, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
+        overlayAt = base + 1820;
+        heroAt(overlayAt, function(){ heroOverlay.classList.add("hero-overlay--on"); });
+      } else {
+        heroAt(base + 0, function(){
+          heroMoveTo(heroTileTargetIn(tile, step));
+          heroTrack(790);
+          heroTipVOut();
+        });
+        heroAt(base + 820, function(){
+          if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
+          heroHotOnly(tile);
+        });
+        heroAt(base + 1230, function(){ if (heroTip) heroTip.classList.add("hero-tip--in"); });
+        heroAt(base + 1570, function(){ if (heroTip) heroTip.classList.remove("hero-tip--in"); });
+        overlayAt = base + 1870;
+        heroAt(overlayAt, function(){
+          heroSetStep(step);
+          heroResetOverlay();
+          heroOverlay.classList.add("hero-overlay--on");
+        });
+      }
+
+      revealAt = heroPlayEditor(overlayAt, step);
+
+      heroAt(revealAt + 1400, function(){
         if (heroActClip) heroMoveTo(heroCentreIn(heroActClip));
       });
-      heroAt(16360, heroClipHover);
-      heroAt(16760, heroClipPress);
-      heroAt(16960, heroClipDone2);
-      heroAt(17410, function(){
-        heroSlot2 = heroPickSlot();
-        heroMoveTo(heroPastePointIn(heroSlot2.ox, heroSlot2.oy));
+      heroAt(revealAt + 2150, heroClipHover);
+      heroAt(revealAt + 2550, heroClipPress);
+
+      if (opts.isLast) {
+        heroAt(revealAt + 2750, heroClipDone2);
+        heroAt(revealAt + 3200, function(){
+          heroSlot2 = heroPickSlot();
+          heroMoveTo(heroPastePointIn(heroSlot2.ox, heroSlot2.oy));
+        });
+        heroAt(revealAt + 3950, function(){
+          if (heroTipV) heroTipV.classList.add("hero-tip--in");
+          if (!heroSlot2) heroSlot2 = heroPickSlot();
+          heroCreatePaste(stepIndex, heroSlot2.ox, heroSlot2.oy);
+        });
+        heroAt(revealAt + 4340, heroTipVOut);
+        heroAt(revealAt + 4500, heroToastOut);
+        return revealAt + 4500;
+      }
+
+      heroAt(revealAt + 2750, heroClipDone);
+      heroAt(revealAt + 3500, function(){
+        if (heroTipV) heroTipV.classList.add("hero-tip--in");
+        if (!heroSlot1) heroSlot1 = heroPickSlot();
+        heroCreatePaste(stepIndex, heroSlot1.ox, heroSlot1.oy);
       });
-      heroAt(18710, heroToastOut);
-      heroAt(18160, heroPasteIn2);
-      heroAt(18550, heroTipVOut);
+      heroAt(revealAt + 3850, heroToastOut);
+      heroAt(revealAt + 3890, heroTipVOut);
+      return revealAt + 3890;
+    };
+
+    var heroPlay = function(){
+      if (window.grrabBrowser && window.grrabBrowser.stopRowA) window.grrabBrowser.stopRowA();
+      if (window.grrabBrowser && window.grrabBrowser.stopRowB) window.grrabBrowser.stopRowB();
+      var picked = heroPickSteps();
+      if (!picked.length) return;
+      if (!heroTiles[heroSteps[picked[0]].tile] || !heroBody.offsetWidth) return;
+      /* Every cycle queues about thirty timers. Cancelling and emptying the list here
+         keeps that from growing without bound, and means a stray call cannot leave two
+         sequences running against each other. */
+      heroClearTimers();
+      if (heroPasteCount + 5 > heroPasteMax) heroClearPastes();
+      heroSlot1 = null;
+      heroSlot2 = null;
+      if (heroLateActs) {
+        heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
+      }
+      heroSetStep(heroSteps[picked[0]]);
+
+      var b = heroOffsetIn(heroBody);
+      heroCursor.style.transition = "none";
+      heroCursor.style.transform = "translate(" + (b.x + heroBody.offsetWidth * 0.86) + "px," +
+                                                  (b.y + heroBody.offsetHeight * 0.92) + "px)";
+      void heroCursor.offsetWidth;
+      heroCursor.style.transition = "";
+
+      var offset = 0;
+      var si;
+      for (si = 0; si < picked.length; si++) {
+        offset = heroPlayStep(offset, picked[si], {
+          isFirst: si === 0,
+          isLast: si === picked.length - 1
+        });
+      }
     };
 
     /* Puts everything back to the opening state. Defined here and hung on window so it
@@ -782,7 +973,7 @@
     });
 
     if (heroReduce && heroReduce.matches) {
-      heroHotOnly(heroTiles[0]);
+      heroHotOnly(heroTiles[heroSteps[0].tile]);
       heroSetStep(heroSteps[0]);
       heroOverlay.classList.add("hero-overlay--on");
       heroReveal();
@@ -886,11 +1077,11 @@
       return rowBBody;
     };
     var rowBSteps = [
-      { tile:0, img:"/assets/landing/img/hero-image-1-before.webp", ratio:"2000/1333",
+      { tile:4, img:"/assets/landing/img/hero-image-4-before.webp", ratio:"2000/1333",
         icon:"/assets/landing/icons/rowB/icon_removebg.svg", label:"Remove BG", alpha:true },
       /* "Remove" is the extension's own wording for the erase action, and it is written
          out again in the hero's heroSetAction — change both together. */
-      { tile:5, img:"/assets/landing/img/hero-image-7-before.webp", ratio:"2000/1335",
+      { tile:8, img:"/assets/landing/img/hero-image-5-before.webp", ratio:"2000/1335",
         icon:"/assets/landing/icons/rowB/icon_erase.svg", label:"Remove",
         box:{ l:0.39, t:0.38, r:0.59, b:0.65 } },
       /* The bottom bar's Upscale, not the top button — target says which. The images are
@@ -1135,6 +1326,7 @@
         if (step.alpha) rowBOverlayAfter.classList.add("hero-overlay-after--alpha");
         else rowBOverlayAfter.classList.remove("hero-overlay-after--alpha");
       }
+      heroSetPictureRatio(rowBOverlayImg, step.ratio || "");
       rowBSetAction(step, false);
       for (var c = 0; c < rowBCards.length; c++){
         if (c === index) rowBCards[c].classList.add("rowB-card--active");
