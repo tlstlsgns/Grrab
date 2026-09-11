@@ -119,25 +119,6 @@
     var heroReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
     var heroMobile = window.matchMedia && window.matchMedia("(max-width:820px)");
     var heroAt = function(ms, fn){ heroTimers.push(setTimeout(fn, ms)); };
-    var heroSetCanvasFront = function(on){
-      if (!heroCamera) return;
-      if (on) heroCamera.classList.add("canvas-front");
-      else heroCamera.classList.remove("canvas-front");
-    };
-    var heroCheckCanvasCross = function(){
-      if (!heroCamera || !heroCanvas || !heroCursor) return;
-      if (!heroCamera.classList.contains("canvas-front")) return;
-      var cr = heroCursor.getBoundingClientRect();
-      var lr = heroCanvas.getBoundingClientRect();
-      if (cr.left < lr.left) heroSetCanvasFront(false);
-    };
-    var heroTileBehindCanvas = function(tile){
-      if (!tile || !heroCanvas) return false;
-      var tr = tile.getBoundingClientRect();
-      var lr = heroCanvas.getBoundingClientRect();
-      return tr.right > lr.left;
-    };
-
     /* Positions come from offsetLeft/offsetTop, walking up to .hero-camera, rather
        than from getBoundingClientRect. The walk ends at the camera rather than the
        window because the cursor lives there and has to be able to travel between the
@@ -175,7 +156,6 @@
         var r = heroCursor.getBoundingClientRect();
         var under = document.elementFromPoint(r.left, r.top);
         heroHotOnly(under && under.closest ? under.closest(".hero-tile") : null);
-        heroCheckCanvasCross();
         if (Date.now() - started < durationMs) heroRaf = requestAnimationFrame(tick);
         else heroRaf = 0;
       };
@@ -357,7 +337,6 @@
       heroHotOnly(null);
       if (heroToast) heroToast.classList.add("hero-toast--in");
       heroSlot1 = heroPickSlot();
-      heroSetCanvasFront(true);
       heroMoveTo(heroPastePointIn(heroSlot1.ox, heroSlot1.oy));
     };
     var heroToastOut = function(){
@@ -465,7 +444,6 @@
         for (ui = 0; ui < heroUsedTiles.length; ui++) {
           if (heroUsedTiles[ui] === t) { used = true; break; }
         }
-        if (heroTileBehindCanvas(heroTiles[t])) continue;
         if (!used) pool.push(hi);
       }
       for (var sj = pool.length - 1; sj > 0; sj--) {
@@ -520,9 +498,8 @@
       var h = el.offsetHeight;
       var left = parseFloat(el.style.left) || 0;
       var top = parseFloat(el.style.top) || 0;
-      var leftPad = (heroMobile && heroMobile.matches) ? W * 0.07 : 0;
-      if (w <= W - leftPad) left = Math.max(minLeft + leftPad, Math.min(left, minLeft + W - w));
-      else left = minLeft + leftPad;
+      if (w <= W) left = Math.max(minLeft, Math.min(left, minLeft + W - w));
+      else left = minLeft;
       if (h <= H) top = Math.max(minTop, Math.min(top, minTop + H - h));
       else top = minTop;
       el.style.left = left + "px";
@@ -570,7 +547,6 @@
       return el;
     };
     var heroPasteIn = function(){
-      heroSetCanvasFront(true);
       if (heroTipV) heroTipV.classList.add("hero-tip--in");
       if (!heroSlot1) heroSlot1 = heroPickSlot();
       heroCreatePaste(0, heroSlot1.ox, heroSlot1.oy);
@@ -747,7 +723,6 @@
         heroAt(revealAt + 2750, heroClipDone2);
         heroAt(revealAt + 3200, function(){
           heroSlot2 = heroPickSlot();
-          heroSetCanvasFront(true);
           heroMoveTo(heroPastePointIn(heroSlot2.ox, heroSlot2.oy));
         });
         heroAt(revealAt + 3950, function(){
@@ -784,7 +759,6 @@
          keeps that from growing without bound, and means a stray call cannot leave two
          sequences running against each other. */
       heroClearTimers();
-      heroSetCanvasFront(false);
       if (forcedStepIndex !== undefined && forcedStepIndex !== null &&
           forcedStepIndex >= 0 && forcedStepIndex < heroSteps.length) {
         heroClearPastes();
@@ -828,7 +802,6 @@
 
       heroSlot1 = null;
       heroSlot2 = null;
-      heroSetCanvasFront(false);
 
       /* the cursor */
       heroCursor.classList.remove("hero-cursor--on");
