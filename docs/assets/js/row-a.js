@@ -155,19 +155,33 @@
     el.style.top = (p.y - o.y - el.offsetHeight / 2) + "px";
     rowAClampPaste(el);
   };
-  var rowAPasteSize = function(el, rw, rh){
+  var rowATileCoverDrawn = function(tile, rw, rh){
+    if (!tile || !rw || !rh) return null;
+    var W = tile.offsetWidth;
+    var H = tile.offsetHeight;
+    if (!W || !H) return null;
+    var r = rw / rh;
+    if (W / H > r) return { w: H * r, h: H };
+    return { w: W, h: W / r };
+  };
+  var rowAPasteSize = function(el, rw, rh, tile){
     if (!el || !rw || !rh) return false;
     el.style.aspectRatio = rw + "/" + rh;
+    var drawn = tile ? rowATileCoverDrawn(tile, rw, rh) : null;
+    var panW = rowACanvasPan ? rowACanvasPan.offsetWidth : 0;
+    var panH = rowACanvasPan ? rowACanvasPan.offsetHeight : 0;
     if (rw > rh) {
       el.style.width = "50%";
       el.style.height = "";
+      if (drawn && panW && panW * 0.5 < drawn.w) el.style.width = drawn.w + "px";
     } else {
       el.style.height = "50%";
       el.style.width = "";
+      if (drawn && panH && panH * 0.5 < drawn.h) el.style.height = drawn.h + "px";
     }
     return true;
   };
-  var rowAPasteAt = function(el, ox, oy, rw, rh){
+  var rowAPasteAt = function(el, ox, oy, rw, rh, tile){
     if (!el || !rowACanvas || !rowACanvasPan) return;
     if (ox == null) ox = 0;
     if (oy == null) oy = 0;
@@ -176,10 +190,10 @@
       rowAPastePosition(el, ox, oy);
     };
     el.classList.add("rowA-paste--in");
-    if (rowAPasteSize(el, rw, rh)) place();
+    if (rowAPasteSize(el, rw, rh, tile)) place();
     else {
       el.addEventListener("load", function(){
-        rowAPasteSize(el, el.naturalWidth, el.naturalHeight);
+        rowAPasteSize(el, el.naturalWidth, el.naturalHeight, tile);
         place();
       }, { once: true });
       place();
@@ -212,15 +226,20 @@
     return visible;
   };
 
-  var rowAPickTiles = function(){
+  var rowAPickTiles = function(forcedTile){
     var visible = rowAVisibleTiles();
     if (!visible.length) return [];
-    var lead = rowATiles[0];
-    var leadOk = false;
-    for (var li = 0; li < visible.length; li++) {
-      if (visible[li] === lead) { leadOk = true; break; }
+    var lead;
+    if (forcedTile) {
+      lead = forcedTile;
+    } else {
+      lead = rowATiles[0];
+      var leadOk = false;
+      for (var li = 0; li < visible.length; li++) {
+        if (visible[li] === lead) { leadOk = true; break; }
+      }
+      if (!leadOk) lead = visible[0];
     }
-    if (!leadOk) lead = visible[0];
     var order = [lead];
     var pool = [];
     for (var ti = 0; ti < visible.length; ti++) {
@@ -309,7 +328,7 @@
       rw = el.naturalWidth;
       rh = el.naturalHeight;
     }
-    rowAPasteAt(el, ox, oy, rw, rh);
+    rowAPasteAt(el, ox, oy, rw, rh, tile);
     rowAPasteCount++;
     return { ox: ox, oy: oy };
   };
@@ -336,15 +355,19 @@
     rowAReset();
   };
 
-  var rowAPlay = function(){
+  var rowAPlay = function(forcedTile){
     if (window.grrabBrowser && window.grrabBrowser.stopHero) window.grrabBrowser.stopHero();
     rowARefreshTiles();
     if (!rowACursor || !rowACanvas || !rowACanvas.offsetWidth || !rowATiles.length) return;
     rowAClearTimers();
-    if (rowAPasteCount + 5 > rowAPasteMax) rowAClearPastes();
+    if (forcedTile) {
+      rowAClearPastes();
+    } else if (rowAPasteCount + 5 > rowAPasteMax) {
+      rowAClearPastes();
+    }
     rowAReset();
 
-    var tileOrder = rowAPickTiles();
+    var tileOrder = rowAPickTiles(forcedTile);
     if (!tileOrder.length) return;
 
     if (rowAReduce && rowAReduce.matches) {

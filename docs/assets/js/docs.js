@@ -240,28 +240,42 @@
     }
     return fallback || "";
   };
-  var docsPasteSize = function(el, ratio){
+  var docsTileCoverDrawn = function(tile, rw, rh){
+    if (!tile || !rw || !rh) return null;
+    var W = tile.offsetWidth;
+    var H = tile.offsetHeight;
+    if (!W || !H) return null;
+    var r = rw / rh;
+    if (W / H > r) return { w: H * r, h: H };
+    return { w: W, h: W / r };
+  };
+  var docsPasteSize = function(el, ratio, tile){
     if (!el || !ratio) return;
     var parts = String(ratio).split("/");
     var rw = parseFloat(parts[0]);
     var rh = parseFloat(parts[1]);
     if (!rw || !rh) return;
     el.style.aspectRatio = rw + "/" + rh;
+    var drawn = tile ? docsTileCoverDrawn(tile, rw, rh) : null;
+    var panW = docsCanvasPan ? docsCanvasPan.offsetWidth : 0;
+    var panH = docsCanvasPan ? docsCanvasPan.offsetHeight : 0;
     if (rw > rh) {
       el.style.width = "50%";
       el.style.height = "";
+      if (drawn && panW && panW * 0.5 < drawn.w) el.style.width = drawn.w + "px";
     } else {
       el.style.height = "50%";
       el.style.width = "";
+      if (drawn && panH && panH * 0.5 < drawn.h) el.style.height = drawn.h + "px";
     }
   };
-  var docsPasteAt = function(el, ox, oy, ratio){
+  var docsPasteAt = function(el, ox, oy, ratio, tile){
     if (!el || !docsCanvasBody || !docsCanvasPan) return;
     if (ox == null) ox = 0;
     if (oy == null) oy = 0;
     var p = docsPastePointIn(ox, oy);
     var o = docsOffsetIn(docsCanvasPan);
-    docsPasteSize(el, ratio);
+    docsPasteSize(el, ratio, tile);
     el.classList.add("docs-demo-paste--in");
     void el.offsetWidth;
     el.style.left = (p.x - o.x - el.offsetWidth / 2) + "px";
@@ -277,13 +291,14 @@
     el.setAttribute("alt", "");
     el.setAttribute("draggable", "false");
     docsCanvasPan.appendChild(el);
+    var pasteTile = docsTiles[docsSteps[stepIndex].tile];
     var pasteFallback = docsSteps[stepIndex].ratio;
     var pasteApply = function(){
       var pr = pasteFallback;
       if (el.naturalWidth && el.naturalHeight) {
         pr = el.naturalWidth + "/" + el.naturalHeight;
       }
-      docsPasteAt(el, ox, oy, pr);
+      docsPasteAt(el, ox, oy, pr, pasteTile);
     };
     if (el.complete && el.naturalWidth) pasteApply();
     else {
@@ -295,7 +310,7 @@
     docsPasteCount++;
     return el;
   };
-  var docsPasteApply = function(el, ox, oy, srcImg, fallback){
+  var docsPasteApply = function(el, ox, oy, srcImg, fallback, tile){
     if (!el) return;
     var apply = function(){
       var pr = fallback || "";
@@ -304,7 +319,7 @@
       } else if (srcImg) {
         pr = docsImgRatio(srcImg, fallback);
       }
-      docsPasteAt(el, ox, oy, pr);
+      docsPasteAt(el, ox, oy, pr, tile);
     };
     if (el.complete && el.naturalWidth) apply();
     else {
@@ -472,7 +487,7 @@
         var rel = docsInstantPastes[ri];
         if (rtile && rel) {
           rel.setAttribute("src", docsTileImgSrc(rtile));
-          docsPasteApply(rel, slots[ri].ox, slots[ri].oy, rtile.querySelector("img"), "");
+          docsPasteApply(rel, slots[ri].ox, slots[ri].oy, rtile.querySelector("img"), "", rtile);
           docsPasteCount++;
         }
       }
@@ -519,7 +534,7 @@
           if (docsPasteTip) docsPasteTip.classList.add("docs-demo-tip--in");
           if (pasteEl) {
             pasteEl.setAttribute("src", docsTileImgSrc(tile));
-            docsPasteApply(pasteEl, slot.ox, slot.oy, tile.querySelector("img"), "");
+            docsPasteApply(pasteEl, slot.ox, slot.oy, tile.querySelector("img"), "", tile);
             docsPasteCount++;
           }
         });

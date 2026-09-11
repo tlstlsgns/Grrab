@@ -27,6 +27,9 @@
     --shadow-xl:0 12px 32px rgba(0,0,0,.10); --shadow-2xl:0 24px 64px rgba(0,0,0,.14);
     /* ── layout ── */
     --container-max:1416px;
+    /* Hero browser reference width — cursors and tips share one unit derived from it. */
+    --demo-browser-w:744px;
+    --demo-u:calc(var(--demo-browser-w) / 593);
     color-scheme:light;
   }
   *{box-sizing:border-box;}
@@ -184,17 +187,22 @@
   .hero-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .hero-tile--tall{grid-row:span 2;aspect-ratio:174.333/252.667;}
   .hero-tile--hot{opacity:1;box-shadow:0 0 calc(13 * var(--hero-u)) 0 var(--accent-bright);}
+  @media (min-width:821px){
+    .hero-browser-slot .hero-gallery .hero-tile,
+    .rowA-browser .hero-gallery .hero-tile{cursor:pointer;}
+    .hero-body:has(.hero-overlay.hero-overlay--on) .hero-gallery .hero-tile{cursor:default;}
+  }
   .hero-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
-    width:calc(26 * var(--hero-u));height:calc(26 * var(--hero-u));opacity:0;
+    width:calc(26 * var(--demo-u));height:calc(26 * var(--demo-u));opacity:0;
     transition:transform .75s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
   .hero-cursor--on{opacity:1;}
   .hero-cursor img{width:100%;height:100%;display:block;}
-  .hero-tip{position:absolute;left:calc(18 * var(--hero-u));top:calc(-20 * var(--hero-u));
+  .hero-tip{position:absolute;left:calc(18 * var(--demo-u));top:calc(-20 * var(--demo-u));
     display:inline-flex;align-items:center;white-space:nowrap;
-    padding:calc(4 * var(--hero-u)) calc(8 * var(--hero-u));
-    background:var(--accent-bright);border-radius:calc(5 * var(--hero-u));
+    padding:calc(4 * var(--demo-u)) calc(8 * var(--demo-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--demo-u));
     font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
-    font-size:calc(11 * var(--hero-u));
+    font-size:calc(11 * var(--demo-u));
     opacity:0;transition:opacity .3s ease;}
   .hero-tip--in{opacity:1;transition:none;}
   /* Colours below are read from browser-extension/chromium/eraseOverlay.js rather than
@@ -408,16 +416,16 @@
   .rowB-browser-copy{display:none;}
   .grrab-rowB > .rowB-mockup-wrap{order:-1;}
   .rowB-cursor{position:absolute;left:0;top:0;z-index:3;pointer-events:none;
-    width:calc(26 * var(--rowB-u));height:calc(26 * var(--rowB-u));opacity:0;
+    width:calc(26 * var(--demo-u));height:calc(26 * var(--demo-u));opacity:0;
     transition:transform .75s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
   .rowB-cursor--on{opacity:1;}
   .rowB-cursor img{width:100%;height:100%;display:block;}
-  .rowB-tip{position:absolute;left:calc(18 * var(--rowB-u));top:calc(-20 * var(--rowB-u));
+  .rowB-tip{position:absolute;left:calc(18 * var(--demo-u));top:calc(-20 * var(--demo-u));
     display:inline-flex;align-items:center;white-space:nowrap;
-    padding:calc(4 * var(--rowB-u)) calc(8 * var(--rowB-u));
-    background:var(--accent-bright);border-radius:calc(5 * var(--rowB-u));
+    padding:calc(4 * var(--demo-u)) calc(8 * var(--demo-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--demo-u));
     font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
-    font-size:calc(11 * var(--rowB-u));
+    font-size:calc(11 * var(--demo-u));
     opacity:0;transition:opacity .3s ease;}
   .rowB-tip--in{opacity:1;transition:none;}
 
@@ -431,17 +439,16 @@
   .rowA-canvas{min-width:0;width:100%;aspect-ratio:593/434;position:relative;}
   .rowA-canvas{border:1px solid var(--border);}
   .rowA-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
-    --rowA-u:calc((1352px - 48px) * 1.329 / 2.329 / 593);
-    width:calc(26 * var(--rowA-u));height:calc(26 * var(--rowA-u));opacity:0;
+    width:calc(26 * var(--demo-u));height:calc(26 * var(--demo-u));opacity:0;
     transition:transform 1s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
   .rowA-cursor--on{opacity:1;}
   .rowA-cursor img{width:100%;height:100%;display:block;}
-  .rowA-tip{position:absolute;left:calc(18 * var(--rowA-u));top:calc(-20 * var(--rowA-u));
+  .rowA-tip{position:absolute;left:calc(18 * var(--demo-u));top:calc(-20 * var(--demo-u));
     display:inline-flex;align-items:center;white-space:nowrap;
-    padding:calc(4 * var(--rowA-u)) calc(8 * var(--rowA-u));
-    background:var(--accent-bright);border-radius:calc(5 * var(--rowA-u));
+    padding:calc(4 * var(--demo-u)) calc(8 * var(--demo-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--demo-u));
     font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
-    font-size:calc(11 * var(--rowA-u));
+    font-size:calc(11 * var(--demo-u));
     opacity:0;transition:opacity .3s ease;}
   .rowA-tip--in{opacity:1;transition:none;}
   .rowA-canvas{display:flex;flex-direction:column;position:relative;z-index:1;
@@ -460,7 +467,7 @@
      those gone, height:100% resolved against a flex box sized by its tallest child — the
      346px card — and the row collapsed to that. 551 is the same figure .rowD-scale-wrap
      multiplies by; the two must move together. */
-  .rowD-mockup-wrap{position:relative;width:380px;height:551px;overflow:hidden;
+  .rowD-mockup-wrap{position:relative;width:65%;height:551px;overflow:hidden;
     border-radius:0 var(--radius-2xl) 0 0;}
   /* 0.8 from the top-left. The wrapper keeps its 545x551 box because a transform does
      not change layout, so the panel simply occupies less of it. container-type is
@@ -477,113 +484,8 @@
        four fifths while the window itself stays 545 wide. */
     --rowD-basis:688.75;}
   .rowD-viewport{position:relative;display:flex;flex-direction:row;justify-content:flex-end;align-items:flex-start;
-    flex:1;min-height:0;width:100%;gap:calc(6 / var(--rowD-basis) * 100cqh);padding:0 calc(6 / var(--rowD-basis) * 100cqh);overflow:hidden;}
-  .rowD-body{display:flex;flex-direction:column;align-items:flex-end;gap:calc(12 / var(--rowD-basis) * 100cqh);
-    width:calc(520 / var(--rowD-basis) * 100cqh);height:100%;margin-left:calc(-243 / var(--rowD-basis) * 100cqh);padding:calc(12 / var(--rowD-basis) * 100cqh);flex-shrink:0;
-    background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);
-    border-radius:0 calc(8 / var(--rowD-basis) * 100cqh) 0 0;overflow:hidden;}
-  .rowD-topbar{display:flex;align-items:center;width:100%;padding:calc(6 / var(--rowD-basis) * 100cqh) 0;opacity:.3;flex-shrink:0;}
-  .rowD-search{display:flex;align-items:center;justify-content:flex-end;flex:1;height:calc(30 / var(--rowD-basis) * 100cqh);min-width:0;
-    padding:calc(4 / var(--rowD-basis) * 100cqh) calc(12 / var(--rowD-basis) * 100cqh);background:#E5E5E1;border-radius:calc(8 / var(--rowD-basis) * 100cqh);overflow:hidden;}
-  .rowD-search-icon--close{width:calc(8 / var(--rowD-basis) * 100cqh);height:calc(8 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
-  .rowD-gallery{display:flex;gap:calc(10 / var(--rowD-basis) * 100cqh);width:100%;opacity:.3;flex-shrink:0;}
-  .rowD-gallery-col{display:flex;flex-direction:column;gap:calc(10 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
-  .rowD-tile{position:relative;width:100%;aspect-ratio:1/1;border-radius:calc(8 / var(--rowD-basis) * 100cqh);overflow:hidden;flex-shrink:0;}
-  .rowD-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:calc(8 / var(--rowD-basis) * 100cqh);}
-  .rowD-sidepanel{display:flex;flex-direction:column;width:calc(320 / var(--rowD-basis) * 100cqh);height:100%;flex-shrink:0;
-    padding:calc(13.85 / var(--rowD-basis) * 100cqh) calc(8.31 / var(--rowD-basis) * 100cqh) 0;background:var(--surface);border-top:1.39px solid var(--border);
-    border-left:1.39px solid var(--border);border-right:1.39px solid var(--border);
-    border-radius:calc(11.08 / var(--rowD-basis) * 100cqh) calc(11.08 / var(--rowD-basis) * 100cqh) 0 0;overflow:hidden;
-    font-family:'Instrument Sans',var(--font-sans);}
-  .sidepanel-top{display:flex;flex-direction:column;gap:calc(13.85 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
-  .sidepanel-header{display:flex;align-items:center;gap:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);}
-  .sidepanel-logo{display:flex;align-items:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
-  .sidepanel-logo-icon{width:calc(16.62 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;object-fit:contain;flex-shrink:0;}
-  .sidepanel-logo-name{font-weight:700;font-size:calc(11.08 / var(--rowD-basis) * 100cqh);line-height:1.2;color:var(--ink-strong);white-space:nowrap;}
-  .sidepanel-ctrl{display:flex;align-items:center;gap:calc(11.08 / var(--rowD-basis) * 100cqh);flex-shrink:0;height:calc(6.93 / var(--rowD-basis) * 100cqh);}
-  .sidepanel-ctrl-icon{display:block;flex-shrink:0;}
-  .sidepanel-ctrl-icon--pin{width:calc(6.93 / var(--rowD-basis) * 100cqh);height:calc(6.93 / var(--rowD-basis) * 100cqh);}
-  .sidepanel-ctrl-icon--close{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(5.54 / var(--rowD-basis) * 100cqh);}
-  .sidepanel-section{display:flex;flex-direction:column;gap:calc(6.93 / var(--rowD-basis) * 100cqh);width:calc(303.38 / var(--rowD-basis) * 100cqh);}
-  .sidepanel-profile{display:flex;align-items:flex-end;justify-content:space-between;padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);width:100%;}
-  .sidepanel-profile-user{display:flex;align-items:center;gap:calc(5.54 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
-  .sidepanel-profile-avatar{width:calc(23.55 / var(--rowD-basis) * 100cqh);height:calc(23.55 / var(--rowD-basis) * 100cqh);border-radius:50%;overflow:hidden;flex-shrink:0;
-    border:0.42px solid rgba(115,122,136,.3);}
-  .sidepanel-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;}
-  .sidepanel-profile-name{font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1.2;color:#737A88;opacity:.7;white-space:nowrap;}
-  .sidepanel-profile-signout{display:flex;align-items:center;justify-content:flex-end;flex:1;min-width:0;}
-  .sidepanel-signout-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;}
-  .sidepanel-clip{display:flex;flex-direction:column;width:100%;}
-  .sidepanel-clip-row{display:flex;align-items:center;justify-content:space-between;
-    height:calc(33.25 / var(--rowD-basis) * 100cqh);padding:calc(6.93 / var(--rowD-basis) * 100cqh) calc(5.54 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) calc(9.7 / var(--rowD-basis) * 100cqh);}
-  /* 500 and #6b7280 are the extension's own .sp-setting-label, read from
-     browser-extension/dist/prod/sidepanel.html L418-420. Only the size is scaled down:
-     the real one is 16.62px against this mockup's 9.7px. */
-  .sidepanel-clip-row-label{font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#6b7280;white-space:nowrap;}
-  .sidepanel-clip-row-value{display:flex;align-items:center;gap:calc(2.77 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
-  .sidepanel-kbd{display:flex;align-items:center;justify-content:center;
-    padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);
-    font-weight:600;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;color:#737A88;white-space:nowrap;}
-  .sidepanel-clip-sep{width:100%;height:0.42px;background:#CCCCCC;flex-shrink:0;border:none;margin:0;}
-  .sidepanel-size-toggle{display:flex;align-items:center;justify-content:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);
-    width:calc(65.11 / var(--rowD-basis) * 100cqh);padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);}
-  .sidepanel-size-value{flex:1;font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1;letter-spacing:-0.69px;
-    color:#737A88;text-align:center;white-space:nowrap;}
-  .sidepanel-chevron{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(2.77 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
-  .sidepanel-main{display:flex;flex-direction:column;width:calc(303.38 / var(--rowD-basis) * 100cqh);flex:1;min-height:0;overflow:hidden;
-    background:var(--surface-ios);border-top:1.39px solid rgba(0,0,0,.2);}
-  .sidepanel-directory{display:flex;align-items:center;gap:calc(8.31 / var(--rowD-basis) * 100cqh);width:100%;padding:calc(6.93 / var(--rowD-basis) * 100cqh) calc(5.54 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh);
-    background:#F5F5F5;border-bottom:0.69px solid rgba(0,0,0,.2);flex-shrink:0;}
-  .sidepanel-directory-bar{display:flex;align-items:center;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;
-    padding:calc(5.54 / var(--rowD-basis) * 100cqh) calc(9.7 / var(--rowD-basis) * 100cqh);background:#F6EBF7;border:1.39px solid var(--accent-bright);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);}
-  .sidepanel-directory-icon{width:calc(12.47 / var(--rowD-basis) * 100cqh);height:calc(11.08 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
-  .sidepanel-directory-name{font-weight:500;font-size:calc(11.08 / var(--rowD-basis) * 100cqh);line-height:1.2;letter-spacing:0.39px;
-    color:var(--accent-bright);white-space:nowrap;}
-    /* v1.5.6 moved bulk saving into the directory bar. The button and the dropdown
-       together are exactly as wide as the dropdown alone used to be, so the folder pill
-       beside them keeps the space it had. */
-    .sidepanel-directory-group{display:flex;align-items:center;flex-shrink:0;
-      gap:calc(2.89 / var(--rowD-basis) * 100cqh);
-      width:calc(65.11 / var(--rowD-basis) * 100cqh);}
-    .sidepanel-download-btn{display:flex;align-items:center;justify-content:center;
-      flex-shrink:0;width:calc(20.26 / var(--rowD-basis) * 100cqh);
-      height:calc(20.26 / var(--rowD-basis) * 100cqh);}
-    .sidepanel-download-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);
-      height:calc(13.85 / var(--rowD-basis) * 100cqh);display:block;}
-  .sidepanel-directory-file{display:flex;align-items:center;justify-content:center;gap:calc(1.45 / var(--rowD-basis) * 100cqh);
-    width:calc(41.96 / var(--rowD-basis) * 100cqh);height:100%;padding:calc(4.16 / var(--rowD-basis) * 100cqh) calc(2.89 / var(--rowD-basis) * 100cqh);border:0.97px solid rgba(0,0,0,.2);border-radius:calc(4.16 / var(--rowD-basis) * 100cqh);flex-shrink:0;}
-  .sidepanel-directory-file-type{flex:1;font-weight:500;font-size:calc(9.7 / var(--rowD-basis) * 100cqh);line-height:1.2;
-    letter-spacing:-0.34px;color:#737A88;text-align:center;white-space:nowrap;}
-  .sidepanel-gallery{display:flex;flex-direction:column;width:100%;flex:1;min-height:0;overflow:hidden;}
-  .sidepanel-gallery-top{display:flex;align-items:center;justify-content:flex-end;gap:calc(6.93 / var(--rowD-basis) * 100cqh);
-    padding:calc(5.54 / var(--rowD-basis) * 100cqh) calc(11.08 / var(--rowD-basis) * 100cqh);opacity:.2;flex-shrink:0;}
-  .sidepanel-delete-icon{width:calc(13.85 / var(--rowD-basis) * 100cqh);height:calc(15.24 / var(--rowD-basis) * 100cqh);display:block;}
-  .sidepanel-gallery-row{display:flex;flex-direction:column;width:100%;flex-shrink:0;}
-  .sidepanel-gallery-time{display:flex;align-items:center;justify-content:center;gap:calc(11.08 / var(--rowD-basis) * 100cqh);
-    height:calc(22.16 / var(--rowD-basis) * 100cqh);padding:0 calc(5.54 / var(--rowD-basis) * 100cqh);opacity:.3;flex-shrink:0;}
-  .sidepanel-gallery-time-line{flex:1;height:0;border-top:0.69px solid rgba(0,0,0,.25);}
-  .sidepanel-gallery-time-label{font-weight:500;font-size:calc(8.31 / var(--rowD-basis) * 100cqh);line-height:1.7;color:var(--ink-strong);white-space:nowrap;}
-  .sidepanel-gallery-grid{display:flex;flex-wrap:wrap;gap:calc(2.77 / var(--rowD-basis) * 100cqh);padding:0 calc(1.39 / var(--rowD-basis) * 100cqh);width:100%;}
-  .sidepanel-card{display:flex;flex-direction:column;width:calc(98.35 / var(--rowD-basis) * 100cqh);height:calc(110.82 / var(--rowD-basis) * 100cqh);flex-shrink:0;
-    background:var(--surface);border-radius:calc(2.77 / var(--rowD-basis) * 100cqh);overflow:visible;position:relative;}
-  .sidepanel-card--active{border:1.39px solid var(--accent-bright);
-    box-shadow:0 2.77px 5.54px 0 rgba(0,0,0,.25);}
-  .sidepanel-card--dim{border:1.39px solid var(--border-strong);}
-  .sidepanel-card-header{display:flex;align-items:center;height:calc(18.01 / var(--rowD-basis) * 100cqh);width:100%;flex-shrink:0;}
-  .sidepanel-card-header-link{display:flex;align-items:center;justify-content:center;
-    width:calc(18.01 / var(--rowD-basis) * 100cqh);height:calc(18.01 / var(--rowD-basis) * 100cqh);background:var(--accent-bright);flex-shrink:0;}
-  .sidepanel-card-link-icon{width:calc(8.31 / var(--rowD-basis) * 100cqh);height:calc(8.31 / var(--rowD-basis) * 100cqh);display:block;}
-  .sidepanel-card-header-meta{display:flex;align-items:center;gap:calc(13.85 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;
-    padding:calc(2.77 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) 0 calc(2.77 / var(--rowD-basis) * 100cqh);height:100%;}
-  .sidepanel-card-meta-line{font-weight:700;font-size:calc(6.93 / var(--rowD-basis) * 100cqh);line-height:1.8;color:var(--accent-bright);white-space:nowrap;}
-  .sidepanel-card-meta-btn{display:flex;align-items:center;justify-content:flex-end;gap:calc(4.16 / var(--rowD-basis) * 100cqh);flex:1;min-width:0;}
-  .sidepanel-card-copy-icon{width:calc(8.31 / var(--rowD-basis) * 100cqh);height:calc(8.31 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
-  .sidepanel-card-cancel-icon{width:calc(5.54 / var(--rowD-basis) * 100cqh);height:calc(5.54 / var(--rowD-basis) * 100cqh);display:block;flex-shrink:0;}
-  .sidepanel-card-header--dim{padding:calc(2.77 / var(--rowD-basis) * 100cqh) calc(6.93 / var(--rowD-basis) * 100cqh) 0;}
-  .sidepanel-card-thumb{flex:1;min-height:0;width:100%;overflow:hidden;position:relative;}
-  .sidepanel-card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .sidepanel-card-pointer{position:absolute;left:74.65%;top:calc(calc(18.01 / var(--rowD-basis) * 100cqh) + calc(48.48 / var(--rowD-basis) * 100cqh));width:calc(24.94 / var(--rowD-basis) * 100cqh);height:calc(24.94 / var(--rowD-basis) * 100cqh);
-    transform:translateY(-50%);pointer-events:none;z-index:2;}
+    flex:1;min-height:0;width:100%;overflow:hidden;}
+  .rowD-viewport img{width:100%;height:auto;display:block;}
 
   /* ── Row B — browser mockup shell (responsive; cqw basis = Figma 1× frame 645px) ── */
   #inspirePanes{flex:1;min-height:0;}
@@ -823,16 +725,10 @@
   .vid-icon-view{width:calc(8.522 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
   .vid-icon-size{width:calc(6.968 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
   .vid-screen-video--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 var(--accent-bright);}
-  /* Cursor size: Figma is 55.527 x 55.625. The multiplier below is the only value to
-     tune — the child <img> is 100%/100%, so it follows. left/top anchor the SVG's tip
-     at the top-left corner, so scaling does not move where it points. */
-  /* 34.2 is back-derived, not a Figma number: the hero renders its cursor at 26 *
-     --hero-u = 34.4px once zoomed out, and this frame is 649 wide against a 645 basis,
-     so 34.2 units lands at the same on-screen size. All three mockups share one SVG
-     (md5 33e3cbf0), so only the size differs. Square, because the SVG is 67x67. */
+  /* Same 26×--demo-u as the animated cursors; left/top anchor the SVG tip at the corner. */
   .mock-pointer{position:absolute;
-    width:calc(34.2 / 645 * 100cqw);
-    height:calc(34.2 / 645 * 100cqw);
+    width:calc(26 * var(--demo-u));
+    height:calc(26 * var(--demo-u));
     z-index:3;pointer-events:none;}
   .mock-pointer img{width:100%;height:100%;display:block;}
   .vid-meta{display:flex;flex-direction:column;width:100%;}
@@ -951,6 +847,7 @@
   }
 
   @media (max-width:820px){
+    :root{--demo-browser-w:calc((100vw - 40px) * 0.7);}
     /* header + hero + section chrome */
     header > div{ padding:14px 20px !important; }
     header > div > a.btn{ display:none !important; }
@@ -1033,9 +930,7 @@
     .rowA-figure.canvas-front .rowA-browser{ z-index:2 !important; }
     .rowA-figure.canvas-front .rowA-canvas{ z-index:3 !important; }
     .rowA-figure.canvas-front .hero-mockup-wrap{ box-shadow:none !important; }
-    .rowA-cursor{
-      z-index:5 !important;
-      --rowA-u:calc((100vw - 40px) * 0.7 / 593) !important; }
+    .rowA-cursor{ z-index:5 !important; }
 
     .hero-toast{
       left:0 !important; right:0 !important;
@@ -1169,6 +1064,7 @@
     footer > div{ padding:36px 20px !important; }
   }
   @media (max-width:480px){
+    :root{--demo-browser-w:calc((100vw - 32px) * 0.7);}
     header > div{ padding:12px 16px !important; }
     #top{ padding:44px 16px 32px !important; }
     .hero-h1{ font-size:28px !important; }

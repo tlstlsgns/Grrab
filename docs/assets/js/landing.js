@@ -9,7 +9,7 @@
      detection it uses, so the page never shows a shortcut the visitor
      cannot press. Failing open leaves the macOS text in place. */
   var KC_SHORTCUT_SELECTOR =
-    ".rowA-step-kbd, .rowB-tip, .hero-tip, .sidepanel-kbd";
+    ".rowA-step-kbd, .rowB-tip, .hero-tip";
   try {
     var isMac = navigator.platform.toUpperCase().indexOf("MAC") !== -1 ||
                 navigator.userAgent.indexOf("Mac") !== -1;
@@ -37,22 +37,41 @@
   var heroFigure = document.querySelector(".hero-overlay-figure");
   var heroOverlayPicture = document.querySelector("#heroOverlay .hero-overlay-picture");
   var heroOverlayImg = document.getElementById("heroOverlayImg");
-  var heroSetPictureRatio = function(img, fallback, picture){
+  var heroRunToken = 0;
+  var rowBRunToken = 0;
+  var tokenLive = function(ref){
+    return !ref || ref.reg === ref.get();
+  };
+  var heroResolvedSrc = function(src){
+    try { return new URL(src, document.baseURI || window.location.href).href; }
+    catch (e) { return src; }
+  };
+  var heroImgShowsSrc = function(img, wantSrc){
+    if (!img || !wantSrc) return false;
+    if ((img.getAttribute("src") || "") !== wantSrc) return false;
+    return (img.currentSrc || "") === heroResolvedSrc(wantSrc);
+  };
+  var heroSetPictureRatio = function(img, fallback, picture, tokenRef, wantSrc){
     picture = picture || heroOverlayPicture;
     if (!picture || !img) return;
+    wantSrc = wantSrc || img.getAttribute("src") || "";
     var apply = function(){
-      if (img.naturalWidth && img.naturalHeight) {
+      if (!tokenLive(tokenRef)) return;
+      if (heroImgShowsSrc(img, wantSrc) && img.naturalWidth && img.naturalHeight) {
         picture.style.aspectRatio = img.naturalWidth + "/" + img.naturalHeight;
       } else if (fallback) picture.style.aspectRatio = fallback;
     };
     apply();
-    if (!img.naturalWidth) img.addEventListener("load", apply, { once: true });
+    if (!heroImgShowsSrc(img, wantSrc) || !img.naturalWidth) {
+      img.addEventListener("load", apply, { once: true });
+    }
   };
-  var whenOverlayImgReady = function(img, fn){
+  var whenOverlayImgReady = function(img, fn, tokenRef){
     if (!img) { fn(); return; }
     var done = false;
     var finish = function(){
       if (done) return;
+      if (!tokenLive(tokenRef)) return;
       done = true;
       fn();
     };
@@ -76,6 +95,8 @@
   var heroOverlayBtnLabel = document.getElementById("heroOverlayBtnLabel");
   var heroActs = [].slice.call(document.querySelectorAll(".hero-overlay-act"));
   var heroActClip = document.getElementById("heroActClip");
+  var heroActUpscale = document.getElementById("heroActUpscale");
+  var heroBusyText = document.getElementById("heroBusyText");
   var heroLateActs = heroOverlay
     ? [].slice.call(heroOverlay.querySelectorAll(".hero-overlay-act--late"))
     : [];
@@ -236,7 +257,10 @@
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
       { tile:8, img:"/assets/landing/img/hero-image-5-before.webp", ratio:"1000/668",
         icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
-        box:{ l:0.39, t:0.38, r:0.59, b:0.65 }, alpha:false }
+        box:{ l:0.39, t:0.38, r:0.59, b:0.65 }, alpha:false },
+      { tile:3, img:"/assets/landing/img/hero-image-8-before.webp", ratio:"999/666",
+        icon:"/assets/landing/icons/hero/icon_upscale.svg", label:"Upscale",
+        busy:"Upscaling…", target:"upscale" }
     ];
     /* The action button no longer belongs to the step. In the extension it always opens
        as Remove BG with the hint beside it, and only becomes Remove once a selection
@@ -251,6 +275,9 @@
         else heroHint.classList.remove("hero-hint--off");
       }
     };
+    var heroTokenRef = function(){
+      return { reg: heroRunToken, get: function(){ return heroRunToken; } };
+    };
     var heroSetStep = function(s){
       if (heroOverlayImg) heroOverlayImg.setAttribute("src", s.img);
       if (heroOverlayAfter) {
@@ -258,7 +285,7 @@
         if (s.alpha) heroOverlayAfter.classList.add("hero-overlay-after--alpha");
         else heroOverlayAfter.classList.remove("hero-overlay-after--alpha");
       }
-      heroSetPictureRatio(heroOverlayImg, s.ratio || "");
+      heroSetPictureRatio(heroOverlayImg, s.ratio || "", undefined, heroTokenRef(), s.img);
       heroSetAction(false);
     };
     /* Reopening the editor needs the first pass's leftovers cleared: the result would
@@ -281,6 +308,11 @@
         heroMarquee.classList.remove("hero-marquee--on");
         heroMarquee.style.width = "0%";
         heroMarquee.style.height = "0%";
+      }
+      if (heroActUpscale) {
+        heroActUpscale.classList.remove("hero-overlay-act--press");
+        heroActUpscale.classList.remove("hero-overlay-act--hover");
+        heroActUpscale.classList.remove("hero-overlay-act--ghost");
       }
     };
     var heroBoxPoint = function(fx, fy){
@@ -412,10 +444,22 @@
       heroUsedTiles = [];
       heroPasteCount = 0;
     };
-    var heroPickSteps = function(){
+    var heroStepForTile = function(tileEl){
+      var ti = heroTiles.indexOf(tileEl);
+      if (ti < 0) return -1;
+      for (var hi = 0; hi < heroSteps.length; hi++) {
+        if (heroSteps[hi].tile === ti) return hi;
+      }
+      return -1;
+    };
+    var heroPickSteps = function(forcedStepIndex){
       var pool = [];
       var hi, ui, t, used;
+      var forcing = forcedStepIndex !== undefined && forcedStepIndex !== null &&
+        forcedStepIndex >= 0 && forcedStepIndex < heroSteps.length;
+      var need = forcing ? 4 : 5;
       for (hi = 0; hi < heroSteps.length; hi++) {
+        if (forcing && hi === forcedStepIndex) continue;
         t = heroSteps[hi].tile;
         used = false;
         for (ui = 0; ui < heroUsedTiles.length; ui++) {
@@ -428,24 +472,40 @@
         var sk = Math.floor(Math.random() * (sj + 1));
         var st = pool[sj]; pool[sj] = pool[sk]; pool[sk] = st;
       }
-      return pool.slice(0, pool.length < 5 ? pool.length : 5);
+      var rest = pool.slice(0, pool.length < need ? pool.length : need);
+      if (forcing) return [forcedStepIndex].concat(rest);
+      return rest;
     };
     var heroPasteAfterSrc = function(stepIndex){
       return heroSteps[stepIndex].img.replace(/-before\.(webp|jpe?g)$/, "-after.$1");
     };
-    var heroPasteSize = function(el, ratio){
+    var heroTileCoverDrawn = function(tile, rw, rh){
+      if (!tile || !rw || !rh) return null;
+      var W = tile.offsetWidth;
+      var H = tile.offsetHeight;
+      if (!W || !H) return null;
+      var r = rw / rh;
+      if (W / H > r) return { w: H * r, h: H };
+      return { w: W, h: W / r };
+    };
+    var heroPasteSize = function(el, ratio, tile){
       if (!el || !ratio) return;
       var parts = String(ratio).split("/");
       var rw = parseFloat(parts[0]);
       var rh = parseFloat(parts[1]);
       if (!rw || !rh) return;
       el.style.aspectRatio = rw + "/" + rh;
+      var drawn = tile ? heroTileCoverDrawn(tile, rw, rh) : null;
+      var panW = heroCanvasPan ? heroCanvasPan.offsetWidth : 0;
+      var panH = heroCanvasPan ? heroCanvasPan.offsetHeight : 0;
       if (rw > rh) {
         el.style.width = "50%";
         el.style.height = "";
+        if (drawn && panW && panW * 0.5 < drawn.w) el.style.width = drawn.w + "px";
       } else {
         el.style.height = "50%";
         el.style.width = "";
+        if (drawn && panH && panH * 0.5 < drawn.h) el.style.height = drawn.h + "px";
       }
     };
     var heroClampPaste = function(el){
@@ -468,13 +528,13 @@
       el.style.left = left + "px";
       el.style.top = top + "px";
     };
-    var heroPasteAt = function(el, ox, oy, ratio){
+    var heroPasteAt = function(el, ox, oy, ratio, tile){
       if (!el || !heroCanvas || !heroCanvasPan) return;
       if (ox == null) ox = 0;
       if (oy == null) oy = 0;
       var p = heroPastePointIn(ox, oy);
       var o = heroOffsetIn(heroCanvasPan);
-      heroPasteSize(el, ratio);
+      heroPasteSize(el, ratio, tile);
       el.classList.add("hero-paste--in");
       void el.offsetWidth;
       el.style.left = (p.x - o.x - el.offsetWidth / 2) + "px";
@@ -490,13 +550,14 @@
       el.setAttribute("alt", "");
       el.setAttribute("draggable", "false");
       heroCanvasPan.appendChild(el);
+      var pasteTile = heroTiles[heroSteps[stepIndex].tile];
       var pasteFallback = heroSteps[stepIndex].ratio;
       var pasteApply = function(){
         var pr = pasteFallback;
         if (el.naturalWidth && el.naturalHeight) {
           pr = el.naturalWidth + "/" + el.naturalHeight;
         }
-        heroPasteAt(el, ox, oy, pr);
+        heroPasteAt(el, ox, oy, pr, pasteTile);
       };
       if (el.complete && el.naturalWidth) pasteApply();
       else {
@@ -550,6 +611,50 @@
     /* One step's editor beats, relative to overlayAt. No box goes to the button; a box
        draws the marquee first. Returns the reveal time. */
     var heroPlayEditor = function(overlayAt, step){
+      if (step.target === "upscale") {
+        heroAt(overlayAt + 280, function(){
+          if (heroActUpscale) heroMoveTo(heroCentreIn(heroActUpscale));
+        });
+        heroAt(overlayAt + 1030, function(){
+          if (heroActUpscale) heroActUpscale.classList.add("hero-overlay-act--hover");
+        });
+        heroAt(overlayAt + 1430, function(){
+          if (heroActUpscale) heroActUpscale.classList.add("hero-overlay-act--press");
+          if (heroBusy) heroBusy.classList.add("hero-busy--on");
+          if (heroBusyText) heroBusyText.textContent = step.busy || "Upscaling…";
+          if (heroMarquee) {
+            heroMarquee.classList.remove("hero-marquee--on");
+            heroMarquee.style.width = "0%";
+            heroMarquee.style.height = "0%";
+          }
+        });
+        heroAt(overlayAt + 2430, function(){
+          if (heroBusy) heroBusy.classList.remove("hero-busy--on");
+          if (heroActUpscale) heroActUpscale.classList.remove("hero-overlay-act--press");
+          if (heroClip) heroClip.classList.add("hero-slider-clip--wipe");
+          if (heroOverlayPicture) {
+            heroOverlayPicture.style.transition = "none";
+            heroOverlayPicture.style.setProperty("--hero-split", "1");
+            void heroOverlayPicture.offsetWidth;
+            heroOverlayPicture.style.transition = "";
+            heroOverlayPicture.style.setProperty("--hero-split", "0");
+          }
+          if (heroLateTimer) { clearTimeout(heroLateTimer); heroLateTimer = 0; }
+          heroLateTimer = setTimeout(function(){
+            heroLateTimer = 0;
+            if (heroLateActs) {
+              heroLateActs.forEach(function(el){ el.classList.add("hero-overlay-act--in"); });
+            }
+            if (heroClip) heroClip.classList.remove("hero-slider-clip--wipe");
+            if (heroActUpscale) {
+              heroActUpscale.classList.remove("hero-overlay-act--hover");
+              heroActUpscale.classList.add("hero-overlay-act--ghost");
+            }
+          }, 1400);
+          heroTimers.push(heroLateTimer);
+        });
+        return overlayAt + 2430;
+      }
       if (!step.box) {
         heroAt(overlayAt + 280, function(){
           if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
@@ -666,10 +771,13 @@
       return revealAt + 3890;
     };
 
-    var heroPlay = function(){
+    var heroPlay = function(forcedStepIndex){
+      heroRunToken++;
+      var playToken = { reg: heroRunToken, get: function(){ return heroRunToken; } };
       if (window.grrabBrowser && window.grrabBrowser.stopRowA) window.grrabBrowser.stopRowA();
       if (window.grrabBrowser && window.grrabBrowser.stopRowB) window.grrabBrowser.stopRowB();
-      var picked = heroPickSteps();
+      heroStop();
+      var picked = heroPickSteps(forcedStepIndex);
       if (!picked.length) return;
       if (!heroTiles[heroSteps[picked[0]].tile] || !heroBody.offsetWidth) return;
       /* Every cycle queues about thirty timers. Cancelling and emptying the list here
@@ -677,7 +785,12 @@
          sequences running against each other. */
       heroClearTimers();
       heroSetCanvasFront(false);
-      if (heroPasteCount + 5 > heroPasteMax) heroClearPastes();
+      if (forcedStepIndex !== undefined && forcedStepIndex !== null &&
+          forcedStepIndex >= 0 && forcedStepIndex < heroSteps.length) {
+        heroClearPastes();
+      } else if (heroPasteCount + 5 > heroPasteMax) {
+        heroClearPastes();
+      }
       heroSlot1 = null;
       heroSlot2 = null;
       if (heroLateActs) {
@@ -694,6 +807,7 @@
 
       whenOverlayImgReady(heroOverlayImg, function(){
         whenOverlayImgReady(heroOverlayAfter, function(){
+          if (!tokenLive(playToken)) return;
           var offset = 0;
           var si;
           for (si = 0; si < picked.length; si++) {
@@ -702,8 +816,8 @@
               isLast: si === picked.length - 1
             });
           }
-        });
-      });
+        }, playToken);
+      }, playToken);
     };
 
     /* Puts everything back to the opening state. Defined here and hung on window so it
@@ -733,7 +847,6 @@
         heroLateActs.forEach(function(el){ el.classList.remove("hero-overlay-act--in"); });
       }
       heroResetOverlay();
-      heroSetStep(heroSteps[0]);
       if (heroOverlayBtn) {
         heroOverlayBtn.classList.remove("hero-overlay-btn--hover");
         heroOverlayBtn.classList.remove("hero-overlay-btn--press");
@@ -741,6 +854,11 @@
       if (heroActClip) {
         heroActClip.classList.remove("hero-overlay-act--hover");
         heroActClip.classList.remove("hero-overlay-act--press");
+      }
+      if (heroActUpscale) {
+        heroActUpscale.classList.remove("hero-overlay-act--hover");
+        heroActUpscale.classList.remove("hero-overlay-act--press");
+        heroActUpscale.classList.remove("hero-overlay-act--ghost");
       }
       if (heroBusy) heroBusy.classList.remove("hero-busy--on");
 
@@ -1054,19 +1172,43 @@
       enumerable: true
     });
 
+    if (heroGallery) {
+      heroGallery.addEventListener("click", function(e){
+        if (heroMobile && heroMobile.matches) return;
+        if (heroOverlay && heroOverlay.classList.contains("hero-overlay--on")) return;
+        if (window.grrabBrowser && window.grrabBrowser.flying) return;
+        var tile = e.target.closest(".hero-tile");
+        if (!tile) return;
+        var at = window.grrabBrowser ? window.grrabBrowser.at : "hero";
+        if (at === "rowB") return;
+        if (at === "hero") {
+          var stepIdx = heroStepForTile(tile);
+          if (stepIdx < 0) return;
+          heroPlay(stepIdx);
+        } else if (at === "rowA") {
+          if (window.grrabBrowser && window.grrabBrowser.playRowA) {
+            window.grrabBrowser.playRowA(tile);
+          }
+        }
+      });
+    }
+
     if (heroReduce && heroReduce.matches) {
+      heroRunToken++;
+      var reduceToken = { reg: heroRunToken, get: function(){ return heroRunToken; } };
       heroHotOnly(heroTiles[heroSteps[0].tile]);
       heroSetStep(heroSteps[0]);
       whenOverlayImgReady(heroOverlayImg, function(){
         whenOverlayImgReady(heroOverlayAfter, function(){
+          if (!tokenLive(reduceToken)) return;
           heroOverlay.classList.add("hero-overlay--on");
           heroReveal();
           if (heroToast) heroToast.classList.add("hero-toast--in");
           heroPasteIn();
           if (heroTipV) heroTipV.classList.remove("hero-tip--in");
           browserPlaced = true;
-        });
-      });
+        }, reduceToken);
+      }, reduceToken);
     } else {
       var heroTop = document.getElementById("top");
       if (heroTop && "IntersectionObserver" in window) {
@@ -1189,9 +1331,6 @@
       rowBLateActs = rowBOverlay
         ? [].slice.call(rowBOverlay.querySelectorAll(".hero-overlay-act--late"))
         : [];
-      if (rowBCursor && rowBMockupWrap && rowBMockupWrap.offsetWidth) {
-        rowBCursor.style.setProperty("--rowB-u", "calc(" + rowBMockupWrap.offsetWidth + "px / 593)");
-      }
       return rowBBody;
     };
     var rowBSteps = [
@@ -1423,6 +1562,8 @@
       if (!step) return;
       var tile = rowBTiles[step.tile];
       if (!tile) return;
+      rowBRunToken++;
+      var playToken = { reg: rowBRunToken, get: function(){ return rowBRunToken; } };
       rowBClearTimers();
       rowBReset();
       rowBCurrent = index;
@@ -1434,7 +1575,7 @@
         if (step.alpha) rowBOverlayAfter.classList.add("hero-overlay-after--alpha");
         else rowBOverlayAfter.classList.remove("hero-overlay-after--alpha");
       }
-      heroSetPictureRatio(rowBOverlayImg, step.ratio || "", rowBPicture);
+      heroSetPictureRatio(rowBOverlayImg, step.ratio || "", rowBPicture, playToken, step.img);
       rowBSetAction(step, false);
       for (var c = 0; c < rowBCards.length; c++){
         if (c === index) rowBCards[c].classList.add("rowB-card--active");
@@ -1444,14 +1585,16 @@
       whenOverlayImgReady(rowBOverlayImg, function(){
       if (rowBReduce && rowBReduce.matches) {
         whenOverlayImgReady(rowBOverlayAfter, function(){
+          if (!tokenLive(playToken)) return;
           tile.classList.add("hero-tile--hot");
           rowBOverlay.classList.add("hero-overlay--on");
           rowBReveal();
           rowBEnterLive();
-        });
+        }, playToken);
         return;
       }
 
+      if (!tokenLive(playToken)) return;
       if (!rowBBody.offsetWidth || !rowBBody.offsetHeight) return;
       rowBCursor.style.transition = "none";
       rowBCursor.style.transform = "translate(" + (rowBBody.offsetWidth * 0.86) + "px," +
@@ -1518,7 +1661,7 @@
         rowBAt(6000, rowBReveal);
         rowBAt(7890, rowBEnterLive);
       }
-      });
+      }, playToken);
     };
 
     rowBCards.forEach(function(card, i){
