@@ -37,22 +37,22 @@
   var docsLateActs = firstCopyDemo.querySelectorAll(".docs-demo-overlay-act--late");
   var docsActCopy = firstCopyDemo.querySelector(".docs-demo-overlay-bar-right .docs-demo-overlay-act:last-child");
   var docsSteps = [
-    { tile: 0, img: "/assets/landing/img/hero-image-1-before.webp", ratio: "2000/2768",
+    { tile: 0, img: "/assets/landing/img/hero-image-1-before.webp", ratio: "579/800",
       icon: "/assets/landing/icons/hero/icon_removebg.svg", label: "Remove BG", alpha: true },
-    { tile: 1, img: "/assets/landing/img/hero-image-3-before.webp", ratio: "2000/1500",
+    { tile: 1, img: "/assets/landing/img/hero-image-3-before.webp", ratio: "1000/750",
       icon: "/assets/landing/icons/hero/icon_erase.svg", label: "Remove",
       box: { l: 0.44, t: 0.43, r: 0.58, b: 0.61 }, alpha: false },
-    { tile: 2, img: "/assets/landing/img/hero-image-6-before.webp", ratio: "2000/1333",
+    { tile: 2, img: "/assets/landing/img/hero-image-6-before.webp", ratio: "1000/667",
       icon: "/assets/landing/icons/hero/icon_removebg.svg", label: "Remove BG", alpha: true },
-    { tile: 3, img: "/assets/landing/img/hero-image-5-before.webp", ratio: "2000/1335",
+    { tile: 3, img: "/assets/landing/img/hero-image-5-before.webp", ratio: "1000/668",
       icon: "/assets/landing/icons/hero/icon_erase.svg", label: "Remove",
       box: { l: 0.39, t: 0.38, r: 0.59, b: 0.65 }, alpha: false },
-    { tile: 4, img: "/assets/landing/img/hero-image-7-before.webp", ratio: "1932/2898",
+    { tile: 4, img: "/assets/landing/img/hero-image-7-before.webp", ratio: "534/800",
       icon: "/assets/landing/icons/hero/icon_erase.svg", label: "Remove",
       box: { l: 0.45, t: 0.51, r: 0.90, b: 0.96 }, alpha: false },
-    { tile: 5, img: "/assets/landing/img/hero-image-4-before.webp", ratio: "2000/1333",
+    { tile: 5, img: "/assets/landing/img/hero-image-4-before.webp", ratio: "1000/667",
       icon: "/assets/landing/icons/hero/icon_removebg.svg", label: "Remove BG", alpha: true },
-    { tile: 6, img: "/assets/landing/img/hero-image-12-before.webp", ratio: "2000/1333",
+    { tile: 6, img: "/assets/landing/img/hero-image-12-before.webp", ratio: "1000/667",
       icon: "/assets/landing/icons/hero/icon_erase.svg", label: "Remove",
       box: { l: 0.42, t: 0.32, r: 0.53, b: 0.55 }, alpha: false }
   ];

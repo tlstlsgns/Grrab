@@ -203,38 +203,38 @@
        2000x1335 differ by only 0.6px at this size, but the figure has to match its
        image exactly or the checkerboard shows past the picture's edge. */
     var heroSteps = [
-      { tile:13, img:"/assets/landing/img/hero-image-14-before.webp", ratio:"2000/1125",
+      { tile:13, img:"/assets/landing/img/hero-image-14-before.webp", ratio:"1000/563",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
-      { tile:12, img:"/assets/landing/img/hero-image-13-before.webp", ratio:"2000/1343",
+      { tile:12, img:"/assets/landing/img/hero-image-13-before.webp", ratio:"1000/672",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
-      { tile:11, img:"/assets/landing/img/hero-image-12-before.webp", ratio:"2000/1333",
+      { tile:11, img:"/assets/landing/img/hero-image-12-before.webp", ratio:"1000/667",
         icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
         /* Placeholder — maintainer will set the real region from a screenshot. */
         box:{ l:0.42, t:0.32, r:0.53, b:0.55 }, alpha:false },
-      { tile:10, img:"/assets/landing/img/hero-image-11-before.webp", ratio:"2000/3019",
+      { tile:10, img:"/assets/landing/img/hero-image-11-before.webp", ratio:"530/800",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true,
         hoverY:0.2 },
-      { tile:9, img:"/assets/landing/img/hero-image-10-before.webp", ratio:"2000/1333",
+      { tile:9, img:"/assets/landing/img/hero-image-10-before.webp", ratio:"1000/667",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
-      { tile:7, img:"/assets/landing/img/hero-image-2-before.webp", ratio:"2000/1333",
+      { tile:7, img:"/assets/landing/img/hero-image-2-before.webp", ratio:"1000/667",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
       { tile:6, img:"/assets/landing/img/hero-image-9-before.webp", ratio:"500/333",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
-      { tile:5, img:"/assets/landing/img/hero-image-7-before.webp", ratio:"1932/2898",
+      { tile:5, img:"/assets/landing/img/hero-image-7-before.webp", ratio:"534/800",
         icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
         /* Measured from a screenshot — approximate, not derived. */
         box: { l:0.45, t:0.51, r:0.90, b:0.96 }, alpha:false },
-      { tile:4, img:"/assets/landing/img/hero-image-4-before.webp", ratio:"2000/1333",
+      { tile:4, img:"/assets/landing/img/hero-image-4-before.webp", ratio:"1000/667",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
-      { tile:2, img:"/assets/landing/img/hero-image-6-before.webp", ratio:"2000/1333",
+      { tile:2, img:"/assets/landing/img/hero-image-6-before.webp", ratio:"1000/667",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
-      { tile:1, img:"/assets/landing/img/hero-image-3-before.webp", ratio:"2000/1500",
+      { tile:1, img:"/assets/landing/img/hero-image-3-before.webp", ratio:"1000/750",
         icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
         /* Measured from a screenshot — approximate, not derived. */
         box:{ l:0.44, t:0.43, r:0.58, b:0.61 }, alpha:false },
-      { tile:0, img:"/assets/landing/img/hero-image-1-before.webp", ratio:"2000/2768",
+      { tile:0, img:"/assets/landing/img/hero-image-1-before.webp", ratio:"579/800",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
-      { tile:8, img:"/assets/landing/img/hero-image-5-before.webp", ratio:"2000/1335",
+      { tile:8, img:"/assets/landing/img/hero-image-5-before.webp", ratio:"1000/668",
         icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
         box:{ l:0.39, t:0.38, r:0.59, b:0.65 }, alpha:false }
     ];
@@ -693,14 +693,16 @@
       heroCursor.style.transition = "";
 
       whenOverlayImgReady(heroOverlayImg, function(){
-        var offset = 0;
-        var si;
-        for (si = 0; si < picked.length; si++) {
-          offset = heroPlayStep(offset, picked[si], {
-            isFirst: si === 0,
-            isLast: si === picked.length - 1
-          });
-        }
+        whenOverlayImgReady(heroOverlayAfter, function(){
+          var offset = 0;
+          var si;
+          for (si = 0; si < picked.length; si++) {
+            offset = heroPlayStep(offset, picked[si], {
+              isFirst: si === 0,
+              isLast: si === picked.length - 1
+            });
+          }
+        });
       });
     };
 
@@ -1193,11 +1195,11 @@
       return rowBBody;
     };
     var rowBSteps = [
-      { tile:4, img:"/assets/landing/img/hero-image-4-before.webp", ratio:"2000/1333",
+      { tile:4, img:"/assets/landing/img/hero-image-4-before.webp", ratio:"1000/667",
         icon:"/assets/landing/icons/rowB/icon_removebg.svg", label:"Remove BG", alpha:true },
       /* "Remove" is the extension's own wording for the erase action, and it is written
          out again in the hero's heroSetAction — change both together. */
-      { tile:8, img:"/assets/landing/img/hero-image-5-before.webp", ratio:"2000/1335",
+      { tile:8, img:"/assets/landing/img/hero-image-5-before.webp", ratio:"1000/668",
         icon:"/assets/landing/icons/rowB/icon_erase.svg", label:"Remove",
         box:{ l:0.39, t:0.38, r:0.59, b:0.65 } },
       /* The bottom bar's Upscale, not the top button — target says which. The images are
