@@ -937,8 +937,10 @@
       margin-inline:auto !important; width:fit-content !important;
       top:calc(10 * var(--hero-btn-u)) !important; }
 
+    .rowB-scale-wrap{ height:auto !important; overflow:visible !important; }
+    .grrab-rowB{ width:100% !important; transform:none !important; }
     .grrab-rowB{ grid-template-columns:1fr !important; gap:24px !important; }
-    .grrab-rowB > div:first-child{ order:1 !important; gap:14px !important; }
+    .grrab-rowB > div:first-child{ order:1 !important; gap:14px !important; min-width:0 !important; }
     .grrab-rowB > .rowB-mockup-wrap{ order:2 !important; }
     .rowB-cards{ gap:8px !important; }
     .rowB-card{ padding:14px 14px !important; gap:12px !important; }
@@ -957,10 +959,14 @@
        border-left:3px and leaving it would keep reserving that space. */
     .rowB-cards{ flex-direction:row !important; }
     .rowB-card{ flex:1 !important; min-width:0 !important;
-      align-items:center !important;
+      flex-direction:column !important; align-items:center !important;
+      justify-content:center !important; gap:8px !important;
+      padding:12px 6px !important;
       border-left-width:0 !important;
       border-bottom:3px solid transparent !important;
       border-radius:12px 12px 0 0 !important; }
+    .rowB-card-text{ align-items:center !important; }
+    .rowB-card-title{ text-align:center !important; }
     .rowB-card--active{ border-left-color:transparent !important;
       border-bottom-color:#BC13FE !important; }
     .rowB-card-desc{ display:none !important; }
