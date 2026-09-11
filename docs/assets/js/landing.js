@@ -87,7 +87,9 @@
   var heroGallery = document.querySelector(".hero-gallery");
   var heroMarquee = document.getElementById("heroMarquee");
   var heroHint = document.getElementById("heroHint");
-  var heroTiles = [].slice.call(document.querySelectorAll(".hero-tile"));
+  var heroTiles = heroGallery
+    ? [].slice.call(heroGallery.querySelectorAll(".hero-tile"))
+    : [];
 
   if (heroCamera && heroBody && heroCursor && heroOverlay && heroTiles.length) {
     var heroTimers = [];
@@ -781,7 +783,7 @@
           moveToRowB(window.grrabBrowser && window.grrabBrowser.playRowB);
           return true;
         }
-        if (rowAIntersecting()) {
+        if (rowAIntersecting() && !(heroMobile && heroMobile.matches)) {
           browserFlightDone = null;
           moveToRowA(window.grrabBrowser && window.grrabBrowser.playRowA);
           return true;
@@ -876,6 +878,10 @@
     };
 
     var moveToRowA = function(done){
+      if (heroMobile && heroMobile.matches) {
+        if (done) done();
+        return;
+      }
       if (browserAt === "rowA") {
         if (done) done();
         return;
@@ -995,6 +1001,26 @@
       }, done);
     };
 
+    var browserSendHomeImmediate = function(){
+      if (browserFlightRaf) {
+        cancelAnimationFrame(browserFlightRaf);
+        browserFlightRaf = 0;
+      }
+      browserFlying = false;
+      browserPending = null;
+      clearMockupFlightStyles();
+      if (!heroMockup || !heroSlot || browserAt === "hero") return;
+      if (window.grrabBrowser && window.grrabBrowser.stopRowA) window.grrabBrowser.stopRowA();
+      if (window.grrabBrowser && window.grrabBrowser.stopRowB) window.grrabBrowser.stopRowB();
+      browserPlaceMockup(heroSlot, "hero");
+    };
+
+    if (heroMobile && heroMobile.addEventListener) {
+      heroMobile.addEventListener("change", function(e){
+        if (e.matches && browserAt !== "hero") browserSendHomeImmediate();
+      });
+    }
+
     window.grrabBrowser = {
       moveToRowA: moveToRowA,
       moveToRowB: moveToRowB,
@@ -1066,7 +1092,7 @@
                   he.boundingClientRect.top < 0) {
                 if (rowBIntersecting() && !(heroMobile && heroMobile.matches)) {
                   window.grrabBrowser.moveToRowB(window.grrabBrowser.playRowB);
-                } else if (rowAIntersecting()) {
+                } else if (rowAIntersecting() && !(heroMobile && heroMobile.matches)) {
                   window.grrabBrowser.moveToRowA(window.grrabBrowser.playRowA);
                 }
               }
@@ -1548,7 +1574,8 @@
           } else {
             if (!rowBHasEntered) continue;
             rowBStop();
-            if (window.grrabBrowser && entries[i].boundingClientRect.top > 0) {
+            if (window.grrabBrowser && entries[i].boundingClientRect.top > 0 &&
+                !(rowBMobile && rowBMobile.matches)) {
               if (window.grrabBrowser.rowAIntersecting) {
                 window.grrabBrowser.moveToRowA(window.grrabBrowser.playRowA);
               } else {

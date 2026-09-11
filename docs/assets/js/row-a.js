@@ -30,6 +30,18 @@
   var rowAReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
   var rowAMobile = window.matchMedia && window.matchMedia("(max-width:820px)");
 
+  var rowABrowserChrome = function(){
+    var mobile = rowAMobile && rowAMobile.matches;
+    if (mobile) {
+      return rowA.querySelector(".rowA-browser-copy .hero-chrome");
+    }
+    return rowA.querySelector(".hero-mockup-wrap:not(.rowA-browser-copy) .hero-chrome");
+  };
+  var rowABrowserBody = function(){
+    var chrome = rowABrowserChrome();
+    return chrome ? chrome.querySelector(".hero-body") : null;
+  };
+
   var rowAClearTimers = function(){
     for (var i = 0; i < rowATimers.length; i++) clearTimeout(rowATimers[i]);
     rowATimers = [];
@@ -68,7 +80,7 @@
     return { x: o.x + el.offsetWidth / 2, y: o.y + el.offsetHeight / 2 };
   };
   var rowABrowserStartIn = function(){
-    var body = rowA.querySelector(".hero-body");
+    var body = rowABrowserBody();
     if (!body) return { x: 0, y: 0 };
     var b = rowAOffsetIn(body);
     return { x: b.x + body.offsetWidth * 0.86, y: b.y + body.offsetHeight * 0.92 };
@@ -78,9 +90,11 @@
   };
 
   var rowARefreshTiles = function(){
-    var gallery = rowA.querySelector(".hero-gallery");
+    var mobile = rowAMobile && rowAMobile.matches;
+    var body = rowABrowserBody();
+    var gallery = body ? body.querySelector(".hero-gallery") : null;
     rowATiles = gallery ? [].slice.call(gallery.querySelectorAll(".hero-tile")) : [];
-    rowAToast = rowA.querySelector(".hero-toast");
+    rowAToast = mobile ? document.getElementById("rowAToast") : document.getElementById("heroToast");
     return rowATiles;
   };
 
@@ -183,7 +197,7 @@
   };
 
   var rowAVisibleTiles = function(){
-    var body = rowA.querySelector(".hero-body");
+    var body = rowABrowserBody();
     if (!body || !rowATiles.length) return [];
     var br = body.getBoundingClientRect();
     var visible = [];
@@ -403,7 +417,9 @@
         if (entries[i].isIntersecting) {
           rowAHasEntered = true;
           if (window.grrabBrowser && window.grrabBrowser.flying) return;
-          if (window.grrabBrowser && window.grrabBrowser.at === "hero") {
+          if (rowAMobile && rowAMobile.matches) {
+            rowAPlay();
+          } else if (window.grrabBrowser && window.grrabBrowser.at === "hero") {
             if (window.grrabBrowser.heroVisible) return;
             window.grrabBrowser.moveToRowA(rowAPlay);
           } else if (window.grrabBrowser && window.grrabBrowser.at === "rowB") {
@@ -417,7 +433,8 @@
           if (!rowAHasEntered) continue;
           rowAStop();
           if (window.grrabBrowser && window.grrabBrowser.flying) return;
-          if (window.grrabBrowser && entries[i].boundingClientRect.top > 0) {
+          if (window.grrabBrowser && entries[i].boundingClientRect.top > 0 &&
+              !(rowAMobile && rowAMobile.matches)) {
             window.grrabBrowser.moveToHero();
           } else if (window.grrabBrowser && window.grrabBrowser.rowBIntersecting &&
                      !(rowAMobile && rowAMobile.matches)) {

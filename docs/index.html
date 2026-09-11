@@ -174,7 +174,92 @@
 
   <div class="rowA-scale-wrap">
   <div class="rowA-figure" id="rowA">
-    <div class="rowA-browser"></div>
+    <div class="rowA-browser">
+    <div class="hero-mockup-wrap rowA-browser-copy">
+      <div class="hero-chrome">
+        <div class="hero-header">
+          <div class="browser-traffic"><span class="browser-dot browser-dot--red"></span><span class="browser-dot browser-dot--yellow"></span><span class="browser-dot browser-dot--green"></span></div>
+          <div class="hero-urlbar"><div class="hero-urlbar-line"></div></div>
+          <div class="hero-profile-logo"><img src="/assets/landing/grrab-logo.svg" alt="Grrab"></div>
+        </div>
+        <div class="hero-body">
+          <div class="hero-sidebar">
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--home" src="/assets/landing/icons/hero/icon_home.svg" alt=""></div>
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--category" src="/assets/landing/icons/hero/icon_category.svg" alt=""></div>
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--add" src="/assets/landing/icons/hero/icon_add.svg" alt=""></div>
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--notification" src="/assets/landing/icons/hero/icon_notification.svg" alt=""></div>
+            <div class="hero-sidebar-item"><img class="hero-sidebar-icon hero-sidebar-icon--message" src="/assets/landing/icons/hero/icon_message.svg" alt=""></div>
+          </div>
+          <div class="hero-gallery">
+            <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-1-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-3-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-6-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-8-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-4-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-7-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-9-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-2-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-5-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-10-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-11-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-12-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-13-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-14-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-4-before.webp" alt=""></div>
+            <div class="hero-tile hero-tile--tall"><img src="/assets/landing/img/hero-image-7-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-3-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-2-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-5-before.webp" alt=""></div>
+            <div class="hero-tile"><img src="/assets/landing/img/hero-image-1-before.webp" alt=""></div>
+          </div>
+          <div class="hero-overlay" id="rowAOverlay" aria-hidden="true">
+            <figure class="hero-overlay-figure">
+              <div class="hero-overlay-picture">
+              <img class="hero-overlay-img" id="rowAOverlayImg" src="/assets/landing/img/hero-image-1-before.webp" alt="" draggable="false">
+              <img class="hero-overlay-after" id="rowAOverlayAfter" src="/assets/landing/img/hero-image-1-after.webp" alt="" draggable="false">
+                <span class="hero-marquee" id="rowAMarquee" aria-hidden="true"></span>
+                <span class="hero-slider-clip">
+                  <span class="hero-slider-handle" id="rowAHandle">
+                    <span class="hero-slider-knob">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </span>
+                  </span>
+                </span>
+              </div>
+              <span class="hero-overlay-tools" aria-hidden="true">
+                <span class="hero-tool" id="rowAToolBrush"><img src="/assets/landing/icons/hero/icon_select_brush.svg" alt=""></span>
+                <span class="hero-tool hero-tool--on" id="rowAToolBox"><img src="/assets/landing/icons/hero/icon_select_box.svg" alt=""></span>
+                <span class="hero-hint" id="rowAHint">Drag to select an area to erase</span>
+              </span>
+              <span class="hero-overlay-btn" id="rowAOverlayBtn">
+                <img id="rowAOverlayBtnIcon" src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
+                <span id="rowAOverlayBtnLabel">Remove BG</span>
+              </span>
+              <span class="hero-busy" id="rowABusy" aria-hidden="true">
+                <span class="hero-busy-ring"></span>
+                <span class="hero-busy-text" id="rowABusyText">Removing…</span>
+              </span>
+              <span class="hero-overlay-bar" aria-hidden="true">
+                <span class="hero-overlay-bar-left">
+                  <span class="hero-overlay-act hero-overlay-act--ghost hero-overlay-act--late" id="rowAActBack"><img src="/assets/landing/icons/hero/icon_back.svg" alt="">Back</span>
+                  <span class="hero-overlay-act hero-overlay-act--ghost hero-overlay-act--late" id="rowAActRefresh"><img src="/assets/landing/icons/hero/icon_refresh.svg" alt="">Refresh</span>
+                </span>
+                <span class="hero-overlay-bar-right">
+                  <span class="hero-overlay-act" id="rowAActUpscale"><img src="/assets/landing/icons/hero/icon_upscale.svg" alt="">Upscale</span>
+                  <span class="hero-overlay-act" id="rowAActClip"><img src="/assets/landing/icons/hero/icon_clip.svg" alt="">Copy</span>
+                </span>
+              </span>
+            </figure>
+          </div>
+          <span class="hero-toast" id="rowAToast" aria-hidden="true">
+            <img src="/assets/landing/icons/hero/icon_copy.svg" alt="">
+              <span>Image copied</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    </div>
     <div class="rowA-side">
       <div class="rowA-text">
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">One shortcut. Always usable.</h2>

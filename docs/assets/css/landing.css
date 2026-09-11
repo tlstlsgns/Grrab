@@ -427,6 +427,7 @@
   .rowA-text{display:flex;flex-direction:column;gap:14px;}
   .rowA-text .feature-sub{font-size:22px;}
   .rowA-browser{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;}
+  .rowA-browser-copy{display:none;}
   .rowA-canvas{min-width:0;width:100%;aspect-ratio:593/434;position:relative;}
   .rowA-canvas{border:1px solid var(--border);}
   .rowA-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
@@ -1023,6 +1024,7 @@
       width:70% !important; justify-self:start !important;
       aspect-ratio:593/434 !important;
       position:relative !important; z-index:3 !important; }
+    .rowA-browser-copy{ display:block !important; }
     .rowA-canvas{
       grid-column:1 !important; grid-row:2 !important;
       width:45% !important; justify-self:end !important; align-self:stretch !important;
