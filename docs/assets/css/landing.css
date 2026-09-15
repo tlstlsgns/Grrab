@@ -362,7 +362,7 @@
 
   /* ── Row B — step cards + an empty mockup slot ──
      The card rules are the ones Row A used before its rebuild, renamed to rowB-*. */
-  .rowB-cards{display:flex;flex-direction:column;gap:10px;width:100%;}
+  .rowB-cards{display:flex;flex-direction:column;gap:4px;width:100%;}
   .rowB-card{display:flex;align-items:flex-start;gap:14px;width:100%;
     padding:16px 18px;border-radius:12px;background:transparent;
     border:none;border-left:3px solid transparent;
@@ -430,14 +430,13 @@
   .rowB-tip--in{opacity:1;transition:none;}
 
   /* ── Copy demo — Instant figure (#firstCopyDemo), between Row A and Row B ── */
-  .rowA-figure{position:relative;display:grid;grid-template-columns:minmax(0,1.329fr) minmax(0,1fr);gap:48px;margin-bottom:24px;}
-  .rowA-side{display:flex;flex-direction:column;gap:24px;}
-  .rowA-text{display:flex;flex-direction:column;gap:14px;}
+  .rowA-figure{position:relative;display:grid;grid-template-columns:minmax(0,1.329fr) minmax(0,1fr);gap:48px;align-items:stretch;margin-bottom:24px;}
+  .rowA-side{display:flex;flex-direction:column;gap:24px;min-height:0;align-self:stretch;}
+  .rowA-text{display:flex;flex-direction:column;gap:14px;flex-shrink:0;}
   .rowA-text .feature-sub{font-size:22px;}
   .rowA-browser{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;}
   .rowA-browser-copy{display:none;}
-  .rowA-canvas{min-width:0;width:100%;aspect-ratio:593/434;position:relative;}
-  .rowA-canvas{border:1px solid var(--border);}
+  .rowA-canvas{min-width:0;width:100%;position:relative;flex:1;min-height:0;border:1px solid var(--border);}
   .rowA-cursor{position:absolute;left:0;top:0;z-index:5;pointer-events:none;
     width:calc(26 * var(--demo-u));height:calc(26 * var(--demo-u));opacity:0;
     transition:transform 1s cubic-bezier(.4,0,.2,1),opacity .25s ease;}

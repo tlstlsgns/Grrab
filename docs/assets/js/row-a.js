@@ -211,16 +211,17 @@
     if (!el || !rw || !rh) return false;
     el.style.aspectRatio = rw + "/" + rh;
     var drawn = tile ? rowATileCoverDrawn(tile, rw, rh) : null;
-    var panW = rowACanvasPan ? rowACanvasPan.offsetWidth : 0;
-    var panH = rowACanvasPan ? rowACanvasPan.offsetHeight : 0;
+    if (drawn) {
+      el.style.width = drawn.w + "px";
+      el.style.height = drawn.h + "px";
+      return true;
+    }
     if (rw > rh) {
       el.style.width = "50%";
       el.style.height = "";
-      if (drawn && panW && panW * 0.5 < drawn.w) el.style.width = drawn.w + "px";
     } else {
       el.style.height = "50%";
       el.style.width = "";
-      if (drawn && panH && panH * 0.5 < drawn.h) el.style.height = drawn.h + "px";
     }
     return true;
   };
