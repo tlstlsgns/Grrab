@@ -524,21 +524,20 @@
 
   <!-- Row C — interactive source switcher -->
   <div class="rowC-scale-wrap">
-  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:72px;align-items:stretch;">
+  <div class="grrab-inspire-grid" style="display:grid;grid-template-columns:1fr;gap:24px;align-items:start;">
     <!-- LEFT: heading + subhead + source list -->
-    <div style="display:flex;flex-direction:column;gap:24px;">
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <p class="feature-label">ANY SOURCE</p>
+    <div class="rowC-intro" style="display:flex;flex-direction:column;gap:24px;align-items:center;width:100%;">
+      <div class="rowC-heading" style="display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;width:100%;">
         <h2 class="feature-h2" style="font-family:var(--font-display);font-weight:var(--font-display-weight-feature);line-height:1.25;letter-spacing:-0.02em;color:var(--ink-strong);margin:0;">Every platform you browse.</h2>
-        <p class="rowC-subtitle" style="font-size:20px;line-height:1.25;color:var(--ink-700);max-width:44ch;margin:0;font-weight:500;">Search, scroll, or stumble into it.<br>One shortcut works everywhere.</p>
+        <p class="rowC-subtitle" style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;">Search, scroll, or stumble into it. One shortcut works everywhere.</p>
       </div>
-      <div id="inspireList" class="rowC-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div id="inspireList" class="rowC-list" style="display:flex;width:100%;"></div>
     </div>
 
     <!-- RIGHT: framed visual with crossfade. 591/440 matches Row A's height at the
          capped container width, in place of the video's own 1920/1080 — so the preview
          is stretched vertically by about a third. -->
-    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);height:470px;align-self:stretch;">
+    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);">
       <div id="inspireTabHeader" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;flex-shrink:0;">
         <span style="display:flex;gap:5px;flex-shrink:0;">
           <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>

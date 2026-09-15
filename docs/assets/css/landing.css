@@ -402,9 +402,30 @@
     letter-spacing:-0.01em;color:var(--ink-strong);}
   .rowD-card-desc{font-size:18px;line-height:1.45;color:var(--ink-muted);}
   #inspireList svg{width:20px;height:20px;display:block;}
-  /* The bare label is the mobile one; the media block below swaps which is shown. */
-  .rowC-item-label-bare{display:none;}
-  .rowC-active-desc{display:none;}
+  /* Row C — one column everywhere: copy and list, then 16:9 mockup, then active desc. */
+  .rowC-scale-wrap{height:auto;overflow:visible;}
+  .grrab-inspire-grid{grid-template-columns:1fr;align-items:start;gap:24px;}
+  .grrab-inspire-grid > div:nth-child(2){min-height:auto;height:auto;}
+  .rowC-active-desc{display:block;}
+  /* Source switcher — height from heading (--rowC-heading-h, JS) capped by four-up width. */
+  .grrab-inspire-grid .rowC-list{flex-direction:row;justify-content:center;align-items:stretch;gap:4px;
+    height:var(--rowC-list-h,auto);}
+  .grrab-inspire-grid .rowC-item{flex:0 0 auto !important;height:100% !important;
+    width:calc(var(--rowC-list-h) / 0.7) !important;min-width:0 !important;box-sizing:border-box;
+    flex-direction:column !important;align-items:center !important;justify-content:center !important;
+    gap:6px !important;padding:10px 4px !important;}
+  .grrab-inspire-grid .rowC-item-text{font-size:13px !important;text-align:center !important;
+    line-height:1.2 !important;}
+  .grrab-inspire-grid .rowC-item-title{display:block;}
+  #inspirePanes{position:relative;width:100%;aspect-ratio:1920/1030;overflow:hidden;
+    container-type:inline-size;}
+  #inspirePanes .browser-frame{position:absolute;top:0;left:0;width:100%;height:100%;
+    display:flex;flex-direction:column;align-items:flex-start;container-type:normal;}
+  #inspirePanes .rowC-body-scale{width:645px;flex:0 0 auto;min-height:0;display:flex;flex-direction:column;
+    height:calc((100% - calc(22 * var(--demo-u))) / var(--rowC-mock-scale,1));overflow:hidden;
+    transform-origin:top left;transform:scale(var(--rowC-mock-scale,1));}
+  #inspirePanes .rowC-body-scale > *{width:645px;flex:1;min-height:0;
+    container-type:inline-size;container-name:ytmock;--hero-u:calc(100cqw / 593);}
   /* 591/440 rather than the Figma frame's 593/434: at --container-max the 1.25fr column
      is 591px and Row A stands 440 tall, so this makes the two rows match exactly at any
      viewport of 1200px or more, where the container is capped. Below that Row A's height
@@ -487,7 +508,6 @@
   .rowD-viewport img{width:100%;height:auto;display:block;}
 
   /* ── Row B — browser mockup shell (responsive; cqw basis = Figma 1× frame 645px) ── */
-  #inspirePanes{flex:1;min-height:0;}
   /* Hovering a mockup hands control to the visitor: the built-in active tile and its
      pointer step aside, and the frame takes the same cursor the hero's live mode uses.
      Both the glow and the pointer are addressed by class rather than removed from the
@@ -516,30 +536,23 @@
   .inspire-hover .vid-screen-video:hover{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 var(--accent-bright);}
   .browser-mockup-wrap{width:100%;height:100%;overflow:hidden;background:var(--surface);position:relative;align-self:stretch;}
   .browser-frame{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;background:#DFDFDF;font-family:var(--font-sans);container-type:inline-size;container-name:ytmock;}
-  /* rowC-header replaces the old two-tier .browser-chrome with Row B's single bar.
-     Every number is Row B's multiplied by 593/645 — its frame width over this one — so
-     the bar renders at the same on-screen size in both mockups. */
-  .rowC-header{display:flex;align-items:center;gap:calc(5.52 / 645 * 100cqw);width:100%;
-    height:calc(27.58 / 645 * 100cqw);flex-shrink:0;
-    padding:calc(5.52 / 645 * 100cqw) calc(16.55 / 645 * 100cqw) calc(5.52 / 645 * 100cqw) calc(9.19 / 645 * 100cqw);}
-  .rowC-header .browser-traffic{height:calc(16.55 / 645 * 100cqw);gap:calc(4.6 / 645 * 100cqw);
-    padding:0 calc(5.52 / 645 * 100cqw) 0 0;border-radius:0 0 calc(3.68 / 645 * 100cqw) 0;
+  /* rowC-header — fixed hero chrome (--demo-u); not inside the 645→pane scale (see
+     #inspirePanes .browser-frame > *:not(.rowC-header)). */
+  #inspirePanes .rowC-header{display:flex;align-items:center;gap:calc(4.5 * var(--demo-u));width:100%;
+    height:calc(22 * var(--demo-u));min-height:calc(22 * var(--demo-u));flex-shrink:0;
+    padding:calc(4.5 * var(--demo-u)) calc(13 * var(--demo-u)) calc(4.5 * var(--demo-u)) calc(7.5 * var(--demo-u));}
+  #inspirePanes .rowC-header .browser-traffic{height:calc(13 * var(--demo-u));gap:calc(3.5 * var(--demo-u));
+    padding:0 calc(4.5 * var(--demo-u)) 0 0;border-radius:0 0 calc(3 * var(--demo-u)) 0;
     background:#DEE1E6;}
-  .rowC-header .browser-dot{width:calc(7.36 / 645 * 100cqw);height:calc(7.36 / 645 * 100cqw);}
-  .rowC-urlbar{display:flex;align-items:center;gap:calc(4.6 / 645 * 100cqw);flex:1;min-width:0;height:100%;
-    padding:0 calc(21.14 / 645 * 100cqw) 0 calc(9.19 / 645 * 100cqw);
-    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(64.34 / 645 * 100cqw);}
-  .rowC-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    width:calc(16.55 / 645 * 100cqw);height:calc(16.55 / 645 * 100cqw);
-    padding:calc(1.84 / 645 * 100cqw) 0;background:#E1E1E2;border-radius:calc(18.38 / 645 * 100cqw);}
-  .rowC-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
-  /* The tab parts were sized for an 11px tab strip; inside a 27.58px urlbar they need to
-     grow. Scoped to .rowC-urlbar so the shared .browser-tab-* rules are untouched. */
-  /* line-height:1 rather than the shared rule's 1.2: this label is always one line, and
-     a taller line box only adds space above and below the glyphs. The bar centres it
-     either way — measured 3.17 above, 3.19 below — so this is about the box hugging the
-     text, not about moving it. */
-  .rowC-urlbar .browser-tab-label{font-size:calc(8 / 645 * 100cqw);color:#5F6267;line-height:1;}
+  #inspirePanes .rowC-header .browser-dot{width:calc(6 * var(--demo-u));height:calc(6 * var(--demo-u));}
+  #inspirePanes .rowC-urlbar{display:flex;align-items:center;flex:1;min-width:0;height:100%;
+    padding:0 calc(17 * var(--demo-u)) 0 calc(7.5 * var(--demo-u));
+    background:#FEFEFE;border:1px solid #E6E7EB;border-radius:calc(70 * var(--demo-u));}
+  #inspirePanes .rowC-profile-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(13 * var(--demo-u));height:calc(13 * var(--demo-u));
+    padding:calc(1.5 * var(--demo-u)) 0;background:#E1E1E2;border-radius:calc(20 * var(--demo-u));}
+  #inspirePanes .rowC-profile-logo img{width:100%;height:auto;display:block;object-fit:contain;}
+  #inspirePanes .rowC-urlbar .browser-tab-label{font-size:calc(8 * var(--demo-u));color:#5F6267;line-height:1;}
   .browser-traffic{display:flex;align-items:center;justify-content:center;gap:3px;height:13px;padding:0 4px;background:#DEE1E6;border-radius:0 0 4px 0;flex-shrink:0;}
   .browser-dot{width:4.5px;height:4.5px;border-radius:50%;flex-shrink:0;}
   .browser-dot--red{background:#FF5F57;}
@@ -548,7 +561,8 @@
   .browser-tab-platform{display:flex;flex-direction:row;align-items:center;gap:2.5px;flex-shrink:0;}
   .browser-tab-label{font-family:var(--font-sans);font-size:5px;font-weight:500;color:#000;line-height:1.2;white-space:nowrap;}
   .yt-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
-  .yt-body{display:flex;flex:1;min-height:0;background:var(--surface);overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
+  .yt-body{display:flex;flex:1;min-height:0;background:var(--surface);overflow:hidden;
+    border-radius:calc(4 * var(--demo-u) / var(--rowC-mock-scale,1)) calc(4 * var(--demo-u) / var(--rowC-mock-scale,1)) 0 0;}
   .yt-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 0 8px;}
   .yt-sidebar-menu{width:100%;height:19px;display:flex;align-items:center;justify-content:center;}
   .yt-sidebar-menu-icon{width:6px;height:5px;display:block;flex-shrink:0;}
@@ -556,7 +570,6 @@
   .yt-sidebar-item{display:flex;flex-direction:column;align-items:center;gap:4px;}
   .yt-sidebar-icon{width:8px;height:8px;opacity:.85;display:block;flex-shrink:0;}
   .yt-sidebar-icon.yt-sidebar-icon--shorts{height:9px;}
-  .yt-sidebar-label{font-size:3.5px;font-weight:600;color:var(--ink-strong);opacity:.7;white-space:nowrap;letter-spacing:-0.02em;}
   .yt-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(4 / 645 * 100cqw);}
   .yt-topbar{display:flex;align-items:center;padding:calc(4 / 645 * 100cqw);gap:0;flex-shrink:0;width:100%;}
   .yt-logo{width:calc(35 / 645 * 100cqw);height:calc(15 / 645 * 100cqw);flex-shrink:0;display:block;}
@@ -568,10 +581,6 @@
   .yt-search-btn{width:calc(22 / 645 * 100cqw);background:#F8F8F8;border-left:max(1px,calc(0.3 / 645 * 100cqw)) solid #D3D3D3;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .yt-search-btn svg{width:calc(7 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);stroke:#333;fill:none;stroke-width:2;}
   .yt-topbar-right{width:calc(80 / 645 * 100cqw);flex-shrink:0;}
-  .yt-chips{display:flex;align-items:center;gap:calc(4 / 645 * 100cqw);padding:0 calc(8 / 645 * 100cqw);overflow:hidden;flex-shrink:0;min-width:0;min-height:calc(11 / 645 * 100cqw);width:100%;}
-  .yt-chip{display:flex;align-items:center;justify-content:center;padding:calc(3 / 645 * 100cqw) calc(4 / 645 * 100cqw);border-radius:calc(2.5 / 645 * 100cqw);font-size:clamp(8px,calc(4.5 / 645 * 100cqw),10px);font-weight:600;white-space:nowrap;line-height:1;flex-shrink:0;}
-  .yt-chip--active{background:#000;color:#fff;}
-  .yt-chip--idle{background:#EAEAEA;color:var(--ink-strong);}
   .yt-feed{flex:1;min-height:0;display:flex;flex-direction:column;gap:calc(12 / 645 * 100cqw);padding:calc(12 / 645 * 100cqw) calc(8 / 645 * 100cqw);overflow:hidden;}
   .yt-videos{display:flex;gap:calc(6 / 645 * 100cqw);flex-shrink:0;width:100%;}
   .yt-video-card{flex:1;min-width:0;display:flex;flex-direction:column;gap:calc(4 / 645 * 100cqw);aspect-ratio:197.33/131;}
@@ -593,10 +602,11 @@
 
   /* ── Row B — Instagram-in-browser mockup body (responsive content; fixed sidebar rail) ── */
   .ig-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
-  .ig-body{display:flex;flex:1;min-height:0;align-items:center;background:#FFFFFF;overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
+  .ig-body{display:flex;flex:1;min-height:0;align-items:center;background:#FFFFFF;overflow:hidden;
+    border-radius:calc(4 * var(--demo-u) / var(--rowC-mock-scale,1)) calc(4 * var(--demo-u) / var(--rowC-mock-scale,1)) 0 0;}
   .ig-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:stretch;gap:9px;height:100%;}
-  .ig-logo{width:100%;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .ig-logo .ig-slot-img{width:12px;height:12px;}
+  .ig-logo{width:100%;height:25px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ig-logo .ig-slot-img{height:50%;width:auto;display:block;}
   .ig-sidebar-nav{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;width:100%;}
   .ig-sidebar-item{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:11px;}
   .ig-sidebar-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -648,10 +658,12 @@
 
   /* ── Row B — Pinterest-in-browser mockup body (responsive content; fixed sidebar + topbar heights) ── */
   .pin-slot-img{display:block;width:100%;height:100%;object-fit:contain;}
-  .pin-body{display:flex;flex:1;min-height:0;overflow:hidden;background:#FFFFFF;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;box-shadow:calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) rgba(0,0,0,.25);}
-  .pin-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:9px;height:100%;border-right:0.5px solid #C8C8C0;box-sizing:border-box;}
-  .pin-logo{width:100%;height:43px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .pin-logo .pin-slot-img{width:13px;height:13px;}
+  .pin-body{display:flex;flex:1;min-height:0;overflow:hidden;background:#FFFFFF;
+    border-radius:calc(4 * var(--demo-u) / var(--rowC-mock-scale,1)) calc(4 * var(--demo-u) / var(--rowC-mock-scale,1)) 0 0;
+    box-shadow:calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) calc(4 / 645 * 100cqw) rgba(0,0,0,.25);}
+  .pin-sidebar{width:25px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:9px;height:100%;box-sizing:border-box;}
+  .pin-logo{width:100%;height:25px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pin-logo .pin-slot-img{height:50%;width:auto;display:block;}
   .pin-sidebar-nav{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:21px;width:100%;opacity:.5;}
   .pin-sidebar-item{width:100%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .pin-sidebar-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -661,7 +673,7 @@
   .pin-sidebar-icon--notification{width:9px;height:10px;}
   .pin-sidebar-icon--message{width:11px;height:11px;}
   .pin-main{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
-  .pin-topbar{display:flex;align-items:center;width:100%;height:43px;padding:calc(4 / 645 * 100cqw) calc(6 / 645 * 100cqw);flex-shrink:0;box-sizing:border-box;}
+  .pin-topbar{display:flex;align-items:center;width:100%;padding:calc(4 / 645 * 100cqw) calc(6 / 645 * 100cqw);flex-shrink:0;box-sizing:border-box;}
   .pin-search{display:flex;align-items:center;gap:calc(4 / 645 * 100cqw);flex:1;height:15px;padding:calc(4 / 645 * 100cqw) calc(7 / 645 * 100cqw);background:#E5E5E1;border-radius:calc(3 / 645 * 100cqw);overflow:hidden;box-sizing:border-box;}
   .pin-search-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .pin-search-icon--search{height:100%;width:auto;aspect-ratio:61/62.5;}
@@ -679,7 +691,8 @@
 
 
   /* ── Row B — Video mockup (Figma .browser-frame 645x442, body 645x414) ── */
-  .vid-body{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;background:#FFFFFF;overflow:hidden;border-radius:calc(12.87 / 645 * 50cqw) calc(12.87 / 645 * 50cqw) 0 0;}
+  .vid-body{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;background:#FFFFFF;overflow:hidden;
+    border-radius:calc(4 * var(--demo-u) / var(--rowC-mock-scale,1)) calc(4 * var(--demo-u) / var(--rowC-mock-scale,1)) 0 0;}
   /* Fixed to the frame's own scale rather than height:100%. With 100% it swallowed the
      whole body, so the row's extra height went to .vid-screen and stretched the video;
      .vid-bottom was left at 5px. 334 is the measured 336 converted to the 645 basis the
@@ -724,10 +737,11 @@
   .vid-icon-view{width:calc(8.522 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
   .vid-icon-size{width:calc(6.968 / 645 * 100cqw);height:calc(7 / 645 * 100cqw);display:block;flex-shrink:0;}
   .vid-screen-video--glow{box-shadow:0 0 calc(22 / 645 * 100cqw) 0 var(--accent-bright);}
-  /* Same 26×--demo-u as the animated cursors; left/top anchor the SVG tip at the corner. */
+  /* Same rendered 26×--demo-u as the hero cursor; --rowC-mock-scale is a unitless ratio
+     (pane width / 645) set on #inspirePanes by JS so cqw does not re-resolve on the body. */
   .mock-pointer{position:absolute;
-    width:calc(26 * var(--demo-u));
-    height:calc(26 * var(--demo-u));
+    width:calc(26 * var(--demo-u) / var(--rowC-mock-scale,1));
+    height:calc(26 * var(--demo-u) / var(--rowC-mock-scale,1));
     z-index:3;pointer-events:none;}
   .mock-pointer img{width:100%;height:100%;display:block;}
   .vid-meta{display:flex;flex-direction:column;width:100%;}
@@ -789,15 +803,6 @@
      so the heading, the cards and the mockup shrink together. Everything else on the
      page still reflows the usual way — this is a trial on one row. */
   @media (max-width:1199px) and (min-width:821px){
-    .rowC-scale-wrap{
-      height:calc(470px * (100vw - 64px) / 1136);
-      overflow:hidden;
-    }
-    .grrab-inspire-grid{
-      width:1136px !important;
-      transform-origin:top left;
-      transform:scale(calc((100vw - 64px) / 1136px));
-    }
     /* Row D is 551 tall where the others are 470 — the only number that differs. */
     .rowD-scale-wrap{
       height:calc(551px * (100vw - 64px) / 1136);
@@ -1003,17 +1008,6 @@
     /* Four across, icon above title. Every declaration needs !important: the rows are
        built in JavaScript with inline cssText, which a stylesheet cannot otherwise beat.
        The description is hidden rather than removed — it still shows on desktop. */
-    .rowC-list{ flex-direction:row !important; gap:4px !important; }
-    .rowC-item{ flex:1 !important; min-width:0 !important;
-      flex-direction:column !important; align-items:center !important;
-      gap:6px !important; padding:10px 4px !important; }
-    .rowC-item-text{ font-size:13px !important; text-align:center !important;
-      line-height:1.2 !important; }
-    .rowC-item-desc{ display:none !important; }
-    .rowC-item-label{ display:none !important; }
-    .rowC-item-label-bare{ display:inline !important; }
-    .rowC-subtitle{ display:none !important; }
-    .rowC-active-desc{ display:block !important; }
     .rowD-cards{ gap:8px !important; }
     .rowD-card{ padding:14px 14px !important; gap:12px !important; }
     .rowD-card-icon{ width:34px !important; height:34px !important; }
@@ -1040,11 +1034,6 @@
        width. The gap goes to a percentage of the same 591 for the same reason. */
     .rowD-media{ height:auto !important; aspect-ratio:591/551 !important;
       gap:2.7% !important; }
-    .grrab-inspire-grid{ grid-template-columns:1fr !important; align-items:start !important; gap:24px !important; }
-    /* nth-child(2), not last-child: #inspireDesc was added after the mockup and took over
-       :last-child, so the rule was releasing its height instead and the mockup kept the
-       470px the desktop gives it. The grid has three children and the mockup is second. */
-    .grrab-inspire-grid > div:nth-child(2){ min-height:auto !important; height:auto !important; }
 
     /* text/heading FIRST, mockup below. Only Row D needs an explicit order now that
        every row puts its text first in the DOM. */
@@ -1065,13 +1054,6 @@
     .rowD-mockup-wrap{ position:relative !important; width:64.3% !important;
       height:100% !important; flex-shrink:0 !important; overflow:hidden !important; }
 
-
-    /* Row B — frame ref 645×442, scaled by width; wrapper reserves 16:9 to match Row A */
-    #inspirePanes{ position:relative !important; flex:none !important; width:100% !important;
-      height:calc((100vw - 40px) * 1080 / 1920) !important; overflow:hidden !important; }
-    .browser-frame{ position:absolute !important; top:0 !important; left:0 !important;
-      width:645px !important; height:calc(645px * 1080 / 1920) !important;
-      transform-origin:top left; transform:scale(calc((100vw - 40px) / 645px)) !important; }
 
     /* ===== minimal mobile mockup chrome (Obsidian-style) ===== */
 
@@ -1112,9 +1094,6 @@
     .feature-h2{ font-size:24px !important; }
 
     /* side padding now 16px each → 100vw-32px in the mockup scale math */
-
-    #inspirePanes{ height:calc((100vw - 32px) * 1080 / 1920) !important; }
-    .browser-frame{ transform:scale(calc((100vw - 32px) / 645px)) !important; }
 
     /* FINAL CTA + footer horizontal padding → 16px; CTA button shrink/wrap */
     section[style*="accent-wash"] > div{ padding:44px 16px !important; }

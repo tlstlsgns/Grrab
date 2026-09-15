@@ -1777,24 +1777,20 @@
     return '<div class="browser-mockup-wrap" aria-hidden="true">'+
         '<div class="browser-frame">'+
           browserChromeHtml(opts)+
-          opts.bodyHtml+
+          '<div class="rowC-body-scale">'+opts.bodyHtml+'</div>'+
         '</div>'+
     '</div>';
   }
 
   function youtubeBodyHtml(){
-    var chips = ["All","Music","Podcasts","Live","Playlists","CSS","User interface design","Electropop","Smooth Jazz","Variety shows","Ideas","Ambient Music","Visual arts","Comedy","AI","Motion Graphic","Digital Design"];
-    var chipHtml = chips.map(function(c,i){
-      return '<span class="yt-chip'+(i===0?' yt-chip--active':' yt-chip--idle')+'">'+c+'</span>';
-    }).join('');
     return '<div class="yt-body">'+
             '<aside class="yt-sidebar">'+
               '<div class="yt-sidebar-menu"><span class="yt-sidebar-menu-icon"><img class="yt-slot-img" src="/assets/landing/icons/icon_hamburgerbar.svg" alt=""></span></div>'+
               '<nav class="yt-sidebar-nav">'+
-                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--home"><img class="yt-slot-img" src="/assets/landing/icons/icon_home.svg" alt=""></span><span class="yt-sidebar-label">Home</span></div>'+
-                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--shorts"><img class="yt-slot-img" src="/assets/landing/icons/icon_shorts.svg" alt=""></span><span class="yt-sidebar-label">Shorts</span></div>'+
-                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--subs"><img class="yt-slot-img" src="/assets/landing/icons/icon_subscriptions.svg" alt=""></span><span class="yt-sidebar-label">Subscriptions</span></div>'+
-                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--you"><img class="yt-slot-img" src="/assets/landing/icons/icon_you.svg" alt=""></span><span class="yt-sidebar-label">You</span></div>'+
+                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--home"><img class="yt-slot-img" src="/assets/landing/icons/icon_home.svg" alt=""></span></div>'+
+                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--shorts"><img class="yt-slot-img" src="/assets/landing/icons/icon_shorts.svg" alt=""></span></div>'+
+                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--subs"><img class="yt-slot-img" src="/assets/landing/icons/icon_subscriptions.svg" alt=""></span></div>'+
+                '<div class="yt-sidebar-item"><span class="yt-sidebar-icon yt-sidebar-icon--you"><img class="yt-slot-img" src="/assets/landing/icons/icon_you.svg" alt=""></span></div>'+
               '</nav>'+
             '</aside>'+
             '<div class="yt-main">'+
@@ -1803,7 +1799,6 @@
                 '<div class="yt-search-wrap"><div class="yt-search"><div class="yt-search-input"><span>Search</span></div><div class="yt-search-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></div></div></div>'+
                 '<div class="yt-topbar-right"></div>'+
               '</div>'+
-              '<div class="yt-chips">'+chipHtml+'</div>'+
               '<div class="yt-feed">'+
                 '<div class="yt-videos">'+
                   '<div class="yt-video-card">'+
@@ -1818,6 +1813,10 @@
                     '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-3.webp" alt=""></div>'+
                     '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
                   '</div>'+
+                  '<div class="yt-video-card yt-video-card--dim">'+
+                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-4.webp" alt=""></div>'+
+                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
+                  '</div>'+
                 '</div>'+
                 '<div class="yt-shorts-section">'+
                   '<div class="yt-shorts-label"><img class="yt-shorts-icon" src="/assets/landing/icons/icon_main_shorts.svg" alt="">Shorts</div>'+
@@ -1827,34 +1826,7 @@
                     '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-3.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
                     '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-4.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
                     '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-5.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
-                  '</div>'+
-                '</div>'+
-                '<div class="yt-videos">'+
-                  '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-4.webp" alt=""></div>'+
-                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
-                  '</div>'+
-                  '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-5.webp" alt=""></div>'+
-                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
-                  '</div>'+
-                  '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-6.webp" alt=""></div>'+
-                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
-                  '</div>'+
-                '</div>'+
-                '<div class="yt-videos">'+
-                  '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-7.webp" alt=""></div>'+
-                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
-                  '</div>'+
-                  '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-8.webp" alt=""></div>'+
-                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
-                  '</div>'+
-                  '<div class="yt-video-card yt-video-card--dim">'+
-                    '<div class="yt-thumb"><img src="/assets/landing/img/rowC/image-9.webp" alt=""></div>'+
-                    '<div class="yt-meta"><span class="yt-meta-avatar"></span><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div>'+
+                    '<div class="yt-short-card"><div class="yt-thumb yt-thumb--short"><img src="/assets/landing/img/rowC/shorts-1.webp" alt=""></div><div class="yt-meta"><span class="yt-meta-lines"><span class="yt-meta-line"></span><span class="yt-meta-line yt-meta-line--short"></span></span></div></div>'+
                   '</div>'+
                 '</div>'+
               '</div>'+
@@ -1981,30 +1953,32 @@
           pinFeedColHtml([
             pinFeedCardHtml('115.25/160',    true, false, '/assets/landing/img/rowC/pin-image-1.webp'),
             pinFeedCardHtml('115.25/102.33', true, false, '/assets/landing/img/rowC/pin-image-2.webp'),
-            pinFeedCardHtml('115.25/169',    true, false, '/assets/landing/img/rowC/pin-image-3.webp'),
-            pinFeedCardHtml('115.25/132',    true, false, '/assets/landing/img/rowC/pin-image-13.webp'),
-            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-14.webp')
+            pinFeedCardHtml('115.25/169',    true, false, '/assets/landing/img/rowC/pin-image-3.webp')
           ])+
           pinFeedColHtml([
             pinFeedCardHtml('115.25/132',    false,  true,  '/assets/landing/img/rowC/pin-image-4.webp'),
             pinFeedCardHtml('115.25/132',    true, false, '/assets/landing/img/rowC/pin-image-5.webp'),
-            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-6.webp'),
-            pinFeedCardHtml('115.25/188',    true, false, '/assets/landing/img/rowC/pin-image-15.webp'),
-            pinFeedCardHtml('115.25/169',    true, false, '/assets/landing/img/rowC/pin-image-16.webp')
+            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-6.webp')
           ])+
           pinFeedColHtml([
             pinFeedCardHtml('115.25/188',    true, false, '/assets/landing/img/rowC/pin-image-7.webp'),
             pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-8.webp'),
-            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-9.webp'),
-            pinFeedCardHtml('115.25/160',    true, false, '/assets/landing/img/rowC/pin-image-17.webp'),
-            pinFeedCardHtml('115.25/102.33', true, false, '/assets/landing/img/rowC/pin-image-18.webp')
+            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-9.webp')
           ])+
           pinFeedColHtml([
             pinFeedCardHtml('115.25/160',    true, false, '/assets/landing/img/rowC/pin-image-10.webp'),
             pinFeedCardHtml('115.25/169',    true, false, '/assets/landing/img/rowC/pin-image-11.webp'),
-            pinFeedCardHtml('115.25/102.33', true, false, '/assets/landing/img/rowC/pin-image-12.webp'),
-            pinFeedCardHtml('115.25/132',    true, false, '/assets/landing/img/rowC/pin-image-19.webp'),
-            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-20.webp')
+            pinFeedCardHtml('115.25/102.33', true, false, '/assets/landing/img/rowC/pin-image-12.webp')
+          ])+
+          pinFeedColHtml([
+            pinFeedCardHtml('115.25/132',    true, false, '/assets/landing/img/rowC/pin-image-4.webp'),
+            pinFeedCardHtml('115.25/132',    true, false, '/assets/landing/img/rowC/pin-image-5.webp'),
+            pinFeedCardHtml('115.25/115.25', true, false, '/assets/landing/img/rowC/pin-image-6.webp')
+          ])+
+          pinFeedColHtml([
+            pinFeedCardHtml('115.25/160',    true, false, '/assets/landing/img/rowC/pin-image-1.webp'),
+            pinFeedCardHtml('115.25/102.33', true, false, '/assets/landing/img/rowC/pin-image-2.webp'),
+            pinFeedCardHtml('115.25/169',    true, false, '/assets/landing/img/rowC/pin-image-3.webp')
           ])+
         '</div>'+
       '</div>'+
@@ -2178,24 +2152,16 @@
     var row = document.createElement("button");
     row.type = "button";
     row.className = "rowC-item";
-    row.style.cssText = "display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;font:inherit;padding:14px 16px;border-radius:10px;background:transparent;border:none;outline:none;-webkit-appearance:none;appearance:none;transition:background .15s ease;";
+    row.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;font:inherit;padding:10px 4px;border-radius:10px;background:transparent;border:none;outline:none;-webkit-appearance:none;appearance:none;transition:background .15s ease;";
     var iconWrap = document.createElement("span");
     iconWrap.className = "rowC-item-icon";
     iconWrap.style.cssText = "flex-shrink:0;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-muted);transition:color .15s ease;";
     iconWrap.innerHTML = it.icon;
     var txt = document.createElement("span");
     txt.className = "rowC-item-text";
-    txt.style.cssText = "font-size:17px;line-height:1.45;color:var(--ink-muted);min-width:0;text-align:left;";
-    /* The description was a bare text node, which cannot be hidden with CSS. Its own
-       span is what lets the mobile rules drop it. */
-    /* Two labels, one with the trailing stop and one without. It cannot be done in CSS —
-       the stop is part of the string — and the config keeps its own value untouched. The
-       hidden one is aria-hidden so the word is not announced twice. */
+    txt.style.cssText = "font-size:13px;line-height:1.2;color:var(--ink-muted);min-width:0;text-align:center;";
     var rowCBare = it.label.replace(/\.$/, "");
-    txt.innerHTML = '<strong class="rowC-item-title" style="font-weight:700;color:var(--ink-strong);">'+
-      '<span class="rowC-item-label">'+it.label+'</span>'+
-      '<span class="rowC-item-label-bare" aria-hidden="true">'+rowCBare+'</span>'+
-      '</strong> <span class="rowC-item-desc">'+it.desc+'</span>';
+    txt.innerHTML = '<strong class="rowC-item-title" style="font-weight:700;color:var(--ink-strong);">'+rowCBare+'</strong>';
     row.appendChild(iconWrap); row.appendChild(txt);
     row.addEventListener("mouseenter", function(){ activate(it.id); });
     row.addEventListener("focus", function(){ activate(it.id); });
@@ -2258,9 +2224,42 @@
         tabIcon.innerHTML = tabSlot(meta);
       }
     });
+    syncRowCMockScale();
   }
   panesEl.addEventListener("mouseenter", function(){ panesEl.classList.add("inspire-hover"); });
   panesEl.addEventListener("mouseleave", inspireHoverOff);
 
+  function syncRowCMockScale(){
+    var w = panesEl.clientWidth;
+    panesEl.style.setProperty("--rowC-mock-scale", w > 0 ? String(w / 645) : "1");
+  }
+  syncRowCMockScale();
+  if (typeof ResizeObserver !== "undefined") {
+    var rowCPaneRo = new ResizeObserver(syncRowCMockScale);
+    rowCPaneRo.observe(panesEl);
+  } else {
+    window.addEventListener("resize", syncRowCMockScale);
+  }
+
+  var rowCHeadingEl = listEl.previousElementSibling;
+  function syncRowCListHeight(){
+    if (!rowCHeadingEl || !rowCHeadingEl.classList.contains("rowC-heading")) return;
+    var headingH = rowCHeadingEl.getBoundingClientRect().height;
+    var listW = listEl.clientWidth;
+    var capH = ((listW - 12) / 4) * 0.7;
+    var h = Math.min(headingH, capH);
+    listEl.style.setProperty("--rowC-list-h", h + "px");
+  }
+  syncRowCListHeight();
+  if (typeof ResizeObserver !== "undefined") {
+    var rowCListRo = new ResizeObserver(syncRowCListHeight);
+    rowCListRo.observe(rowCHeadingEl);
+    rowCListRo.observe(listEl);
+  } else {
+    window.addEventListener("resize", syncRowCListHeight);
+  }
+
   activate("youtube");
+  syncRowCListHeight();
+  syncRowCMockScale();
 })();
