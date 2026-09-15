@@ -471,6 +471,7 @@
     var heroPasteAfterSrc = function(stepIndex){
       return heroSteps[stepIndex].img.replace(/-before\.(webp|jpe?g)$/, "-after.$1");
     };
+    var heroMobilePasteScale15 = [6, 7, 9, 12, 13];
     var heroTileCoverDrawn = function(tile, rw, rh){
       if (!tile || !rw || !rh) return null;
       var W = tile.offsetWidth;
@@ -489,8 +490,15 @@
       el.style.aspectRatio = rw + "/" + rh;
       var drawn = tile ? heroTileCoverDrawn(tile, rw, rh) : null;
       if (heroMobile && heroMobile.matches && drawn) {
-        el.style.width = drawn.w + "px";
-        el.style.height = drawn.h + "px";
+        var pasteScale = 1;
+        if (tile) {
+          var pasteTileIdx = heroTiles.indexOf(tile);
+          if (pasteTileIdx >= 0 && heroMobilePasteScale15.indexOf(pasteTileIdx) >= 0) {
+            pasteScale = 1.5;
+          }
+        }
+        el.style.width = (drawn.w * pasteScale) + "px";
+        el.style.height = (drawn.h * pasteScale) + "px";
         return;
       }
       var panW = heroCanvasPan ? heroCanvasPan.offsetWidth : 0;
@@ -791,10 +799,14 @@
       }
       heroSetStep(heroSteps[picked[0]]);
 
-      var b = heroOffsetIn(heroBody);
       heroCursor.style.transition = "none";
-      heroCursor.style.transform = "translate(" + (b.x + heroBody.offsetWidth * 0.86) + "px," +
-                                                  (b.y + heroBody.offsetHeight * 0.92) + "px)";
+      if (heroMobile && heroMobile.matches && heroCanvas && heroCanvas.offsetWidth) {
+        heroMoveTo(heroPastePointIn(heroPasteAnchors[2].ox, heroPasteAnchors[2].oy));
+      } else {
+        var b = heroOffsetIn(heroBody);
+        heroMoveTo({ x: b.x + heroBody.offsetWidth * 0.86,
+                     y: b.y + heroBody.offsetHeight * 0.92 });
+      }
       void heroCursor.offsetWidth;
       heroCursor.style.transition = "";
 
