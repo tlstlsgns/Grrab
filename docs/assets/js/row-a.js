@@ -8,6 +8,10 @@
   var rowACopyTip = rowA.querySelector(".rowA-tip--copy");
   var rowAPasteTip = rowA.querySelector(".rowA-tip--paste");
   var rowAToast = null;
+  var rowAToastEls = [];
+  var rowAMobileToastStack = [];
+  var rowAToastFadeMs = 300;
+  var rowARepLenMobile = 1790;
   var rowACanvas = rowA.querySelector(".rowA-canvas");
   var rowACanvasPan = rowA.querySelector(".rowA-canvas-pan");
   var rowATiles = [];
@@ -47,6 +51,57 @@
     rowATimers = [];
   };
   var rowAAt = function(ms, fn){ rowATimers.push(setTimeout(fn, ms)); };
+  var rowAMobileToastDomSync = function(){
+    var stack = rowA.querySelector(".rowA-toast-stack");
+    if (!stack) return;
+    var i, el;
+    for (i = 0; i < rowAMobileToastStack.length; i++) {
+      stack.appendChild(rowAMobileToastStack[i]);
+    }
+    for (i = 0; i < rowAToastEls.length; i++) {
+      el = rowAToastEls[i];
+      if (!el) continue;
+      if (rowAMobileToastStack.indexOf(el) < 0) stack.appendChild(el);
+    }
+  };
+  var rowAMobileToastHideEl = function(el){
+    if (!el || !el.classList.contains("hero-toast--in")) return;
+    el.classList.add("hero-toast--leaving");
+    rowAAt(rowAToastFadeMs, function(){
+      el.classList.remove("hero-toast--in", "hero-toast--leaving");
+      var si = rowAMobileToastStack.indexOf(el);
+      if (si >= 0) rowAMobileToastStack.splice(si, 1);
+      rowAMobileToastDomSync();
+    });
+  };
+  var rowAResetMobileToasts = function(){
+    var i, el;
+    rowAMobileToastStack = [];
+    for (i = 0; i < rowAToastEls.length; i++) {
+      el = rowAToastEls[i];
+      if (!el) continue;
+      el.classList.remove("hero-toast--in", "hero-toast--leaving");
+    }
+    rowAMobileToastDomSync();
+  };
+  var rowAMobileToastShow = function(){
+    if (rowAToastEls.length < 2) return;
+    var el = null;
+    var i;
+    for (i = 0; i < rowAToastEls.length; i++) {
+      if (!rowAToastEls[i]) continue;
+      if (!rowAToastEls[i].classList.contains("hero-toast--in") &&
+          !rowAToastEls[i].classList.contains("hero-toast--leaving")) {
+        el = rowAToastEls[i];
+        break;
+      }
+    }
+    if (!el) return;
+    el.classList.add("hero-toast--in");
+    rowAMobileToastStack.push(el);
+    rowAMobileToastDomSync();
+    rowAAt(rowAToastMs, function(){ rowAMobileToastHideEl(el); });
+  };
   var rowAOffsetIn = function(el){
     var x = 0, y = 0, n = el;
     while (n && n !== rowA) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
@@ -75,7 +130,16 @@
     var body = rowABrowserBody();
     var gallery = body ? body.querySelector(".hero-gallery") : null;
     rowATiles = gallery ? [].slice.call(gallery.querySelectorAll(".hero-tile")) : [];
-    rowAToast = mobile ? document.getElementById("rowAToast") : document.getElementById("heroToast");
+    if (mobile) {
+      rowAToastEls = [
+        document.getElementById("rowAToast"),
+        document.getElementById("rowAToast2")
+      ];
+      rowAToast = rowAToastEls[0];
+    } else {
+      rowAToastEls = [];
+      rowAToast = document.getElementById("heroToast");
+    }
     return rowATiles;
   };
 
@@ -324,7 +388,8 @@
     }
     if (rowACopyTip) rowACopyTip.classList.remove("rowA-tip--in");
     if (rowAPasteTip) rowAPasteTip.classList.remove("rowA-tip--in");
-    if (rowAToast) rowAToast.classList.remove("hero-toast--in");
+    if (rowAMobile && rowAMobile.matches) rowAResetMobileToasts();
+    else if (rowAToast) rowAToast.classList.remove("hero-toast--in");
   };
 
   var rowAStop = function(){
@@ -335,7 +400,9 @@
   var rowAPlay = function(forcedTile){
     if (window.grrabBrowser && window.grrabBrowser.stopHero) window.grrabBrowser.stopHero();
     rowARefreshTiles();
-    if (!rowACursor || !rowACanvas || !rowACanvas.offsetWidth || !rowATiles.length) return;
+    var mobilePlay = rowAMobile && rowAMobile.matches;
+    if (!rowACursor || !rowATiles.length) return;
+    if (!mobilePlay && (!rowACanvas || !rowACanvas.offsetWidth)) return;
     rowAClearTimers();
     if (forcedTile) {
       rowAClearPastes();
@@ -347,7 +414,7 @@
     var tileOrder = rowAPickTiles(forcedTile);
     if (!tileOrder.length) return;
 
-    if (rowAReduce && rowAReduce.matches) {
+    if (rowAReduce && rowAReduce.matches && !mobilePlay) {
       var lastSlot = null;
       for (var ri = 0; ri < 5; ri++) {
         var rtile = tileOrder[ri];
@@ -359,6 +426,39 @@
       if (tileOrder[0]) tileOrder[0].classList.add("hero-tile--hot");
       rowACursor.classList.add("rowA-cursor--on");
       if (lastSlot) rowAMoveTo(rowAPastePointIn(lastSlot.ox, lastSlot.oy));
+      return;
+    }
+
+    if (mobilePlay) {
+      rowAResetMobileToasts();
+      var browserStartM = rowABrowserStartIn();
+      rowACursor.classList.add("rowA-cursor--on");
+      rowACursor.style.transition = "none";
+      rowAMoveTo(browserStartM);
+      void rowACursor.offsetWidth;
+      rowACursor.style.transition = "";
+
+      for (var repM = 0; repM < 5; repM++) {
+        (function(beat, tile){
+          var t0 = beat * rowARepLenMobile;
+          rowAAt(t0 + 60, function(){
+            if (!tile || !tile.offsetWidth) return;
+            rowAMoveTo(rowAPointIn(tile));
+            rowATrack(1000);
+          });
+          rowAAt(t0 + 1150, function(){
+            if (rowARaf) { cancelAnimationFrame(rowARaf); rowARaf = 0; }
+            rowAHotOnly(tile);
+          });
+          rowAAt(t0 + 1450, function(){
+            if (rowACopyTip) rowACopyTip.classList.add("rowA-tip--in");
+            rowAMobileToastShow();
+          });
+          rowAAt(t0 + 1790, function(){
+            if (rowACopyTip) rowACopyTip.classList.remove("rowA-tip--in");
+          });
+        })(repM, tileOrder[repM]);
+      }
       return;
     }
 

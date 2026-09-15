@@ -908,14 +908,21 @@
       position:relative !important;
       margin-top:24px !important; }
     .rowA-browser-copy{ display:block !important; }
-    .rowA-canvas{
-      grid-column:1 !important; grid-row:3 !important;
-      width:100% !important;
-      aspect-ratio:593/434 !important;
-      position:relative !important;
-      margin-top:calc(434 / 593 * 10%) !important;
-      min-height:0 !important; }
+    .rowA-canvas{ display:none !important; }
     .rowA-cursor{ z-index:5 !important; }
+    .rowA-toast-stack{
+      position:absolute;z-index:4;
+      top:calc(10 * var(--hero-btn-u));right:calc(10 * var(--hero-btn-u));
+      display:flex;flex-direction:column;align-items:flex-end;
+      gap:calc(8 * var(--hero-btn-u));pointer-events:none;}
+    .rowA-toast-stack .hero-toast{
+      position:relative;top:auto;right:auto;
+      max-height:calc(40 * var(--hero-btn-u));
+      transition:opacity .3s ease,max-height .3s ease,padding .3s ease,margin .3s ease;}
+    .rowA-toast-stack .hero-toast.hero-toast--leaving{
+      opacity:0;max-height:0;
+      padding-top:0;padding-bottom:0;
+      margin:0;overflow:hidden;pointer-events:none;}
 
     .rowB-scale-wrap{ height:auto !important; overflow:visible !important; }
     .grrab-rowB{ width:100% !important; transform:none !important; }
