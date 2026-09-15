@@ -889,7 +889,22 @@
       position:relative !important;
       margin-top:0 !important;
       margin-bottom:calc(434 / 593 * 10%) !important;
-      min-height:0 !important; }
+      min-height:0 !important;
+      border:none !important; }
+    /* Bleed stays full inset on desktop; on phone only top/bottom extend — horizontal
+       -10% was widening the page (figure overflow:visible, L881). Bottom fade unchanged. */
+    .hero-canvas-bleed{
+      inset:-10% 0 !important;
+      -webkit-mask-image:
+        linear-gradient(to bottom,transparent 0%,#000 10%),
+        linear-gradient(to top,transparent 0%,#000 10%);
+      -webkit-mask-composite:source-in;
+      mask-image:
+        linear-gradient(to bottom,transparent 0%,#000 10%),
+        linear-gradient(to top,transparent 0%,#000 10%);
+      mask-composite:intersect; }
+    .hero-canvas-bleed::before{
+      background-position:calc(8 * var(--canvas-u)) calc(8 * var(--canvas-u)); }
     .hero-text{
       grid-column:1 / -1 !important; grid-row:1 !important;
       position:absolute !important; top:0 !important; left:0 !important;
