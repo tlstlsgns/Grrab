@@ -367,6 +367,14 @@
                y: p.y + heroCanvas.offsetHeight * oy };
     };
     var heroAnchorTiers = [[4], [0, 2, 6, 8], [1, 3, 5, 7]];
+    var heroMobileAnchorSkip = [3, 4, 5];
+    var heroAnchorIndexAllowed = function(ai){
+      if (!heroMobile || !heroMobile.matches) return true;
+      for (var si = 0; si < heroMobileAnchorSkip.length; si++) {
+        if (heroMobileAnchorSkip[si] === ai) return false;
+      }
+      return true;
+    };
     var heroPickAnchor = function(){
       var ai, pi, ti, ki, pool = [], tierPool = [];
       for (ai = 0; ai < heroPasteAnchors.length; ai++) {
@@ -374,9 +382,15 @@
         for (pi = 0; pi < heroUsedAnchors.length; pi++) {
           if (heroUsedAnchors[pi] === ai) { taken = true; break; }
         }
-        if (!taken) pool.push(ai);
+        if (!taken && heroAnchorIndexAllowed(ai)) pool.push(ai);
       }
-      if (!pool.length) return Math.floor(Math.random() * heroPasteAnchors.length);
+      if (!pool.length) {
+        if (heroMobile && heroMobile.matches) {
+          var mobFallback = [0, 1, 2, 6, 7, 8];
+          return mobFallback[Math.floor(Math.random() * mobFallback.length)];
+        }
+        return Math.floor(Math.random() * heroPasteAnchors.length);
+      }
       for (ti = 0; ti < heroAnchorTiers.length; ti++) {
         tierPool = [];
         for (ki = 0; ki < heroAnchorTiers[ti].length; ki++) {
@@ -474,6 +488,11 @@
       if (!rw || !rh) return;
       el.style.aspectRatio = rw + "/" + rh;
       var drawn = tile ? heroTileCoverDrawn(tile, rw, rh) : null;
+      if (heroMobile && heroMobile.matches && drawn) {
+        el.style.width = drawn.w + "px";
+        el.style.height = drawn.h + "px";
+        return;
+      }
       var panW = heroCanvasPan ? heroCanvasPan.offsetWidth : 0;
       var panH = heroCanvasPan ? heroCanvasPan.offsetHeight : 0;
       if (rw > rh) {
