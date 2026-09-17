@@ -38,6 +38,8 @@ import {
   getNavigableAnchorUrl,
   extractYouTubeShortcodeFromUrl,
   getYouTubeThumbnailUrl,
+  parseInstagramShortcodeFromUrl,
+  getInstagramMediaShortcutUrl,
   resetInstagramShortcodeObservers,
 } from './dataExtractor.js';
 import {
@@ -207,6 +209,7 @@ let _lastMouseoverTarget = null;
 // Debounce ~50ms — burst mutations during framework render cycles collapse
 // to a single refresh.
 let _coreItemMutationObserver = null;
+const instagramTypeDThumbFetchInFlightByElement = new WeakMap();
 let _coreItemMetadataDebounceTimer = null;
 let _observedCoreItemElement = null;
 // === END PHASE_COREITEM_LIVE_METADATA ===
@@ -992,6 +995,77 @@ function withInstagramActiveHoverUrl(meta = {}, coreItem = null, cachedExtractio
   if (currentUrl) return meta;
   const assignedUrl = `https://www.instagram.com/p/${encodeURIComponent(shortcode)}/`;
   return { ...meta, shortcode, activeHoverUrl: assignedUrl };
+}
+
+function _kcInstagramTypeDVideoThumbEligible(coreItem, meta, evidenceType) {
+  if (evidenceType !== 'D' && evidenceType !== EVIDENCE_TYPE_IMAGE_ANCHOR) return null;
+  const platform = String(meta?.platform || getCurrentPlatform() || '').toUpperCase();
+  if (platform !== 'INSTAGRAM') return null;
+  const shortcode = parseInstagramShortcodeFromUrl(meta?.activeHoverUrl);
+  if (!shortcode) return null;
+  try {
+    const dominant = findDominantImagesInElement(coreItem, 'D').values().next().value || null;
+    if (!dominant) return null;
+    const tag = String(dominant.tagName || '').toUpperCase();
+    if (tag !== 'VIDEO') return null;
+    return shortcode;
+  } catch (e) {
+    return null;
+  }
+}
+
+function requestInstagramTypeDVideoThumbnail(coreItem, shortcode) {
+  if (!coreItem || coreItem.nodeType !== 1 || !shortcode) return;
+  const alreadyRequestedFor = instagramTypeDThumbFetchInFlightByElement.get(coreItem);
+  if (alreadyRequestedFor === shortcode) return;
+  instagramTypeDThumbFetchInFlightByElement.set(coreItem, shortcode);
+  const mediaUrl = getInstagramMediaShortcutUrl(shortcode);
+  if (!mediaUrl) {
+    instagramTypeDThumbFetchInFlightByElement.delete(coreItem);
+    return;
+  }
+  _kcSend({ action: 'resolve-redirect', url: mediaUrl }).then((result) => {
+    instagramTypeDThumbFetchInFlightByElement.delete(coreItem);
+    if (!result?.success) return;
+    const resolvedUrl = String(result.resolvedUrl || '').trim();
+    if (!resolvedUrl) return;
+    if (
+      !resolvedUrl.includes('cdninstagram.com') &&
+      !resolvedUrl.includes('fbcdn.net')
+    ) {
+      return;
+    }
+    if (state.activeCoreItem !== coreItem) return;
+    const activeMeta = state.lastExtractedMetadata || {};
+    if (parseInstagramShortcodeFromUrl(activeMeta?.activeHoverUrl) !== shortcode) return;
+    const prevImage = activeMeta?.image && typeof activeMeta.image === 'object' ? activeMeta.image : {};
+    state.lastExtractedMetadata = {
+      ...activeMeta,
+      image: {
+        ...prevImage,
+        url: resolvedUrl,
+      },
+    };
+    try {
+      prefetchImageBlob(resolvedUrl, pickDominantImageElement(coreItem));
+    } catch (_) {}
+  });
+}
+
+function _kcInstagramTypeDCdnThumbnailForClip(meta, activeItem, imageUrl) {
+  const url = String(imageUrl || '').trim();
+  if (!url) return false;
+  if (!url.includes('cdninstagram.com') && !url.includes('fbcdn.net')) return false;
+  const platform = String(meta?.platform || getCurrentPlatform() || '').toUpperCase();
+  if (platform !== 'INSTAGRAM') return false;
+  if (!(activeItem instanceof Element)) return false;
+  try {
+    const ev = getItemMapEntryByElement(activeItem)?.evidenceType || '';
+    if (ev !== 'D' && ev !== EVIDENCE_TYPE_IMAGE_ANCHOR) return false;
+  } catch (_) {
+    return false;
+  }
+  return true;
 }
 
 // === PHASE_COREITEM_LIVE_METADATA ===
@@ -2385,6 +2459,9 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
 
   // === END PHASE27F_TYPE_E_OVERRIDES ===
 
+  // Instagram Type D + dominant <video>: async CDN thumbnail via resolve-redirect
+  // (request runs after category enrichment — see _igTypeDVideoShortcode below).
+
   // Type B no-URL gate (preserved). Type B without a URL must not
   // activate; the prior Instagram/Threads/Facebook enrichment was
   // its only chance to produce one.
@@ -2452,6 +2529,12 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
     syncedMeta = { ...syncedMeta, category: 'Image' };
   }
   // === END PHASE27F_TYPE_E_CATEGORY ===
+
+  const _igTypeDVideoShortcode = _kcInstagramTypeDVideoThumbEligible(
+    coreItem,
+    syncedMeta,
+    evidenceType
+  );
 
   // Final activation. The iframe-vs-top split is preserved.
   // === PHASE_OVERLAY_ON_IMAGE ===
@@ -2642,6 +2725,9 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
       }, '*');
     } catch (_) { /* defensive */ }
     // === END PHASE_IFRAME_HOVER_PROPAGATION ===
+    if (_igTypeDVideoShortcode) {
+      requestInstagramTypeDVideoThumbnail(coreItem, _igTypeDVideoShortcode);
+    }
     return true;
   }
   state.activeCoreItem = coreItem;
@@ -2652,6 +2738,9 @@ async function updateCoreSelectionFromTarget(target, clientX = null, clientY = n
   // === END PHASE_COREITEM_LIVE_METADATA ===
   if (state.activeOverlayElement !== null) {
     showCoreStatusBadge('default');
+  }
+  if (_igTypeDVideoShortcode) {
+    requestInstagramTypeDVideoThumbnail(coreItem, _igTypeDVideoShortcode);
   }
   return true;
   // === END PHASE27B_HOVER_DISPATCH ===
@@ -4840,13 +4929,15 @@ function performSyncClipboardWrite(state) {
     const dominantElPriority = pickDominantImageElement(activeItem);
     const priorityTag = dominantElPriority ? String(dominantElPriority.tagName || '').toUpperCase() : '';
     if (dominantElPriority && (priorityTag === 'VIDEO' || priorityTag === 'SHREDDIT-PLAYER')) {
-      const combinedPromise = videoElementToBlobAndDataUrl(dominantElPriority, 1200)
-        .catch(() => null);
-      const blobPromise = combinedPromise.then((r) => r?.blob || null);
-      const dataUrlPromise = combinedPromise.then((r) => r?.dataUrl || null);
-      const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
-      if (ctrl) ctrl._isVideo = true;
-      return attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise);
+      if (!_kcInstagramTypeDCdnThumbnailForClip(meta, activeItem, imageUrl)) {
+        const combinedPromise = videoElementToBlobAndDataUrl(dominantElPriority, 1200)
+          .catch(() => null);
+        const blobPromise = combinedPromise.then((r) => r?.blob || null);
+        const dataUrlPromise = combinedPromise.then((r) => r?.dataUrl || null);
+        const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
+        if (ctrl) ctrl._isVideo = true;
+        return attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise);
+      }
     }
   }
   // === END PHASE_VIDEO_DOMINANT_AUTHORITATIVE ===
@@ -4895,6 +4986,9 @@ function performSyncClipboardWrite(state) {
       const dominantEl = pickDominantImageElement(activeItem);
     const fallbackTag = dominantEl ? String(dominantEl.tagName || '').toUpperCase() : '';
     if (dominantEl && (fallbackTag === 'VIDEO' || fallbackTag === 'SHREDDIT-PLAYER')) {
+      if (_kcInstagramTypeDCdnThumbnailForClip(meta, activeItem, imageUrl)) {
+        return null;
+      }
       // Single drawImage produces both blob and dataUrl — same frame.
       const combinedPromise = videoElementToBlobAndDataUrl(dominantEl, 1200)
         .catch(() => null);

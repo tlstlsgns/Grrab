@@ -2799,6 +2799,41 @@ let _igFeedObserver = null;
 const _IG_POST_PATTERNS = [/\/p\/([A-Za-z0-9_-]+)/i, /\/reels?\/([A-Za-z0-9_-]+)/i];
 const _IG_SKIP_SEGMENTS = new Set(['audio', 'explore', 'stories', 'highlights', 'tv', 'live', 'ar', 'location']);
 
+/**
+ * Parse an Instagram post/reel shortcode from a URL string (not DOM).
+ * Uses the same path patterns as _IG_POST_PATTERNS.
+ */
+export function parseInstagramShortcodeFromUrl(url) {
+  try {
+    const raw = String(url || '').trim();
+    if (!raw) return null;
+    let path = raw;
+    try {
+      if (/^https?:\/\//i.test(raw)) {
+        path = new URL(raw).pathname || '';
+      }
+    } catch (_) {
+      path = raw;
+    }
+    for (const re of _IG_POST_PATTERNS) {
+      const m = path.match(re) || raw.match(re);
+      if (m && m[1] && !_IG_SKIP_SEGMENTS.has(String(m[1]).toLowerCase())) {
+        return String(m[1]).trim();
+      }
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Media shortcut URL; CDN URL is resolved via redirect (background resolve-redirect). */
+export function getInstagramMediaShortcutUrl(shortcode) {
+  const sc = String(shortcode || '').trim();
+  if (!sc) return '';
+  return `https://www.instagram.com/p/${encodeURIComponent(sc)}/media/?size=l`;
+}
+
 function _igExtractShortcodeFromArticle(article) {
   const anchors = Array.from(article.querySelectorAll('a[href]'));
   for (const a of anchors) {
