@@ -1455,6 +1455,8 @@ let _kcFollowCachedHoles = null;
 let _kcFollowCoreItem = null;
 let _kcFollowSrcEl = null;
 let _kcFollowTeardownBound = false;
+let _kcFollowOnPagehide = null;
+let _kcFollowOnVisibility = null;
 
 const KC_FOLLOW_RECT_EPS = 0.5;
 const KC_FOLLOW_HOLE_INTERVAL_MS = 120;
@@ -1471,10 +1473,12 @@ function _kcBindFollowTeardown() {
   if (_kcFollowTeardownBound) return;
   _kcFollowTeardownBound = true;
   try {
-    window.addEventListener('pagehide', _kcStopFollow, true);
-    document.addEventListener('visibilitychange', () => {
+    _kcFollowOnPagehide = _kcStopFollow;
+    _kcFollowOnVisibility = () => {
       if (document.visibilityState === 'hidden') _kcStopFollow();
-    });
+    };
+    window.addEventListener('pagehide', _kcFollowOnPagehide, true);
+    document.addEventListener('visibilitychange', _kcFollowOnVisibility);
   } catch (_) {}
 }
 
@@ -1589,6 +1593,23 @@ let _kcShortcutTipArmed = false;    // true after show, until first positioning 
 // in-flight fade finishes on its own.
 const KC_SHORTCUT_TIP_WINDOW_MS = 3000;
 let _kcShortcutTipWindowStart = 0;
+function _kcShortcutTipPageWindowElapsed() {
+  if (_kcShortcutTipWindowStart === 0) return false;
+  return Date.now() - _kcShortcutTipWindowStart > KC_SHORTCUT_TIP_WINDOW_MS;
+}
+function _kcExpireShortcutTipPageWindow() {
+  _kcShortcutTipWindowStart = Date.now() - KC_SHORTCUT_TIP_WINDOW_MS - 1;
+}
+// PHASE_SHORTCUT_TIP_HAS_COPIED: persisted first-copy marker; sync read in coreEntry init.
+export const KC_HAS_COPIED_KEY = 'kc_has_copied';
+let _kcHasCopiedOnce = false;
+export function syncKcHasCopiedOnce(value) {
+  const next = !!value;
+  if (_kcHasCopiedOnce && !next) {
+    _kcShortcutTipWindowStart = 0;
+  }
+  _kcHasCopiedOnce = next;
+}
 function _kcClearShortcutTipTimer() {
   if (_kcShortcutTipHoldTimer) { clearTimeout(_kcShortcutTipHoldTimer); _kcShortcutTipHoldTimer = null; }
 }
@@ -1673,21 +1694,24 @@ function _kcPositionShortcutTip(x, y) {
     _kcShortcutTipArmed = false;
     el.style.transition = 'none';
     el.style.opacity = '1';
-    _kcShortcutTipHoldTimer = setTimeout(() => {
-      try {
-        el.style.transition = 'opacity 0.5s linear';
-        el.style.opacity = '0';
-      } catch (_) {}
-    }, 750);
+    if (_kcHasCopiedOnce) {
+      _kcShortcutTipHoldTimer = setTimeout(() => {
+        try {
+          el.style.transition = 'opacity 0.5s linear';
+          el.style.opacity = '0';
+        } catch (_) {}
+      }, 750);
+    }
   }
 }
 function showShortcutTip(coreItem) {
   try {
     // PHASE_SHORTCUT_TIP_WINDOW: start the 5s window on the first activation after load; once it
     // has elapsed, block new tips (a tip already mid-fade finishes on its own timer).
-    const _kcNow = Date.now();
-    if (_kcShortcutTipWindowStart === 0) _kcShortcutTipWindowStart = _kcNow;
-    else if (_kcNow - _kcShortcutTipWindowStart > KC_SHORTCUT_TIP_WINDOW_MS) return;
+    if (_kcHasCopiedOnce) {
+      if (_kcShortcutTipPageWindowElapsed()) return;
+      if (_kcShortcutTipWindowStart === 0) _kcShortcutTipWindowStart = Date.now();
+    }
     // PHASE_SHORTCUT_TIP_DWELL: run the lifecycle once per item; ignore repeat calls for the
     // same active item (scroll/rect refresh) so it doesn't restart mid-fade.
     if (coreItem && coreItem === _kcShortcutTipItem) return;
@@ -1714,6 +1738,7 @@ export function showShortcutTipImmediate(coreItem, x, y) {
     const text = (typeof _coreBadgeDefaultText === 'string') ? _coreBadgeDefaultText : '';
     if (!text) return;
     if (document.documentElement && document.documentElement.classList.contains('kc-clip-wait')) return;
+    if (_kcHasCopiedOnce && _kcShortcutTipPageWindowElapsed()) return;
     _kcShortcutTipItem = coreItem || _kcShortcutTipItem;
     const el = ensureShortcutTip();
     _kcSetShortcutTipMarkup(el, text);
@@ -1860,9 +1885,17 @@ export function isCoreHighlightShown() {
 // === END PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
 
 // === PHASE_SHUTTER_REMOVAL ===
-// Clip-completion ring removed. markCoreHighlightClipped is now an intentional no-op, kept
-// exported for the saveActiveCoreItem call site. Clip success feedback is the toast stack only.
-export function markCoreHighlightClipped() {}
+// Clip-completion ring removed. First successful clip persists KC_HAS_COPIED_KEY so the
+// shortcut tip reverts to the post-onboarding dwell/window rules.
+export function markCoreHighlightClipped() {
+  if (_kcHasCopiedOnce) return;
+  _kcHasCopiedOnce = true;
+  try {
+    chrome.storage.local.set({ [KC_HAS_COPIED_KEY]: true }).catch(() => {});
+  } catch (_) {}
+  _kcExpireShortcutTipPageWindow();
+  hideShortcutTip();
+}
 // === END PHASE_SHUTTER_REMOVAL ===
 
 function ensureGreenLayer() {
@@ -1925,6 +1958,17 @@ export const showGreenCandidateOutline = renderItemMapCandidates;
 // path already; none of them was reachable from outside the module.
 export function resetUiManagerForTeardown() {
   try { _kcStopFollow(); } catch (_) {}
+  if (_kcFollowTeardownBound) {
+    try {
+      if (_kcFollowOnPagehide) window.removeEventListener('pagehide', _kcFollowOnPagehide, true);
+    } catch (_) {}
+    try {
+      if (_kcFollowOnVisibility) document.removeEventListener('visibilitychange', _kcFollowOnVisibility);
+    } catch (_) {}
+    _kcFollowTeardownBound = false;
+    _kcFollowOnPagehide = null;
+    _kcFollowOnVisibility = null;
+  }
   try { _kcClearShortcutTipTimer(); } catch (_) {}
   try { _kcCancelHideReset(); } catch (_) {}
   try { if (_kcShortcutTipClipObserver) _kcShortcutTipClipObserver.disconnect(); } catch (_) {}

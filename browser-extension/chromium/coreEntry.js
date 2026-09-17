@@ -49,6 +49,8 @@ import {
   isCoreHighlightShown,
   showShortcutTipImmediate,
   resetUiManagerForTeardown,
+  syncKcHasCopiedOnce,
+  KC_HAS_COPIED_KEY,
 } from './uiManager.js';
 import {
   determineTypeDOverlayElement,
@@ -110,6 +112,14 @@ let _kcDomDrivenMutationObserver = null;
 let _kcOrigPushState = null;
 let _kcOrigReplaceState = null;
 let _kcShortcutChangeUnsubscribe = null;
+let _kcClipEffectStorageListener = null;
+let _kcActiveEnabledStorageListener = null;
+let _kcHasCopiedStorageListener = null;
+let _kcContentPort = null;
+let _kcRuntimeAlivePollInterval = null;
+let _kcPageInBfcache = false;
+const KC_CONTENT_PORT_NAME = 'kickclip-content';
+const KC_RUNTIME_ALIVE_POLL_MS = 30000;
 
 function _kcClearSpaLateScanTimers() {
   try {
@@ -396,10 +406,11 @@ function initClipEffectSync() {
     }
   })();
   try {
-    chrome.storage.onChanged.addListener((changes, area) => {
+    _kcClipEffectStorageListener = (changes, area) => {
       if (area !== 'local' || !changes[KC_CLIP_EFFECT_KEY]) return;
       _clipEffect = _normalizeClipEffect(changes[KC_CLIP_EFFECT_KEY].newValue);
-    });
+    };
+    chrome.storage.onChanged.addListener(_kcClipEffectStorageListener);
   } catch (_) {}
 }
 
@@ -413,6 +424,16 @@ initClipEffectSync();
 function _kcRuntimeAlive() {
   try { return !!(chrome && chrome.runtime && chrome.runtime.id); }
   catch (_) { return false; }
+}
+
+function _kcExtensionDeadTeardownIfNeeded() {
+  if (_kcRuntimeAlive()) return false;
+  try {
+    if (!window.__kickclipCoreTornDown && typeof window.__kickclipCoreTeardown === 'function') {
+      window.__kickclipCoreTeardown();
+    }
+  } catch (_) {}
+  return true;
 }
 
 function _kcSend(msg) {
@@ -477,17 +498,41 @@ function initActiveEnabledSync() {
     }
   })();
   try {
-    chrome.storage.onChanged.addListener((changes, area) => {
+    _kcActiveEnabledStorageListener = (changes, area) => {
       if (area !== 'local' || !changes[KC_ACTIVE_ENABLED_KEY]) return;
       _kcActiveEnabled = (changes[KC_ACTIVE_ENABLED_KEY].newValue !== false);
       if (!_kcActiveEnabled) {
         try { if (state.activeCoreItem) coreClear(); } catch (_) {}
       }
-    });
+    };
+    chrome.storage.onChanged.addListener(_kcActiveEnabledStorageListener);
   } catch (_) {}
 }
 initActiveEnabledSync();
 // === END PHASE_ACTIVE_TOGGLE ===
+
+// === PHASE_SHORTCUT_TIP_HAS_COPIED ===
+// Until the reader copies once, the hover shortcut tip stays up for the whole hover (no 3s
+// window, no auto-fade). Synced from chrome.storage.local like kc_active_enabled.
+function initHasCopiedSync() {
+  (async () => {
+    try {
+      const r = await chrome.storage.local.get(KC_HAS_COPIED_KEY);
+      syncKcHasCopiedOnce(!!r?.[KC_HAS_COPIED_KEY]);
+    } catch (_) {
+      syncKcHasCopiedOnce(false);
+    }
+  })();
+  try {
+    _kcHasCopiedStorageListener = (changes, area) => {
+      if (area !== 'local' || !changes[KC_HAS_COPIED_KEY]) return;
+      syncKcHasCopiedOnce(!!changes[KC_HAS_COPIED_KEY].newValue);
+    };
+    chrome.storage.onChanged.addListener(_kcHasCopiedStorageListener);
+  } catch (_) {}
+}
+initHasCopiedSync();
+// === END PHASE_SHORTCUT_TIP_HAS_COPIED ===
 
 // === PHASE_CLIP_LOADING_UI ===
 // Loading UX between ⌘C press and clip completion. SR upscaling adds ~1.2s of
@@ -5518,6 +5563,7 @@ async function _kcOnWindowScroll() {
     );
   }
 async function _kcOnKeydown(event) {
+    if (_kcExtensionDeadTeardownIfNeeded()) return;
     if (event.metaKey && event.shiftKey && _kcIsLoneModifierKey(event)) {
       _kcModChordArmed = true;
     } else {
@@ -5701,6 +5747,7 @@ async function _kcOnKeyup(event) {
     await _kcToggleClipMode();
   }
 async function _kcOnWindowMouseover(e) {
+    if (_kcExtensionDeadTeardownIfNeeded()) return;
     if (!_windowFocused) return;
     lastPointerX = e?.clientX ?? lastPointerX;
     lastPointerY = e?.clientY ?? lastPointerY;
@@ -5787,6 +5834,7 @@ async function _kcOnWindowMouseover(e) {
     await updateCoreSelectionFromTarget(target, e.clientX, e.clientY);
   }
 function _kcOnWindowMousemove(e) {
+    if (_kcExtensionDeadTeardownIfNeeded()) return;
     lastPointerX = e?.clientX ?? lastPointerX;
     lastPointerY = e?.clientY ?? lastPointerY;
 
@@ -5935,8 +5983,21 @@ function _kcOnDocumentMouseover(e) {
       } catch (e) {}
     }
   }
-function _kcOnPagehide() {
+function _kcOnPagehide(e) {
     try { _kcClearSpaLateScanTimers(); } catch (_) {}
+    if (e && e.persisted) {
+      _kcPageInBfcache = true;
+      try {
+        if (_kcContentPort) _kcContentPort.disconnect();
+      } catch (_) {}
+      _kcContentPort = null;
+    }
+  }
+function _kcOnPageshow(e) {
+    if (!e || !e.persisted) return;
+    _kcPageInBfcache = false;
+    if (window.__kickclipCoreTornDown) return;
+    try { _kcMountContentPort(); } catch (_) {}
   }
 function resetAndFullScan() {
     _kcClearSpaLateScanTimers();
@@ -6021,6 +6082,7 @@ function mountWindowListeners() {
   document.addEventListener('mouseover', _kcOnDocumentMouseover, { passive: true });
 
   window.addEventListener('pagehide', _kcOnPagehide, { passive: true });
+  window.addEventListener('pageshow', _kcOnPageshow, { passive: true });
   window.addEventListener('popstate', resetAndFullScan, { passive: true });
   window.addEventListener('hashchange', resetAndFullScan, { passive: true });
   window.addEventListener('yt-navigate-finish', _kcOnYtNavigateFinish, { passive: true });
@@ -6134,6 +6196,7 @@ function mountLifecycle() {
     mountIframeHoverPropagationListener();
     // === END PHASE_IFRAME_HOVER_PROPAGATION ===
   }
+  _kcStartExtensionRuntimeWatch();
 }
 
 // === PHASE27B_REMOVED_GLOBAL ===
@@ -6150,11 +6213,82 @@ function mountLifecycle() {
 // attempt initialization in all contexts; Chrome extensions are not loaded
 // by Electron apps anyway, so removing the guard has no effective impact.
 
+function _kcOnContentPortDisconnect() {
+  _kcContentPort = null;
+  if (_kcPageInBfcache) return;
+  if (!_kcRuntimeAlive()) {
+    try {
+      if (!window.__kickclipCoreTornDown && typeof window.__kickclipCoreTeardown === 'function') {
+        window.__kickclipCoreTeardown();
+      }
+    } catch (_) {}
+    return;
+  }
+  try { _kcMountContentPort(); } catch (_) {}
+}
+
+function _kcMountContentPort() {
+  if (window.__kickclipCoreTornDown) return;
+  if (_kcPageInBfcache) return;
+  if (!_kcRuntimeAlive()) {
+    _kcExtensionDeadTeardownIfNeeded();
+    return;
+  }
+  try {
+    if (_kcContentPort) {
+      try { _kcContentPort.disconnect(); } catch (_) {}
+      _kcContentPort = null;
+    }
+    _kcContentPort = chrome.runtime.connect({ name: KC_CONTENT_PORT_NAME });
+    _kcContentPort.onDisconnect.addListener(_kcOnContentPortDisconnect);
+  } catch (_) {
+    _kcExtensionDeadTeardownIfNeeded();
+  }
+}
+
+function _kcStartExtensionRuntimeWatch() {
+  _kcMountContentPort();
+  if (_kcRuntimeAlivePollInterval != null) return;
+  _kcRuntimeAlivePollInterval = window.setInterval(() => {
+    if (window.__kickclipCoreTornDown) {
+      try { window.clearInterval(_kcRuntimeAlivePollInterval); } catch (_) {}
+      _kcRuntimeAlivePollInterval = null;
+      return;
+    }
+    if (!_kcRuntimeAlive()) {
+      try {
+        if (typeof window.__kickclipCoreTeardown === 'function') window.__kickclipCoreTeardown();
+      } catch (_) {}
+    }
+  }, KC_RUNTIME_ALIVE_POLL_MS);
+}
+
+function _kcOnTeardownRequest(e) {
+  try {
+    if (!e || !e.data || e.data[KC_TEARDOWN_REQUEST] !== true) return;
+    window.removeEventListener('message', _kcOnTeardownRequest);
+    window.__kickclipCoreTeardown();
+    window.postMessage({ [KC_TEARDOWN_COMPLETE]: true, version: '1.6.0' }, '*');
+  } catch (_) {}
+}
+
 // PHASE_TAKEOVER: called by a LATER version after it is injected into this page, so
 // this copy stops responding before the new one starts. Nothing in this version calls
 // it. It must not throw: by the time it runs, chrome.runtime is already severed.
 if (!_kcCoreSkipInit) {
   window.__kickclipCoreTeardown = function () {
+    if (window.__kickclipCoreTornDown) return;
+    try { window.removeEventListener('message', _kcOnTeardownRequest); } catch (_) {}
+    try {
+      if (_kcContentPort) { _kcContentPort.disconnect(); }
+    } catch (_) {}
+    _kcContentPort = null;
+    try {
+      if (_kcRuntimeAlivePollInterval != null) {
+        window.clearInterval(_kcRuntimeAlivePollInterval);
+      }
+    } catch (_) {}
+    _kcRuntimeAlivePollInterval = null;
     try { window.removeEventListener('load', _kcOnWindowLoad); } catch (_) {}
     try { document.removeEventListener('load', _kcOnDocumentImgLoad, true); } catch (_) {}
     try { window.removeEventListener('scroll', _kcOnWindowScroll, true); } catch (_) {}
@@ -6166,6 +6300,7 @@ if (!_kcCoreSkipInit) {
     try { document.removeEventListener('mouseout', _kcOnDocumentMouseout); } catch (_) {}
     try { document.removeEventListener('mouseover', _kcOnDocumentMouseover); } catch (_) {}
     try { window.removeEventListener('pagehide', _kcOnPagehide); } catch (_) {}
+    try { window.removeEventListener('pageshow', _kcOnPageshow); } catch (_) {}
     try { window.removeEventListener('popstate', resetAndFullScan); } catch (_) {}
     try { window.removeEventListener('hashchange', resetAndFullScan); } catch (_) {}
     try { window.removeEventListener('yt-navigate-finish', _kcOnYtNavigateFinish); } catch (_) {}
@@ -6188,6 +6323,24 @@ if (!_kcCoreSkipInit) {
         chrome.storage.onChanged.removeListener(_kcOnStorageChangedAuth);
       }
     } catch (_) {}
+    try {
+      if (_kcClipEffectStorageListener && chrome.storage?.onChanged?.removeListener) {
+        chrome.storage.onChanged.removeListener(_kcClipEffectStorageListener);
+      }
+    } catch (_) {}
+    _kcClipEffectStorageListener = null;
+    try {
+      if (_kcActiveEnabledStorageListener && chrome.storage?.onChanged?.removeListener) {
+        chrome.storage.onChanged.removeListener(_kcActiveEnabledStorageListener);
+      }
+    } catch (_) {}
+    _kcActiveEnabledStorageListener = null;
+    try {
+      if (_kcHasCopiedStorageListener && chrome.storage?.onChanged?.removeListener) {
+        chrome.storage.onChanged.removeListener(_kcHasCopiedStorageListener);
+      }
+    } catch (_) {}
+    _kcHasCopiedStorageListener = null;
     try { if (_kcShortcutChangeUnsubscribe) _kcShortcutChangeUnsubscribe(); } catch (_) {}
     try { if (_kcMainMutationObserver) _kcMainMutationObserver.disconnect(); } catch (_) {}
     try { _kcMainMutationObserver = null; } catch (_) {}
@@ -6241,21 +6394,12 @@ if (!_kcCoreSkipInit) {
     } catch (_) {}
     try { _kcClipCursorWait(false); } catch (_) {}
     try { window.__kickclipCoreLoaded = false; } catch (_) {}
+    try { window.__kickclipCoreTornDown = true; } catch (_) {}
   };
   // PHASE_TAKEOVER: the request arrives from a newer build injected into this page. It
   // runs in a different isolated world, so it cannot call the teardown directly — a
   // window message is the only channel that crosses.
-  window.addEventListener('message', function _kcOnTeardownRequest(e) {
-    try {
-      if (!e || !e.data || e.data[KC_TEARDOWN_REQUEST] !== true) return;
-      window.removeEventListener('message', _kcOnTeardownRequest);
-      window.__kickclipCoreTeardown();
-      // PHASE_TAKEOVER: the teardown is synchronous, so by here this instance has stopped.
-      // The version rides along: a later build can then tell which predecessor it is
-      // replacing without having to guess.
-      window.postMessage({ [KC_TEARDOWN_COMPLETE]: true, version: '1.6.0' }, '*');
-    } catch (_) {}
-  });
+  window.addEventListener('message', _kcOnTeardownRequest);
 }
 
 if (!_kcCoreSkipInit) checkKcUserAndInit();

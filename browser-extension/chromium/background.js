@@ -22,11 +22,130 @@ let _cachedUserId = null; // cached login state for synchronous access in onComm
 const KC_TEARDOWN_REQUEST = '__kickclip_teardown_request__';
 const KC_TEARDOWN_COMPLETE = '__kickclip_teardown_complete__';
 const KC_TEARDOWN_TIMEOUT_MS = 500;
+const KC_OPEN_TABS_INJECTED_SESSION_KEY = 'kc_open_tabs_injected_v1';
+const KC_BROWSER_BOOT_SESSION_KEY = 'kc_browser_boot_v1';
+const KC_HAS_COPIED_KEY = 'kc_has_copied';
+const KC_CONTENT_SCRIPT_FILES = ['config.js', 'content-bundle.js'];
+let _kcOpenTabsInjectClaimed = false;
+let _kcOnStartupSeen = false;
+
+chrome.runtime.onStartup.addListener(() => {
+  _kcOnStartupSeen = true;
+  try {
+    chrome.storage.session.set({ [KC_BROWSER_BOOT_SESSION_KEY]: true });
+  } catch (_) {}
+});
+
+async function _kcWaitForBrowserBootSessionFlag(maxMs = 100) {
+  if (_kcOnStartupSeen) return;
+  try {
+    const s = await chrome.storage.session.get(KC_BROWSER_BOOT_SESSION_KEY);
+    if (s?.[KC_BROWSER_BOOT_SESSION_KEY]) return;
+  } catch (_) {}
+  const step = 25;
+  for (let waited = 0; waited < maxMs; waited += step) {
+    await new Promise((r) => setTimeout(r, step));
+    if (_kcOnStartupSeen) return;
+    try {
+      const s = await chrome.storage.session.get(KC_BROWSER_BOOT_SESSION_KEY);
+      if (s?.[KC_BROWSER_BOOT_SESSION_KEY]) return;
+    } catch (_) {}
+  }
+}
+
+async function _kcClearHasCopiedIfReEnabled() {
+  try {
+    const s = await chrome.storage.session.get(KC_BROWSER_BOOT_SESSION_KEY);
+    if (s?.[KC_BROWSER_BOOT_SESSION_KEY]) return;
+    await chrome.storage.local.remove(KC_HAS_COPIED_KEY);
+  } catch (_) {}
+}
+
+function _kcTabUrlEligibleForInjection(url) {
+  if (!url || typeof url !== 'string') return false;
+  const u = url.trim();
+  if (
+    u.startsWith('chrome://') ||
+    u.startsWith('chrome-extension://') ||
+    u.startsWith('edge://') ||
+    u.startsWith('arc://') ||
+    u.startsWith('about:') ||
+    u.startsWith('devtools://')
+  ) return false;
+  if (u.startsWith('https://chrome.google.com/webstore')) return false;
+  return u.startsWith('http://') || u.startsWith('https://');
+}
+
+async function _kcInjectOpenTab(tabId, url) {
+  if (!_kcTabUrlEligibleForInjection(url)) return;
+  let results = [];
+  try {
+    results = await chrome.scripting.executeScript({
+      target: { tabId, allFrames: true },
+      func: () => ({
+        needInject: !(window.__kickclipCoreLoaded && !window.__kickclipCoreTornDown),
+      }),
+    });
+  } catch (_) {
+    return;
+  }
+  const frameIds = [];
+  for (const r of results) {
+    if (r?.result?.needInject) frameIds.push(r.frameId);
+  }
+  if (!frameIds.length) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId, frameIds },
+      files: KC_CONTENT_SCRIPT_FILES,
+    });
+  } catch (_) {}
+}
+
+async function _kcInjectEligibleOpenTabs() {
+  let tabs = [];
+  try { tabs = await chrome.tabs.query({}); } catch (_) { return; }
+  await Promise.all(tabs.map(async (tab) => {
+    if (!tab?.id) return;
+    try { await _kcInjectOpenTab(tab.id, tab.url); } catch (_) {}
+  }));
+  try {
+    await chrome.storage.session.set({ [KC_OPEN_TABS_INJECTED_SESSION_KEY]: true });
+  } catch (_) {}
+}
+
+async function _kcMaybeInjectOpenTabsAfterEnable() {
+  if (_kcOpenTabsInjectClaimed) return;
+  try {
+    const s = await chrome.storage.session.get(KC_OPEN_TABS_INJECTED_SESSION_KEY);
+    if (s?.[KC_OPEN_TABS_INJECTED_SESSION_KEY]) return;
+  } catch (_) { return; }
+  if (_kcOpenTabsInjectClaimed) return;
+  _kcOpenTabsInjectClaimed = true;
+  await _kcWaitForBrowserBootSessionFlag();
+  await _kcClearHasCopiedIfReEnabled();
+  await _kcInjectEligibleOpenTabs();
+}
 
 chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason !== 'update') return;
-  _kcTakeOverOpenTabs();
+  _kcOpenTabsInjectClaimed = true;
+  if (details.reason === 'update') {
+    try {
+      chrome.storage.session.set({ [KC_OPEN_TABS_INJECTED_SESSION_KEY]: true });
+    } catch (_) {}
+    _kcTakeOverOpenTabs();
+    return;
+  }
+  if (details.reason === 'install' || details.reason === 'chrome_update') {
+    _kcInjectEligibleOpenTabs();
+    return;
+  }
+  try {
+    chrome.storage.session.set({ [KC_OPEN_TABS_INJECTED_SESSION_KEY]: true });
+  } catch (_) {}
 });
+
+_kcMaybeInjectOpenTabsAfterEnable();
 
 async function _kcTakeOverOpenTabs() {
   let tabs = [];
@@ -78,7 +197,7 @@ async function _kcTakeOverTab(tabId) {
 
   await chrome.scripting.executeScript({
     target: { tabId, frameIds },
-    files: ['config.js', 'content-bundle.js'],
+    files: KC_CONTENT_SCRIPT_FILES,
   });
 }
 
@@ -114,24 +233,30 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== 'sidepanel') return;
-  port.onDisconnect.addListener(() => {
-    try {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (!tabs?.[0]?.id) return;
-        const tabUrl = tabs[0].url || '';
-        if (
-          tabUrl.startsWith('chrome://') ||
-          tabUrl.startsWith('chrome-extension://') ||
-          tabUrl.startsWith('edge://') ||
-          tabUrl.startsWith('arc://')
-        ) return;
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'sidepanel-closed' }, () => {
-          if (chrome.runtime.lastError) {}
+  if (port.name === 'sidepanel') {
+    port.onDisconnect.addListener(() => {
+      try {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (!tabs?.[0]?.id) return;
+          const tabUrl = tabs[0].url || '';
+          if (
+            tabUrl.startsWith('chrome://') ||
+            tabUrl.startsWith('chrome-extension://') ||
+            tabUrl.startsWith('edge://') ||
+            tabUrl.startsWith('arc://')
+          ) return;
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'sidepanel-closed' }, () => {
+            if (chrome.runtime.lastError) {}
+          });
         });
-      });
-    } catch (e) {}
-  });
+      } catch (e) {}
+    });
+    return;
+  }
+  // Content-script keepalive: accept the port so connect() succeeds; no messages required.
+  if (port.name === 'kickclip-content') {
+    return;
+  }
 });
 
 /**
