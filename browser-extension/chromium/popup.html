@@ -10,33 +10,102 @@
        vertically, while the top corners did round. Painting html the same white and giving
        it the same radius may well work; it was not tried. */
     body { width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; background: #fff; }
-    .pp-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #eee; }
-    /* Two children now: the brand, and the version beside it. The 8px is the space between
-       those two things; the logo and the name have their own, tighter, inside the brand. */
-    .pp-header-text { display: flex; flex-direction: row; align-items: flex-end; gap: 8px; }
-    .pp-header-brand { display: flex; flex-direction: row; align-items: flex-end; gap: 4px; }
-    .pp-header-logo { display: block; flex: 0 0 auto; }
-    .pp-header-title { font-size: 17px; font-weight: 600; line-height: 1.2; }
-    /* Beside the name rather than under it: the header is one row, and a second line would
-       make it taller than the settings below. #6b7280 is the same grey the row labels use. */
-       .pp-header-version { font-size: 11px; font-weight: 500; line-height: 1.2; color: #6b7280; margin-bottom: 3px; }
+    .pp-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; }
+    .pp-header-text { display: flex; flex-direction: row; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
+    .pp-header-sign-in {
+      flex-shrink: 0;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      background: #fff;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    .pp-header-sign-in:hover { background: rgba(188, 19, 254, 0.06); color: #BC13FE; border-color: rgba(188, 19, 254, 0.3); }
+    .pp-header-sign-in:focus, .pp-header-sign-in:focus-visible { outline: none; }
+    .pp-header-avatar {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .pp-header-avatar[hidden] { display: none; }
     .pp-toggle { position: relative; display: inline-flex; align-items: center; margin-left: auto; cursor: pointer; }
     .pp-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
     .pp-toggle-track { position: relative; width: 38px; height: 22px; border-radius: 11px; background: #d1d5db; transition: background 0.15s; }
     .pp-toggle-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.15s; }
     .pp-toggle input:checked + .pp-toggle-track { background: #BC13FE; }
     .pp-toggle input:checked + .pp-toggle-track::after { transform: translateX(16px); }
-    .pp-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+    .pp-row-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 14px;
+    }
+    .pp-row {
+      --pp-mode-switch-width: 118.37px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 44px;
+      padding: 6px 8px 6px 14px;
+      box-sizing: border-box;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: #F7F7F7;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
     .pp-row-label { margin-right: auto; font-size: 12px; font-weight: 500; color: #6b7280; }
     .pp-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; cursor: pointer; }
     .pp-check input { margin: 0; accent-color: #BC13FE; cursor: pointer; }
-    .pp-shortcut { display: flex; align-items: center; gap: 6px; }
-    #pp-shortcut-btn { font-size: 12px; font-weight: 500; color: #374151; background: #f9fafb; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; padding: 4px 8px; cursor: pointer; min-width: 60px; text-align: center; white-space: nowrap; }
-    #pp-shortcut-btn.recording { color: rgb(99,102,241); border-color: rgba(99,102,241,0.6); background: rgba(99,102,241,0.08); }
+    .pp-shortcut {
+      display: flex;
+      align-items: stretch;
+      align-self: stretch;
+      flex-shrink: 0;
+      width: calc(var(--pp-mode-switch-width) / 2);
+      min-width: 0;
+      transition: width 0.25s ease;
+    }
+    .pp-shortcut:has(#pp-shortcut-btn.recording),
+    .pp-shortcut:has(#pp-shortcut-btn.error) {
+      width: var(--pp-mode-switch-width);
+    }
+    #pp-shortcut-btn {
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      background: #f9fafb;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 999px;
+      padding: 4px 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex: 1 1 auto;
+      min-width: 0;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    #pp-shortcut-btn:hover {
+      background: rgba(188,19,254,0.06);
+      color: #BC13FE;
+      border-color: rgba(188,19,254,0.3);
+    }
+    #pp-shortcut-btn.recording {
+      background: rgba(188, 19, 254, 0.12);
+      border-color: rgba(188, 19, 254, 0.6);
+      color: #BC13FE;
+    }
     #pp-shortcut-btn.error { color: rgb(239,68,68); border-color: rgba(239,68,68,0.6); background: rgba(239,68,68,0.08); }
     #pp-shortcut-btn:focus, #pp-shortcut-btn:focus-visible { outline: none; }
-    #pp-shortcut-reset { background: none; border: none; cursor: pointer; color: #9ca3af; font-size: 13px; line-height: 1; padding: 2px; }
-    #pp-shortcut-reset:hover { color: #374151; }
     .kc-dropdown-wrap { position: relative; }
     .kc-dropdown-btn { display: flex; align-items: center; width: 90px; padding: 6px 10px; background: transparent; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; color: #6b7280; }
     .kc-dropdown-btn:hover { background: rgba(188,19,254,0.06); color: #BC13FE; border-color: rgba(188,19,254,0.3); }
@@ -48,6 +117,54 @@
     .kc-dropdown-menu-item:hover { background: #f5f5f5; }
     .kc-dropdown-menu-item-selected { color: #BC13FE; }
     .kc-dropdown-menu-item-selected::after { content: '✓'; margin-left: auto; padding-left: 12px; }
+    .kc-mode-switch {
+      position: relative;
+      display: flex;
+      align-items: center;
+      align-self: stretch;
+      flex-shrink: 0;
+      width: var(--pp-mode-switch-width);
+      box-sizing: border-box;
+      padding: 2px;
+      background: #BC13FE;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 999px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+    .kc-mode-pill {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      left: 2px;
+      width: calc(50% - 2px);
+      background: #fff;
+      border-radius: 999px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+      transition: transform 0.25s ease;
+      pointer-events: none;
+    }
+    .kc-mode-switch[data-mode="editor"] .kc-mode-pill {
+      transform: translateX(100%);
+    }
+    .kc-mode-switch [role="tab"] {
+      position: relative;
+      z-index: 1;
+      flex: 1 1 0;
+      min-width: 0;
+      border: none;
+      background: transparent;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1;
+      padding: 3.5px 8px;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.7);
+      border-radius: 999px;
+    }
+    .kc-mode-switch [role="tab"][aria-selected="true"] {
+      color: #6b7280;
+    }
     .pp-open { display: block; width: calc(100% - 28px); margin: 12px 14px; padding: 10px; background: #BC13FE; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
     .pp-open:hover { background: #a810e0; }
     .pp-open:focus, .pp-open:focus-visible { outline: none; }
@@ -58,36 +175,29 @@
 <body>
   <div class="pp-header">
     <div class="pp-header-text">
-      <span class="pp-header-brand">
-        <img class="pp-header-logo" src="assets/icons/icon_32.png" alt="" width="20" height="20" />
-        <span class="pp-header-title">Grrab</span>
-      </span>
-      <span class="pp-header-version" id="pp-version"></span>
+      <button type="button" id="pp-header-sign-in" class="pp-header-sign-in">Sign in</button>
+      <img id="pp-header-avatar" class="pp-header-avatar" src="" alt="" hidden />
     </div>
     <label class="pp-toggle" title="Enable / disable Grrab">
       <input type="checkbox" id="pp-active-toggle" />
       <span class="pp-toggle-track"></span>
     </label>
   </div>
-  <div class="pp-row">
-    <span class="pp-row-label">Shortcut</span>
-    <div class="pp-shortcut">
-      <button type="button" id="pp-shortcut-btn" title="Click to record a new shortcut">⌘C</button>
-      <button type="button" id="pp-shortcut-reset" title="Reset to default">↺</button>
+  <div class="pp-row-list">
+    <div class="pp-row">
+      <span class="pp-row-label">Shortcut</span>
+      <div class="pp-shortcut">
+        <button type="button" id="pp-shortcut-btn" title="Click to record a new shortcut">⌘C</button>
+      </div>
     </div>
-  </div>
-  <div class="pp-row">
-    <span class="pp-row-label">Output size</span>
-    <div class="kc-dropdown-wrap">
-      <button type="button" id="pp-clip-size-btn" class="kc-dropdown-btn" aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Auto</span></button>
-      <ul id="pp-clip-size-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
-    </div>
-  </div>
-  <div class="pp-row">
-    <span class="pp-row-label">Mode</span>
-    <div class="kc-dropdown-wrap">
-      <button type="button" id="pp-clip-effect-btn" class="kc-dropdown-btn" aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Instant</span></button>
-      <ul id="pp-clip-effect-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
+    <div class="pp-row pp-row-mode">
+      <span class="pp-row-label">Mode</span>
+      <div class="kc-mode-switch" id="kc-clip-effect-switch" role="tablist" data-mode="instant"
+           aria-label="Clip mode">
+        <span class="kc-mode-pill" aria-hidden="true"></span>
+        <button type="button" role="tab" data-mode="instant" aria-selected="true">Instant</button>
+        <button type="button" role="tab" data-mode="editor" aria-selected="false">Editor</button>
+      </div>
     </div>
   </div>
   <div id="pp-clip-mode-note" class="pp-note" hidden>

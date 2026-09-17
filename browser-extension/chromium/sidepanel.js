@@ -52,7 +52,6 @@ import {
 import {
   getShortcut,
   setShortcut,
-  getDefaultShortcut,
   isShortcutForbidden,
   formatShortcut,
   onShortcutChange,
@@ -73,10 +72,6 @@ const KC_DOWNLOAD_FORMAT_LABELS = {
   png: 'PNG',
   webp: 'WEBP',
 };
-// PHASE_UPLOAD_FORMAT: the closed button is 58px wide, which 'Original' does not fit.
-// The menu is unconstrained, so it keeps the whole word — the abbreviation exists only
-// where the space does not.
-const KC_DOWNLOAD_FORMAT_BTN_LABELS = { original: 'Orig' };
 
 let _kcDownloadFormatMenuOpen = false;
 let _kcDownloadFormatOutsideClick = null;
@@ -92,7 +87,7 @@ function _renderDownloadFormatUI(fmt) {
   const btn = document.getElementById('kc-download-format-btn');
   const menu = document.getElementById('kc-download-format-menu');
   if (!btn || !menu) return;
-  const btnLabel = KC_DOWNLOAD_FORMAT_BTN_LABELS[key] || KC_DOWNLOAD_FORMAT_LABELS[key] || 'Orig';
+  const btnLabel = KC_DOWNLOAD_FORMAT_LABELS[key] || 'Original';
   btn.innerHTML = `<span class="kc-dropdown-btn-label">${btnLabel}</span>`;
   btn.dataset.format = key;
   btn.setAttribute('aria-expanded', _kcDownloadFormatMenuOpen ? 'true' : 'false');
@@ -188,146 +183,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 // === END PHASE_UPLOAD_FORMAT ===
 
-// === PHASE_CLIP_SIZE ===
-// Clip image size: target longest-edge (px) written to kc_clip_max_dim (0 = auto, no resize).
-// Read by coreEntry (clipboard) + save path. Custom dropdown mirroring the upload-format
-// control so the button style + toggle icon match (shared .kc-dropdown-* classes).
-const KC_CLIP_SIZE_KEY = 'kc_clip_max_dim';
-const KC_CLIP_SIZE_VALUES = ['0', '512', '1024', '1600'];
-// Displayed names differ from stored values: '0' shows as Auto (no resize — deliver
-// whatever came out of upscaling). The value stays 0 so existing settings need no migration.
-const KC_CLIP_SIZE_LABELS = {
-  '0': 'Auto',
-  '512': '512px',
-  '1024': '1024px',
-  '1600': '1600px',
-};
-
-let _kcClipSizeMenuOpen = false;
-let _kcClipSizeOutsideClick = null;
-let _kcClipSizeEscKey = null;
-
-function _normalizeClipSize(value) {
-  const v = String(value ?? '').trim();
-  if (v === '2880' || value === 2880) return '1600';
-  return KC_CLIP_SIZE_VALUES.includes(v) ? v : '0';
-}
-
-function _renderClipSizeUI(value) {
-  const key = _normalizeClipSize(value);
-  const btn = document.getElementById('kc-clip-size-btn');
-  const menu = document.getElementById('kc-clip-size-menu');
-  if (!btn || !menu) return;
-  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_CLIP_SIZE_LABELS[key] || 'Auto'}</span>`;
-  btn.dataset.size = key;
-  btn.setAttribute('aria-expanded', _kcClipSizeMenuOpen ? 'true' : 'false');
-  menu.innerHTML = '';
-  for (const preset of KC_CLIP_SIZE_VALUES) {
-    const li = document.createElement('li');
-    li.className = 'kc-dropdown-menu-item';
-    if (preset === key) li.classList.add('kc-dropdown-menu-item-selected');
-    li.setAttribute('role', 'option');
-    li.setAttribute('aria-selected', preset === key ? 'true' : 'false');
-    li.dataset.size = preset;
-    li.textContent = KC_CLIP_SIZE_LABELS[preset];
-    li.addEventListener('click', (e) => {
-      e.stopPropagation();
-      _selectClipSize(preset);
-    });
-    menu.appendChild(li);
-  }
-}
-
-function _detachClipSizeMenuListeners() {
-  if (_kcClipSizeOutsideClick) {
-    document.removeEventListener('click', _kcClipSizeOutsideClick, true);
-    _kcClipSizeOutsideClick = null;
-  }
-  if (_kcClipSizeEscKey) {
-    document.removeEventListener('keydown', _kcClipSizeEscKey);
-    _kcClipSizeEscKey = null;
-  }
-}
-
-function _closeClipSizeMenu() {
-  if (!_kcClipSizeMenuOpen) return;
-  _kcClipSizeMenuOpen = false;
-  const menu = document.getElementById('kc-clip-size-menu');
-  const btn = document.getElementById('kc-clip-size-btn');
-  if (menu) menu.hidden = true;
-  if (btn) btn.setAttribute('aria-expanded', 'false');
-  _detachClipSizeMenuListeners();
-}
-
-function _openClipSizeMenu() {
-  const menu = document.getElementById('kc-clip-size-menu');
-  const btn = document.getElementById('kc-clip-size-btn');
-  if (!menu || !btn) return;
-  _kcClipSizeMenuOpen = true;
-  menu.hidden = false;
-  btn.setAttribute('aria-expanded', 'true');
-  _renderClipSizeUI(btn.dataset.size || '0');
-  _kcClipSizeOutsideClick = (e) => {
-    const wrap = document.getElementById('kc-clip-size-wrap');
-    if (wrap && !wrap.contains(e.target)) _closeClipSizeMenu();
-  };
-  _kcClipSizeEscKey = (e) => {
-    if (e.key === 'Escape') _closeClipSizeMenu();
-  };
-  setTimeout(() => {
-    if (_kcClipSizeMenuOpen && _kcClipSizeOutsideClick) {
-      document.addEventListener('click', _kcClipSizeOutsideClick, true);
-    }
-  }, 0);
-  document.addEventListener('keydown', _kcClipSizeEscKey);
-}
-
-function _toggleClipSizeMenu() {
-  if (_kcClipSizeMenuOpen) _closeClipSizeMenu();
-  else _openClipSizeMenu();
-}
-
-async function _selectClipSize(value) {
-  const key = _normalizeClipSize(value);
-  try {
-    await chrome.storage.local.set({ [KC_CLIP_SIZE_KEY]: Number(key) });
-  } catch (_) {}
-  _renderClipSizeUI(key);
-  _closeClipSizeMenu();
-}
-
-async function _loadClipSizeSetting() {
-  try {
-    const r = await chrome.storage.local.get(KC_CLIP_SIZE_KEY);
-    _renderClipSizeUI(String(Number(r?.[KC_CLIP_SIZE_KEY]) || 0));
-  } catch (_) {
-    _renderClipSizeUI('0');
-  }
-}
-
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'local' || !changes[KC_CLIP_SIZE_KEY]) return;
-  _renderClipSizeUI(String(Number(changes[KC_CLIP_SIZE_KEY].newValue) || 0));
-});
-
-// === END PHASE_CLIP_SIZE ===
-
 // === PHASE_CLIP_EFFECT ===
-// Clip effect: 'none' | 'bg-remove' written to kc_clip_effect.
-// Read by coreEntry (clipboard) via initClipEffectSync. Custom dropdown mirroring clip-size.
+// Clip effect: 'none' | 'erase' written to kc_clip_effect. UI uses data-mode instant|editor.
 const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
 const KC_CLIP_EFFECT_VALUES = ['none', 'erase'];
-// Displayed names differ from the stored values: 'none' shows as Instant and 'erase' as
-// Editor. The values are kept as they are so existing settings keep working; only the
-// wording changed when the overlay grew beyond erasing.
-const KC_CLIP_EFFECT_LABELS = {
-  'none': 'Instant',
-  'erase': 'Editor',
-};
-
-let _kcClipEffectMenuOpen = false;
-let _kcClipEffectOutsideClick = null;
-let _kcClipEffectEscKey = null;
 
 function _normalizeClipEffect(value) {
   const v = String(value ?? '').trim();
@@ -335,92 +194,37 @@ function _normalizeClipEffect(value) {
   return KC_CLIP_EFFECT_VALUES.includes(v) ? v : 'none';
 }
 
+function _clipEffectToDataMode(key) {
+  return _normalizeClipEffect(key) === 'erase' ? 'editor' : 'instant';
+}
+
+function _dataModeToClipEffect(dataMode) {
+  return dataMode === 'editor' ? 'erase' : 'none';
+}
+
 function _renderClipEffectUI(value) {
   const key = _normalizeClipEffect(value);
-  const btn = document.getElementById('kc-clip-effect-btn');
-  const menu = document.getElementById('kc-clip-effect-menu');
-  if (!btn || !menu) return;
-  btn.innerHTML = `<span class="kc-dropdown-btn-label">${KC_CLIP_EFFECT_LABELS[key] || 'Instant'}</span>`;
-  btn.dataset.effect = key;
-  btn.setAttribute('aria-expanded', _kcClipEffectMenuOpen ? 'true' : 'false');
-  menu.innerHTML = '';
-  for (const preset of KC_CLIP_EFFECT_VALUES) {
-    const li = document.createElement('li');
-    li.className = 'kc-dropdown-menu-item';
-    if (preset === key) li.classList.add('kc-dropdown-menu-item-selected');
-    li.setAttribute('role', 'option');
-    li.setAttribute('aria-selected', preset === key ? 'true' : 'false');
-    li.dataset.effect = preset;
-    li.textContent = KC_CLIP_EFFECT_LABELS[preset];
-    li.addEventListener('click', (e) => {
-      e.stopPropagation();
-      _selectClipEffect(preset);
-    });
-    menu.appendChild(li);
+  const sw = document.getElementById('kc-clip-effect-switch');
+  if (!sw) return;
+  const uiMode = _clipEffectToDataMode(key);
+  sw.setAttribute('data-mode', uiMode);
+  const tabs = sw.querySelectorAll('[role="tab"]');
+  for (const tab of tabs) {
+    const tabMode = tab.getAttribute('data-mode');
+    tab.setAttribute('aria-selected', tabMode === uiMode ? 'true' : 'false');
   }
-}
-
-function _detachClipEffectMenuListeners() {
-  if (_kcClipEffectOutsideClick) {
-    document.removeEventListener('click', _kcClipEffectOutsideClick, true);
-    _kcClipEffectOutsideClick = null;
-  }
-  if (_kcClipEffectEscKey) {
-    document.removeEventListener('keydown', _kcClipEffectEscKey);
-    _kcClipEffectEscKey = null;
-  }
-}
-
-function _closeClipEffectMenu() {
-  if (!_kcClipEffectMenuOpen) return;
-  _kcClipEffectMenuOpen = false;
-  const menu = document.getElementById('kc-clip-effect-menu');
-  const btn = document.getElementById('kc-clip-effect-btn');
-  if (menu) menu.hidden = true;
-  if (btn) btn.setAttribute('aria-expanded', 'false');
-  _detachClipEffectMenuListeners();
-}
-
-function _openClipEffectMenu() {
-  const menu = document.getElementById('kc-clip-effect-menu');
-  const btn = document.getElementById('kc-clip-effect-btn');
-  if (!menu || !btn) return;
-  _kcClipEffectMenuOpen = true;
-  menu.hidden = false;
-  btn.setAttribute('aria-expanded', 'true');
-  _renderClipEffectUI(btn.dataset.effect || 'none');
-  _kcClipEffectOutsideClick = (e) => {
-    const wrap = document.getElementById('kc-clip-effect-wrap');
-    if (wrap && !wrap.contains(e.target)) _closeClipEffectMenu();
-  };
-  _kcClipEffectEscKey = (e) => {
-    if (e.key === 'Escape') _closeClipEffectMenu();
-  };
-  setTimeout(() => {
-    if (_kcClipEffectMenuOpen && _kcClipEffectOutsideClick) {
-      document.addEventListener('click', _kcClipEffectOutsideClick, true);
-    }
-  }, 0);
-  document.addEventListener('keydown', _kcClipEffectEscKey);
-}
-
-function _toggleClipEffectMenu() {
-  if (_kcClipEffectMenuOpen) _closeClipEffectMenu();
-  else _openClipEffectMenu();
 }
 
 async function _selectClipEffect(value) {
   const key = _normalizeClipEffect(value);
   if (key === 'erase' && !currentUser) {
     showKcToast('Sign in to use Editor mode', 'error');
-    _closeClipEffectMenu();
     return;
   }
   try {
     await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: key });
   } catch (_) {}
   _renderClipEffectUI(key);
-  _closeClipEffectMenu();
 }
 
 async function _loadClipEffectSetting() {
@@ -585,7 +389,6 @@ async function handleOpenFolderSettings() {
   } catch (_) {}
   await _refreshDirContainer();
   await _loadDownloadFormatSetting();
-  await _loadClipSizeSetting(); // PHASE_CLIP_SIZE
   await _loadClipEffectSetting(); // PHASE_CLIP_EFFECT
 })();
 
@@ -594,17 +397,15 @@ document.getElementById('kc-download-format-btn')?.addEventListener('click', (e)
   _toggleDownloadFormatMenu();
 });
 
-// === PHASE_CLIP_SIZE ===
-document.getElementById('kc-clip-size-btn')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  _toggleClipSizeMenu();
-});
-// === END PHASE_CLIP_SIZE ===
-
 // === PHASE_CLIP_EFFECT ===
-document.getElementById('kc-clip-effect-btn')?.addEventListener('click', (e) => {
+document.getElementById('kc-clip-effect-switch')?.addEventListener('click', (e) => {
+  const sw = document.getElementById('kc-clip-effect-switch');
+  const tab = e.target.closest('[role="tab"]');
+  if (!sw || !tab || !sw.contains(tab)) return;
   e.stopPropagation();
-  _toggleClipEffectMenu();
+  const dataMode = tab.getAttribute('data-mode');
+  if (!dataMode) return;
+  _selectClipEffect(_dataModeToClipEffect(dataMode));
 });
 // === END PHASE_CLIP_EFFECT ===
 
@@ -750,13 +551,13 @@ let unsubscribeDirs    = null;
 // dataset/tracking, not DOM layout. Reset to true in stopListeners
 // so a fresh sidepanel session does a full initial render.
 let isFirstItemsSnapshot = true;
+let isListLoading      = false;
 let isSyncing          = false;
 let isDragging         = false;
 let lastDragEndTime    = 0;
 let displayedItemIds   = new Set();
 let currentDirectories = [];
 let currentItems       = [];
-let activeCardItemId   = null;
 let _isExplicitSignOut      = false;
 
 // Optimistic UI: tracks temp card IDs waiting for Firestore confirmation
@@ -782,15 +583,6 @@ const dirFolderBtn    = document.getElementById('kc-dir-folder-btn');
 const loginError      = document.getElementById('login-error');
 const spUserAvatar    = document.getElementById('sp-user-avatar');
 const spUserEmail     = document.getElementById('sp-user-email');
-const spDirectoryList = document.getElementById('sp-directory-list');
-const spAiBoard        = document.getElementById('sp-ai-board');
-const spAiBoardEmpty   = document.getElementById('sp-ai-board-empty');
-const spAiBoardContent = document.getElementById('sp-ai-board-content');
-const spAiBoardLoading = document.getElementById('sp-ai-board-loading');
-const spAiBoardTitle   = document.getElementById('sp-ai-board-title');
-const spAiBoardBody    = document.getElementById('sp-ai-board-body');
-const spAiBoardClose   = document.getElementById('sp-ai-board-close');
-
 // === PHASE_SHORTCUT_RECORDER ===
 // Inline shortcut recorder for #sp-shortcut-btn.
 //
@@ -808,7 +600,6 @@ const spAiBoardClose   = document.getElementById('sp-ai-board-close');
 //     are ignored (waiting for the user to press the main key).
 
 const sp_shortcutBtn_v2 = document.getElementById('sp-shortcut-btn');
-const sp_shortcutReset = document.getElementById('sp-shortcut-reset-btn');
 const sp_shortcutError = document.getElementById('sp-shortcut-error');
 
 let _sp_recording = false;
@@ -910,12 +701,11 @@ function sp_startRecording() {
     };
     document.addEventListener('keydown', _sp_keydownListener, true);
 
-    // PHASE_SHORTCUT_RECORDER_OUTSIDE: a pointerdown anywhere outside the shortcut/reset buttons
+    // PHASE_SHORTCUT_RECORDER_OUTSIDE: a pointerdown anywhere outside the shortcut button
     // cancels recording (sp_stopRecording clears the error and restores the prior shortcut).
     _sp_outsideListener = (ev) => {
       const t = ev.target;
       if (sp_shortcutBtn_v2 && (t === sp_shortcutBtn_v2 || sp_shortcutBtn_v2.contains(t))) return;
-      if (sp_shortcutReset && (t === sp_shortcutReset || sp_shortcutReset.contains(t))) return;
       sp_stopRecording(false);
     };
     document.addEventListener('pointerdown', _sp_outsideListener, true);
@@ -949,12 +739,6 @@ function sp_stopRecording(saved, savedShortcut) {
   _sp_priorShortcut = null;
 }
 
-function sp_resetShortcut() {
-  setShortcut(getDefaultShortcut()).then(() => {
-    // onShortcutChange will refresh display.
-  });
-}
-
 // Wire click handlers.
 if (sp_shortcutBtn_v2) {
   sp_shortcutBtn_v2.addEventListener('click', () => {
@@ -965,12 +749,6 @@ if (sp_shortcutBtn_v2) {
     }
   });
 }
-if (sp_shortcutReset) {
-  sp_shortcutReset.addEventListener('click', () => {
-    sp_resetShortcut();
-  });
-}
-
 // Initial render + subscribe to changes.
 (async () => {
   try {
@@ -1488,19 +1266,30 @@ function showDashboardScreen(user) {
   startListeners(user.uid);
 }
 
+function showListLoading() {
+  isListLoading = true;
+  const el = document.getElementById('sp-list-loading');
+  if (el) el.hidden = false;
+}
+
+function hideListLoading() {
+  isListLoading = false;
+  const el = document.getElementById('sp-list-loading');
+  if (el) el.hidden = true;
+}
+
 // ── Firestore listeners ───────────────────────────────────────────────────────
 function startListeners(userId) {
   stopListeners();
+  showListLoading();
 
   // Watch directories
   const dirsRef = collection(db, `users/${userId}/directories`);
   const dirsQ   = query(dirsRef, orderBy('createdAt', 'asc'));
   unsubscribeDirs = onSnapshot(dirsQ, (snap) => {
     currentDirectories = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
-    renderDirectories();
   }, () => {
     currentDirectories = [];
-    renderDirectories();
   });
 
   // Watch items
@@ -1517,6 +1306,7 @@ function startListeners(userId) {
       // items on sidepanel reopen).
       isFirstItemsSnapshot = false;
       if (!isSyncing) loadData();
+      else hideListLoading();
       return;
     }
 
@@ -1527,7 +1317,9 @@ function startListeners(userId) {
     // reopened (multi-device concurrent use is currently out of scope).
     if (isSyncing) return;
     reconcileSnapshotSilently(snap);
-  }, () => {});
+  }, () => {
+    hideListLoading();
+  });
 }
 
 function stopListeners() {
@@ -1537,6 +1329,7 @@ function stopListeners() {
   currentDirectories = [];
   displayedItemIds   = new Set();
   isFirstItemsSnapshot = true;
+  hideListLoading();
   syncSavedUrlsToSession([]);
 }
 
@@ -1561,7 +1354,10 @@ onAuthStateChanged(auth, async (user) => {
     await upsertUserProfile(user);
     // Always sync userId to storage, regardless of Side Panel open state
     if (chrome?.storage?.local) {
-      chrome.storage.local.set({ kickclipUserId: user.uid }).catch(() => {});
+      chrome.storage.local.set({
+        kickclipUserId: user.uid,
+        kickclipUserPhoto: user.photoURL || null,
+      }).catch(() => {});
     }
     showDashboardScreen(user);
   } else {
@@ -1577,7 +1373,7 @@ onAuthStateChanged(auth, async (user) => {
     if (explicitSignOut) {
       _isExplicitSignOut = false;
       if (chrome?.storage?.local) {
-        chrome.storage.local.remove('kickclipUserId').catch(() => {});
+        chrome.storage.local.remove(['kickclipUserId', 'kickclipUserPhoto']).catch(() => {});
       }
       try { await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: 'none' }); } catch (_) {}
       showLoginScreen();
@@ -1602,7 +1398,7 @@ onAuthStateChanged(auth, async (user) => {
     } catch {
       // Silent re-auth failed (first-time user or explicit sign-out) — show login screen
       if (chrome?.storage?.local) {
-        chrome.storage.local.remove('kickclipUserId').catch(() => {});
+        chrome.storage.local.remove(['kickclipUserId', 'kickclipUserPhoto']).catch(() => {});
       }
       try { await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: 'none' }); } catch (_) {}
       showLoginScreen();
@@ -2262,6 +2058,7 @@ function updateClearButtonState() {
  */
 function ensureEmptyState(list) {
   if (!list) return;
+  if (isListLoading) return;
   const hasCards = list.querySelector('.card-container') !== null;
   const existingEmpty = list.querySelector('.sp-empty');
   if (hasCards) {
@@ -2568,21 +2365,12 @@ if (dirFolderBtn) {
   dirFolderBtn.addEventListener('click', () => { handleOpenFolderSettings(); });
 }
 
-// AI board disabled
-// spAiBoardClose.addEventListener('click', () => {
-//   activeCardItemId = null;
-//   document.querySelectorAll('.data-card').forEach((c) => c.classList.remove('active'));
-//   showAiBoardEmpty();
-// });
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Part B: loadData, renderDirectories, DnD, Delete
+// Part B: loadData, DnD, Delete
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── DnD helpers ───────────────────────────────────────────────────────────────
 let hasValidDropIndicator = false;
-let directoryHoverTimer   = null;
-let hoveredDirectoryItem  = null;
 const GUIDE_LINE_HEIGHT   = 2;
 
 function removeGuideWrapper() {
@@ -2666,15 +2454,6 @@ async function moveItemToPosition(userId, itemId, targetDirectoryId, newIndex, s
     body: JSON.stringify({ userId, itemId, targetDirectoryId, newIndex, sourceDirectoryId }),
   });
   if (!res.ok) throw new Error(`move-item failed: ${res.status}`);
-}
-
-async function moveDirectoryToPosition(userId, directoryId, newIndex) {
-  const res = await fetch(`${KC_SERVER_URL}/api/v1/firestore/move-directory`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, directoryId, newIndex }),
-  });
-  if (!res.ok) throw new Error(`move-directory failed: ${res.status}`);
 }
 
 // ── Upload toast + local-save feedback (Phase U2) ─────────────────────────────
@@ -3056,144 +2835,6 @@ function attachDeleteHandlers(container) {
   });
 }
 
-// ── AI Board state ────────────────────────────────────────────────────────────
-function showAiBoardEmpty() {
-  spAiBoardTitle.classList.remove('sp-ai-reveal', 'sp-ai-revealed');
-  spAiBoardEmpty.style.display   = '';
-  spAiBoardContent.style.display = 'none';
-  spAiBoardLoading.style.display = 'none';
-}
-
-function showAiBoardLoading() {
-  spAiBoardTitle.classList.remove('sp-ai-reveal', 'sp-ai-revealed');
-  spAiBoardEmpty.style.display   = 'none';
-  spAiBoardContent.style.display = 'none';
-  spAiBoardLoading.style.display = '';
-}
-
-function showAiBoardContent(data) {
-  spAiBoardEmpty.style.display   = 'none';
-  spAiBoardLoading.style.display = 'none';
-  spAiBoardBody.innerHTML        = '';
-  spAiBoardTitle.textContent     = '';
-  spAiBoardContent.style.display = '';
-
-  // Each block: { html, delay (ms) }
-  const blocks = [];
-
-  if (data.title) {
-    blocks.push({
-      applyTitle: true,
-      value: data.title,
-      delay: 0,
-    });
-  }
-
-  if (data.content_type) {
-    const detailPart = data.detail_type
-      ? ` <span class="sp-ai-type-separator">›</span> <span class="sp-ai-detail-type">${escapeHtml(data.detail_type)}</span>`
-      : '';
-    blocks.push({
-      html:  `<div class="sp-ai-type sp-ai-reveal">${escapeHtml(data.content_type)}${detailPart}</div>`,
-      delay: 80,
-    });
-  }
-
-  if (data.summary) {
-    blocks.push({
-      html:  `<div class="sp-ai-summary sp-ai-reveal">${escapeHtml(data.summary)}</div>`,
-      delay: 160,
-    });
-  }
-
-  if (data.table_of_contents?.length) {
-    let toc = `<div class="sp-ai-section-label sp-ai-reveal">Contents</div>`;
-    toc += `<ol class="sp-ai-toc sp-ai-reveal">`;
-    data.table_of_contents.forEach((section) => {
-      toc += `<li>${escapeHtml(section)}</li>`;
-    });
-    toc += `</ol>`;
-    blocks.push({ html: toc, delay: 280 });
-  }
-
-  if (data.key_points?.length) {
-    let kp = `<ul class="sp-ai-keypoints sp-ai-reveal">`;
-    data.key_points.forEach((pt) => {
-      kp += `<li>${escapeHtml(pt)}</li>`;
-    });
-    kp += `</ul>`;
-    blocks.push({ html: kp, delay: 420 });
-  }
-
-  if (data.keywords?.length) {
-    let kw = `<div class="sp-ai-keywords sp-ai-reveal">`;
-    data.keywords.forEach((k) => {
-      kw += `<span class="sp-ai-keyword">${escapeHtml(k)}</span>`;
-    });
-    kw += `</div>`;
-    blocks.push({ html: kw, delay: 560 });
-  }
-
-  if (data.raw) {
-    blocks.push({
-      html:  `<div class="sp-ai-summary sp-ai-reveal">${escapeHtml(data.raw)}</div>`,
-      delay: 80,
-    });
-  }
-
-  blocks.forEach((block) => {
-    setTimeout(() => {
-      if (block.applyTitle) {
-        spAiBoardTitle.textContent = block.value;
-        spAiBoardTitle.classList.add('sp-ai-reveal');
-        requestAnimationFrame(() => spAiBoardTitle.classList.add('sp-ai-revealed'));
-        return;
-      }
-      const temp = document.createElement('div');
-      temp.innerHTML = block.html;
-      Array.from(temp.children).forEach((el) => {
-        spAiBoardBody.appendChild(el);
-        // Trigger animation on next frame so the initial opacity:0 is painted first
-        requestAnimationFrame(() => el.classList.add('sp-ai-revealed'));
-      });
-    }, block.delay);
-  });
-}
-
-function escapeHtml(str) {
-  return String(str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function showAiBoardForItem(itemId) {
-  activeCardItemId = itemId;
-  if (!itemId) { showAiBoardEmpty(); return; }
-
-  const item = currentItems.find((it) => getItemId(it) === itemId);
-  if (!item) { showAiBoardEmpty(); return; }
-
-  const hasAiData = item.ai_title || item.ai_summary ||
-                    item.ai_key_points?.length || item.ai_keywords?.length;
-
-  if (hasAiData) {
-    showAiBoardContent({
-      title:             item.ai_title             || '',
-      summary:           item.ai_summary           || '',
-      key_points:        item.ai_key_points        || [],
-      keywords:          item.ai_keywords          || [],
-      content_type:      item.ai_content_type      || '',
-      detail_type:       item.ai_subject_type      || '',
-      table_of_contents: item.ai_table_of_contents || [],
-    });
-  } else {
-    // AI analysis not yet available — show loading state
-    showAiBoardLoading();
-  }
-}
-
 // ── Card click & drag handlers ────────────────────────────────────────────────
 /**
  * Removes the active class from all card-wrappers.
@@ -3458,111 +3099,6 @@ function setupContainerDropHandlers(container, directoryId) {
   });
 }
 
-// ── Directory header drop handlers (collapsed directory) ──────────────────────
-function setupDirectoryHeaderDropHandlers() {
-  document.querySelectorAll('.directory-item-header').forEach((header) => {
-    if (header.dataset.dropHandlerAttached === 'true') return;
-    header.dataset.dropHandlerAttached = 'true';
-
-    const dirItem   = header.closest('.directory-item');
-    const dirId     = dirItem?.dataset.directoryId || null;
-
-    header.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      header.classList.add('drag-over');
-    });
-
-    header.addEventListener('dragleave', () => {
-      header.classList.remove('drag-over');
-    });
-
-    header.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      header.classList.remove('drag-over');
-      if (!currentUser) return;
-
-      const draggedItemId  = getDraggedItemId(e);
-      const srcDirectoryId = getSourceDirectoryId(e);
-      if (!draggedItemId) return;
-
-      isSyncing = true;
-      try {
-        await moveItemToPosition(
-          currentUser.uid,
-          draggedItemId,
-          dirId,
-          0,
-          srcDirectoryId || null
-        );
-      } catch (_) {
-        loadData();
-      } finally {
-        setTimeout(() => { isSyncing = false; }, 100);
-      }
-    });
-  });
-}
-
-// ── Directory list drop handlers (directory reordering) ───────────────────────
-function setupDirectoryListDropHandlers() {
-  const dirList = document.getElementById('sp-directory-list');
-  if (!dirList || dirList.dataset.dirDndAttached === 'true') return;
-  dirList.dataset.dirDndAttached = 'true';
-
-  // Make directory headers draggable
-  document.querySelectorAll('.directory-item-header').forEach((header) => {
-    if (header.dataset.dirDraggableAttached === 'true') return;
-    header.dataset.dirDraggableAttached = 'true';
-    header.setAttribute('draggable', 'true');
-
-    header.addEventListener('dragstart', (e) => {
-      const dirItem = header.closest('.directory-item');
-      const dirId   = dirItem?.dataset.directoryId || '';
-      document.body.dataset.activeDragDirectoryId = dirId;
-      e.dataTransfer.setData('application/x-directory-id', dirId);
-      e.dataTransfer.effectAllowed = 'move';
-    });
-
-    header.addEventListener('dragend', () => {
-      delete document.body.dataset.activeDragDirectoryId;
-    });
-  });
-
-  dirList.addEventListener('dragover', (e) => {
-    if (!document.body.dataset.activeDragDirectoryId) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  });
-
-  dirList.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const draggedDirId = e.dataTransfer.getData('application/x-directory-id');
-    if (!draggedDirId) return;
-
-    // Find new index from Y position
-    const dirItems = Array.from(
-      dirList.querySelectorAll('.directory-item')
-    ).filter((d) => d.dataset.directoryId !== draggedDirId);
-
-    let newIndex = dirItems.length;
-    for (let i = 0; i < dirItems.length; i++) {
-      const r = dirItems[i].getBoundingClientRect();
-      if (e.clientY < r.top + r.height * 0.5) { newIndex = i; break; }
-    }
-
-    isSyncing = true;
-    try {
-      await moveDirectoryToPosition(currentUser.uid, draggedDirId, newIndex);
-    } catch (_) {
-    } finally {
-      setTimeout(() => { isSyncing = false; }, 100);
-    }
-  });
-}
-
 // ── Unified drop setup ────────────────────────────────────────────────────────
 // === PHASE_SIDEPANEL_UNIFIED_LIST ===
 function setupUnifiedDropHandlers() {
@@ -3571,70 +3107,8 @@ function setupUnifiedDropHandlers() {
     list.dataset.unifiedDnDAttached = 'true';
     setupContainerDropHandlers(list, null);
   }
-
-  // Directory containers
-  document.querySelectorAll('.directory-items-container').forEach((container) => {
-    if (container.dataset.unifiedDnDAttached === 'true') return;
-    container.dataset.unifiedDnDAttached = 'true';
-    const dirItem = container.closest('.directory-item');
-    const dirId   = dirItem?.dataset.directoryId || null;
-    setupContainerDropHandlers(container, dirId);
-  });
-
-  setupDirectoryHeaderDropHandlers();
-  setupDirectoryListDropHandlers();
 }
 // === END PHASE_SIDEPANEL_UNIFIED_LIST ===
-
-// ── renderDirectories ─────────────────────────────────────────────────────────
-function renderDirectories() {
-  if (!spDirectoryList) return;
-
-  // Preserve expanded state
-  const expandedIds = new Set();
-  spDirectoryList.querySelectorAll('.directory-item.expanded').forEach((el) => {
-    expandedIds.add(el.dataset.directoryId);
-  });
-
-  spDirectoryList.innerHTML = '';
-
-  if (!currentDirectories || currentDirectories.length === 0) {
-    spDirectoryList.style.display = 'none';
-    return;
-  }
-
-  spDirectoryList.style.display = 'none';
-
-  currentDirectories.forEach((dir) => {
-    const item = document.createElement('div');
-    item.className         = 'directory-item';
-    item.dataset.directoryId = dir.id;
-    if (expandedIds.has(dir.id)) item.classList.add('expanded');
-
-    const header = document.createElement('div');
-    header.className = 'directory-item-header';
-    header.innerHTML = `
-      <span class="directory-toggle">▶</span>
-      <span class="directory-name">${(dir.name || 'Untitled').replace(/</g, '&lt;')}</span>
-    `;
-
-    // Toggle expand on click (not drag)
-    header.addEventListener('click', (e) => {
-      if (e.defaultPrevented) return;
-      item.classList.toggle('expanded');
-    });
-
-    const itemsContainer = document.createElement('div');
-    itemsContainer.className = 'directory-items-container';
-
-    item.appendChild(header);
-    item.appendChild(itemsContainer);
-    spDirectoryList.appendChild(item);
-  });
-
-  // Re-render items into directories after DOM update
-  if (currentItems.length > 0) loadData();
-}
 
 function updateCardImage(cardEl, newImgUrl) {
   try {
@@ -3660,50 +3134,21 @@ function updateCardImage(cardEl, newImgUrl) {
 
 // ── loadData ──────────────────────────────────────────────────────────────────
 function loadData() {
-  if (!currentUser) return;
+  if (!currentUser) {
+    hideListLoading();
+    return;
+  }
 
+  try {
   const isInitialRender   = displayedItemIds.size === 0;
   const previouslyDisplayed = new Set(displayedItemIds);
 
-  // Group items
-  const itemsWithoutDirectory = [];
-  const itemsByDirectory      = new Map();
-
-  currentItems.forEach((item) => {
-    const dirId = item.directoryId;
-    if (!dirId || dirId === 'undefined') {
-      itemsWithoutDirectory.push(item);
-    } else {
-      if (!itemsByDirectory.has(dirId)) itemsByDirectory.set(dirId, []);
-      itemsByDirectory.get(dirId).push(item);
-    }
-  });
+  // Unified dock list shows all items (legacy directory sidebar removed).
+  const itemsWithoutDirectory = [...currentItems];
 
   displayedItemIds.clear();
 
-  // ── Render items into directories ────────────────────────────────────────
-  itemsByDirectory.forEach((items, dirId) => {
-    const dirEl       = document.querySelector(`.directory-item[data-directory-id="${dirId}"]`);
-    const itemsContainer = dirEl?.querySelector('.directory-items-container');
-    if (!itemsContainer) return;
-
-    // Clear non-animating children
-    Array.from(itemsContainer.children).forEach((child) => {
-      if (!child.dataset?.preserveAnimation) itemsContainer.removeChild(child);
-    });
-
-    items.forEach((item) => {
-      const itemId = getItemId(item);
-      const isNew  = !isInitialRender && !previouslyDisplayed.has(itemId);
-      const { container, wrapper, card } = createCardElement(item, isNew);
-      itemsContainer.appendChild(container);
-      displayedItemIds.add(itemId);
-      card.dataset.handlerAttached = 'false';
-      if (isNew) animateEntrance(container, wrapper);
-    });
-  });
-
-  // ── Render items without directory ──────────────────────────────────────
+  // ── Render items into unified dock list ─────────────────────────────────
   function getOptimisticTempIdForItem(it) {
     if (isInitialRender) return null;
     for (const [tempId, entry] of optimisticCards.entries()) {
@@ -3896,6 +3341,9 @@ function loadData() {
   }
   // === END PHASE_SIDEPANEL_UNIFIED_LIST ===
 
+  } finally {
+    hideListLoading();
+  }
 }
 
 /**
@@ -3931,9 +3379,8 @@ function reconcileSnapshotSilently(snap) {
 
   snap.docChanges().forEach((change) => {
     // PHASE_RECLIP_IMGURL_SYNC: a dedup re-clip updates the existing doc
-    // (change.type 'modified'), changing img_url (and clip_size) — e.g. a
-    // 1600px card re-clipped at origin reverts img_url to the remote URL, or a
-    // re-clip at a new size points img_url at a newly stored clip image.
+    // (change.type 'modified'), changing img_url — e.g. a re-clip after SR/erase
+    // upload points img_url at a newly stored clip image.
     // Refresh the rendered card's canonical references so the top-right
     // re-copy and upload buttons (which read kcCardItemByEl.get(card) at click
     // time) target the new image. The visible <img> src is left alone to avoid

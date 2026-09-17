@@ -120,8 +120,10 @@
     #dashboard-screen {
       display: none;
       flex-direction: column;
+      gap: 6px;
       height: 100%;
       overflow: hidden;
+      background: #fff;
     }
 
     /* ── Header ── */
@@ -129,14 +131,15 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 6px 10px;
-      background: #fff;
+      min-height: 44px;
+      padding: 6px 8px;
+      box-sizing: border-box;
       flex-shrink: 0;
     }
 
     #sp-shortcut-btn {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--labels-secondary);
       background: none;
@@ -147,11 +150,18 @@
       letter-spacing: 0.01em;
       white-space: nowrap;
       transition: color 0.15s, border-color 0.15s, background 0.15s;
-      flex-shrink: 0;
+      flex: 1 1 auto;
+      min-width: 0;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
     }
     #sp-shortcut-btn:hover {
-      color: var(--accent);
-      border-color: var(--accent);
+      background: rgba(188, 19, 254, 0.06);
+      color: #BC13FE;
+      border-color: rgba(188, 19, 254, 0.3);
     }
     #sp-shortcut-btn:focus,
     #sp-shortcut-btn:focus-visible {
@@ -159,35 +169,30 @@
     }
     /* === PHASE_SHORTCUT_RECORDER === */
     #sp-shortcut-container {
-      display: inline-flex;
-      align-items: center;
+      display: flex;
+      align-items: stretch;
+      align-self: stretch;
+      flex: 0 0 auto;
+      width: calc(var(--sp-setting-control-inline-size) / 2);
+      min-width: 0;
       gap: 6px;
+      transition: width 0.25s ease;
+    }
+    #sp-shortcut-container:has(#sp-shortcut-btn.recording),
+    #sp-shortcut-container:has(#sp-shortcut-btn.error) {
+      width: var(--sp-setting-control-inline-size);
     }
 
     #sp-shortcut-btn.recording {
-      background: rgba(99, 102, 241, 0.12);
-      border-color: rgba(99, 102, 241, 0.6);
-      color: rgb(99, 102, 241);
+      background: rgba(var(--accent-rgb), 0.12);
+      border-color: rgba(var(--accent-rgb), 0.6);
+      color: var(--accent);
     }
 
     #sp-shortcut-btn.error {
       background: rgba(239, 68, 68, 0.12);
       border-color: rgba(239, 68, 68, 0.6);
       color: rgb(239, 68, 68);
-    }
-
-    #sp-shortcut-reset-btn {
-      background: transparent;
-      border: 1px solid rgba(0,0,0,0.1);
-      border-radius: 4px;
-      padding: 0 4px;
-      font-size: 11px;
-      cursor: pointer;
-      color: inherit;
-      opacity: 0.6;
-    }
-    #sp-shortcut-reset-btn:hover {
-      opacity: 1;
     }
 
     #sp-shortcut-error {
@@ -227,14 +232,23 @@
       border: none;
       padding: 2px;
       cursor: pointer;
-      color: #000;
-      opacity: 0.5;
-      transition: opacity 0.15s;
+      color: #A9A9AD;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease, color 0.15s ease;
       flex-shrink: 0;
     }
-    #btn-signout:hover,
-    #btn-signout:active {
+    #sp-header:hover #btn-signout,
+    #btn-signout:focus-visible,
+    #btn-signout.confirm-pending {
       opacity: 1;
+      pointer-events: auto;
+    }
+    #btn-signout:hover,
+    #btn-signout:active,
+    .sp-bulk-download-btn:hover:not(:disabled),
+    .sp-clear-btn:hover:not(:disabled) {
+      color: var(--kc-accent, #BC13FE);
     }
     #btn-signout:focus,
     #btn-signout:focus-visible {
@@ -247,7 +261,6 @@
     }
     #btn-signout.confirm-pending {
       color: var(--kc-accent, #BC13FE);
-      opacity: 1;
       font-family: 'Roboto', sans-serif;
       font-size: 11px;
       font-weight: 500;
@@ -268,21 +281,22 @@
 
     .kc-dir-container {
       display: flex;
-      align-items: center;
+      align-items: stretch;
       justify-content: space-between;
       gap: 8px;
-      padding: 8px 12px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-      background: rgba(0, 0, 0, 0.02);
+      min-height: 44px;
+      box-sizing: border-box;
+      flex-shrink: 0;
     }
     .kc-dir-folder-btn {
       flex: 1 1 auto;
       min-width: 0;
-      display: inline-flex;
+      align-self: stretch;
+      display: flex;
       align-items: center;
       gap: 6px;
       padding: 6px 10px;
-      background: transparent;
+      background: #F7F7F7;
       border: 1px solid rgba(0, 0, 0, 0.1);
       border-radius: 6px;
       cursor: pointer;
@@ -297,11 +311,6 @@
       border-color: rgba(188, 19, 254, 0.3);
     }
     .kc-dir-folder-btn:active { background: rgba(188, 19, 254, 0.12); }
-    .kc-dir-folder-btn.kc-dir-configured {
-      color: #BC13FE;
-      border-color: rgba(188, 19, 254, 0.4);
-      background: rgba(188, 19, 254, 0.05);
-    }
     .kc-dir-folder-btn.kc-dir-missing {
       color: #dc2626;
       border-color: rgba(220, 38, 38, 0.4);
@@ -313,7 +322,7 @@
     .kc-dir-folder-btn.kc-dir-drive-configured .kc-dir-folder-icon-local { display: none; }
     .kc-dir-folder-btn.kc-dir-drive-configured .kc-dir-folder-icon-drive { display: inline-block; }
     .kc-dir-folder-btn.kc-dir-drive-configured {
-      /* Uses kc-dir-configured styling */
+      /* Icon swap only; configured state has no idle tint */
     }
     .kc-dir-folder-label {
       white-space: nowrap;
@@ -327,6 +336,9 @@
     .kc-dropdown-wrap {
       position: relative;
       flex: 0 0 auto;
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
       margin-left: 4px;
     }
     .kc-dropdown-btn {
@@ -343,13 +355,12 @@
       color: #6b7280;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-    /* PHASE_UPLOAD_FORMAT: narrower than the shared 90px, to sit beside the upload
-       button within the same total width. Scoped by id so Clip Size and Clip mode keep
-       theirs. The padding and the caret's margin are tightened too: at 58px with the
-       shared 6px padding and 6px caret margin the label had about 30px, and 'WEBP' needs
-       about 34. */
+    /* PHASE_UPLOAD_FORMAT: format control fills remainder of .kc-dir-download-group. */
     #kc-download-format-btn {
-      width: 58px;
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
       padding-left: 4px;
       padding-right: 4px;
     }
@@ -357,7 +368,20 @@
       margin-left: 2px;
     }
     #kc-download-format-wrap {
+      flex: 1 1 auto;
+      min-width: 0;
       margin-left: 0;
+    }
+    #kc-download-format-menu {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    #kc-download-format-menu .kc-dropdown-menu-item {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .kc-dropdown-btn-label {
       flex: 1;
@@ -416,17 +440,71 @@
     }
     /* === END PHASE_UPLOAD_FORMAT === */
 
+    /* === PHASE_CLIP_EFFECT (mode pill switch) === */
+    .kc-mode-switch {
+      position: relative;
+      display: flex;
+      align-items: center;
+      align-self: stretch;
+      flex-shrink: 0;
+      width: var(--sp-setting-control-inline-size);
+      box-sizing: border-box;
+      padding: 2px;
+      background: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+    .kc-mode-pill {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      left: 2px;
+      width: calc(50% - 2px);
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+      transition: transform 0.25s ease;
+      pointer-events: none;
+    }
+    .kc-mode-switch[data-mode="editor"] .kc-mode-pill {
+      transform: translateX(100%);
+    }
+    .kc-mode-switch [role="tab"] {
+      position: relative;
+      z-index: 1;
+      flex: 1 1 0;
+      min-width: 0;
+      border: none;
+      background: transparent;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1;
+      padding: 3.5px 8px;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.7);
+      border-radius: 4px;
+    }
+    .kc-mode-switch [role="tab"][aria-selected="true"] {
+      color: #6b7280;
+    }
+    /* === END PHASE_CLIP_EFFECT (mode pill switch) === */
+
     /* === PHASE_CLIP_SIZE === */
     /* Shared "label + control" setting row (clip size, clip shortcut, …) */
     .sp-setting-row {
+      --sp-setting-control-inline-size: 118.37px;
       display: flex;
       align-items: center;
-      justify-content: flex-end;
       gap: 8px;
       width: 100%;
-      padding: 6px 12px;
-      border-bottom: 1px solid var(--border);
-      background: #fff;
+      min-height: 44px;
+      padding: 6px 8px;
+      box-sizing: border-box;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: #F7F7F7;
+      border-radius: 8px;
       flex-shrink: 0;
     }
     .sp-setting-label {
@@ -443,208 +521,6 @@
        html/body carry #fafafa with no dark rule — so on a dark system the controls simply
        lost their outlines. Doing it properly means the cards, the setting rows, the
        directory list and the toasts as well, which is its own piece of work. */
-
-    /* ── Directory list ── */
-    #sp-directory-list {
-      flex-shrink: 0;
-      overflow-y: auto;
-      max-height: 200px;
-      border-bottom: 1px solid var(--border);
-      background: #fff;
-    }
-    /* ── AI board ── */
-    #sp-ai-board {
-      flex-shrink: 0;
-      height: 200px;
-      overflow-y: auto;
-      border-bottom: 1px solid var(--border);
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      box-sizing: border-box;
-    }
-    #sp-ai-board-empty {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-secondary);
-      font-size: 11px;
-    }
-    #sp-ai-board-content {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-    }
-    #sp-ai-board-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 12px 4px 12px;
-      flex-shrink: 0;
-    }
-    #sp-ai-board-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-      min-width: 0;
-    }
-    #sp-ai-board-close {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 11px;
-      color: var(--text-secondary);
-      padding: 0 0 0 8px;
-      flex-shrink: 0;
-      line-height: 1;
-    }
-    #sp-ai-board-close:hover {
-      color: #111;
-    }
-    #sp-ai-board-body {
-      padding: 0 12px 12px 12px;
-      font-size: 11px;
-      line-height: 1.6;
-      color: var(--text-primary);
-      word-break: break-word;
-      white-space: pre-wrap;
-    }
-    .sp-ai-type {
-      display: inline-block;
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--kc-accent, #6c47ff);
-      margin-bottom: 6px;
-    }
-    .sp-ai-type-separator {
-      font-size: 9px;
-      font-weight: 400;
-      color: rgba(0, 0, 0, 0.3);
-      margin: 0 2px;
-    }
-    .sp-ai-detail-type {
-      font-size: 9px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--kc-accent, #6c47ff);
-      opacity: 0.7;
-    }
-    .sp-ai-summary {
-      font-size: 11px;
-      line-height: 1.6;
-      color: var(--text-primary, #111);
-      margin-bottom: 8px;
-    }
-    .sp-ai-keypoints {
-      margin: 0 0 8px 0;
-      padding-left: 16px;
-      font-size: 11px;
-      line-height: 1.6;
-      color: var(--text-primary, #111);
-    }
-    .sp-ai-keypoints li {
-      margin-bottom: 2px;
-    }
-    .sp-ai-keywords {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-bottom: 4px;
-    }
-    .sp-ai-keyword {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 10px;
-      background: var(--accent-10, #f0ecff);
-      color: var(--kc-accent, #6c47ff);
-      font-weight: 500;
-    }
-    .sp-ai-section-label {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-secondary, #888);
-      margin-bottom: 4px;
-      margin-top: 8px;
-    }
-    .sp-ai-toc {
-      margin: 0 0 8px 0;
-      padding-left: 18px;
-      font-size: 11px;
-      line-height: 1.6;
-      color: var(--text-primary, #111);
-    }
-    .sp-ai-toc li {
-      margin-bottom: 2px;
-    }
-    .sp-ai-reveal {
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 220ms ease, transform 220ms ease;
-    }
-    .sp-ai-revealed {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    #sp-ai-board-title.sp-ai-reveal {
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity 200ms ease, transform 200ms ease;
-    }
-    #sp-ai-board-title.sp-ai-revealed {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    #sp-ai-board-loading {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
-
-    .directory-item {
-      border-bottom: 1px solid var(--border);
-    }
-    .directory-item-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      cursor: pointer;
-      user-select: none;
-      font-size: 13px;
-      font-weight: 600;
-      transition: background 0.1s;
-    }
-    .directory-item-header:hover { background: var(--accent-10); }
-    .directory-item-header.drag-over { background: var(--accent-20); }
-    .directory-toggle {
-      font-size: 10px;
-      color: var(--text-secondary);
-      transition: transform 0.15s;
-      flex-shrink: 0;
-    }
-    .directory-item.expanded .directory-toggle { transform: rotate(90deg); }
-    .directory-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .directory-items-container {
-      display: none;
-      flex-direction: column;
-      gap: 0;
-      padding: 0 8px 8px 8px;
-      background: #f9fafb;
-    }
-    .directory-item.expanded .directory-items-container { display: flex; }
 
     /* ── Main item list ── */
     /* Slide container */
@@ -666,6 +542,15 @@
       overflow: hidden;
     }
 
+    #sp-itemlist-wrap #sp-unified-list {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    #sp-itemlist-wrap #sp-unified-list::-webkit-scrollbar {
+      display: none;
+    }
+
     #sp-unified-list {
       flex: 1;
       display: flex;
@@ -678,7 +563,6 @@
       box-sizing: border-box;
       overflow-y: auto;
       opacity: 1;
-      background: var(--bg-primary);
     }
 
     .sp-card-placeholder {
@@ -1213,7 +1097,6 @@
       justify-content: flex-end;
       gap: 8px;
       padding: 2px 8px;
-      background: var(--bg-primary);
     }
 
     .sp-clear-btn {
@@ -1228,11 +1111,7 @@
       background: transparent;
       color: #A9A9AD;
       cursor: pointer;
-      transition: background-color 0.15s ease, opacity 0.15s ease;
-    }
-
-    .sp-clear-btn:hover:not(:disabled) {
-      background: rgba(0, 0, 0, 0.05);
+      transition: color 0.15s ease, opacity 0.15s ease;
     }
 
     .sp-clear-btn:disabled {
@@ -1263,14 +1142,14 @@
     /* === END PHASE_CARD_MULTISELECT === */
 
     /* === PHASE_BULK_UPLOAD === */
-    /* PHASE_BULK_UPLOAD: 28px button + 4px gap + 58px dropdown = the 90px the dropdown
-       used to take on its own. */
+    /* PHASE_BULK_UPLOAD: bulk control row width (see design: 120.45px). */
     .kc-dir-download-group {
       flex: 0 0 auto;
+      align-self: stretch;
       display: flex;
       align-items: center;
       gap: 4px;
-      width: 90px;
+      width: 120.45px;
       opacity: 1;
       transition: width 0.18s ease, opacity 0.18s ease, margin 0.18s ease;
     }
@@ -1297,11 +1176,7 @@
       background: transparent;
       color: #A9A9AD;
       cursor: pointer;
-      transition: background-color 0.15s ease, color 0.15s ease;
-    }
-    .sp-bulk-download-btn:hover:not(:disabled) {
-      background: rgba(0, 0, 0, 0.05);
-      color: var(--kc-accent, #BC13FE);
+      transition: color 0.15s ease;
     }
     .sp-bulk-download-btn:disabled {
       cursor: default;
@@ -1326,6 +1201,27 @@
       display: none;
     }
     /* === END PHASE_BULK_UPLOAD === */
+
+    #sp-list-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 5;
+    }
+    #sp-list-loading[hidden] {
+      display: none;
+    }
+    .sp-list-loading-spinner {
+      width: 28px;
+      height: 28px;
+      border: 2px solid rgba(0, 0, 0, 0.12);
+      border-top-color: var(--kc-accent, #BC13FE);
+      border-radius: 50%;
+      animation: data-card-spin 0.7s linear infinite;
+    }
 
     /* ── Loading state ── */
     .sp-loading {
@@ -1387,32 +1283,19 @@
         <span class="sp-setting-label">Shortcut</span>
         <div id="sp-shortcut-container">
           <button id="sp-shortcut-btn" title="Click to record a new shortcut">⌘C</button>
-          <button id="sp-shortcut-reset-btn" title="Reset to default" type="button">↺</button>
           <span id="sp-shortcut-error" aria-live="polite" hidden></span>
         </div>
       </div>
       <!-- === END PHASE_SHORTCUT_RECORDER === -->
 
-      <!-- === PHASE_CLIP_SIZE === -->
-      <div id="sp-clip-size-row" class="sp-setting-row">
-        <span class="sp-setting-label">Output size</span>
-        <div class="kc-dropdown-wrap" id="kc-clip-size-wrap">
-          <button type="button" id="kc-clip-size-btn" class="kc-dropdown-btn"
-                  title="Output size" aria-label="Select output size"
-                  aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Auto</span></button>
-          <ul id="kc-clip-size-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
-        </div>
-      </div>
-      <!-- === END PHASE_CLIP_SIZE === -->
-
       <!-- === PHASE_CLIP_EFFECT === -->
       <div id="sp-clip-effect-row" class="sp-setting-row">
         <span class="sp-setting-label">Mode</span>
-        <div class="kc-dropdown-wrap" id="kc-clip-effect-wrap">
-          <button type="button" id="kc-clip-effect-btn" class="kc-dropdown-btn"
-                  title="Default effect" aria-label="Select default effect"
-                  aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Instant</span></button>
-          <ul id="kc-clip-effect-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
+        <div class="kc-mode-switch" id="kc-clip-effect-switch" role="tablist" data-mode="instant"
+             aria-label="Clip mode">
+          <span class="kc-mode-pill" aria-hidden="true"></span>
+          <button type="button" role="tab" data-mode="instant" aria-selected="true">Instant</button>
+          <button type="button" role="tab" data-mode="editor" aria-selected="false">Editor</button>
         </div>
       </div>
       <!-- === END PHASE_CLIP_EFFECT === -->
@@ -1459,32 +1342,12 @@
           <div class="kc-dropdown-wrap" id="kc-download-format-wrap">
             <button type="button" id="kc-download-format-btn" class="kc-dropdown-btn" tabindex="-1"
                     title="Save image format" aria-label="Select save image format"
-                    aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Orig</span></button>
+                    aria-haspopup="listbox" aria-expanded="false"><span class="kc-dropdown-btn-label">Original</span></button>
             <ul id="kc-download-format-menu" class="kc-dropdown-menu" role="listbox" hidden></ul>
           </div>
           <!-- === END PHASE_UPLOAD_FORMAT === -->
         </div>
         <!-- === END PHASE_BULK_UPLOAD === -->
-      </div>
-
-      <!-- Directory list -->
-      <div id="sp-directory-list"></div>
-
-      <!-- AI analysis board -->
-      <div id="sp-ai-board" style="display:none;">
-        <div id="sp-ai-board-empty">
-          <span>Click a card to analyze</span>
-        </div>
-        <div id="sp-ai-board-content" style="display:none;">
-          <div id="sp-ai-board-header">
-            <span id="sp-ai-board-title"></span>
-            <button id="sp-ai-board-close">✕</button>
-          </div>
-          <div id="sp-ai-board-body"></div>
-        </div>
-        <div id="sp-ai-board-loading" style="display:none;">
-          <span>Analyzing…</span>
-        </div>
       </div>
 
       <!-- === PHASE_SIDEPANEL_UNIFIED_LIST === Main item list: unified dock grid === -->
@@ -1513,6 +1376,9 @@
         </div>
         <div id="sp-itemlist-wrap">
           <div id="sp-unified-list" class="sp-unified-list"></div>
+        </div>
+        <div id="sp-list-loading" hidden aria-live="polite" aria-busy="true">
+          <span class="sp-list-loading-spinner" aria-hidden="true"></span>
         </div>
       </div>
       <!-- === END PHASE_SIDEPANEL_UNIFIED_LIST === -->
