@@ -10,6 +10,7 @@ admin.initializeApp();
 
 // ─── Secrets ─────────────────────────────────────────────────────────────────
 const falApiKey = defineSecret("FAL_KEY");
+const dewatermarkApiKey = defineSecret("DEWATERMARK_API_KEY");
 
 // ─── 전역 옵션 ────────────────────────────────────────────────────────────────
 setGlobalOptions({maxInstances: 10});
@@ -129,7 +130,7 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     screenshot_base64, screenshot_bg_color, category,
     img_thumbnail_b64,
     origin_source,
-    clip_image_base64, clip_size,
+    clip_image_base64,
     is_bgremoved, is_erased, is_upscaled,
   } = req.body;
 
@@ -166,8 +167,6 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     typeof clip_image_base64 === "string" &&
     clip_image_base64.trim().startsWith("data:image/") ?
       clip_image_base64.trim() : "";
-  const resolvedClipSize = typeof clip_size === "string" ?
-    clip_size.trim() : "";
   // === END PHASE_CLIP_IMAGE_STORAGE ===
 
   const userId = typeof req.body.userId === "string" ? req.body.userId.trim() : "";
@@ -275,7 +274,7 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
     const isUpdate = !!dedupHitDocId;
 
     // === PHASE_CLIP_IMAGE_STORAGE ===
-    // When the client sends the size-adjusted clip image (clip_size != origin),
+    // When the client sends a processed clip image (SR / erase),
     // upload it synchronously and override img_url with the stable storage URL,
     // so re-clip / upload reproduce the exact clipped image. On upload failure,
     // baseFields keeps the resolvedImgUrl fallback (the remote URL). dedup is
@@ -285,7 +284,6 @@ app.post("/api/v1/save-url", async (req: Request, res: Response): Promise<void> 
         await uploadClipImageToStorage(resolvedClipImageB64, userId, docId);
       if (clipUpload) baseFields.img_url = clipUpload.publicUrl;
     }
-    if (resolvedClipSize) baseFields.clip_size = resolvedClipSize;
     // === END PHASE_CLIP_IMAGE_STORAGE ===
 
     if (isUpdate) {
@@ -676,6 +674,157 @@ app.post("/api/v1/bg-remove", async (req: Request, res: Response): Promise<void>
 });
 // === END PHASE_BG_REMOVE_FAL ===
 
+// === PHASE_DEWATERMARK_IMAGE_EDIT ===
+const DEWATERMARK_ERASE_WATERMARK_URL =
+  "https://platform.dewatermark.ai/api/object_removal/v2/erase_watermark";
+const DEWATERMARK_IMAGE_EDIT_TIMEOUT_MS = 15_000;
+
+const IMAGE_EDIT_DAILY_LIMIT = 200;
+
+/** Decode a data-URL payload to bytes for multipart upload (client sends JPEG). */
+function dataUrlToImageBuffer(dataUrl: string): Buffer | null {
+  const commaIdx = dataUrl.indexOf(",");
+  if (commaIdx < 0) return null;
+  const base64Payload = dataUrl.slice(commaIdx + 1);
+  try {
+    return Buffer.from(base64Payload, "base64");
+  } catch {
+    return null;
+  }
+}
+
+function dewatermarkEditedImageToDataUrl(
+  edited: {image?: string; content_type?: string | null} | null | undefined
+): string | null {
+  const raw = typeof edited?.image === "string" ? edited.image.trim() : "";
+  if (!raw) return null;
+  const ct = typeof edited?.content_type === "string" ?
+    edited.content_type.split(";")[0].trim() : "image/jpeg";
+  const mime = ct.startsWith("image/") ? ct : "image/jpeg";
+  return `data:${mime};base64,${raw}`;
+}
+
+async function checkAndIncrementImageEditQuota(uid: string): Promise<boolean> {
+  const day = new Date().toISOString().slice(0, 10);
+  const ref = getFirestore().collection("usage").doc(`image_edit_${uid}_${day}`);
+  try {
+    return await getFirestore().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const count = snap.exists ? (snap.data()?.count || 0) : 0;
+      if (count >= IMAGE_EDIT_DAILY_LIMIT) return false;
+      tx.set(ref, {
+        count: count + 1,
+        uid,
+        day,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      return true;
+    });
+  } catch (e) {
+    console.error(`[image-edit] uid=${uid} quota check failed`, e);
+    return true;
+  }
+}
+
+// ── POST /api/v1/image-edit ───────────────────────────────────────────────────
+app.post("/api/v1/image-edit", async (req: Request, res: Response): Promise<void> => {
+  const uid = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+  if (!uid) {
+    res.status(401).json({error: "Sign in required"});
+    return;
+  }
+
+  const rawDataUrl = req.body?.dataUrl;
+  if (typeof rawDataUrl !== "string" || !rawDataUrl.trim().startsWith("data:image/")) {
+    res.status(400).json({error: "Invalid payload"});
+    return;
+  }
+  const dataUrl = rawDataUrl.trim();
+
+  const commaIdx = dataUrl.indexOf(",");
+  if (commaIdx < 0) {
+    res.status(400).json({error: "Invalid payload"});
+    return;
+  }
+  const base64Payload = dataUrl.slice(commaIdx + 1);
+  if (base64Payload.length > BG_REMOVE_MAX_BASE64_BYTES) {
+    res.status(413).json({error: "Image too large"});
+    return;
+  }
+
+  const allowed = await checkAndIncrementImageEditQuota(uid);
+  if (!allowed) {
+    console.warn(`[image-edit] uid=${uid} quota exceeded`);
+    res.status(429).json({error: "Daily limit reached"});
+    return;
+  }
+
+  const dwKey = dewatermarkApiKey.value();
+  if (!dwKey) {
+    console.error(`[image-edit] uid=${uid} dewatermark key not configured`);
+    res.status(503).json({error: "Image edit not configured"});
+    return;
+  }
+
+  const imageBuffer = dataUrlToImageBuffer(dataUrl);
+  if (!imageBuffer || imageBuffer.length === 0) {
+    res.status(400).json({error: "Invalid payload"});
+    return;
+  }
+
+  try {
+    const form = new FormData();
+    const part = new Blob([Uint8Array.from(imageBuffer)], {type: "image/jpeg"});
+    form.append("original_preview_image", part, "preview.jpg");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), DEWATERMARK_IMAGE_EDIT_TIMEOUT_MS);
+    let dwResp: Awaited<ReturnType<typeof fetch>>;
+    try {
+      dwResp = await fetch(DEWATERMARK_ERASE_WATERMARK_URL, {
+        method: "POST",
+        headers: {
+          "X-API-KEY": dwKey,
+        },
+        body: form,
+        signal: controller.signal,
+      } as any);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!dwResp.ok) {
+      console.error(`[image-edit] uid=${uid} dewatermark status=${dwResp.status}`);
+      res.status(502).json({error: "Image edit failed"});
+      return;
+    }
+
+    const dwData = await dwResp.json() as {
+      edited_image?: {image?: string; content_type?: string | null};
+      session_id?: string;
+      watermark_mask?: unknown;
+    };
+    const resultDataUrl = dewatermarkEditedImageToDataUrl(dwData?.edited_image);
+    if (!resultDataUrl) {
+      console.error(`[image-edit] uid=${uid} dewatermark response unusable`);
+      res.status(502).json({error: "Image edit failed"});
+      return;
+    }
+
+    console.log(`[image-edit] uid=${uid} ok`);
+    res.status(200).json({ok: true, dataUrl: resultDataUrl});
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      console.error(`[image-edit] uid=${uid} dewatermark timeout`);
+      res.status(504).json({error: "Image edit timed out"});
+      return;
+    }
+    console.error(`[image-edit] uid=${uid} failed`, err);
+    res.status(502).json({error: "Image edit failed"});
+  }
+});
+// === END PHASE_DEWATERMARK_IMAGE_EDIT ===
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Cloud Functions 진입점
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -717,7 +866,7 @@ export const api = onRequest(
     memory: "512MiB",
     timeoutSeconds: 60,
     region: "asia-northeast3",
-    secrets: [falApiKey],
+    secrets: [falApiKey, dewatermarkApiKey],
   },
   app
 );

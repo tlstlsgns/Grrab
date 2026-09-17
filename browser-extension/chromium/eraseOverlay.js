@@ -28,6 +28,7 @@ const KC_ICON_REFRESH = '<svg style="display:block;flex:0 0 auto" width="14" hei
 const KC_ICON_CLIP = '<svg style="display:block;flex:0 0 auto" width="14" height="14" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M508 66.666H378.193C319.386 66.6657 272.806 66.665 236.351 71.586C198.834 76.6504 168.467 87.3207 144.52 111.365C120.572 135.408 109.944 165.897 104.9 203.565C99.999 240.166 99.9997 286.933 100 345.976V540.563C100 590.833 130.665 633.913 174.239 651.973C171.996 621.659 171.998 579.123 172 543.733V379.919V376.746C171.998 334.023 171.995 297.214 175.943 267.736C180.173 236.145 189.713 205.863 214.177 181.301C238.64 156.739 268.801 147.161 300.266 142.914C329.626 138.951 366.29 138.953 408.84 138.955L412 138.955H508L511.16 138.955C553.71 138.953 590.293 138.951 619.653 142.914C602.09 98.259 558.72 66.666 508 66.666Z" fill="currentColor"/> <path d="M220.004 379.914C220.004 289.04 220.004 243.604 248.122 215.373C276.239 187.143 321.494 187.143 412.004 187.143H508.004C598.514 187.143 643.767 187.143 671.887 215.373C700.004 243.604 700.004 289.041 700.004 379.914V540.557C700.004 631.431 700.004 676.867 671.887 705.097C643.767 733.327 598.514 733.327 508.004 733.327H412.004C321.494 733.327 276.239 733.327 248.122 705.097C220.004 676.867 220.004 631.431 220.004 540.557V379.914Z" fill="currentColor"/> </svg>';
 const KC_ICON_ERASE = '<svg style="display:block;flex:0 0 auto" width="14" height="14" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg"> <g clip-path="url(#clip_kc_icon_erase)"> <path fill-rule="evenodd" clip-rule="evenodd" d="M467.389 635.953L186.26 354.777L510.119 30.9649C525.272 15.6708 550.401 16.1884 566.166 32.0002L790.26 255.953C805.977 271.765 806.495 296.847 791.248 312L467.389 635.953Z" fill="currentColor"/> <path fill-rule="evenodd" clip-rule="evenodd" d="M421.789 687.53C347.342 762.024 166.071 701.647 87.5769 623.153C9.17694 544.706 63.1064 477.883 137.6 403.389L421.789 687.53Z" fill="currentColor"/> </g> <defs> <clipPath id="clip_kc_icon_erase"> <rect width="800" height="800" fill="white"/> </clipPath> </defs> </svg>';
 const KC_ICON_REMOVEBG = '<svg style="display:block;flex:0 0 auto" width="14" height="14" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M700 0C755.225 0 800 44.775 800 100V700C800 755.225 755.225 800 700 800H100C44.775 800 0 755.225 0 700V100C0 44.775 44.775 0 100 0H700ZM50 676.525V700C50 727.6 72.4 750 100 750H500.025L248.625 498.625L50 676.525ZM386.6 563.375L570.8 750H700C727.6 750 750 727.6 750 700V499.975L600 349.975L386.6 563.375ZM50 421V538H167V421H50ZM400 71V188H284V304H167V188H50V305H167V421H284V305H400V421H517V305H634V188H517V304H401V188H517V71H400ZM167 71V188H284V71H167ZM634 71V188H751V71H634Z" fill="currentColor"/> </svg>';
+const KC_ICON_WATERMARK = '<svg style="display:block;flex:0 0 auto" width="14" height="14" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M400 50C241.5 50 50 241.5 50 400C50 558.5 241.5 750 400 750C558.5 750 750 558.5 750 400C750 241.5 558.5 50 400 50ZM400 680C279.5 680 120 520.5 120 400C120 279.5 279.5 120 400 120C520.5 120 680 279.5 680 400C680 520.5 520.5 680 400 680ZM520 320L560 360L440 480L320 360L360 320L440 400L520 320Z" fill="currentColor"/> </svg>';
 const KC_ICON_UPSCALE = '<svg style="display:block;flex:0 0 auto" width="14" height="14" viewBox="0 0 843 836" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M639.332 145.556C653.385 144.634 665.524 155.28 666.445 169.333L681.459 398.341C682.38 412.394 671.735 424.534 657.682 425.455C643.629 426.376 631.49 415.73 630.568 401.678L619.581 234.099L378.672 508.814C369.386 519.402 353.275 520.458 342.687 511.173C332.098 501.887 331.043 485.777 340.328 475.188L581.237 200.473L413.66 211.46C399.607 212.381 387.467 201.736 386.546 187.682C385.625 173.63 396.27 161.491 410.323 160.569L639.332 145.556Z" fill="currentColor"/> <path d="M257.51 555.774C257.914 571.728 270.772 584.586 286.726 584.99L287.5 585H761.5L762.274 584.99C778.485 584.579 791.5 571.31 791.5 555V81C791.5 64.4315 778.069 51 761.5 51V0C806.235 0 842.5 36.265 842.5 81V555C842.5 599.735 806.235 636 761.5 636H287.5C242.765 636 206.5 599.735 206.5 555V81C206.5 36.2649 242.765 0 287.5 0V51C270.931 51 257.5 64.4315 257.5 81V555L257.51 555.774ZM761.5 0V51H287.5V0H761.5Z" fill="currentColor"/> <path d="M0 755V280C0 235.541 36.0411 199.5 80.5 199.5H206.5V250.5H80.5C64.2076 250.5 51 263.708 51 280V755C51 771.292 64.2076 784.5 80.5 784.5H555.5C571.792 784.5 585 771.292 585 755V636H636V755C636 799.459 599.959 835.5 555.5 835.5H80.5C36.0411 835.5 0 799.459 0 755Z" fill="currentColor"/> </svg>';
 let statusText = KC_ERASE_DEFAULT_STATUS;
 let statusOverride = '';
@@ -39,11 +40,12 @@ let pointerInside = false;
  * @param {(blob: Blob) => void} [commitFn]
  * @param {(setter: (text: string) => void) => void} [bindStatus]
  * @param {(blob: Blob) => Promise<Blob|{error: string}|null>} [bgFn]
+ * @param {(blob: Blob) => Promise<Blob|{error: string}|null>} [watermarkFn]
  * @param {(blob: Blob) => Promise<Blob|null>} [upscaleFn]
  * @param {() => Promise<number>} [srMaxPixelsFn]
  * @returns {Promise<{ action: 'done'|'cancel', blob: Blob|null, modified?: boolean, bgRemoved?: boolean, erased?: boolean, upscaled?: boolean }>}
  */
-export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, upscaleFn, srMaxPixelsFn) {
+export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, watermarkFn, upscaleFn, srMaxPixelsFn) {
   let finishRef = null;
   const p = new Promise((resolve) => {
     statusText = KC_ERASE_DEFAULT_STATUS;
@@ -61,6 +63,8 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     const history = [];
     let bgApplied = false;
     const bgHistory = [];
+    let watermarkApplied = false;
+    const watermarkHistory = [];
     let eraseApplied = false;
     const eraseHistory = [];
     // PHASE_SR_BUTTON: kept in step with history — every history.push pushes here too,
@@ -73,6 +77,8 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     let srApplied = false;
     const srHistory = [];
     let busy = false;
+    /** @type {''|'remove'|'watermark'|'bg'|'upscale'} */
+    let busyOp = '';
     let scale = 1;
     // PHASE_FIXED_STAGE: the stage is a fixed box and the image is letterboxed inside
     // it, so a stage coordinate is no longer an image coordinate. offX/offY are the
@@ -430,6 +436,14 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     btnUndo.style.display = 'inline-flex';
     btnUndo.style.visibility = 'hidden';
 
+    const btnWatermark = document.createElement('button');
+    btnWatermark.type = 'button';
+    btnWatermark.className = 'kc-erase-btn kc-erase-btn--primary kc-erase-btn-watermark';
+    btnWatermark.innerHTML = KC_ICON_WATERMARK + '<span>Remove Watermark</span>';
+    btnWatermark.style.cssText = iconTextBtnStyle;
+    btnWatermark.style.display = 'inline-flex';
+    btnWatermark.style.visibility = 'hidden';
+
     const btnBg = document.createElement('button');
     btnBg.type = 'button';
     btnBg.className = 'kc-erase-btn kc-erase-btn--primary kc-erase-btn-bg';
@@ -563,7 +577,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
     rightGroup.style.cssText = groupStyle;
 
     leftGroup.append(btnModeBrush, btnModeRect, sizeSliderWrap, boxHintEl);
-    rightGroup.append(btnBg);
+    rightGroup.append(btnWatermark, btnBg);
     toolbar.append(leftGroup, rightGroup);
     // PHASE_FIXED_STAGE: the bar is space-between, so every direct child gets its own
     // slot. Back and Refresh are one pair and Upscale and Clip another, which leaves two
@@ -673,7 +687,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       } catch (_) {}
     }
 
-    const allButtons = [btnRefresh, btnUndo, btnBg, btnUpscale, btnCancel, btnDone, btnModeBrush, btnModeRect];
+    const allButtons = [btnRefresh, btnUndo, btnWatermark, btnBg, btnUpscale, btnCancel, btnDone, btnModeBrush, btnModeRect];
 
     function finish(action) {
       if (settled) return;
@@ -750,7 +764,12 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       btnBg.innerHTML = icon + '<span>' + label + '</span>';
     }
 
+    function setWatermarkButton(icon, label) {
+      btnWatermark.innerHTML = icon + '<span>' + label + '</span>';
+    }
+
     setDoneButton(KC_ICON_CLIP, KC_CLIP_LABEL);
+    setWatermarkButton(KC_ICON_WATERMARK, 'Remove Watermark');
     setBgButton(KC_ICON_REMOVEBG, 'Remove BG');
 
     // PHASE_SR_LIMIT: false while the ceiling is unknown, so the button starts usable.
@@ -766,6 +785,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
         img.style.backgroundImage = 'none';
         btnRefresh.style.visibility = 'hidden';
         btnUndo.style.visibility = 'hidden';
+        btnWatermark.style.visibility = 'hidden';
         btnBg.style.visibility = 'hidden';
         btnUpscale.style.visibility = 'hidden';
         btnDone.style.display = 'none';
@@ -795,6 +815,16 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
 
       btnRefresh.style.visibility = (originalBlob && current !== originalBlob) ? 'visible' : 'hidden';
       btnUndo.style.visibility = history.length > 0 ? 'visible' : 'hidden';
+      if (!watermarkFn) {
+        btnWatermark.style.visibility = 'hidden';
+      } else {
+        btnWatermark.style.visibility = 'visible';
+        if (busy && busyOp === 'watermark') {
+          setWatermarkButton(KC_ICON_WATERMARK, KC_REMOVING_LABEL);
+        } else {
+          setWatermarkButton(KC_ICON_WATERMARK, 'Remove Watermark');
+        }
+      }
       if (!bgFn) {
         btnBg.style.visibility = 'hidden';
       } else {
@@ -802,8 +832,10 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
         if (busy) {
           if (hasSelection()) {
             setBgButton(KC_ICON_ERASE, KC_REMOVING_LABEL);
-          } else {
+          } else if (busyOp === 'bg') {
             setBgButton(KC_ICON_REMOVEBG, KC_REMOVING_BG_LABEL);
+          } else {
+            setBgButton(KC_ICON_REMOVEBG, 'Remove BG');
           }
         } else if (hasSelection()) {
           setBgButton(KC_ICON_ERASE, KC_REMOVE_LABEL);
@@ -820,6 +852,10 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
 
       for (const btn of allButtons) {
         if (btn === btnCancel) continue;
+        if (btn === btnWatermark) {
+          setButtonDisabled(btnWatermark, busy || watermarkApplied);
+          continue;
+        }
         if (btn === btnBg) {
           setButtonDisabled(btnBg, busy || (bgApplied && !hasSelection()));
           continue;
@@ -1086,6 +1122,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       updateUi();
       current = history.pop();
       bgApplied = bgHistory.length > 0 ? bgHistory.pop() : false;
+      watermarkApplied = watermarkHistory.length > 0 ? watermarkHistory.pop() : false;
       eraseApplied = eraseHistory.length > 0 ? eraseHistory.pop() : false;
       srApplied = srHistory.length > 0 ? srHistory.pop() : false;
       draft = null;
@@ -1114,10 +1151,12 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       updateUi();
       history.push(current);
       bgHistory.push(bgApplied);
+      watermarkHistory.push(watermarkApplied);
       eraseHistory.push(eraseApplied);
       srHistory.push(srApplied);
       current = originalBlob;
       bgApplied = false;
+      watermarkApplied = false;
       eraseApplied = false;
       srApplied = false;
       draft = null;
@@ -1190,6 +1229,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
 
       statusOverride = '';
       busy = true;
+      busyOp = 'remove';
       showBusyOverlay(KC_BUSY_REMOVING); // PHASE_BUSY_OVERLAY
       setBgActionBtnBusy(true);
       updateUi();
@@ -1207,6 +1247,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
         statusOverride = '';
         history.push(current);
         bgHistory.push(bgApplied);
+        watermarkHistory.push(watermarkApplied);
         eraseHistory.push(eraseApplied);
         srHistory.push(srApplied);
         current = out;
@@ -1231,6 +1272,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
           return;
         }
         busy = false;
+        busyOp = '';
         setBgActionBtnBusy(false);
         renderSelections();
         if (inferenceFailed) {
@@ -1240,9 +1282,58 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       }
     }
 
+    async function runWatermarkRemove() {
+      if (busy || loading || watermarkApplied || !current || !watermarkFn) return;
+      busy = true;
+      busyOp = 'watermark';
+      statusOverride = '';
+      showBusyOverlay(KC_BUSY_REMOVING);
+      updateUi();
+      let failed = '';
+      try {
+        const out = await watermarkFn(current);
+        if (settled) return;
+        if (out instanceof Blob) {
+          history.push(current);
+          bgHistory.push(bgApplied);
+          watermarkHistory.push(watermarkApplied);
+          eraseHistory.push(eraseApplied);
+          srHistory.push(srApplied);
+          current = out;
+          watermarkApplied = true;
+          draft = null;
+          selections = [];
+          activeStroke = null;
+          hideBusyOverlay();
+          try { await playReveal(await loadBlobIntoImage(current)); } catch (_) {}
+          if (settled) return;
+        } else {
+          failed = (out && out.error) || 'failed';
+        }
+      } catch (_) {
+        failed = 'failed';
+      } finally {
+        hideBusyOverlay();
+        busy = false;
+        busyOp = '';
+        if (!settled) {
+          if (failed) {
+            statusOverride =
+              failed === 'signed-out' ? 'Sign in to remove watermarks'
+              : failed === 'http-429' ? 'Daily watermark removal limit reached'
+              : failed === 'http-504' ? 'Watermark removal timed out'
+              : 'Watermark removal failed';
+          }
+          updateUi();
+          renderSelections();
+        }
+      }
+    }
+
     async function runBgRemove() {
       if (busy || loading || bgApplied || !current || !bgFn) return;
       busy = true;
+      busyOp = 'bg';
       statusOverride = '';
       showBusyOverlay(KC_BUSY_REMOVING); // PHASE_BUSY_OVERLAY
       updateUi();
@@ -1253,6 +1344,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
         if (out instanceof Blob) {
           history.push(current);
           bgHistory.push(bgApplied);
+          watermarkHistory.push(watermarkApplied);
           eraseHistory.push(eraseApplied);
           srHistory.push(srApplied);
           current = out;
@@ -1271,6 +1363,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       } finally {
         hideBusyOverlay(); // PHASE_BUSY_OVERLAY
         busy = false;
+        busyOp = '';
         if (!settled) {
           if (failed) {
             statusOverride =
@@ -1292,6 +1385,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       if (busy || loading || srApplied || !current || !upscaleFn) return;
       if (_srcExceedsLimit()) return; // PHASE_SR_LIMIT
       busy = true;
+      busyOp = 'upscale';
       statusOverride = '';
       showBusyOverlay(KC_BUSY_UPSCALING); // PHASE_BUSY_OVERLAY
       updateUi();
@@ -1302,6 +1396,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
         if (out instanceof Blob) {
           history.push(current);
           bgHistory.push(bgApplied);
+          watermarkHistory.push(watermarkApplied);
           eraseHistory.push(eraseApplied);
           srHistory.push(srApplied);
           current = out;
@@ -1320,6 +1415,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       } finally {
         hideBusyOverlay(); // PHASE_BUSY_OVERLAY
         busy = false;
+        busyOp = '';
         if (!settled) {
           if (failed) statusOverride = 'Upscaling failed';
           updateUi();
@@ -1565,6 +1661,12 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, up
       e.preventDefault();
       e.stopPropagation();
       undoLast();
+    });
+    btnWatermark.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (busy || loading) return;
+      runWatermarkRemove();
     });
     btnBg.addEventListener('click', (e) => {
       e.preventDefault();

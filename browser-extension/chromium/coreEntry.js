@@ -358,33 +358,6 @@ function syncCoreBadgeTexts() {
 
 if (!_kcCoreSkipInit) initShortcutSync();
 
-// === PHASE_CLIP_SIZE ===
-// Cache kc_clip_max_dim: target longest-edge (px) for clipped images.
-// 0 = auto (no resize). Presets: 512 / 1024 / 1600. Upscaling allowed
-// (presets are targets, not caps) per product decision.
-const KC_CLIP_MAXDIM_KEY = 'kc_clip_max_dim';
-let _clipMaxDim = 0;
-
-function initClipSizeSync() {
-  (async () => {
-    try {
-      const r = await chrome.storage.local.get(KC_CLIP_MAXDIM_KEY);
-      _clipMaxDim = Number(r?.[KC_CLIP_MAXDIM_KEY]) || 0;
-    } catch (_) {
-      _clipMaxDim = 0;
-    }
-  })();
-  try {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local' || !changes[KC_CLIP_MAXDIM_KEY]) return;
-      _clipMaxDim = Number(changes[KC_CLIP_MAXDIM_KEY].newValue) || 0;
-    });
-  } catch (_) {}
-}
-
-initClipSizeSync();
-// === END PHASE_CLIP_SIZE ===
-
 // === PHASE_CLIP_EFFECT ===
 const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
 let _clipEffect = 'none'; // 'none' | 'bg-remove' | 'erase'
@@ -569,7 +542,6 @@ const KC_SR_AUTO_MIN_PIXELS = 150000;
 // explains itself. It is on screen for 149 ms on WebGPU and a few seconds on WASM, so it
 // has to read at a glance.
 const KC_CLIP_UPSCALING_TEXT = 'Small image — upscaling…';
-const KC_CLIP_RESIZING_TEXT = 'Resizing image…';
 const KC_CLIP_SR_FALLBACK_TEXT = 'Failed to enhance — copied the original';
 const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
 const KC_CLIP_BG_FALLBACK_TEXT = 'Failed to remove — copied the original';
@@ -3756,20 +3728,17 @@ async function saveActiveCoreItem(request = {}) {
     // === END PHASE_ORIGIN_SOURCE ===
 
     // === PHASE_CLIP_IMAGE_STORAGE ===
-    // Freeze the clip size per item and, when a size was applied, send the
-    // exact size-adjusted clip image so the server stores it and overrides
-    // img_url with a stable storage URL (re-clip/upload then reproduce it).
-    // For 'origin' nothing is uploaded and img_url stays the remote URL.
+    // When SR or erase modified the clip, send the processed blob so the server
+    // stores it and overrides img_url with a stable storage URL (re-clip/upload
+    // then reproduce it). Otherwise img_url stays the remote URL.
     // PHASE_SR_APPLIED: read the outcome from this clip's control. Relay and other
     // callers carry no clipControl; they never run SR, so false is correct for them.
     const srApplied = !!(request?.clipControl && request.clipControl._srApplied);
-    const clipSize = _clipMaxDim > 0 ? `${_clipMaxDim}px` : (srApplied ? 'upscaled' : 'origin');
     let clipImageBase64 = '';
     // PHASE_SR_APPLIED: srApplied is set only when super-resolution output actually
     // replaced the blob. A source past the pixel ceiling is skipped and a timeout falls
     // back to the original; neither should upload or report as upscaled.
-    if ((_clipMaxDim > 0 || srApplied || (_clipEffect === 'erase' && _kcEraseModified))
-        && clipAdjustedBlob) {
+    if ((srApplied || (_clipEffect === 'erase' && _kcEraseModified)) && clipAdjustedBlob) {
       try {
         clipImageBase64 = await _ceBlobToDataURL(clipAdjustedBlob);
       } catch (_) { clipImageBase64 = ''; }
@@ -3794,7 +3763,6 @@ async function saveActiveCoreItem(request = {}) {
       ...(imgThumbnailB64 ? { img_thumbnail_b64: imgThumbnailB64 } : {}),
       // === END PHASE_IMAGE_URL_PIPELINE ===
       // === PHASE_CLIP_IMAGE_STORAGE ===
-      ...(clipSize ? { clip_size: clipSize } : {}),
       ...(clipImageBase64 ? { clip_image_base64: clipImageBase64 } : {}),
       // === END PHASE_CLIP_IMAGE_STORAGE ===
       ...(userId ? { userId } : {}),
@@ -4035,10 +4003,9 @@ function _ceBlobToDataURL(blob) {
 }
 
 // === PHASE_CLIP_SIZE ===
-// Automatic upscaling (under KC_SR_AUTO_MIN_PIXELS) and clip-size resize (_clipMaxDim)
-// decisions. SR runs at native 4x output (targetWidth: 0 to offscreen); the
-// content script fits to _clipMaxDim afterward when set. Pixel ceiling from
-// offscreen governs whether SR is attempted at all.
+// Automatic upscaling (under KC_SR_AUTO_MIN_PIXELS). SR runs at native 4x output
+// (targetWidth: 0 to offscreen). Pixel ceiling from offscreen governs whether SR
+// is attempted at all.
 
 // Cached SR input ceiling (px). Stale after offscreen teardown if the execution
 // provider changes — deliberate: offscreen caps input itself; only the quarter
@@ -4052,56 +4019,6 @@ async function _kcGetSrMaxPixels() {
     if (res && res.ok && res.px > 0) { _srMaxPixels = res.px; return _srMaxPixels; }
   } catch (_) {}
   return 150000;
-}
-
-// Fast local downscale (canvas, high-quality smoothing). No SR / no offscreen.
-async function _kcDownscaleClipBlobToWidth(blob, targetWidth) {
-  try {
-    const bmp = await createImageBitmap(blob);
-    const sw = bmp.width || 1, sh = bmp.height || 1;
-    if (sw <= targetWidth) { bmp.close?.(); return blob; }
-    const dw = targetWidth;
-    const dh = Math.max(1, Math.round(sh * (targetWidth / sw)));
-    const canvas = (typeof OffscreenCanvas !== 'undefined')
-      ? new OffscreenCanvas(dw, dh)
-      : Object.assign(document.createElement('canvas'), { width: dw, height: dh });
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(bmp, 0, 0, dw, dh);
-    bmp.close?.();
-    if (canvas.convertToBlob) return await canvas.convertToBlob({ type: 'image/png' });
-    return await new Promise((res, rej) =>
-      canvas.toBlob((b) => b ? res(b) : rej(new Error('toBlob null')), 'image/png')
-    );
-  } catch (_) {
-    return blob;
-  }
-}
-
-// Canvas resize to exact target width — enlarges or shrinks (no SR).
-async function _kcFitClipBlobToWidth(blob, targetWidth) {
-  try {
-    const bmp = await createImageBitmap(blob);
-    const sw = bmp.width || 1, sh = bmp.height || 1;
-    if (sw === targetWidth) { bmp.close?.(); return blob; }
-    const dw = targetWidth;
-    const dh = Math.max(1, Math.round(sh * (targetWidth / sw)));
-    const canvas = (typeof OffscreenCanvas !== 'undefined')
-      ? new OffscreenCanvas(dw, dh)
-      : Object.assign(document.createElement('canvas'), { width: dw, height: dh });
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(bmp, 0, 0, dw, dh);
-    bmp.close?.();
-    if (canvas.convertToBlob) return await canvas.convertToBlob({ type: 'image/png' });
-    return await new Promise((res, rej) =>
-      canvas.toBlob((b) => b ? res(b) : rej(new Error('toBlob null')), 'image/png')
-    );
-  } catch (_) {
-    return blob;
-  }
 }
 
 function _kcMorphClipLoadingText(text) { // PHASE_CLIP_PROGRESS_TEXT
@@ -4175,10 +4092,6 @@ async function maybeUpscaleClip(blob) {
       }
     }
 
-    if (_clipMaxDim > 0) {
-      _kcMorphClipLoadingText(KC_CLIP_RESIZING_TEXT);
-      out = await _kcFitClipBlobToWidth(out, _clipMaxDim);
-    }
     return out;
   } catch (_) {
     if (_srAttempted) _kcMarkSrFallback();
@@ -4240,7 +4153,6 @@ async function maybeRemoveBackground(blob) {
   }
 }
 
-let _kcEraseCommitted = null;   // Blob committed by the overlay's Done, or null
 let _kcEraseModified = false;   // overlay reported pixel change from original
 let _kcEraseBgRemoved = false;  // overlay reported background removal on final blob
 let _kcEraseErased = false;     // overlay reported inpaint erase on final blob
@@ -4254,7 +4166,6 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
   // runtime here. Fall through to the plain pipeline instead of failing the clip.
   if (!_kcRuntimeAlive()) return pipelinePromise;
   if (_clipEffect !== 'erase') return pipelinePromise;
-  _kcEraseCommitted = null;
   _kcEraseModified = false;
   _kcEraseBgRemoved = false;
   _kcEraseErased = false;
@@ -4283,15 +4194,7 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
       return await (await fetch(res.dataUrl)).blob();
     };
 
-    const commitFn = (finalBlob) => {
-      _kcEraseCommitted = finalBlob;
-      try {
-        navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': finalBlob }),
-        ]);
-      } catch (_) {}
-      _kcFinishClipControl(ctrl, { kind: 'success', text: KC_CLIP_DEFAULT_SUCCESS_TEXT });
-    };
+    const commitFn = () => {};
 
     const bindStatus = (fn) => { _kcEraseSetStatus = fn; };
 
@@ -4300,6 +4203,15 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
       if (!sendBlob) return null;
       const dataUrl = await _ceBlobToDataURL(sendBlob);
       const res = await _kcSend({ action: 'bg-remove-server', dataUrl });
+      if (!res || !res.ok || !res.dataUrl) return { error: (res && res.error) || 'failed' };
+      return await (await fetch(res.dataUrl)).blob();
+    };
+
+    const watermarkFn = async (b) => {
+      const sendBlob = await _kcBgEncodeForSend(b);
+      if (!sendBlob) return null;
+      const dataUrl = await _ceBlobToDataURL(sendBlob);
+      const res = await _kcSend({ action: 'image-edit-server', dataUrl });
       if (!res || !res.ok || !res.dataUrl) return { error: (res && res.error) || 'failed' };
       return await (await fetch(res.dataUrl)).blob();
     };
@@ -4322,7 +4234,9 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
       try { return await _kcGetSrMaxPixels(); } catch (_) { return 0; }
     };
 
-    const p = mod.showEraseOverlay(pipelinePromise, inpaintFn, commitFn, bindStatus, bgFn, upscaleFn, srMaxPixelsFn);
+    const p = mod.showEraseOverlay(
+      pipelinePromise, inpaintFn, commitFn, bindStatus, bgFn, watermarkFn, upscaleFn, srMaxPixelsFn,
+    );
     _kcEraseCancel = p.cancelExternal || null;
     const out = await p;
     if (out.action === 'cancel') {
@@ -4339,11 +4253,6 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
   } finally {
     _kcEraseSetStatus = null;
     _kcEraseCancel = null;
-    if (ctrl && !ctrl.done) {
-      ctrl.failsafe = setTimeout(() => {
-        _kcFinishClipControl(ctrl, { kind: 'error', text: KC_CLIP_DEFAULT_ERROR_TEXT });
-      }, KC_CLIP_LOADING_FAILSAFE_MS);
-    }
   }
 }
 // === END PHASE_CLIP_EFFECT ===
@@ -4381,11 +4290,14 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
   // later clip's clipboard content is preserved (last-clip-wins) regardless of how
   // Chrome orders concurrent writes. The non-racing adjustedBlobPromise above is
   // still exposed for the save path. Guard !done so a settled prior control is ignored.
-  let clipboardItemPromise = adjustedBlobPromise;
+  // Clipboard-only PNG encode: adjustedBlobPromise keeps the editor blob for save/upload.
+  let clipboardItemPromise = adjustedBlobPromise.then((b) =>
+    (b ? _kcBlobToClipboardPng(b) : b),
+  );
   const _clipCtrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
   if (_clipCtrl) {
     const abortPromise = new Promise((_, reject) => { _clipCtrl.abortReject = reject; });
-    clipboardItemPromise = Promise.race([adjustedBlobPromise, abortPromise]);
+    clipboardItemPromise = Promise.race([clipboardItemPromise, abortPromise]);
   }
   // === END PHASE_CLIP_CANCEL ===
   return navigator.clipboard
@@ -4810,6 +4722,29 @@ async function videoElementToBlob(videoEl, maxDim = 1200) {
 }
 // === END PHASE_VIDEO_CANVAS_FRAME_AS_IMGURL ===
 // === END PHASE_VIDEO_BLOB_HELPERS ===
+
+/** PNG blob suitable for ClipboardItem; skips re-encode when already image/png. */
+async function _kcBlobToClipboardPng(blob) {
+  if (!blob) return null;
+  const mime = (blob.type || '').split(';')[0].trim().toLowerCase();
+  if (mime === 'image/png') return blob;
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width || 0;
+    canvas.height = bitmap.height || 0;
+    if (canvas.width === 0 || canvas.height === 0) return null;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0);
+    try { bitmap.close(); } catch (_) {}
+    return await new Promise((resolve) => {
+      canvas.toBlob((b) => resolve(b || null), 'image/png');
+    });
+  } catch (_) {
+    return null;
+  }
+}
 
 /**
  * Decode a data URL (from background fetch) into a fresh PNG Blob by rendering
