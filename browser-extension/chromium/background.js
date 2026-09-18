@@ -25,9 +25,11 @@ const KC_TEARDOWN_TIMEOUT_MS = 500;
 const KC_OPEN_TABS_INJECTED_SESSION_KEY = 'kc_open_tabs_injected_v1';
 const KC_BROWSER_BOOT_SESSION_KEY = 'kc_browser_boot_v1';
 const KC_HAS_COPIED_KEY = 'kc_has_copied';
+const KC_EXTENSION_VERSION_STORE_KEY = 'kc_extension_version_v1';
 const KC_CONTENT_SCRIPT_FILES = ['config.js', 'content-bundle.js'];
 let _kcOpenTabsInjectClaimed = false;
 let _kcOnStartupSeen = false;
+let _kcExtensionUpdateSeen = false;
 
 chrome.runtime.onStartup.addListener(() => {
   _kcOnStartupSeen = true;
@@ -53,11 +55,37 @@ async function _kcWaitForBrowserBootSessionFlag(maxMs = 100) {
   }
 }
 
+async function _kcWaitForExtensionUpdateSeen(maxMs = 100) {
+  if (_kcExtensionUpdateSeen) return;
+  const step = 25;
+  for (let waited = 0; waited < maxMs; waited += step) {
+    await new Promise((r) => setTimeout(r, step));
+    if (_kcExtensionUpdateSeen) return;
+  }
+}
+
+function _kcPersistExtensionVersion() {
+  try {
+    const version = chrome.runtime.getManifest().version;
+    chrome.storage.local.set({ [KC_EXTENSION_VERSION_STORE_KEY]: version });
+  } catch (_) {}
+}
+
 async function _kcClearHasCopiedIfReEnabled() {
   try {
     const s = await chrome.storage.session.get(KC_BROWSER_BOOT_SESSION_KEY);
     if (s?.[KC_BROWSER_BOOT_SESSION_KEY]) return;
+    await _kcWaitForExtensionUpdateSeen();
+    if (_kcExtensionUpdateSeen) return;
+    const manifestVersion = chrome.runtime.getManifest().version;
+    const local = await chrome.storage.local.get(KC_EXTENSION_VERSION_STORE_KEY);
+    const storedVersion = local?.[KC_EXTENSION_VERSION_STORE_KEY];
+    if (storedVersion && storedVersion !== manifestVersion) {
+      await chrome.storage.local.set({ [KC_EXTENSION_VERSION_STORE_KEY]: manifestVersion });
+      return;
+    }
     await chrome.storage.local.remove(KC_HAS_COPIED_KEY);
+    if (!storedVersion) _kcPersistExtensionVersion();
   } catch (_) {}
 }
 
@@ -130,6 +158,8 @@ async function _kcMaybeInjectOpenTabsAfterEnable() {
 chrome.runtime.onInstalled.addListener((details) => {
   _kcOpenTabsInjectClaimed = true;
   if (details.reason === 'update') {
+    _kcExtensionUpdateSeen = true;
+    _kcPersistExtensionVersion();
     try {
       chrome.storage.session.set({ [KC_OPEN_TABS_INJECTED_SESSION_KEY]: true });
     } catch (_) {}
@@ -137,6 +167,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     return;
   }
   if (details.reason === 'install' || details.reason === 'chrome_update') {
+    _kcPersistExtensionVersion();
     _kcInjectEligibleOpenTabs();
     return;
   }
