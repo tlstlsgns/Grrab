@@ -7,6 +7,8 @@ const KC_ERASE_Z = 2147483646;
 const KC_ERASE_DEFAULT_STATUS = 'Preparing image…';
 const KC_BRUSH_MIN = 10;
 const KC_BRUSH_MAX = 120;
+/** Minimum brush paint reach from the image rect, in stage pixels (see brushPointerWithinPaintReach). */
+const KC_BRUSH_REACH_MIN_PX = 60;
 const KC_REMOVE_LABEL = 'Remove';
 const KC_CLIP_LABEL = 'Copy';
 const KC_BACK_LABEL = 'Back';
@@ -85,6 +87,8 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, wa
     // image's top-left corner within the stage, in stage pixels.
     let offX = 0;
     let offY = 0;
+    let dispW = 0;
+    let dispH = 0;
     let srcW = 0;
     let srcH = 0;
     let blobUrl = null;
@@ -815,7 +819,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, wa
 
       btnRefresh.style.visibility = (originalBlob && current !== originalBlob) ? 'visible' : 'hidden';
       btnUndo.style.visibility = history.length > 0 ? 'visible' : 'hidden';
-      if (!watermarkFn) {
+      if (!watermarkFn || hasSelection()) {
         btnWatermark.style.visibility = 'hidden';
       } else {
         btnWatermark.style.visibility = 'visible';
@@ -1436,7 +1440,7 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, wa
       strokeCanvas.width = boxW;
       strokeCanvas.height = boxH;
       if (loading || !srcW || !srcH) {
-        scale = 1; offX = 0; offY = 0;
+        scale = 1; offX = 0; offY = 0; dispW = 0; dispH = 0;
         img.style.width = '0px';
         img.style.height = '0px';
         return;
@@ -1445,8 +1449,8 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, wa
       // axis binds. A small source is magnified, which looks soft, but a clip floating
       // small in the middle of a large panel looks broken.
       scale = Math.min(boxW / srcW, boxH / srcH);
-      const dispW = Math.round(srcW * scale);
-      const dispH = Math.round(srcH * scale);
+      dispW = Math.round(srcW * scale);
+      dispH = Math.round(srcH * scale);
       offX = Math.round((boxW - dispW) / 2);
       offY = Math.round((boxH - dispH) / 2);
       img.style.width = `${dispW}px`;
@@ -1473,6 +1477,31 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, wa
         x: Math.max(0, Math.min(Math.round((pt.x - offX) / scale), srcW)),
         y: Math.max(0, Math.min(Math.round((pt.y - offY) / scale), srcH)),
       };
+    }
+
+    /** Brush center in source pixels — not clamped, so edge strokes from just outside still reach the border. */
+    function pointerToSourceBrush(e) {
+      const pt = pointerToLocal(e);
+      return {
+        x: Math.round((pt.x - offX) / scale),
+        y: Math.round((pt.y - offY) / scale),
+      };
+    }
+
+    /** True when the pointer is within paint reach of the letterboxed image rect (stage px). */
+    function brushPointerWithinPaintReach(e) {
+      if (!dispW || !dispH) return false;
+      const pt = pointerToLocal(e);
+      const brushRadiusPx = Math.max(KC_BRUSH_REACH_MIN_PX, brushSize / 2);
+      const left = offX;
+      const top = offY;
+      const right = offX + dispW;
+      const bottom = offY + dispH;
+      const nearX = Math.max(left, Math.min(pt.x, right));
+      const nearY = Math.max(top, Math.min(pt.y, bottom));
+      const dx = pt.x - nearX;
+      const dy = pt.y - nearY;
+      return (dx * dx + dy * dy) <= brushRadiusPx * brushRadiusPx;
     }
 
     let drawing = false;
@@ -1509,11 +1538,12 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, wa
       startedInsideStage = stage.contains(e.target);
       e.preventDefault();
       e.stopPropagation();
+      if (mode === 'brush' && !brushPointerWithinPaintReach(e)) return;
       try { root.setPointerCapture(e.pointerId); } catch (_) {}
       drawing = true;
       if (mode === 'brush') {
         statusOverride = '';
-        activeStroke = { size: brushSize / scale, points: [pointerToSource(e)] };
+        activeStroke = { size: brushSize / scale, points: [pointerToSourceBrush(e)] };
         renderSelections();
         updateUi();
         return;
@@ -1537,7 +1567,8 @@ export function showEraseOverlay(blob, inpaintFn, commitFn, bindStatus, bgFn, wa
       e.stopPropagation();
       if (mode === 'brush') {
         if (!activeStroke) return;
-        const pt = pointerToSource(e);
+        if (!brushPointerWithinPaintReach(e)) return;
+        const pt = pointerToSourceBrush(e);
         const last = activeStroke.points[activeStroke.points.length - 1];
         if (last) {
           const dx = pt.x - last.x;

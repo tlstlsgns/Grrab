@@ -535,17 +535,6 @@ function _kcShowContextDeadToast() {
 }
 // PHASE_CLIP_PROGRESS_TEXT: path-aware in-progress morph targets + SR-fallback
 // terminal text. KC_CLIP_LOADING_TEXT above is intentionally unchanged.
-// PHASE_SR_AUTO_MIN: a clip below this many pixels is upscaled even with the Upscale
-// setting off. 387x387 (149,769 px) was judged usable as a reference image and 300x300
-// (90,000 px) was not, so the line sits at the top of that range. It is also
-// SR_MAX_PIXELS_WASM, so an automatic upscale is never shrunk before the model runs and
-// the result is the same with or without a GPU.
-const KC_SR_AUTO_MIN_PIXELS = 150000;
-// PHASE_SR_AUTO_MIN: every upscale on the clip path is automatic now, so the toast
-// explains itself. It is on screen for 149 ms on WebGPU and a few seconds on WASM, so it
-// has to read at a glance.
-const KC_CLIP_UPSCALING_TEXT = 'Small image — upscaling…';
-const KC_CLIP_SR_FALLBACK_TEXT = 'Failed to enhance — copied the original';
 const KC_CLIP_BG_REMOVING_TEXT = 'Removing background…';
 const KC_CLIP_BG_FALLBACK_TEXT = 'Failed to remove — copied the original';
 const KC_CLIP_BG_SIGNIN_TEXT = 'Sign in to remove backgrounds';
@@ -706,10 +695,7 @@ function _kcFinishClipControl(ctrl, { kind = 'success', text = '', isCancel = fa
   try {
     const away = (document.visibilityState === 'hidden') ||
       (typeof document.hasFocus === 'function' && !document.hasFocus());
-    // PHASE_CLIP_PROGRESS_TEXT: treat an SR-fallback terminal (gray 'canceled' kind but
-    // a real clip of the original image) like a completed clip for the away path, so an
-    // away user still gets a completion banner carrying the fallback text.
-    const _terminalDone = (kind === 'success') || !!ctrl._srFallback;
+    const _terminalDone = kind === 'success';
     if (ctrl.osLoadingShown && ctrl.osNotifId) {
       // A loading "Clipping…" OS notification is already up (user left mid-clip).
       if (_terminalDone && away) {
@@ -3563,12 +3549,7 @@ async function saveActiveCoreItem(request = {}) {
               // toast stays "Clip Canceled"). Relay / other callers (no clipControl)
               // keep the legacy single-toast resolution unchanged.
               if (request?.clipControl) {
-                // PHASE_CLIP_PROGRESS_TEXT: SR upscaling attempted but fell back to the
-                // original image (timeout/failure) -> neutral 'canceled' VISUAL kind only;
-                // ctrl.cancelled stays false so the original image still saves.
-                if (request.clipControl._srFallback) {
-                  _kcFinishClipControl(request.clipControl, { kind: 'canceled', text: KC_CLIP_SR_FALLBACK_TEXT });
-                } else if (request.clipControl._bgFallback) {
+                if (request.clipControl._bgFallback) {
                   const _bgReason = request.clipControl._bgReason || '';
                   let _bgToastText = KC_CLIP_BG_FALLBACK_TEXT;
                   if (_bgReason === 'signed-out') _bgToastText = KC_CLIP_BG_SIGNIN_TEXT;
@@ -4005,11 +3986,6 @@ function _ceBlobToDataURL(blob) {
   });
 }
 
-// === PHASE_CLIP_SIZE ===
-// Automatic upscaling (under KC_SR_AUTO_MIN_PIXELS). SR runs at native 4x output
-// (targetWidth: 0 to offscreen). Pixel ceiling from offscreen governs whether SR
-// is attempted at all.
-
 // Cached SR input ceiling (px). Stale after offscreen teardown if the execution
 // provider changes — deliberate: offscreen caps input itself; only the quarter
 // test may be slightly wrong.
@@ -4031,78 +4007,12 @@ function _kcMorphClipLoadingText(text) { // PHASE_CLIP_PROGRESS_TEXT
     if (ctrl && ctrl.toast) ctrl.toast.update({ kind: 'loading', text });
   } catch (_) {}
 }
-function _kcMarkSrFallback() { // PHASE_CLIP_PROGRESS_TEXT
-  try {
-    const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
-    if (ctrl) ctrl._srFallback = true;
-  } catch (_) {}
-}
-// PHASE_SR_APPLIED: the save path used to ask whether Upscale was switched on, which
-// says nothing about whether the model ran. A source past the pixel ceiling is skipped
-// and a timeout falls back to the original, yet both saved as upscaled. This marks the
-// clip control only when SR output actually replaced the blob.
-function _kcMarkSrApplied() {
-  try {
-    const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
-    if (ctrl) ctrl._srApplied = true;
-  } catch (_) {}
-}
 function _kcMarkBgFallback(reason) { // PHASE_CLIP_EFFECT
   try {
     const ctrl = (_kcInflightClip && !_kcInflightClip.done) ? _kcInflightClip : null;
     if (ctrl) { ctrl._bgFallback = true; ctrl._bgReason = reason || ''; }
   } catch (_) {}
 }
-async function maybeUpscaleClip(blob) {
-  let _srAttempted = false;
-  try {
-    if (!blob) return blob;
-
-    // PHASE_CTX_GUARD: the offscreen document is unreachable without the runtime. Asking
-    // costs a message round trip that resolves to null and a toast that promises an
-    // upscale the user will not get.
-    if (!_kcRuntimeAlive()) return blob;
-
-    const bitmap = await createImageBitmap(blob);
-    const srcW = bitmap.width || 1, srcH = bitmap.height || 1;
-    bitmap.close?.();
-    const srcPx = srcW * srcH;
-
-    let out = blob;
-
-    // PHASE_SR_AUTO_MIN: every upscale on this path is automatic now — the manual one
-    // lives in the editor overlay. The ceiling lookup wakes the offscreen document and
-    // loads the model, so the cheap local pixel count is tested first and a clip that
-    // will not be upscaled pays nothing.
-    if (srcPx < KC_SR_AUTO_MIN_PIXELS) {
-      const ceiling = await _kcGetSrMaxPixels();
-      if (srcPx / 4 > ceiling) {
-        // PHASE_SR_AUTO_MIN: a source this small cannot exceed the ceiling, and nobody
-        // asked for this upscale, so there is nothing to report either way.
-      } else {
-        _srAttempted = true;
-        _kcMorphClipLoadingText(KC_CLIP_UPSCALING_TEXT);
-        const dataUrl = await _ceBlobToDataURL(blob);
-        const ask = _kcSend({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
-        const timeout = new Promise((r) => setTimeout(() => r({ __timeout: true }), 10000));
-        const res = await Promise.race([ask.catch(() => ({ ok: false })), timeout]);
-        if (res && res.ok && res.dataUrl) {
-          out = await (await fetch(res.dataUrl)).blob();
-          _kcMarkSrApplied(); // PHASE_SR_APPLIED
-        }
-        // PHASE_SR_AUTO_MIN: a failure is silent. Nobody asked for this upscale and the
-        // original image is clipped regardless.
-      }
-    }
-
-    return out;
-  } catch (_) {
-    if (_srAttempted) _kcMarkSrFallback();
-    return blob;
-  }
-}
-// === END PHASE_CLIP_SIZE ===
-
 const KC_BG_TIMEOUT_MS = 15000;
 
 async function _kcBgEncodeForSend(blob) {
@@ -4359,64 +4269,20 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
     try { await rawBlobPromise; } catch (_) {}
   }
 
+  let _kcEraseOverlayAborted = false;
   try {
-    const mod = await import(chrome.runtime.getURL('eraseOverlay.js'));
-
-    const inpaintFn = async (b, maskDataUrl) => {
-      const dataUrl = await _ceBlobToDataURL(b);
-      const res = await _kcSend({
-        action: 'inpaint', dataUrl, maskDataUrl,
-      });
-      if (!res || !res.ok || !res.dataUrl) return null;
-      return await (await fetch(res.dataUrl)).blob();
-    };
-
+    const mod = await _kcLoadEraseOverlayModule();
+    const { inpaintFn, bgFn, watermarkFn, upscaleFn, srMaxPixelsFn, bindStatusFn } =
+      _kcCreateEraseOverlayCallbacks();
     const commitFn = () => {};
 
-    const bindStatus = (fn) => { _kcEraseSetStatus = fn; };
-
-    const bgFn = async (b) => {
-      const sendBlob = await _kcBgEncodeForSend(b);
-      if (!sendBlob) return null;
-      const dataUrl = await _ceBlobToDataURL(sendBlob);
-      const res = await _kcSend({ action: 'bg-remove-server', dataUrl });
-      if (!res || !res.ok || !res.dataUrl) return { error: (res && res.error) || 'failed' };
-      return await (await fetch(res.dataUrl)).blob();
-    };
-
-    const watermarkFn = async (b) => {
-      const sendBlob = await _kcBgEncodeForSend(b);
-      if (!sendBlob) return null;
-      const dataUrl = await _ceBlobToDataURL(sendBlob);
-      const res = await _kcSend({ action: 'image-edit-server', dataUrl });
-      if (!res || !res.ok || !res.dataUrl) return { error: (res && res.error) || 'failed' };
-      return await (await fetch(res.dataUrl)).blob();
-    };
-
-    // PHASE_SR_BUTTON: the overlay hands over a Blob and expects one back, while the
-    // sr-upscale message carries data URLs — the same conversion bgFn makes. targetWidth
-    // stays 0: the clip-size fit happens later in the pipeline, not here.
-    const upscaleFn = async (b) => {
-      const dataUrl = await _ceBlobToDataURL(b);
-      const res = await _kcSend({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
-      if (!res || !res.ok || !res.dataUrl) return null;
-      return await (await fetch(res.dataUrl)).blob();
-    };
-
-    // PHASE_SR_LIMIT: the overlay needs the provider's ceiling to know when a source is
-    // already larger than an upscale could produce. Passed as a function, not a value, so
-    // opening the overlay does not wait on the offscreen document — and the lookup warms
-    // the session the Upscale button would need anyway.
-    const srMaxPixelsFn = async () => {
-      try { return await _kcGetSrMaxPixels(); } catch (_) { return 0; }
-    };
-
     const p = mod.showEraseOverlay(
-      pipelinePromise, inpaintFn, commitFn, bindStatus, bgFn, watermarkFn, upscaleFn, srMaxPixelsFn,
+      pipelinePromise, inpaintFn, commitFn, bindStatusFn, bgFn, watermarkFn, upscaleFn, srMaxPixelsFn,
     );
     _kcEraseCancel = p.cancelExternal || null;
     const out = await p;
     if (out.action === 'cancel') {
+      _kcEraseOverlayAborted = true;
       _kcFinishClipControl(ctrl, { kind: 'canceled', text: KC_CLIP_CANCELED_TEXT, isCancel: true });
       return null;
     }
@@ -4425,9 +4291,14 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
     _kcEraseErased = !!out.erased;
     _kcEraseUpscaled = !!out.upscaled;
     return out.blob;
-  } catch (_) {
+  } catch (e) {
+    _kcEraseOverlayAborted = true;
+    console.error('[KickClip] maybeEraseClip overlay failed', e);
     return null;
   } finally {
+    if (_kcEraseOverlayAborted) {
+      try { clearCoreSelection(); } catch (_) {}
+    }
     _kcEraseSetStatus = null;
     _kcEraseCancel = null;
   }
@@ -4444,11 +4315,9 @@ function attachThumbnailPromiseToClipboardWrite(blobPromise, dataUrlPromise = nu
   // resolves (never rejects on cancel); the save path itself gates on
   // request.clipControl.cancelled.
   const pipelinePromise = Promise.resolve(blobPromise)
-    .then((b) => (b ? maybeUpscaleClip(b) : b)) // PHASE_CLIP_SIZE
     .then((b) => (b ? maybeRemoveBackground(b) : b)); // PHASE_CLIP_EFFECT
   // PHASE_CLIP_EFFECT: erase opens after video capture (screenshot fallback must
-  // not include the overlay) or immediately for images; upscaling runs in the
-  // caller's pipelinePromise, passed through unchanged.
+  // not include the overlay) or immediately for images.
   const adjustedBlobPromise = (_clipEffect === 'erase')
     ? maybeEraseClip(pipelinePromise, blobPromise)
     : pipelinePromise;
@@ -5857,10 +5726,8 @@ async function _kcOnKeydown(event) {
     if (hasLocalHover) {
       clipCtrl = _kcBeginClipControl();
     } else {
-      // PHASE_IFRAME_OWNERSHIP: a control, not the legacy loading UI. Without one,
-      // _kcMarkSrApplied has nothing to write to, so an upscaled clip saves its original
-      // bytes; and the save's cancelled check has nothing to read, so a cancelled editor
-      // saves anyway.
+      // PHASE_IFRAME_OWNERSHIP: a control, not the legacy loading UI. Without one, the
+      // save's cancelled check has nothing to read, so a cancelled editor saves anyway.
       clipCtrl = _kcBeginClipControl();
     }
     // === END PHASE_CLIP_CANCEL ===
