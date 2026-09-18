@@ -561,6 +561,7 @@ async function handleOpenFolderSettings() {
   await _refreshDirContainer();
   await _loadDownloadFormatSetting();
   await _loadClipEffectSetting(); // PHASE_CLIP_EFFECT
+  _spEnableSwitchTransitions();
 })();
 
 document.getElementById('kc-download-format-btn')?.addEventListener('click', (e) => {
@@ -686,6 +687,90 @@ async function _kcFirestoreCommitUserProfile(projectId, idToken, documentName, f
  *
  * @param {*} user
  */
+const KC_USER_PHOTO_DATA_URL_KEY = 'kickclipUserPhotoDataUrl';
+const KC_AVATAR_CACHE_PX = 52;
+
+function _spApplyAvatarSrc(src) {
+  if (!spUserAvatar) return;
+  const s = String(src || '').trim();
+  if (s) {
+    spUserAvatar.src = s;
+    spUserAvatar.style.display = 'block';
+  } else {
+    spUserAvatar.removeAttribute('src');
+    spUserAvatar.style.display = 'none';
+  }
+}
+
+function _kcBlobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ''));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+async function _kcFetchAvatarDataUrl(photoURL) {
+  const url = String(photoURL || '').trim();
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const bitmap = await createImageBitmap(blob);
+    const size = KC_AVATAR_CACHE_PX;
+    const canvas = new OffscreenCanvas(size, size);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      bitmap.close();
+      return null;
+    }
+    const side = Math.min(bitmap.width, bitmap.height);
+    const sx = (bitmap.width - side) / 2;
+    const sy = (bitmap.height - side) / 2;
+    ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, size, size);
+    bitmap.close();
+    const outBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 });
+    const dataUrl = await _kcBlobToDataUrl(outBlob);
+    return dataUrl.startsWith('data:') ? dataUrl : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function _kcSyncUserStorageAndAvatarCache(user) {
+  if (!user?.uid || !chrome?.storage?.local) return;
+  const photoURL = user.photoURL ? String(user.photoURL).trim() : '';
+  try {
+    await chrome.storage.local.set({
+      kickclipUserId: user.uid,
+      kickclipUserPhoto: photoURL || null,
+    });
+  } catch (_) {}
+  if (!photoURL) {
+    try { await chrome.storage.local.remove(KC_USER_PHOTO_DATA_URL_KEY); } catch (_) {}
+    _spApplyAvatarSrc('');
+    return;
+  }
+  let prevUrl = '';
+  let prevData = '';
+  try {
+    const prev = await chrome.storage.local.get(['kickclipUserPhoto', KC_USER_PHOTO_DATA_URL_KEY]);
+    prevUrl = String(prev?.kickclipUserPhoto || '').trim();
+    prevData = String(prev?.[KC_USER_PHOTO_DATA_URL_KEY] || '').trim();
+  } catch (_) {}
+  if (prevUrl === photoURL && prevData) {
+    if (dashboardScreen?.style?.display === 'flex') _spApplyAvatarSrc(prevData);
+    return;
+  }
+  const dataUrl = await _kcFetchAvatarDataUrl(photoURL);
+  if (dataUrl) {
+    try { await chrome.storage.local.set({ [KC_USER_PHOTO_DATA_URL_KEY]: dataUrl }); } catch (_) {}
+    if (dashboardScreen?.style?.display === 'flex') _spApplyAvatarSrc(dataUrl);
+  }
+}
+
 async function upsertUserProfile(user) {
   if (!user?.uid) return;
   try {
@@ -1414,21 +1499,22 @@ function showLoginError(msg) {
 function showLoginScreen() {
   loginScreen.style.display    = 'flex';
   dashboardScreen.style.display = 'none';
+  _spApplyAvatarSrc('');
   stopListeners();
 }
 
-function showDashboardScreen(user) {
+async function showDashboardScreen(user) {
   loginScreen.style.display     = 'none';
   dashboardScreen.style.display = 'flex';
   attachClearButtonHandlers();
   attachBulkDownloadHandler(); // PHASE_BULK_UPLOAD
 
-  // Update avatar
-  if (user.photoURL) {
-    spUserAvatar.src          = user.photoURL;
-    spUserAvatar.style.display = 'block';
-  } else {
-    spUserAvatar.style.display = 'none';
+  try {
+    const r = await chrome.storage.local.get(KC_USER_PHOTO_DATA_URL_KEY);
+    const cached = String(r?.[KC_USER_PHOTO_DATA_URL_KEY] || '').trim();
+    _spApplyAvatarSrc(cached || user.photoURL || '');
+  } catch (_) {
+    _spApplyAvatarSrc(user.photoURL || '');
   }
   // Show the signed-in user's email next to the avatar.
   if (spUserEmail) spUserEmail.textContent = user.email || '';
@@ -1523,12 +1609,7 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     await upsertUserProfile(user);
     // Always sync userId to storage, regardless of Side Panel open state
-    if (chrome?.storage?.local) {
-      chrome.storage.local.set({
-        kickclipUserId: user.uid,
-        kickclipUserPhoto: user.photoURL || null,
-      }).catch(() => {});
-    }
+    await _kcSyncUserStorageAndAvatarCache(user);
     showDashboardScreen(user);
   } else {
     // Explicit sign-out — skip silent re-auth and go directly to login screen
@@ -1543,7 +1624,7 @@ onAuthStateChanged(auth, async (user) => {
     if (explicitSignOut) {
       _isExplicitSignOut = false;
       if (chrome?.storage?.local) {
-        chrome.storage.local.remove(['kickclipUserId', 'kickclipUserPhoto']).catch(() => {});
+        chrome.storage.local.remove(['kickclipUserId', 'kickclipUserPhoto', KC_USER_PHOTO_DATA_URL_KEY]).catch(() => {});
       }
       try { await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: 'none' }); } catch (_) {}
       showLoginScreen();
@@ -1568,7 +1649,7 @@ onAuthStateChanged(auth, async (user) => {
     } catch {
       // Silent re-auth failed (first-time user or explicit sign-out) — show login screen
       if (chrome?.storage?.local) {
-        chrome.storage.local.remove(['kickclipUserId', 'kickclipUserPhoto']).catch(() => {});
+        chrome.storage.local.remove(['kickclipUserId', 'kickclipUserPhoto', KC_USER_PHOTO_DATA_URL_KEY]).catch(() => {});
       }
       try { await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: 'none' }); } catch (_) {}
       showLoginScreen();
@@ -1580,10 +1661,11 @@ onAuthStateChanged(auth, async (user) => {
 // to avoid login screen flash while Firebase restores the session.
 (async () => {
   try {
-    const result = await chrome.storage.local.get('kickclipUserId');
+    const result = await chrome.storage.local.get(['kickclipUserId', KC_USER_PHOTO_DATA_URL_KEY]);
     if (result?.kickclipUserId) {
       loginScreen.style.display    = 'none';
       dashboardScreen.style.display = 'flex';
+      _spApplyAvatarSrc(result?.[KC_USER_PHOTO_DATA_URL_KEY] || '');
     }
   } catch (e) {}
 })();

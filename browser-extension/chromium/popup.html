@@ -36,8 +36,10 @@
     .pp-header-avatar[hidden] { display: none; }
     .pp-toggle { position: relative; display: inline-flex; align-items: center; margin-left: auto; cursor: pointer; }
     .pp-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
-    .pp-toggle-track { position: relative; width: 38px; height: 22px; border-radius: 11px; background: #d1d5db; transition: background 0.15s; }
-    .pp-toggle-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.15s; }
+    .pp-toggle-track { position: relative; width: 38px; height: 22px; border-radius: 11px; background: #d1d5db; transition: none; }
+    .pp-toggle-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: none; }
+    body.kc-ready .pp-toggle-track { transition: background 0.15s; }
+    body.kc-ready .pp-toggle-track::after { transition: transform 0.15s; }
     .pp-toggle input:checked + .pp-toggle-track { background: #BC13FE; }
     .pp-toggle input:checked + .pp-toggle-track::after { transform: translateX(16px); }
     .pp-row-list {
@@ -140,8 +142,11 @@
       background: #fff;
       border-radius: 999px;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
-      transition: transform 0.25s ease;
+      transition: none;
       pointer-events: none;
+    }
+    body.kc-ready .kc-mode-pill {
+      transition: transform 0.25s ease;
     }
     .kc-mode-switch[data-mode="editor"] .kc-mode-pill {
       transform: translateX(100%);

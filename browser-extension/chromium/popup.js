@@ -144,9 +144,29 @@ document.getElementById('kc-clip-effect-switch')?.addEventListener('click', (e) 
   ceSelect(_dataModeToClipEffect(dataMode));
 });
 
-try {
-  chrome.storage.local.get(KC_CLIP_EFFECT_KEY).then((r) => ceRender(ceNormalize(r && r[KC_CLIP_EFFECT_KEY])));
-} catch (_) { ceRender('none'); }
+const KC_ACTIVE_ENABLED_KEY = 'kc_active_enabled';
+const activeToggle = document.getElementById('pp-active-toggle');
+
+function _ppEnableSwitchTransitions() {
+  requestAnimationFrame(() => {
+    void document.body.offsetHeight;
+    document.body.classList.add('kc-ready');
+  });
+}
+
+async function _ppHydrateSwitchesFromStorage() {
+  let clipKey = 'none';
+  let activeOn = true;
+  try {
+    const r = await chrome.storage.local.get([KC_CLIP_EFFECT_KEY, KC_ACTIVE_ENABLED_KEY]);
+    clipKey = ceNormalize(r?.[KC_CLIP_EFFECT_KEY]);
+    activeOn = !(r && r[KC_ACTIVE_ENABLED_KEY] === false);
+  } catch (_) {}
+  ceRender(clipKey);
+  if (activeToggle) activeToggle.checked = activeOn;
+  _ppEnableSwitchTransitions();
+}
+
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes[KC_CLIP_EFFECT_KEY]) ceRender(ceNormalize(changes[KC_CLIP_EFFECT_KEY].newValue));
 });
@@ -154,6 +174,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // ─────────── Header auth + open SidePanel ───────────
 const KC_USER_ID_KEY = 'kickclipUserId';
 const KC_USER_PHOTO_KEY = 'kickclipUserPhoto';
+const KC_USER_PHOTO_DATA_URL_KEY = 'kickclipUserPhotoDataUrl';
 const ppHeaderSignIn = document.getElementById('pp-header-sign-in');
 const ppHeaderAvatar = document.getElementById('pp-header-avatar');
 
@@ -169,16 +190,18 @@ function openSidePanelAndClose() {
   } catch (_) { window.close(); }
 }
 
-function renderHeaderAuth(userId, photoURL) {
+function renderHeaderAuth(userId, photoURL, photoDataUrl) {
   const signedIn = !!userId;
   if (ppHeaderSignIn) {
     ppHeaderSignIn.hidden = signedIn;
     ppHeaderSignIn.style.display = signedIn ? 'none' : '';
   }
   if (!ppHeaderAvatar) return;
+  const dataSrc = typeof photoDataUrl === 'string' ? photoDataUrl.trim() : '';
   const photo = typeof photoURL === 'string' ? photoURL.trim() : '';
-  if (signedIn && photo) {
-    ppHeaderAvatar.src = photo;
+  const src = dataSrc || photo;
+  if (signedIn && src) {
+    ppHeaderAvatar.src = src;
     ppHeaderAvatar.hidden = false;
     ppHeaderAvatar.style.display = '';
   } else {
@@ -190,10 +213,18 @@ function renderHeaderAuth(userId, photoURL) {
 
 async function refreshHeaderAuth() {
   try {
-    const r = await chrome.storage.local.get([KC_USER_ID_KEY, KC_USER_PHOTO_KEY]);
-    renderHeaderAuth(r?.[KC_USER_ID_KEY], r?.[KC_USER_PHOTO_KEY]);
+    const r = await chrome.storage.local.get([
+      KC_USER_ID_KEY,
+      KC_USER_PHOTO_KEY,
+      KC_USER_PHOTO_DATA_URL_KEY,
+    ]);
+    renderHeaderAuth(
+      r?.[KC_USER_ID_KEY],
+      r?.[KC_USER_PHOTO_KEY],
+      r?.[KC_USER_PHOTO_DATA_URL_KEY],
+    );
   } catch (_) {
-    renderHeaderAuth(null, null);
+    renderHeaderAuth(null, null, null);
   }
 }
 
@@ -201,7 +232,7 @@ refreshHeaderAuth();
 try {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (!changes[KC_USER_ID_KEY] && !changes[KC_USER_PHOTO_KEY]) return;
+    if (!changes[KC_USER_ID_KEY] && !changes[KC_USER_PHOTO_KEY] && !changes[KC_USER_PHOTO_DATA_URL_KEY]) return;
     refreshHeaderAuth();
   });
 } catch (_) {}
@@ -212,13 +243,7 @@ if (ppHeaderSignIn) {
 document.getElementById('pp-open-sidepanel').addEventListener('click', () => openSidePanelAndClose());
 
 // ─────────── Active toggle (master on/off for activeCoreItem) ───────────
-const KC_ACTIVE_ENABLED_KEY = 'kc_active_enabled';
-const activeToggle = document.getElementById('pp-active-toggle');
-try {
-  chrome.storage.local.get(KC_ACTIVE_ENABLED_KEY).then((r) => {
-    activeToggle.checked = !(r && r[KC_ACTIVE_ENABLED_KEY] === false); // default ON when unset
-  });
-} catch (_) { activeToggle.checked = true; }
 activeToggle.addEventListener('change', () => {
   try { chrome.storage.local.set({ [KC_ACTIVE_ENABLED_KEY]: !!activeToggle.checked }); } catch (_) {}
 });
+_ppHydrateSwitchesFromStorage();
