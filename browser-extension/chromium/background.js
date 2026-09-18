@@ -539,6 +539,73 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return false;
   }
 
+  if (request.action === 'sidepanel-card-hover') {
+    try {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (!tabs?.[0]?.id) return;
+        const tabUrl = tabs[0].url || '';
+        if (
+          tabUrl.startsWith('chrome://') ||
+          tabUrl.startsWith('chrome-extension://') ||
+          tabUrl.startsWith('edge://') ||
+          tabUrl.startsWith('arc://')
+        ) return;
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: 'sidepanel-card-hover',
+          hovered: !!request.hovered,
+          img_url: request.img_url || '',
+          img_thumbnail_b64: request.img_thumbnail_b64 || '',
+        }, () => {
+          if (chrome.runtime.lastError) {}
+        });
+      });
+    } catch (e) {}
+    return false;
+  }
+
+  if (request.action === 'open-card-editor') {
+    (async () => {
+      let ok = false;
+      let error = 'no-content-script';
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tab = tabs?.[0];
+        if (!tab?.id) {
+          sendResponse({ ok: false, error });
+          return;
+        }
+        const tabUrl = tab.url || '';
+        if (!_kcTabUrlEligibleForInjection(tabUrl)) {
+          sendResponse({ ok: false, error: 'restricted-tab' });
+          return;
+        }
+        const relayPayload = {
+          action: 'open-card-editor',
+          payload: request.payload || {},
+        };
+        const result = await new Promise((resolve) => {
+          chrome.tabs.sendMessage(tab.id, relayPayload, { frameId: 0 }, (r) => {
+            if (chrome.runtime.lastError) {
+              resolve(null);
+              return;
+            }
+            resolve(r);
+          });
+        });
+        if (result?.ok) {
+          ok = true;
+          error = '';
+        } else if (result?.error) {
+          error = result.error;
+        }
+      } catch (_) {
+        ok = false;
+      }
+      sendResponse({ ok, error });
+    })();
+    return true;
+  }
+
   if (request.action === 'set-saved-urls') {
     _savedUrlsCache = Array.isArray(request.urls) ? request.urls : [];
     chrome.storage.local.set({ kickclipSavedUrls: _savedUrlsCache }).catch(() => {});

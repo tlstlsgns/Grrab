@@ -242,6 +242,121 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 // === END PHASE_CLIP_EFFECT ===
 
+// === PHASE_SIDEPANEL_HOVER_SHORTCUT ===
+function _kcIsEditableFocusTarget(el) {
+  if (!el || el === document.body) return false;
+  const tag = String(el.tagName || '').toUpperCase();
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  return !!el.isContentEditable;
+}
+
+function _kcGetHoveredSidepanelCard() {
+  return document.querySelector('#sp-unified-list .card-wrapper:hover .data-card');
+}
+
+async function _kcRunHoveredCardShortcutAction(card) {
+  if (!card) return;
+  if (card.classList.contains('kc-update-pending')) return;
+  if (card.querySelector('.data-card-header.delete-pending')) return;
+  let effect = 'none';
+  try {
+    const r = await chrome.storage.local.get(KC_CLIP_EFFECT_KEY);
+    effect = _normalizeClipEffect(r?.[KC_CLIP_EFFECT_KEY]);
+  } catch (_) {}
+  if (effect === 'erase') {
+    handleOpenCardEditor(card);
+    return;
+  }
+  const item = kcCardItemByEl.get(card);
+  if (!item) return;
+  handleClipButtonClick(item, null);
+}
+
+async function _kcHandleHoveredCardShortcutKeydown(event) {
+  if (_sp_recording) return;
+  if (_kcIsEditableFocusTarget(document.activeElement)) return;
+  const card = _kcGetHoveredSidepanelCard();
+  if (!card) return;
+  const shortcut = await getShortcut();
+  if (!matchesShortcut(event, shortcut)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  await _kcRunHoveredCardShortcutAction(card);
+}
+
+function _kcSendSidepanelCardHover(hovered, cardEl) {
+  try {
+    const payload = {
+      action: 'sidepanel-card-hover',
+      hovered: !!hovered,
+      img_url: '',
+      img_thumbnail_b64: '',
+    };
+    if (hovered && cardEl) {
+      const item = kcCardItemByEl.get(cardEl);
+      if (item) {
+        payload.img_url = String(item.img_url || '').trim();
+        const b64 = String(item.img_thumbnail_b64 || '').trim();
+        if (!payload.img_url && b64.startsWith('data:')) {
+          payload.img_thumbnail_b64 = b64;
+        }
+      }
+    }
+    chrome.runtime.sendMessage(payload);
+  } catch (_) {}
+}
+
+function _kcInitSidepanelCardHoverRelay() {
+  const list = getUnifiedDockList();
+  if (!list || list.dataset.kcHoverRelayAttached === 'true') return;
+  list.dataset.kcHoverRelayAttached = 'true';
+  list.addEventListener('mouseover', (e) => {
+    const wrapper = e.target.closest('.card-wrapper');
+    if (!wrapper || !list.contains(wrapper)) return;
+    const from = e.relatedTarget;
+    if (from && wrapper.contains(from)) return;
+    const card = wrapper.querySelector('.data-card');
+    _kcSendSidepanelCardHover(true, card);
+  });
+  list.addEventListener('mouseout', (e) => {
+    const wrapper = e.target.closest('.card-wrapper');
+    if (!wrapper || !list.contains(wrapper)) return;
+    const to = e.relatedTarget;
+    if (to && wrapper.contains(to)) return;
+    _kcSendSidepanelCardHover(false, null);
+  });
+}
+
+let _kcSidePanelCardShortcutInflight = false;
+
+async function _kcHandleSidepanelCardShortcutRelay() {
+  if (_kcSidePanelCardShortcutInflight) return;
+  const card = _kcGetHoveredSidepanelCard();
+  if (!card) return;
+  _kcSidePanelCardShortcutInflight = true;
+  try {
+    await _kcRunHoveredCardShortcutAction(card);
+  } finally {
+    _kcSidePanelCardShortcutInflight = false;
+  }
+}
+
+function _kcShowSidepanelCardInstantClipboardToast(ok) {
+  const successText = KC_CLIP_DEFAULT_SUCCESS_TEXT;
+  const errorText = KC_CLIP_DEFAULT_ERROR_TEXT;
+  if (_kcInstantRelayWorkingToast) {
+    _kcInstantRelayWorkingToast.update(
+      ok ? successText : errorText,
+      ok ? 'clip-success' : 'clip-error',
+      1800,
+    );
+    _kcInstantRelayWorkingToast = null;
+    return;
+  }
+  showKcToast(ok ? successText : errorText, ok ? 'clip-success' : 'clip-error');
+}
+// === END PHASE_SIDEPANEL_HOVER_SHORTCUT ===
+
 // Picker popup window tracking for auto-close + re-click handling.
 let _kcPickerWindowId = null;
 let _kcPickerBusy = false;
@@ -2550,15 +2665,107 @@ async function handleClipButtonClick(item, anchorBtn) {
     if (!png) throw new Error('clipboard image resolve failed');
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
     flashActionMark(anchorBtn, true);
-    showKcToast('Copied to clipboard', 'success');
+    if (toast) {
+      toast.update(KC_CLIP_DEFAULT_SUCCESS_TEXT, 'clip-success', 1800);
+    } else {
+      showKcToast(KC_CLIP_DEFAULT_SUCCESS_TEXT, 'clip-success');
+    }
   } catch (_) {
     flashActionMark(anchorBtn, false);
-    showKcToast('Failed to copy image', 'error');
+    if (toast) {
+      toast.update(KC_CLIP_DEFAULT_ERROR_TEXT, 'clip-error', 1800);
+    } else {
+      showKcToast(KC_CLIP_DEFAULT_ERROR_TEXT, 'clip-error');
+    }
   } finally {
     if (anchorBtn) anchorBtn.disabled = false;
   }
 }
 // === END PHASE_CARD_CLIPBOARD_COPY ===
+
+// === PHASE_CARD_EDITOR_OPEN ===
+const KC_CARD_EDITOR_OPEN_TOAST_MS = 4000;
+
+function _kcCardEditorOpenErrorMessage(error) {
+  const code = String(error || '').trim();
+  let message = 'Failed to open the editor';
+  if (code === 'restricted-tab') {
+    message = 'Open a web page first, then try again';
+  } else if (code === 'editor-already-open') {
+    message = 'Finish the open editor first, then try again';
+  } else if (code === 'no-content-script' || code === 'context-dead') {
+    message = 'Reload the page, then try again';
+  } else if (code === 'image-resolve-failed') {
+    message = 'Failed to load image';
+  }
+  return message;
+}
+
+function showCardEditorOpenError(error) {
+  showKcToast(_kcCardEditorOpenErrorMessage(error), 'error', KC_CARD_EDITOR_OPEN_TOAST_MS);
+}
+
+async function handleOpenCardEditor(card) {
+  if (!card) return;
+  const item = kcCardItemByEl.get(card);
+  if (!item) return;
+  const imgUrl = String(item?.img_url || '').trim();
+  const thumbB64 = String(item?.img_thumbnail_b64 || '').trim();
+  if (!imgUrl && !thumbB64.startsWith('data:')) {
+    showKcToast('Failed to copy image', 'error');
+    return;
+  }
+  let domain = String(item?.domain || '').trim();
+  if (!domain && item?.url) {
+    try {
+      domain = new URL(item.url).hostname.replace(/^www\./, '');
+    } catch (_) { domain = ''; }
+  }
+  _kcCardEditorWorkingToast = showKcToast(KC_CLIP_WORKING_TEXT, 'clip-working', 0);
+  try {
+    const resp = await chrome.runtime.sendMessage({
+      action: 'open-card-editor',
+      payload: {
+        url: String(item.url || '').trim(),
+        title: String(item.title || 'Untitled').trim(),
+        domain,
+        img_url: imgUrl,
+        img_thumbnail_b64: thumbB64.startsWith('data:') ? thumbB64 : '',
+        origin_source: String(item.origin_source || '').trim(),
+        platform: String(item.platform || '').trim(),
+        category: String(item.category || '').trim(),
+      },
+    });
+    if (resp?.canceled) {
+      if (_kcCardEditorWorkingToast) {
+        _kcCardEditorWorkingToast.dismiss();
+        _kcCardEditorWorkingToast = null;
+      }
+      return;
+    }
+    if (!resp?.ok) {
+      const msg = _kcCardEditorOpenErrorMessage(resp?.error);
+      if (_kcCardEditorWorkingToast) {
+        _kcCardEditorWorkingToast.update(msg, 'error', KC_CARD_EDITOR_OPEN_TOAST_MS);
+        _kcCardEditorWorkingToast = null;
+      } else {
+        showCardEditorOpenError(resp?.error);
+      }
+    }
+  } catch (_) {
+    if (_kcCardEditorWorkingToast) {
+      _kcCardEditorWorkingToast.update(
+        _kcCardEditorOpenErrorMessage(''),
+        'error',
+        KC_CARD_EDITOR_OPEN_TOAST_MS,
+      );
+      _kcCardEditorWorkingToast = null;
+    } else {
+      showCardEditorOpenError('');
+    }
+  }
+}
+// === END PHASE_CARD_EDITOR_OPEN ===
 
 function handleAutoPathSave(item, anchorBtn, handle) {
     writeItemToHandle(handle, item)
@@ -2915,16 +3122,15 @@ function attachCardClickHandlers() {
       removeGuideWrapper();
     });
 
-    // Click → first click activates card; second click on active card opens URL
+    // Click → plain click selects and activates; editor opens via .data-card-extlink only.
     newCard.addEventListener('click', (e) => {
       const timeSinceDragEnd = Date.now() - lastDragEndTime;
       if (isDragging || timeSinceDragEnd < 100) return;
 
-      // External-link icon → open the original URL (same as the second-click-opens behavior).
+      // External-link icon → open card editor on the active tab.
       if (e.target.closest('.data-card-extlink')) {
         e.stopPropagation();
-        const _extUrl = newCard.dataset.url;
-        if (_extUrl) window.open(_extUrl, '_blank');
+        handleOpenCardEditor(newCard);
         return;
       }
 
@@ -3555,6 +3761,29 @@ if (chrome?.runtime?.onMessage) {
 
     if (message.action === 'optimistic-card-image-ready') {
       applyOptimisticCardImage(message.tempId, message.imgUrl || '');
+      return false;
+    }
+
+    if (message.action === 'sidepanel-card-instant-started') {
+      _kcInstantRelayWorkingToast = showKcToast(KC_CLIP_WORKING_TEXT, 'clip-working', 0);
+      return false;
+    }
+
+    if (message.action === 'sidepanel-card-instant-clipboard') {
+      _kcShowSidepanelCardInstantClipboardToast(!!message.ok);
+      return false;
+    }
+
+    if (message.action === 'sidepanel-card-editor-opened') {
+      if (_kcCardEditorWorkingToast) {
+        _kcCardEditorWorkingToast.dismiss();
+        _kcCardEditorWorkingToast = null;
+      }
+      return false;
+    }
+
+    if (message.action === 'sidepanel-card-shortcut') {
+      void _kcHandleSidepanelCardShortcutRelay();
       return false;
     }
 

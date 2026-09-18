@@ -235,6 +235,9 @@ let _kcModChordArmed = false;   // Cmd and Shift are down and nothing else has b
 let _windowFocused = true; // false while the browser window is not focused
 let _sidePanelFocused = false; // true while the KickClip Side Panel has focus
 let _sidePanelOpen = false;
+let _sidePanelCardHovered = false; // side panel pointer is over a library card
+/** Image fields from the last sidepanel-card-hover (for relayed Instant clip). */
+let _sidePanelCardHoverImage = null; // { img_url, img_thumbnail_b64 } | null
 let _mouseHasMovedOnPage = false; // true after first mousemove detected on current page
 let _mouseInsideDocument = false; // true while mouse pointer is inside the viewport
 const KC_MSG_PREFIX = '__kc__';
@@ -3308,8 +3311,9 @@ async function saveActiveCoreItem(request = {}) {
     const activeItem = state.activeCoreItem;
     const activeUrl = String(state.activeHoverUrl || '').trim();
 
+    const isCardEditorSave = request?.fromCardEditor === true;
     // No CoreItem active → complete silent ignore
-    if (!activeItem || !activeUrl) {
+    if ((!activeItem || !activeUrl) && !isCardEditorSave) {
       return { success: false, reason: 'no-core-item' };
     }
 
@@ -3322,7 +3326,8 @@ async function saveActiveCoreItem(request = {}) {
     // Iframe-relay clips originate from a child iframe and bypass the
     // local overlay state — those are handled by the iframe's own gate.
     const isRelayClip = meta?._isIframeRelay === true;
-    if (!isRelayClip && !isCoreHighlightShown()) {
+    const isCardEditor = meta?._isCardEditor === true;
+    if (!isRelayClip && !isCardEditor && !isCoreHighlightShown()) {
       return { success: false, reason: 'overlay-hidden' };
     }
     // === END PHASE_OVERLAY_LIFECYCLE_DECOUPLING ===
@@ -3531,7 +3536,7 @@ async function saveActiveCoreItem(request = {}) {
       // subframe owned the terminal toast and the top had no control to finish. The top
       // creates one now, and nothing else calls _kcFinishClipControl — so skipping this
       // left the control running until its failsafe called the clip a failure.
-      if (request?.clipControl || (!request?.fromIframeHover && !request?.fromIframeClipRequest)) {
+      if (!request?.fromCardEditor && (request?.clipControl || (!request?.fromIframeHover && !request?.fromIframeClipRequest))) {
       // === END PHASE_IFRAME_CLIP_REQUEST ===
       // === END PHASE_IFRAME_HOVER_PROPAGATION ===
         (async () => {
@@ -3721,8 +3726,8 @@ async function saveActiveCoreItem(request = {}) {
     // both the client and the server, and a second clip of the same image becomes a
     // second card. The image URL is the same identifier the DOM path settles on, and the
     // message already carries it.
-    if (!originSource) originSource = String(meta?.image?.url || '').trim();
-    if (_clipEffect === 'erase' && _kcEraseModified && originSource) {
+    if (!originSource) originSource = String(meta?.origin_source || meta?.image?.url || '').trim();
+    if ((_clipEffect === 'erase' || isCardEditor) && _kcEraseModified && originSource) {
       originSource = `${originSource}#kc-edit-${Date.now()}`;
     }
     // === END PHASE_ORIGIN_SOURCE ===
@@ -3738,7 +3743,7 @@ async function saveActiveCoreItem(request = {}) {
     // PHASE_SR_APPLIED: srApplied is set only when super-resolution output actually
     // replaced the blob. A source past the pixel ceiling is skipped and a timeout falls
     // back to the original; neither should upload or report as upscaled.
-    if ((srApplied || (_clipEffect === 'erase' && _kcEraseModified)) && clipAdjustedBlob) {
+    if ((srApplied || ((_clipEffect === 'erase' || isCardEditor) && _kcEraseModified)) && clipAdjustedBlob) {
       try {
         clipImageBase64 = await _ceBlobToDataURL(clipAdjustedBlob);
       } catch (_) { clipImageBase64 = ''; }
@@ -3768,11 +3773,9 @@ async function saveActiveCoreItem(request = {}) {
       ...(userId ? { userId } : {}),
       ...(meta?.category      ? { category:       meta.category }      : {}),
       ...(meta?.platform      ? { platform:        meta.platform }      : {}),
-      is_bgremoved: _clipEffect === 'erase' && _kcEraseBgRemoved,
-      is_erased: _clipEffect === 'erase' && _kcEraseErased,
-      // PHASE_SR_BUTTON: either path counts — the automatic upscale before the overlay
-      // opened, or the button inside it.
-      is_upscaled: srApplied || (_clipEffect === 'erase' && _kcEraseUpscaled),
+      is_bgremoved: (_clipEffect === 'erase' || isCardEditor) && _kcEraseBgRemoved,
+      is_erased: (_clipEffect === 'erase' || isCardEditor) && _kcEraseErased,
+      is_upscaled: srApplied || ((_clipEffect === 'erase' || isCardEditor) && _kcEraseUpscaled),
     };
 
     // === PHASE_CLIP_CANCEL ===
@@ -4159,6 +4162,179 @@ let _kcEraseErased = false;     // overlay reported inpaint erase on final blob
 let _kcEraseUpscaled = false;   // overlay reported the Upscale button ran on final blob
 let _kcEraseSetStatus = null;   // overlay status setter while an erase overlay is open
 let _kcEraseCancel = null;
+/** True from card-editor open until _kcOpenCardEditor fully exits (incl. pre-overlay awaits). */
+let _kcEraseOverlayOpening = false;
+
+function _kcCreateEraseOverlayCallbacks(bindStatus) {
+  const bindStatusFn = bindStatus || ((fn) => { _kcEraseSetStatus = fn; });
+  const inpaintFn = async (b, maskDataUrl) => {
+    const dataUrl = await _ceBlobToDataURL(b);
+    const res = await _kcSend({
+      action: 'inpaint', dataUrl, maskDataUrl,
+    });
+    if (!res || !res.ok || !res.dataUrl) return null;
+    return await (await fetch(res.dataUrl)).blob();
+  };
+  const bgFn = async (b) => {
+    const sendBlob = await _kcBgEncodeForSend(b);
+    if (!sendBlob) return null;
+    const dataUrl = await _ceBlobToDataURL(sendBlob);
+    const res = await _kcSend({ action: 'bg-remove-server', dataUrl });
+    if (!res || !res.ok || !res.dataUrl) return { error: (res && res.error) || 'failed' };
+    return await (await fetch(res.dataUrl)).blob();
+  };
+  const watermarkFn = async (b) => {
+    const sendBlob = await _kcBgEncodeForSend(b);
+    if (!sendBlob) return null;
+    const dataUrl = await _ceBlobToDataURL(sendBlob);
+    const res = await _kcSend({ action: 'image-edit-server', dataUrl });
+    if (!res || !res.ok || !res.dataUrl) return { error: (res && res.error) || 'failed' };
+    return await (await fetch(res.dataUrl)).blob();
+  };
+  const upscaleFn = async (b) => {
+    const dataUrl = await _ceBlobToDataURL(b);
+    const res = await _kcSend({ action: 'sr-upscale', dataUrl, targetWidth: 0 });
+    if (!res || !res.ok || !res.dataUrl) return null;
+    return await (await fetch(res.dataUrl)).blob();
+  };
+  const srMaxPixelsFn = async () => {
+    try { return await _kcGetSrMaxPixels(); } catch (_) { return 0; }
+  };
+  return { inpaintFn, bgFn, watermarkFn, upscaleFn, srMaxPixelsFn, bindStatusFn };
+}
+
+let _kcEraseOverlayModuleCached = null;
+
+async function _kcLoadEraseOverlayModule() {
+  if (_kcEraseOverlayModuleCached) return _kcEraseOverlayModuleCached;
+  const mod = await import(chrome.runtime.getURL('eraseOverlay.js'));
+  _kcEraseOverlayModuleCached = mod;
+  return mod;
+}
+
+async function _kcCardEditorSourceBlob(payload) {
+  const imgUrl = String(payload?.img_url || '').trim();
+  if (imgUrl) {
+    try {
+      const b = await imageUrlToPngBlob(imgUrl);
+      if (b) return b;
+    } catch (_) { /* fall through */ }
+  }
+  const b64 = String(payload?.img_thumbnail_b64 || '').trim();
+  if (b64.startsWith('data:')) {
+    try {
+      const resp = await fetch(b64);
+      return await resp.blob();
+    } catch (_) { /* fall through */ }
+  }
+  return null;
+}
+
+async function _kcOpenCardEditor(payload) {
+  if (!_kcRuntimeAlive()) return { ok: false, error: 'context-dead' };
+  if (_kcEraseCancel || _kcEraseOverlayOpening) {
+    return { ok: false, error: 'editor-already-open' };
+  }
+  _kcEraseOverlayOpening = true;
+  try {
+    const url = String(payload?.url || '').trim();
+    if (!url) return { ok: false, error: 'missing-url' };
+    const sourceBlob = await _kcCardEditorSourceBlob(payload);
+    if (!sourceBlob) return { ok: false, error: 'image-resolve-failed' };
+
+    _kcEraseModified = false;
+    _kcEraseBgRemoved = false;
+    _kcEraseErased = false;
+    _kcEraseUpscaled = false;
+
+    let _kcEraseOverlayAborted = false;
+    try {
+    const mod = await _kcLoadEraseOverlayModule();
+    const { inpaintFn, bgFn, watermarkFn, upscaleFn, srMaxPixelsFn, bindStatusFn } =
+      _kcCreateEraseOverlayCallbacks();
+
+    const commitFn = (blob) => {
+      if (!blob) return;
+      try {
+        const pngP = _kcBlobToClipboardPng(blob);
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': pngP })]);
+      } catch (_) {}
+    };
+
+    const p = mod.showEraseOverlay(
+      Promise.resolve(sourceBlob),
+      inpaintFn,
+      commitFn,
+      bindStatusFn,
+      bgFn,
+      watermarkFn,
+      upscaleFn,
+      srMaxPixelsFn,
+    );
+    _kcEraseCancel = p.cancelExternal || null;
+    try {
+      _kcSend({ action: 'sidepanel-card-editor-opened' });
+    } catch (_) {}
+    const out = await p;
+    if (out.action === 'cancel') {
+      _kcEraseOverlayAborted = true;
+      return { ok: true, canceled: true };
+    }
+    const finalBlob = out.blob || sourceBlob;
+    _kcEraseModified = !!out.modified;
+    _kcEraseBgRemoved = !!out.bgRemoved;
+    _kcEraseErased = !!out.erased;
+    _kcEraseUpscaled = !!out.upscaled;
+
+    const imgUrl = String(payload?.img_url || '').trim();
+    const originFromCard = String(payload?.origin_source || '').trim();
+    const savedActive = state.activeCoreItem;
+    const savedUrl = state.activeHoverUrl;
+    const savedMeta = state.lastExtractedMetadata;
+    state.activeCoreItem = {};
+    state.activeHoverUrl = url;
+    state.lastExtractedMetadata = {
+      title: String(payload?.title || '').trim(),
+      activeHoverUrl: url,
+      category: String(payload?.category || '').trim(),
+      platform: String(payload?.platform || '').trim(),
+      image: { url: imgUrl || originFromCard },
+      origin_source: originFromCard || imgUrl,
+      _isCardEditor: true,
+    };
+    const clipboardPromise = Promise.resolve({
+      success: true,
+      adjustedBlobPromise: Promise.resolve(finalBlob),
+      thumbnailPromise: blobToThumbnailDataUrl(finalBlob),
+    });
+    try {
+      await saveActiveCoreItem({
+        action: 'save-url',
+        fromCardEditor: true,
+        skipClipboard: true,
+        img_url: imgUrl,
+        clipboardPromise,
+      });
+    } finally {
+      state.activeCoreItem = savedActive;
+      state.activeHoverUrl = savedUrl;
+      state.lastExtractedMetadata = savedMeta;
+    }
+    return { ok: true };
+    } catch (_) {
+      _kcEraseOverlayAborted = true;
+      return { ok: false, error: 'overlay-failed' };
+    } finally {
+      if (_kcEraseOverlayAborted) {
+        try { clearCoreSelection(); } catch (_) {}
+      }
+      _kcEraseSetStatus = null;
+      _kcEraseCancel = null;
+    }
+  } finally {
+    _kcEraseOverlayOpening = false;
+  }
+}
 
 async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
   // PHASE_CTX_GUARD: the overlay is a dynamic import of an extension URL, which fails
@@ -4166,6 +4342,7 @@ async function maybeEraseClip(pipelinePromise, rawBlobPromise) {
   // runtime here. Fall through to the plain pipeline instead of failing the clip.
   if (!_kcRuntimeAlive()) return pipelinePromise;
   if (_clipEffect !== 'erase') return pipelinePromise;
+  if (_kcEraseOverlayOpening) return pipelinePromise;
   _kcEraseModified = false;
   _kcEraseBgRemoved = false;
   _kcEraseErased = false;
@@ -4886,6 +5063,49 @@ function raceImageUrlToPngBlob(imageUrl) {
 // === END PHASE_CLIPBOARD_TIMEOUT_FALLBACK ===
 
 // === PHASE_IFRAME_CLIPBOARD ===
+// === PHASE_SIDEPANEL_CARD_INSTANT_RELAY ===
+function _kcSidePanelCardImageSource(img) {
+  if (!img) return { img_url: '', img_thumbnail_b64: '' };
+  return {
+    img_url: String(img.img_url || '').trim(),
+    img_thumbnail_b64: String(img.img_thumbnail_b64 || '').trim(),
+  };
+}
+
+function _kcSidePanelCardBlobPromise(img) {
+  const { img_url: imgUrl, img_thumbnail_b64: b64 } = _kcSidePanelCardImageSource(img);
+  return (async () => {
+    if (imgUrl) {
+      try {
+        const raced = await raceImageUrlToPngBlob(imgUrl);
+        if (raced) return raced;
+      } catch (_) { /* fall through */ }
+    }
+    if (b64.startsWith('data:')) {
+      try {
+        return await dataUrlToPngBlob(b64);
+      } catch (_) { /* fall through */ }
+    }
+    return null;
+  })();
+}
+
+function _kcPerformSidePanelCardSyncClipboardWrite(img) {
+  const blobPromise = _kcSidePanelCardBlobPromise(img);
+  const clipboardItemPromise = blobPromise.then((b) => (b ? _kcBlobToClipboardPng(b) : null));
+  return navigator.clipboard
+    .write([new ClipboardItem({ 'image/png': clipboardItemPromise })])
+    .then(() => ({ success: true }))
+    .catch(() => ({ success: false }));
+}
+
+function _kcNotifySidepanelCardInstantClipboard(ok) {
+  try {
+    _kcSend({ action: 'sidepanel-card-instant-clipboard', ok: !!ok });
+  } catch (_) {}
+}
+// === END PHASE_SIDEPANEL_CARD_INSTANT_RELAY ===
+
 function performSyncClipboardWrite(state) {
   if (!state) return null;
   // === END PHASE_IFRAME_CLIPBOARD ===
@@ -5064,10 +5284,36 @@ function _kcOnRuntimeMessage(request, sender, sendResponse) {
     if (request?.action === 'sidepanel-closed') {
       _sidePanelFocused = false;
       _sidePanelOpen = false;
+      _sidePanelCardHovered = false;
+      _sidePanelCardHoverImage = null;
       return false;
     }
+    if (request?.action === 'sidepanel-card-hover') {
+      _sidePanelCardHovered = !!request.hovered;
+      if (request.hovered) {
+        const imgUrl = String(request.img_url || '').trim();
+        const thumb = String(request.img_thumbnail_b64 || '').trim();
+        _sidePanelCardHoverImage = (imgUrl || thumb.startsWith('data:'))
+          ? { img_url: imgUrl, img_thumbnail_b64: thumb.startsWith('data:') ? thumb : '' }
+          : null;
+      } else {
+        _sidePanelCardHoverImage = null;
+      }
+      return false;
+    }
+    if (request?.action === 'open-card-editor') {
+      (async () => {
+        try {
+          const result = await _kcOpenCardEditor(request.payload || {});
+          sendResponse(result);
+        } catch (_) {
+          sendResponse({ ok: false, error: 'overlay-failed' });
+        }
+      })();
+      return true;
+    }
     if (request?.action === 'erase-overlay-query') {
-      sendResponse({ open: !!_kcEraseCancel });
+      sendResponse({ open: !!(_kcEraseCancel || _kcEraseOverlayOpening) });
       return true;
     }
     if (request?.action === 'erase-overlay-cancel') {
@@ -5519,6 +5765,32 @@ async function _kcOnKeydown(event) {
       // === END PHASE_SHORTCUT_TIP_KEYHINT ===
       return;
     }
+    if (_sidePanelCardHovered) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (_clipEffect === 'erase') {
+        _kcSend({ action: 'sidepanel-card-shortcut' });
+        return;
+      }
+      try {
+        _kcSend({ action: 'sidepanel-card-instant-started' });
+      } catch (_) {}
+      let writePromise = null;
+      try {
+        writePromise = _kcPerformSidePanelCardSyncClipboardWrite(_sidePanelCardHoverImage);
+      } catch (_) {
+        _kcNotifySidepanelCardInstantClipboard(false);
+        return;
+      }
+      if (!writePromise) {
+        _kcNotifySidepanelCardInstantClipboard(false);
+        return;
+      }
+      void writePromise
+        .then((r) => { _kcNotifySidepanelCardInstantClipboard(!!r?.success); })
+        .catch(() => { _kcNotifySidepanelCardInstantClipboard(false); });
+      return;
+    }
     // === PHASE_IFRAME_CLIP_REQUEST ===
     // Iframe-focused keydown: clipboard.write would be blocked by Permissions
     // Policy on most cross-origin iframes. Instead, delegate to top frame via
@@ -5965,6 +6237,8 @@ function _kcOnYtNavigateFinish() {
   }
 function _kcOnBrowserHidden() {
   _windowFocused = false;
+  _sidePanelCardHovered = false;
+  _sidePanelCardHoverImage = null;
   try { hideCoreHighlight(); }   catch (e) {}
   try { hideMetadataTooltip(); }   catch (e) {}
   try { if (!IS_IFRAME) { hideCoreStatusBadge(); } }       catch (e) {}
@@ -6213,6 +6487,8 @@ function _kcOnTeardownRequest(e) {
 if (!_kcCoreSkipInit) {
   window.__kickclipCoreTeardown = function () {
     if (window.__kickclipCoreTornDown) return;
+    _sidePanelCardHovered = false;
+    _sidePanelCardHoverImage = null;
     try { window.removeEventListener('message', _kcOnTeardownRequest); } catch (_) {}
     try {
       if (_kcContentPort) { _kcContentPort.disconnect(); }

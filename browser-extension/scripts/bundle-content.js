@@ -14,7 +14,7 @@ const path = require('path');
 const esbuild = require('esbuild');
 
 const ERASE_OVERLAY_DYNAMIC_IMPORT =
-  /const mod = await import\(chrome\.runtime\.getURL\('eraseOverlay\.js'\)\);/;
+  /const mod = await import\(chrome\.runtime\.getURL\('eraseOverlay\.js'\)\);/g;
 
 /**
  * eraseOverlay is reached only through a runtime-computed dynamic import(), which esbuild
@@ -32,14 +32,15 @@ function eraseOverlayInlinePlugin(chromiumDir) {
       build.onLoad({ filter: /coreEntry\.js$/ }, async (args) => {
         if (path.resolve(args.path) !== path.resolve(coreEntryPath)) return null;
         let contents = await fs.promises.readFile(args.path, 'utf8');
-        if (!ERASE_OVERLAY_DYNAMIC_IMPORT.test(contents)) {
+        const eraseImportMatches = contents.match(ERASE_OVERLAY_DYNAMIC_IMPORT);
+        if (!eraseImportMatches || eraseImportMatches.length === 0) {
           throw new Error(
             'coreEntry.js: expected `const mod = await import(chrome.runtime.getURL(\'eraseOverlay.js\'));`'
           );
         }
-        contents = contents.replace(
+        contents = contents.replaceAll(
           ERASE_OVERLAY_DYNAMIC_IMPORT,
-          'const mod = __kcEraseOverlayModule;'
+          'const mod = __kcEraseOverlayModule;',
         );
         contents = `import * as __kcEraseOverlayModule from './eraseOverlay.js';\n${contents}`;
         return { contents, loader: 'js', resolveDir: chromiumDir };
