@@ -55,6 +55,7 @@ import {
   isShortcutForbidden,
   formatShortcut,
   onShortcutChange,
+  matchesShortcut,
 } from './shortcutStore.js';
 // === END PHASE_SHORTCUT_RECORDER ===
 
@@ -187,6 +188,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // Clip effect: 'none' | 'erase' written to kc_clip_effect. UI uses data-mode instant|editor.
 const KC_CLIP_EFFECT_KEY = 'kc_clip_effect';
 const KC_CLIP_EFFECT_VALUES = ['none', 'erase'];
+// Terminal clip toasts — keep in sync with coreEntry.js KC_CLIP_DEFAULT_* (526–527).
+const KC_CLIP_DEFAULT_SUCCESS_TEXT = 'Image copied';
+const KC_CLIP_DEFAULT_ERROR_TEXT = 'Failed to copy that image';
+const KC_CLIP_WORKING_TEXT = 'Working…';
+const KC_CLIP_TOAST_WORKING_FAILSAFE_MS = 15000;
 
 function _normalizeClipEffect(value) {
   const v = String(value ?? '').trim();
@@ -225,6 +231,56 @@ async function _selectClipEffect(value) {
     await chrome.storage.local.set({ [KC_CLIP_EFFECT_KEY]: key });
   } catch (_) {}
   _renderClipEffectUI(key);
+}
+
+// === PHASE_CLIP_MODE_CHORD_PANEL ===
+// Cmd+Shift modifier release — same chord as coreEntry _kcOnKeydown/_kcOnKeyup (5694–5899).
+let _spModChordArmed = false;
+
+function _spIsLoneModifierKey(event) {
+  const k = event && event.key;
+  return k === 'Meta' || k === 'Control' || k === 'Shift' || k === 'Alt' || k === 'AltGraph';
+}
+
+async function _kcToggleClipModeFromPanel() {
+  let current = 'none';
+  try {
+    const r = await chrome.storage.local.get(KC_CLIP_EFFECT_KEY);
+    current = _normalizeClipEffect(r?.[KC_CLIP_EFFECT_KEY]);
+  } catch (_) {}
+  const next = current === 'erase' ? 'none' : 'erase';
+  await _selectClipEffect(next);
+}
+
+function _spOnKeydownModChordArm(event) {
+  if (_sp_recording) return;
+  if (_kcIsEditableFocusTarget(document.activeElement)) return;
+  if (event.metaKey && event.shiftKey && _spIsLoneModifierKey(event)) {
+    _spModChordArmed = true;
+  } else {
+    _spModChordArmed = false;
+  }
+}
+
+async function _spOnKeyupModChordToggle(event) {
+  if (_sp_recording) return;
+  if (_kcIsEditableFocusTarget(document.activeElement)) return;
+  if (!_spModChordArmed) return;
+  if (!_spIsLoneModifierKey(event)) {
+    _spModChordArmed = false;
+    return;
+  }
+  if (event.metaKey && event.shiftKey) return;
+  _spModChordArmed = false;
+  await _kcToggleClipModeFromPanel();
+}
+// === END PHASE_CLIP_MODE_CHORD_PANEL ===
+
+function _spEnableSwitchTransitions() {
+  requestAnimationFrame(() => {
+    void document.body.offsetHeight;
+    document.body.classList.add('kc-ready');
+  });
 }
 
 async function _loadClipEffectSetting() {
@@ -1040,8 +1096,8 @@ function _kcClearCardSelection() {
 //   'toggle' (Cmd/Ctrl+click): add/remove the clicked card; the clicked card becomes the anchor.
 //   'range'  (Shift+click): select every card between the anchor and the clicked card, inclusive
 //            (DOM order); the anchor is preserved so further Shift+clicks re-extend from it.
-//   'single' (plain click): select only the clicked card (or clear if it was the sole selection);
-//            the clicked card becomes the anchor.
+//   'single' (plain click): select only the clicked card; re-clicking the sole selected card is a no-op;
+//            the clicked card becomes the anchor when selection changes.
 function _kcHandleCardSelectionClick(card, mode) {
   const id = _kcGetCardSelectId(card);
   if (!id) return;
@@ -1053,8 +1109,7 @@ function _kcHandleCardSelectionClick(card, mode) {
     _kcSelectCardRange(id);
   } else {
     if (_kcSelectedCardIds.size === 1 && _kcSelectedCardIds.has(id)) {
-      _kcSelectedCardIds.clear();
-      _kcSelectionAnchorId = null;
+      // Sole selected card clicked again — keep selection (plain click is not a deselect).
     } else {
       _kcSelectedCardIds.clear();
       _kcSelectedCardIds.add(id);
@@ -1955,17 +2010,18 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
     // === END PHASE_DEDUP_IMAGE_UPDATE ===
     const pendingCard = matchedDataCard;
     if (pendingCard) {
+      _kcClearUpdatePendingCloseHandlers(pendingCard);
+      pendingCard.classList.remove('kc-update-closing');
       pendingCard.dataset.updatePending = '1';
       pendingCard.classList.add('kc-update-pending');
       if (pendingCard._updatePendingTimer) {
         clearTimeout(pendingCard._updatePendingTimer);
       }
       pendingCard._updatePendingTimer = setTimeout(() => {
-        if (pendingCard && pendingCard.dataset.updatePending) {
-          delete pendingCard.dataset.updatePending;
-          pendingCard.classList.remove('kc-update-pending');
-        }
         pendingCard._updatePendingTimer = null;
+        if (pendingCard?.dataset.updatePending) {
+          _kcFinishUpdatePending(pendingCard);
+        }
       }, 15000);
     }
     // Server save-url is still called by coreEntry.js. Server
@@ -2041,15 +2097,16 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
   // Block copy/upload until Firestore 'added' promotes this card (same
   // spinner + pointer-events lock as the dedup re-clip pending path).
   if (card) {
+    _kcClearUpdatePendingCloseHandlers(card);
+    card.classList.remove('kc-update-closing');
     card.dataset.updatePending = '1';
     card.classList.add('kc-update-pending');
     if (card._updatePendingTimer) clearTimeout(card._updatePendingTimer);
     card._updatePendingTimer = setTimeout(() => {
-      if (card && card.dataset.updatePending) {
-        delete card.dataset.updatePending;
-        card.classList.remove('kc-update-pending');
-      }
       card._updatePendingTimer = null;
+      if (card?.dataset.updatePending) {
+        _kcFinishUpdatePending(card);
+      }
     }, 15000);
   }
 
@@ -2058,6 +2115,7 @@ function addOptimisticCard({ tempId, url, title, imgUrl, originSource = '', imgT
 
   // Attach handlers
   attachCardClickHandlers();
+  _kcInitSidepanelCardHoverRelay();
   updateClearButtonState();
 }
 // === END PHASE_SIDEPANEL_UNIFIED_LIST ===
@@ -2440,6 +2498,29 @@ function _beginSignOutConfirm() {
   document.addEventListener('keydown', _signOutConfirmEscHandler);
 }
 
+async function _kcFindEraseOverlayTabId() {
+  try {
+    const r = await chrome.runtime.sendMessage({ action: 'find-erase-overlay' });
+    return r?.tabId ?? null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function _kcCancelEraseOverlayAtTab(tabId) {
+  if (tabId == null) return;
+  try {
+    await chrome.runtime.sendMessage({ action: 'cancel-erase-overlay', tabId });
+  } catch (_) {}
+}
+
+async function _kcTryDismissEraseOverlayFromPanel() {
+  const tabId = await _kcFindEraseOverlayTabId();
+  if (tabId == null) return false;
+  await _kcCancelEraseOverlayAtTab(tabId);
+  return true;
+}
+
 function _cancelSignOutConfirm() {
   _signOutConfirmPending = false;
   _signOutOverlayTabId = null;
@@ -2467,11 +2548,7 @@ btnSignout.addEventListener('click', async () => {
     signOut();
     return;
   }
-  let tabId = null;
-  try {
-    const r = await chrome.runtime.sendMessage({ action: 'find-erase-overlay' });
-    tabId = r?.tabId ?? null;
-  } catch (_) {}
+  const tabId = await _kcFindEraseOverlayTabId();
   if (tabId == null) { signOut(); return; }
   _signOutOverlayTabId = tabId;
   _beginSignOutConfirm();
@@ -2575,6 +2652,96 @@ async function moveItemToPosition(userId, itemId, targetDirectoryId, newIndex, s
 
 let kcToastEl = null;
 let kcToastTimer = null;
+let kcToastFailsafeTimer = null;
+let _kcCardEditorWorkingToast = null;
+let _kcInstantRelayWorkingToast = null;
+
+// Inline SVG — uiManager _buildBadgeClipIcon (456–478), 14×14 in toast (671–673).
+function _kcBuildClipToastIcon() {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2.4');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  const rect = document.createElementNS(NS, 'rect');
+  rect.setAttribute('x', '9');
+  rect.setAttribute('y', '9');
+  rect.setAttribute('width', '11');
+  rect.setAttribute('height', '11');
+  rect.setAttribute('rx', '2');
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', 'M5 15V5a2 2 0 0 1 2-2h10');
+  svg.appendChild(rect);
+  svg.appendChild(path);
+  return svg;
+}
+
+function _kcClearKcToastTimers() {
+  if (kcToastTimer) {
+    clearTimeout(kcToastTimer);
+    kcToastTimer = null;
+  }
+  if (kcToastFailsafeTimer) {
+    clearTimeout(kcToastFailsafeTimer);
+    kcToastFailsafeTimer = null;
+  }
+}
+
+function _kcHideKcToastVisible() {
+  if (kcToastEl) kcToastEl.classList.remove('kc-toast--visible');
+}
+
+function _kcKcToastKindClasses() {
+  return [
+    'kc-toast--success',
+    'kc-toast--error',
+    'kc-toast--clip-working',
+    'kc-toast--clip-success',
+    'kc-toast--clip-error',
+  ];
+}
+
+function _kcApplyKcToastContent(el, message, kind) {
+  const isClipSuccess = kind === 'clip-success';
+  const isClipError = kind === 'clip-error';
+  const isClipWorking = kind === 'clip-working';
+  const isClip = isClipSuccess || isClipError || isClipWorking;
+  el.classList.remove(..._kcKcToastKindClasses());
+  el.replaceChildren();
+  if (isClip) {
+    if (isClipWorking) {
+      el.classList.add('kc-toast--clip-working');
+    } else {
+      el.classList.add(isClipError ? 'kc-toast--clip-error' : 'kc-toast--clip-success');
+    }
+    if (isClipSuccess) {
+      const iconWrap = document.createElement('span');
+      iconWrap.className = 'kc-toast__icon';
+      iconWrap.appendChild(_kcBuildClipToastIcon());
+      el.appendChild(iconWrap);
+    }
+    const textEl = document.createElement('span');
+    textEl.className = 'kc-toast__text';
+    textEl.textContent = message;
+    el.appendChild(textEl);
+  } else {
+    el.textContent = message;
+    el.classList.add(kind === 'error' ? 'kc-toast--error' : 'kc-toast--success');
+  }
+}
+
+function _kcArmKcToastDismiss(duration) {
+  _kcClearKcToastTimers();
+  if (duration > 0) {
+    kcToastTimer = setTimeout(() => {
+      _kcHideKcToastVisible();
+      kcToastTimer = null;
+    }, duration);
+  }
+}
 
 function showKcToast(message, kind = 'success', duration = 2500) {
   if (!kcToastEl) {
@@ -2582,15 +2749,52 @@ function showKcToast(message, kind = 'success', duration = 2500) {
     kcToastEl.className = 'kc-toast';
     document.body.appendChild(kcToastEl);
   }
-  kcToastEl.textContent = message;
-  kcToastEl.classList.remove('kc-toast--visible', 'kc-toast--success', 'kc-toast--error');
-  kcToastEl.classList.add(kind === 'error' ? 'kc-toast--error' : 'kc-toast--success');
+  const isClipSuccess = kind === 'clip-success';
+  const isClipError = kind === 'clip-error';
+  const isClipWorking = kind === 'clip-working';
+  const isClip = isClipSuccess || isClipError || isClipWorking;
+  if ((isClipSuccess || isClipError) && duration === 2500) duration = 1800;
+  if (isClipWorking) duration = 0;
+
+  _kcApplyKcToastContent(kcToastEl, message, kind);
   void kcToastEl.offsetWidth;
   kcToastEl.classList.add('kc-toast--visible');
-  if (kcToastTimer) clearTimeout(kcToastTimer);
-  kcToastTimer = setTimeout(() => {
-    if (kcToastEl) kcToastEl.classList.remove('kc-toast--visible');
-  }, duration);
+  _kcArmKcToastDismiss(duration);
+
+  const handle = {
+    update(nextMessage, nextKind, nextDuration = 2500) {
+      if (!kcToastEl) return;
+      const clipOk = nextKind === 'clip-success';
+      const clipErr = nextKind === 'clip-error';
+      if ((clipOk || clipErr) && nextDuration === 2500) nextDuration = 1800;
+      _kcApplyKcToastContent(kcToastEl, nextMessage, nextKind);
+      void kcToastEl.offsetWidth;
+      kcToastEl.classList.add('kc-toast--visible');
+      if (kcToastFailsafeTimer) {
+        clearTimeout(kcToastFailsafeTimer);
+        kcToastFailsafeTimer = null;
+      }
+      _kcArmKcToastDismiss(nextDuration);
+    },
+    dismiss() {
+      if (kcToastFailsafeTimer) {
+        clearTimeout(kcToastFailsafeTimer);
+        kcToastFailsafeTimer = null;
+      }
+      _kcClearKcToastTimers();
+      _kcHideKcToastVisible();
+    },
+  };
+
+  if (isClipWorking) {
+    if (kcToastFailsafeTimer) clearTimeout(kcToastFailsafeTimer);
+    kcToastFailsafeTimer = setTimeout(() => {
+      kcToastFailsafeTimer = null;
+      handle.update(KC_CLIP_DEFAULT_ERROR_TEXT, 'clip-error', 1800);
+    }, KC_CLIP_TOAST_WORKING_FAILSAFE_MS);
+    return handle;
+  }
+  return null;
 }
 
 // === PHASE_UPLOAD_TOAST_FILENAME ===
@@ -2655,6 +2859,7 @@ function flashActionMark(btnEl, success) {
 // === PHASE_CARD_CLIPBOARD_COPY ===
 async function handleClipButtonClick(item, anchorBtn) {
   if (anchorBtn) anchorBtn.disabled = true;
+  const toast = showKcToast(KC_CLIP_WORKING_TEXT, 'clip-working', 0);
   try {
     const imgUrl = String(item?.img_url || '').trim();
     const proxied = getProxiedImageUrl(imgUrl);
@@ -3156,21 +3361,13 @@ function attachCardClickHandlers() {
         _kcHandleCardSelectionClick(newCard, 'range');
         return;
       }
-      // PHASE_CARD_MULTISELECT_KEYS: a plain click that collapses a multi-selection (size > 1)
-      // re-activates the clicked card as a fresh single selection — it must NOT be read as a
-      // "second click" that opens the URL, even when the clicked card is the still-active anchor.
-      const _wasMultiSelect = _kcSelectedCardIds.size > 1;
       _kcHandleCardSelectionClick(newCard, 'single');
       // === END PHASE_CARD_MULTISELECT ===
 
       const url = newCard.dataset.url;
       if (!url) return;
 
-      if (!_wasMultiSelect && clickedWrapper.classList.contains('active')) {
-        // Second click on already-active card → open URL
-        window.open(url, '_blank');
-      } else {
-        // First click (or collapsing a multi-selection) → activate this card, deactivate others
+      if (!clickedWrapper.classList.contains('active')) {
         deactivateAllCards();
         clickedWrapper.classList.add('active');
       }
@@ -3224,10 +3421,20 @@ document.addEventListener('click', (e) => {
 // === PHASE_CARD_MULTISELECT ===
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  dismissClearConfirmPendingIfActive();
-  _kcClearCardSelection();
+  void (async () => {
+    if (await _kcTryDismissEraseOverlayFromPanel()) return;
+    dismissClearConfirmPendingIfActive();
+    _kcClearCardSelection();
+  })();
 });
 // === END PHASE_CARD_MULTISELECT ===
+
+document.addEventListener('keydown', (e) => {
+  void _kcHandleHoveredCardShortcutKeydown(e);
+}, true);
+
+document.addEventListener('keydown', _spOnKeydownModChordArm);
+document.addEventListener('keyup', _spOnKeyupModChordToggle);
 
 // Deactivate active card when Chrome window loses focus
 window.addEventListener('blur', () => {
@@ -3536,6 +3743,7 @@ function loadData() {
 
   // ── Attach handlers ──────────────────────────────────────────────────────
   attachCardClickHandlers();
+  _kcInitSidepanelCardHoverRelay();
   setupUnifiedDropHandlers();
 
   updateCategoryCounts();
@@ -3550,6 +3758,70 @@ function loadData() {
   } finally {
     hideListLoading();
   }
+}
+
+// Shutter close after kc-update-pending — matches .data-card-header transition (0.15s).
+const KC_CARD_HEADER_SHUTTER_MS = 150;
+
+function _kcClearUpdatePendingCloseHandlers(card) {
+  if (!card) return;
+  if (card._updateClosingTimer) {
+    clearTimeout(card._updateClosingTimer);
+    card._updateClosingTimer = null;
+  }
+  if (card._updateClosingTransitionHandler) {
+    const header = card.querySelector('.data-card-header');
+    header?.removeEventListener('transitionend', card._updateClosingTransitionHandler);
+    card._updateClosingTransitionHandler = null;
+  }
+}
+
+function _kcFinishUpdatePending(card) {
+  if (!card) return;
+  _kcClearUpdatePendingCloseHandlers(card);
+  if (!card.classList.contains('kc-update-pending')) {
+    card.classList.remove('kc-update-closing');
+    delete card.dataset.updatePending;
+    return;
+  }
+  if (card.classList.contains('kc-update-closing')) return;
+
+  if (!card.isConnected) {
+    card.classList.remove('kc-update-pending', 'kc-update-closing');
+    delete card.dataset.updatePending;
+    return;
+  }
+
+  card.classList.add('kc-update-closing');
+  const header = card.querySelector('.data-card-header');
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    _kcClearUpdatePendingCloseHandlers(card);
+    if (card._updatePendingTimer) {
+      clearTimeout(card._updatePendingTimer);
+      card._updatePendingTimer = null;
+    }
+    card.classList.remove('kc-update-pending', 'kc-update-closing');
+    delete card.dataset.updatePending;
+  };
+
+  if (!header) {
+    finish();
+    return;
+  }
+
+  void header.offsetHeight;
+
+  const onEnd = (e) => {
+    if (e.target !== header || e.propertyName !== 'transform') return;
+    finish();
+  };
+  card._updateClosingTransitionHandler = onEnd;
+  header.addEventListener('transitionend', onEnd);
+
+  card._updateClosingTimer = setTimeout(finish, KC_CARD_HEADER_SHUTTER_MS + 32);
 }
 
 /**
@@ -3605,8 +3877,7 @@ function reconcileSnapshotSilently(snap) {
             clearTimeout(mCard._updatePendingTimer);
             mCard._updatePendingTimer = null;
           }
-          delete mCard.dataset.updatePending;
-          mCard.classList.remove('kc-update-pending');
+          _kcFinishUpdatePending(mCard);
         }
       }
       return;
@@ -3666,8 +3937,7 @@ function reconcileSnapshotSilently(snap) {
         clearTimeout(existingCard._updatePendingTimer);
         existingCard._updatePendingTimer = null;
       }
-      delete existingCard.dataset.updatePending;
-      existingCard.classList.remove('kc-update-pending');
+      _kcFinishUpdatePending(existingCard);
     }
 
     // Remove optimistic marker so this container is treated as a
@@ -3700,6 +3970,7 @@ window.addEventListener('blur', () => {
   try {
     chrome.runtime.sendMessage({ action: 'sidepanel-blurred' });
   } catch (e) {}
+  _kcSendSidepanelCardHover(false, null);
 });
 
 // ── Optimistic card message listener ─────────────────────────────────────────

@@ -618,45 +618,65 @@
     }
 
     /* ── Card styles ── */
-    .card-container { width: 100%; flex-shrink: 0; box-sizing: border-box; min-width: 0; }
+    .card-container {
+      width: 100%;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      min-width: 0;
+      border-radius: var(--corner-extra-small);
+      transition: box-shadow 0.15s ease;
+    }
     .card-container.image_card { width: calc(33.333% - 2px); }
     .card-wrapper {
       position: relative;
       background: white;
-      /* Constant 2px border in every state → no layout shift when it becomes
-         the accent ring on active/selected. Renders evenly on all four sides
-         (unlike the inset box-shadow / outline approaches, which clipped on the
-         top/left of grid items). */
-      border: 1px solid var(--border-default);
+      border: none;
       border-radius: var(--corner-extra-small);
       margin: 0;
       width: 100%;
       cursor: pointer;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      transition: border-color 0.15s ease,
-                  box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1.0),
+      transition: box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1.0),
                   height 0.3s cubic-bezier(0.2, 0, 0, 1),
                   opacity 0.3s ease;
       box-sizing: border-box;
       user-select: none;
     }
-    .card-wrapper:hover {
-      border-color: #CF00FF;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    /* Ring paints above header + image; pointer-events:none keeps controls clickable. */
+    .card-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      box-sizing: border-box;
+      border: 1px solid var(--border-default);
+      border-radius: var(--corner-extra-small);
+      pointer-events: none;
+      z-index: 4;
+      transition: border-color 0.15s ease;
     }
-    /* Active (single-click) and selected (multiselect): the constant 2px border
-       simply turns accent-colored. Even on all four sides, no clipping, no
-       layout shift. */
+    /* Hover glow on container — outside wrapper overflow:hidden (see createCardElement). */
+    .card-container:has(.card-wrapper:hover) {
+      box-shadow: 0 2px 16px 4px rgba(var(--kc-accent-rgb), 0.65);
+    }
+    .card-wrapper:hover::after {
+      border-color: var(--kc-accent);
+      border-width: 1px;
+    }
     .card-wrapper.active,
     .card-wrapper.kc-wrapper-selected {
+      box-shadow: 0 4px 16px rgba(var(--kc-accent-rgb), 0.2);
+    }
+    .card-wrapper.active::after,
+    .card-wrapper.kc-wrapper-selected::after {
       border-color: var(--kc-accent);
       border-width: 2px;
-      box-shadow: 0 4px 16px rgba(var(--kc-accent-rgb), 0.2);
+      transition: none;
     }
     .card-wrapper.is-dragging-source .data-card { opacity: 0.3; }
 
     /* data-card: outer shell, no padding — padding is on inner sections */
     .data-card {
+      position: relative;
       background: transparent;
       border: none;
       padding: 0;
@@ -682,9 +702,13 @@
     /* === END PHASE_CARD_MULTISELECT === */
     .data-card * { pointer-events: none !important; }
 
-    /* Header: domain + delete button */
+    /* Header: shutter overlay — hidden above card until hover / selection / pending. */
     .data-card-header {
-      position: relative;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 3;
       display: flex;
       flex-direction: row;
       align-items: stretch;
@@ -694,8 +718,18 @@
       padding: 0;
       overflow: hidden;
       height: 20px;
-      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.94);
+      transform: translateY(-100%);
+      transition: transform 0.15s ease;
       opacity: 1;
+    }
+    .card-wrapper:hover .data-card-header {
+      transform: translateY(0);
+    }
+    .card-wrapper.active .data-card-header,
+    .card-wrapper.kc-wrapper-selected .data-card-header {
+      transform: translateY(0);
+      transition: none;
     }
     /* Main content section */
     .data-card-main {
@@ -777,7 +811,7 @@
       gap: 0;
     }
     .data-card-extlink {
-      display: none;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
@@ -789,12 +823,8 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    .card-wrapper:hover .data-card-extlink {
-      display: inline-flex;
-    }
     .card-wrapper.active .data-card-extlink,
     .card-wrapper.kc-wrapper-selected .data-card-extlink {
-      display: inline-flex;
       background: var(--kc-accent);
       border-radius: 2px 0 0 0;
     }
@@ -915,12 +945,11 @@
       stroke: rgba(0, 0, 0, 0.6);
       transition: opacity 150ms ease, stroke 150ms ease;
     }
-    .card-wrapper:not(:hover) .data-card-delete-btn svg {
-      opacity: 0;
-    }
 
     /* Delete pending */
     .data-card-header.delete-pending {
+      transform: translateY(0);
+      transition: none;
       background: #ef4444;
     }
     .data-card-header.delete-pending .data-card-delete-btn svg { stroke: #fff; opacity: 1; }
@@ -936,6 +965,14 @@
     }
 
     /* Dedup re-clip: header loading until Firestore modified lands */
+    .data-card.kc-update-pending .data-card-header {
+      transform: translateY(0);
+      transition: none;
+    }
+    .data-card.kc-update-pending.kc-update-closing .data-card-header {
+      transform: translateY(-100%);
+      transition: transform 0.15s ease;
+    }
     .data-card.kc-update-pending .data-card-header > * {
       visibility: hidden;
     }
@@ -957,8 +994,12 @@
     }
     .card-container:has(.data-card.kc-update-pending) .card-wrapper {
       pointer-events: none;
-      border-color: var(--border-default);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .card-container:has(.data-card.kc-update-pending) .card-wrapper::after {
+      border-color: var(--border-default);
+      border-width: 1px;
+      transition: none;
     }
 
     /* === PHASE_CARD_CLIPBOARD_COPY === */
@@ -987,9 +1028,6 @@
       opacity: 1;
       stroke: rgba(0, 0, 0, 0.6);
       transition: opacity 150ms ease, stroke 150ms ease;
-    }
-    .card-wrapper:not(:hover) .data-card-clip-btn svg {
-      opacity: 0;
     }
     .data-card-clip-btn:hover svg {
       stroke: rgba(0, 0, 0, 0.85);
@@ -1063,6 +1101,32 @@
     }
     .kc-toast.kc-toast--success {
       background: rgba(30, 30, 30, 0.92);
+    }
+    /* Clip result — page accent/error colours + clip icon; shape from .kc-toast */
+    .kc-toast.kc-toast--clip-success,
+    .kc-toast.kc-toast--clip-error {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .kc-toast.kc-toast--clip-working,
+    .kc-toast.kc-toast--clip-success {
+      background: var(--kc-accent, #BC13FE);
+    }
+    .kc-toast.kc-toast--clip-error {
+      background: #e5484d;
+    }
+    .kc-toast__icon {
+      display: inline-flex;
+      align-items: center;
+      line-height: 0;
+      flex-shrink: 0;
+      color: #fff;
+    }
+    .kc-toast__icon svg {
+      width: 12px;
+      height: 12px;
     }
 
     /* ── DnD guide line ── */
