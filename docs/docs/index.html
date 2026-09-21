@@ -49,7 +49,7 @@
 
 <main class="docs-main">
   <h1 class="docs-title">Grrab Documentation</h1>
-  <p class="docs-subtitle">See how Grrab works — from the shortcut to the AI upscaling behind it.</p>
+  <p class="docs-subtitle">See how Grrab works — from the shortcut to copying and editing images.</p>
 
   <div class="docs-card">
     <p class="docs-card-title">On this page</p>
@@ -77,7 +77,6 @@
     <div class="docs-toc-group">
       <p class="docs-toc-group-label">Reference</p>
       <ol class="docs-toc" start="7">
-        <li><a href="#quality">How image quality works</a></li>
         <li><a href="#privacy">Privacy and data</a></li>
         <li><a href="#troubleshooting">Troubleshooting</a></li>
         <li><a href="#support">Links and support</a></li>
@@ -92,8 +91,8 @@
     <section class="docs-section" id="what">
       <h2>What is Grrab</h2>
       <p>Grrab is a Chrome extension that lets you copy any image on the web in one shortcut — already usable.</p>
-      <p>Hover an image, press Cmd+C, and the image lands on your clipboard. Grrab improves the quality on the way, so what you paste isn't the small preview the page was serving.</p>
-      <p>When you need more than that — a background removed, a watermark erased, a larger version — you can do it on the page, without saving the file or opening another tool. Everything you copy is also kept in a library you can come back to.</p>
+      <p>Hover an image, press Cmd+C, and the image lands on your clipboard — the one you are pointing at, as it is.</p>
+      <p>When you need more — a background removed, a watermark removed, part of the image erased, or a larger version — you can do it in the editor on the page, without opening another app. Everything you copy is also kept in a library you can come back to.</p>
       <p>Grrab works on any site. If an image is on your screen, the shortcut works on it.</p>
     </section>
 
@@ -106,7 +105,7 @@
           </div>
           <figcaption><strong>[TODO] Pin it.</strong> [TODO] Caption for the extensions-menu screenshot.</figcaption>
         </figure>
-        <figure class="docs-install-card" aria-label="The Grrab popup, showing the on/off toggle, Shortcut and Output size">
+        <figure class="docs-install-card" aria-label="The Grrab popup, showing the on/off toggle and Shortcut">
           <div class="docs-install-shot" style="background-image:url(/assets/landing/img/install-preview2.jpg)">
             <span class="docs-install-bubble" aria-hidden="true">[TODO] Check that Grrab is on.</span>
           </div>
@@ -247,14 +246,15 @@
       <p>The mode decides what happens after you press Cmd+C. You switch between them in the popup or the side panel, and the setting stays until you change it.</p>
       <p><strong>Instant</strong> copies right away. The image goes to your clipboard and you carry on. This is the default.</p>
       <p><strong>Editor</strong> opens the image in an overlay on the page first. The page stays where it is behind it — nothing is downloaded, and you don't leave the tab. Editor mode requires signing in.</p>
-      <p>Three things you can do there:</p>
+      <p>Things you can do there:</p>
       <ul>
         <li><strong>Remove BG</strong> cuts out the subject and drops the background, leaving transparency behind it.</li>
-        <li><strong>Erase</strong> removes anything you don't want. Brush over it or drag a box around it, and the area is filled in with what should have been behind it. Use it for watermarks, logos, captions, or objects in the way.</li>
-        <li><strong>Upscale</strong> enlarges the image on your device. Small sources are enlarged more, so the result is usable however small the original was.</li>
+        <li><strong>Remove Watermark</strong> clears a watermark laid across the whole picture — the repeating kind — and leaves the rest of the image as it was.</li>
+        <li><strong>Erase</strong> removes anything you don't want. Brush over it or drag a box around it, and the area is filled in with what should have been behind it. Use it for logos, captions, or objects in the way.</li>
+        <li><strong>Upscale</strong> enlarges the image on your device when you press it. Nothing is enlarged automatically.</li>
       </ul>
       <p>Back undoes your last step and Refresh returns the image to how it started. When you're done, Copy puts the result on your clipboard.</p>
-      <p>Remove BG runs on a server and needs you to be signed in. Erase and Upscale run on your own machine — see <a href="#privacy">Privacy and data</a>.</p>
+      <p>Remove BG and Remove Watermark run on a server and need you to be signed in. Erase and Upscale run on your own machine — see <a href="#privacy">Privacy and data</a>.</p>
     </section>
 
     <section class="docs-section" id="library">
@@ -265,7 +265,8 @@
       <ul>
         <li>Put it back on your clipboard in one click.</li>
         <li>Download it to your computer.</li>
-        <li>Open the page you found it on.</li>
+        <li>Open it in the editor using the link icon on the card.</li>
+        <li>Hover a card and press your shortcut to re-copy it (Instant mode) or open it in the editor (Editor mode).</li>
         <li>Delete it, on its own or in a selection.</li>
       </ul>
       <p>Downloads go wherever you've set your destination — a folder on your computer, Google Drive, or your Downloads folder — in the format you've chosen. Both are in the side panel, and you can change them at any time.</p>
@@ -282,7 +283,7 @@
       <h2>All settings</h2>
       <p>Adjust how Grrab behaves to fit the way you work.</p>
       <div class="docs-figure-pair">
-        <div class="docs-figure-placeholder" role="img" aria-label="The Grrab popup, showing the on/off toggle, Shortcut, Mode and Output size"></div>
+        <div class="docs-figure-placeholder" role="img" aria-label="The Grrab popup, showing the on/off toggle, Shortcut and Mode"></div>
         <div class="docs-figure-placeholder" role="img" aria-label="The Grrab side panel, showing Account, Saving and the image library"></div>
       </div>
       <p>In the popup:</p>
@@ -290,7 +291,6 @@
         <li><strong>On / off</strong> — Turns Grrab off without uninstalling it. Cmd+C goes back to normal copying while it's off.</li>
         <li><strong>Shortcut</strong> — The keys that copy the image under your cursor. Cmd+C by default.</li>
         <li><strong>Mode</strong> — Copy right away, or open the editor first. Instant by default. See <a href="#modes">Instant and Editor modes</a>.</li>
-        <li><strong>Output size</strong> — The size of the image that lands on your clipboard. Auto by default.</li>
       </ul>
       <p>In the side panel:</p>
       <ul>
@@ -305,17 +305,12 @@
     <p class="docs-group-label">Reference</p>
     <hr class="docs-group-rule">
 
-    <section class="docs-section" id="quality">
-      <h2>How image quality works</h2>
-      <p>TODO</p>
-    </section>
-
     <section class="docs-section" id="privacy">
       <h2>Privacy and data</h2>
       <p>Grrab is designed to keep your data — and your workflow — your own.</p>
       <p>AI upscaling runs entirely on your device: the model is bundled with the extension and executes in your browser, so no image is ever uploaded for upscaling.</p>
       <p>When you clip without signing in, nothing about the image, the page, or you leaves your browser. Grrab sends one empty request that counts that a clip happened — no URL, no page, no image, no account or device identifier — so we can see overall usage. It can be turned off.</p>
-      <p>When you sign in, your clip history is stored on Grrab&rsquo;s own backend under your account — never shared with third parties.</p>
+      <p>When you sign in, your clip history is stored on Grrab&rsquo;s backend under your account. Remove BG and Remove Watermark send images to service providers only when you choose those tools — the <a href="https://grrab.app/privacy/">Privacy Policy</a> names them.</p>
       <p>Grrab doesn&rsquo;t use third-party analytics or trackers, doesn&rsquo;t monitor your browsing history, and only acts on images you interact with. For the full breakdown, see the <a href="https://grrab.app/privacy/">Privacy Policy</a>.</p>
     </section>
 
