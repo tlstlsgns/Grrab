@@ -1,6 +1,6 @@
 {
   "name": "kickclip-extension-build",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "private": true,
   "description": "Build tooling for the KickClip Chrome extension",
   "scripts": {

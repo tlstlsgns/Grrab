@@ -70,7 +70,7 @@ KickClip operates in two parallel environments. Every environment has its own Fi
 |---|---|
 | **GCP Console** | https://console.cloud.google.com/auth/clients?project=saveurl-prod |
 | **Client ID** | `108278020684-gc4o3rfjldhb5bvjo8fgm3shnbdj8j8c.apps.googleusercontent.com` |
-| **Application ID** *(Chrome Extension ID)* | `kbdieogmfmbeeplefmcielmcenpajioi` |
+| **Application ID** *(Chrome Extension ID)* | `mmnjbmjjkcbcbjkimkndljlpdhcbfcgc` |
 | **Consent Screen** | External, Testing status |
 | **Scopes** | `openid`, `email`, `profile`, `gmail.readonly` |
 | **Test users** | [email protected] *(100-user limit applies until public release)* |
@@ -104,7 +104,7 @@ Both are **git-ignored** (never commit).
 | Env | Extension ID |
 |---|---|
 | DEV | `knpcebcbpcjoiagccededjhamononapd` |
-| PROD | `kbdieogmfmbeeplefmcielmcenpajioi` |
+| PROD | `mmnjbmjjkcbcbjkimkndljlpdhcbfcgc` |
 
 ### Public keys (from manifests)
 
