@@ -371,6 +371,19 @@
       { ox: -0.25, oy: 0 }, { ox: 0, oy: 0 }, { ox: 0.25, oy: 0 },
       { ox: -0.25, oy: 0.25 }, { ox: 0, oy: 0.25 }, { ox: 0.25, oy: 0.25 }
     ];
+    /* Phone — bottom corners pushed outward to the canvas edge (317b). Desktop keeps ±0.25. */
+    var heroMobilePasteAnchorOverrides = {
+      6: { ox: -0.264, oy: 0.25 },
+      8: { ox: 0.264, oy: 0.25 }
+    };
+    var heroAnchorBase = function(ai){
+      var a = heroPasteAnchors[ai];
+      if (heroMobile && heroMobile.matches && heroMobilePasteAnchorOverrides[ai]) {
+        var o = heroMobilePasteAnchorOverrides[ai];
+        return { ox: o.ox, oy: o.oy != null ? o.oy : a.oy };
+      }
+      return { ox: a.ox, oy: a.oy };
+    };
     var heroSlot1 = null;
     var heroSlot2 = null;
     var heroPastePointIn = function(ox, oy){
@@ -382,7 +395,7 @@
                y: p.y + heroCanvas.offsetHeight * oy };
     };
     var heroAnchorTiers = [[4], [0, 2, 6, 8], [1, 3, 5, 7]];
-    var heroMobileAnchorSkip = [3, 4, 5];
+    var heroMobileAnchorSkip = [3, 4, 5, 7];
     var heroAnchorIndexAllowed = function(ai){
       if (!heroMobile || !heroMobile.matches) return true;
       for (var si = 0; si < heroMobileAnchorSkip.length; si++) {
@@ -401,7 +414,7 @@
       }
       if (!pool.length) {
         if (heroMobile && heroMobile.matches) {
-          var mobFallback = [0, 1, 2, 6, 7, 8];
+          var mobFallback = [0, 1, 2, 6, 8];
           return mobFallback[Math.floor(Math.random() * mobFallback.length)];
         }
         return Math.floor(Math.random() * heroPasteAnchors.length);
@@ -420,11 +433,11 @@
     };
     var heroPickSlot = function(){
       var anchorIdx = heroPickAnchor();
-      var anchor = heroPasteAnchors[anchorIdx];
+      var anchorBase = heroAnchorBase(anchorIdx);
       var ox = 0, oy = 0, attempt, ok, pi;
       for (attempt = 0; attempt < heroPasteRetries; attempt++) {
-        ox = anchor.ox + (Math.random() * 0.15 - 0.075);
-        oy = anchor.oy + (Math.random() * 0.15 - 0.075);
+        ox = anchorBase.ox + (Math.random() * 0.15 - 0.075);
+        oy = anchorBase.oy + (Math.random() * 0.15 - 0.075);
         ok = true;
         if (heroCanvas && heroCanvas.offsetWidth) {
           for (pi = 0; pi < heroPlaced.length; pi++) {

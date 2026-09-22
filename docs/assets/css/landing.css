@@ -92,6 +92,7 @@
     --hero-u:calc(744px / 593);}
   .hero-left{display:flex;flex-direction:column;gap:24px;min-width:0;
     container-type:inline-size;}
+  .hero-canvas-cta{display:none;}
   .hero-text{display:flex;flex-direction:column;align-items:flex-start;gap:24px;
     text-align:left;}
   .hero-browser-slot{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;}
@@ -405,11 +406,10 @@
     letter-spacing:-0.01em;color:var(--ink-strong);}
   .rowD-card-desc{font-size:18px;line-height:1.45;color:var(--ink-muted);}
   #inspireList svg{width:20px;height:20px;display:block;}
-  /* Row C — one column everywhere: copy and list, then 16:9 mockup, then active desc. */
+  /* Row C — one column everywhere: copy and list, then 16:9 mockup. */
   .rowC-scale-wrap{height:auto;overflow:visible;}
   .grrab-inspire-grid{grid-template-columns:1fr;align-items:start;gap:24px;}
   .grrab-inspire-grid > div:nth-child(2){min-height:auto;height:auto;}
-  .rowC-active-desc{display:block;}
   /* Source switcher — height from heading (--rowC-heading-h, JS) capped by four-up width. */
   .grrab-inspire-grid .rowC-list{flex-direction:row;justify-content:center;align-items:stretch;gap:4px;
     height:var(--rowC-list-h,auto);}
@@ -975,12 +975,19 @@
       align-items:center !important; justify-content:center !important;
       text-align:center !important;
       pointer-events:none !important; }
+    .hero-title-anchor{
+      position:relative !important; width:100% !important; max-width:36ch !important; }
     .hero-text .hero-h1{
       text-align:center !important; max-width:36ch !important;
       font-size:28px !important;
       text-shadow:0 0 6px rgba(255,255,255,.95),0 0 12px rgba(255,255,255,.85),
         1px 0 2px rgba(255,255,255,.9),-1px 0 2px rgba(255,255,255,.9),
         0 1px 2px rgba(255,255,255,.9),0 -1px 2px rgba(255,255,255,.9) !important; }
+    .hero-canvas-cta{
+      display:inline-flex !important;
+      position:absolute !important; top:calc(100% + 12px) !important; left:50% !important;
+      transform:translateX(-50%) !important;
+      pointer-events:auto !important; white-space:nowrap !important; }
     .hero-sub{
       grid-column:1 / -1 !important; grid-row:4 !important;
       margin:0 !important;
@@ -1058,29 +1065,24 @@
       border-bottom:3px solid transparent !important;
       border-radius:12px 12px 0 0 !important; }
     .rowB-card-text{ align-items:center !important; }
-    .rowB-card-title{ text-align:center !important; }
+    .rowB-card-title{ font-size:10px !important; }
+    .rowD-card-title{ font-size:12px !important; }
+    .rowD-card-desc{ font-size:11px !important; }
+    .rowB-card-title,
+    .rowD-card-title{ line-height:1.2 !important; }
+    .rowB-card-title{ text-align:center !important; white-space:nowrap !important; }
+    .rowB-card-title-full{ display:none !important; }
+    .rowB-card-title-short{ display:inline !important; }
     .rowB-card--active{ border-left-color:transparent !important;
       border-bottom-color:#BC13FE !important; }
     .rowB-card-desc{ display:none !important; }
-    /* Four across, icon above title. Every declaration needs !important: the rows are
-       built in JavaScript with inline cssText, which a stylesheet cannot otherwise beat.
-       The description is hidden rather than removed — it still shows on desktop. */
-    .rowD-cards{ gap:8px !important; }
-    .rowD-card{ padding:14px 14px !important; gap:12px !important; }
-    .rowD-card-icon{ width:34px !important; height:34px !important; }
-    .rowD-card-icon img{ width:19px !important; height:19px !important; }
-    .rowD-card-title{ font-size:16px !important; }
-    .rowD-card-desc{ font-size:13.5px !important; }
-    /* Three across, icon above title. align-items centres them horizontally here — the
-       card is a column, so that is its cross axis, where Row B's row-wise cards used the
-       same property for vertical centring. */
-    .rowD-cards{ flex-direction:row !important; gap:8px !important; }
-    .rowD-card{ flex:1 !important; min-width:0 !important;
-      flex-direction:column !important; align-items:center !important;
-      gap:8px !important; padding:12px 6px !important; }
-    .rowD-card-text{ align-items:center !important; }
-    .rowD-card-title{ text-align:center !important; }
-    .rowD-card-desc{ display:none !important; }
+    .grrab-inspire-grid .rowC-item{ justify-content:center !important; }
+    .grrab-inspire-grid .rowC-item-text{
+      position:absolute !important;width:1px !important;height:1px !important;
+      padding:0 !important;margin:-1px !important;overflow:hidden !important;
+      clip:rect(0,0,0,0) !important;clip-path:inset(50%) !important;
+      white-space:nowrap !important;border:0 !important; }
+    .rowD-card{ padding:0 !important; }
     .grrab-rowD{ grid-template-columns:1fr !important; gap:24px !important; }
     .grrab-rowD > div:last-child{ gap:14px !important; }
     /* That selector used to find the fanned card stack, which is gone; it now finds
@@ -1139,7 +1141,10 @@
     footer > div{ padding:36px 20px !important; }
   }
   @media (max-width:480px){
-    :root{--demo-browser-w:calc((100vw - 32px) * 0.7);}
+    :root{--page-pad-inline:16px; --demo-browser-w:calc((100vw - 2 * var(--page-pad-inline)) * 0.7);}
+    .rowC-browser-bleed{
+      --rowC-page-gutter:var(--page-pad-inline);
+      --rowC-shadow-x:min(64px,var(--rowC-page-gutter)); }
     header > div{ padding:12px 16px !important; }
     #top{ padding:0 16px 32px !important; }
     .hero-h1{ font-size:28px !important; }
