@@ -498,11 +498,9 @@
      mockup to the left. 545px rather than 100% keeps the panel the size it is now — the
      column grew from 545 to 591 and the mockup would otherwise have grown with it. The
      46px left over sits to its right, which suits a panel whose shadow reaches left. */
-  /* An explicit height, not 100%. Row D's height used to come from the fanned cards; with
-     those gone, height:100% resolved against a flex box sized by its tallest child — the
-     346px card — and the row collapsed to that. 551 is the same figure .rowD-scale-wrap
-     multiplies by; the two must move together. */
-  .rowD-mockup-wrap{position:relative;width:65%;height:551px;overflow:hidden;
+  /* Same 593/434 box as Row A/B; height comes from .rowD-media's aspect-ratio, not px. */
+  .rowD-media{min-width:0;width:100%;aspect-ratio:593/434;}
+  .rowD-mockup-wrap{position:relative;width:65%;height:100%;min-height:0;overflow:hidden;
     border-radius:0 var(--radius-2xl) 0 0;}
   /* 0.8 from the top-left. The wrapper keeps its 545x551 box because a transform does
      not change layout, so the panel simply occupies less of it. container-type is
@@ -856,15 +854,15 @@
      so the heading, the cards and the mockup shrink together. Everything else on the
      page still reflows the usual way — this is a trial on one row. */
   @media (max-width:1199px) and (min-width:821px){
-    /* Row D is 551 tall where the others are 470 — the only number that differs. */
+    /* Same 1352 reference width and scale as Rows A and B so columns line up. */
     .rowD-scale-wrap{
-      height:calc(551px * (100vw - 64px) / 1136);
+      height:calc(551px * (100vw - 64px) / 1352);
       overflow:hidden;
     }
     .grrab-rowD{
-      width:1136px !important;
+      width:1352px !important;
       transform-origin:top left;
-      transform:scale(calc((100vw - 64px) / 1136px));
+      transform:scale(calc((100vw - 64px) / 1352px));
     }
     /* The ratio is written out in both places rather than held in a custom property.
        An unregistered variable substitutes as untyped tokens, so scale(var(--x)) and
