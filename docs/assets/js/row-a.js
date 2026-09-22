@@ -158,7 +158,10 @@
       var under = document.elementFromPoint(r.left, r.top);
       rowAHotOnly(under && under.closest ? under.closest(".hero-tile") : null);
       if (Date.now() - started < durationMs) rowARaf = requestAnimationFrame(tick);
-      else rowARaf = 0;
+      else {
+        rowARaf = 0;
+        if (opts.clearOnEnd) rowAHotOnly(null);
+      }
     };
     rowARaf = requestAnimationFrame(tick);
   };
@@ -248,6 +251,19 @@
     var img = tile ? tile.querySelector("img") : null;
     return img ? img.getAttribute("src") : "";
   };
+  /* Hero watermark demo uses these -before files on tiles 6, 7 and 13 (and a second tile 2).
+     Row A copies as-is, so any tile showing one of these paths is skipped. */
+  var rowATilePickExcluded = function(tile){
+    var src = rowATileImgSrc(tile);
+    return /hero-image-(9|2|14)-before\.webp/.test(src);
+  };
+  var rowAPickEligible = function(tiles){
+    var out = [];
+    for (var ei = 0; ei < tiles.length; ei++) {
+      if (!rowATilePickExcluded(tiles[ei])) out.push(tiles[ei]);
+    }
+    return out;
+  };
   var rowATileNatural = function(tile){
     var img = tile ? tile.querySelector("img") : null;
     if (!img || !img.naturalWidth) return null;
@@ -270,7 +286,9 @@
   };
 
   var rowAPickTiles = function(forcedTile){
-    var visible = rowAVisibleTiles();
+    if (forcedTile && rowATilePickExcluded(forcedTile)) forcedTile = null;
+    var visible = rowAPickEligible(rowAVisibleTiles());
+    if (!visible.length) visible = rowAPickEligible(rowATiles);
     if (!visible.length) return [];
     var lead;
     if (forcedTile) {

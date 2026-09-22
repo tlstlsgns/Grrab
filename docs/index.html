@@ -118,9 +118,15 @@
                 <span class="hero-tool hero-tool--on" id="heroToolBox"><img src="/assets/landing/icons/hero/icon_select_box.svg" alt=""></span>
                 <span class="hero-hint" id="heroHint">Drag to select an area to erase</span>
               </span>
-              <span class="hero-overlay-btn" id="heroOverlayBtn">
-                <img id="heroOverlayBtnIcon" src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
-                <span id="heroOverlayBtnLabel">Remove BG</span>
+              <span class="hero-overlay-btn-group" aria-hidden="true">
+                <span class="hero-overlay-btn" id="heroOverlayWatermarkBtn">
+                  <img id="heroOverlayWatermarkBtnIcon" src="/assets/landing/icons/hero/icon_watermark.svg" alt="">
+                  <span id="heroOverlayWatermarkBtnLabel">Remove Watermark</span>
+                </span>
+                <span class="hero-overlay-btn" id="heroOverlayBtn">
+                  <img id="heroOverlayBtnIcon" src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
+                  <span id="heroOverlayBtnLabel">Remove BG</span>
+                </span>
               </span>
               <span class="hero-busy" id="heroBusy" aria-hidden="true">
                 <span class="hero-busy-ring"></span>
@@ -232,9 +238,15 @@
                 <span class="hero-tool hero-tool--on" id="rowAToolBox"><img src="/assets/landing/icons/hero/icon_select_box.svg" alt=""></span>
                 <span class="hero-hint" id="rowAHint">Drag to select an area to erase</span>
               </span>
-              <span class="hero-overlay-btn" id="rowAOverlayBtn">
-                <img id="rowAOverlayBtnIcon" src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
-                <span id="rowAOverlayBtnLabel">Remove BG</span>
+              <span class="hero-overlay-btn-group" aria-hidden="true">
+                <span class="hero-overlay-btn" id="rowAOverlayWatermarkBtn">
+                  <img id="rowAOverlayWatermarkBtnIcon" src="/assets/landing/icons/hero/icon_watermark.svg" alt="">
+                  <span id="rowAOverlayWatermarkBtnLabel">Remove Watermark</span>
+                </span>
+                <span class="hero-overlay-btn" id="rowAOverlayBtn">
+                  <img id="rowAOverlayBtnIcon" src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
+                  <span id="rowAOverlayBtnLabel">Remove BG</span>
+                </span>
               </span>
               <span class="hero-busy" id="rowABusy" aria-hidden="true">
                 <span class="hero-busy-ring"></span>
@@ -309,8 +321,12 @@
           <span class="rowB-card-text"><span class="rowB-card-title">Remove BG</span><span class="rowB-card-desc">Keeps the subject, removes the background.</span></span>
         </button>
         <button type="button" class="rowB-card">
+          <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_watermark.svg" alt=""></span>
+          <span class="rowB-card-text"><span class="rowB-card-title"><span class="rowB-card-title-full">Remove Watermark</span><span class="rowB-card-title-short">Remove WM</span></span><span class="rowB-card-desc">Clears a watermark laid across the whole image.</span></span>
+        </button>
+        <button type="button" class="rowB-card">
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_erase.svg" alt=""></span>
-          <span class="rowB-card-text"><span class="rowB-card-title">Erase</span><span class="rowB-card-desc">Brush over a watermark or object to remove it.</span></span>
+          <span class="rowB-card-text"><span class="rowB-card-title">Erase</span><span class="rowB-card-desc">Brush over an object to remove it.</span></span>
         </button>
         <button type="button" class="rowB-card">
           <span class="rowB-card-icon"><img src="/assets/landing/icons/rowB/icon_upscale.svg" alt=""></span>
@@ -377,9 +393,15 @@
                 <span class="hero-tool hero-tool--on" id="rowBToolBox"><img src="/assets/landing/icons/hero/icon_select_box.svg" alt=""></span>
                 <span class="hero-hint" id="rowBHint">Drag to select an area to erase</span>
               </span>
-              <span class="hero-overlay-btn" id="rowBOverlayBtn">
-                <img id="rowBOverlayBtnIcon" src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
-                <span id="rowBOverlayBtnLabel">Remove BG</span>
+              <span class="hero-overlay-btn-group" aria-hidden="true">
+                <span class="hero-overlay-btn" id="rowBOverlayWatermarkBtn">
+                  <img id="rowBOverlayWatermarkBtnIcon" src="/assets/landing/icons/hero/icon_watermark.svg" alt="">
+                  <span id="rowBOverlayWatermarkBtnLabel">Remove Watermark</span>
+                </span>
+                <span class="hero-overlay-btn" id="rowBOverlayBtn">
+                  <img id="rowBOverlayBtnIcon" src="/assets/landing/icons/hero/icon_removebg.svg" alt="">
+                  <span id="rowBOverlayBtnLabel">Remove BG</span>
+                </span>
               </span>
               <span class="hero-busy" id="rowBBusy" aria-hidden="true">
                 <span class="hero-busy-ring"></span>
@@ -473,7 +495,7 @@
           </span>
           </span>
         </div>
-        <div style="flex:1;background:url('/assets/landing/img/hero-image-2-before.webp') center/cover no-repeat;"></div>
+        <div style="flex:1;background:url('/assets/landing/img/hero-image-2-after.webp') center/cover no-repeat;"></div>
       </div>
         <!-- Dim cards: same shape, no purple frame or glow, and a header stripped to its
              name. The header keeps its height so the three cards line up. -->

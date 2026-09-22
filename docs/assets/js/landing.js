@@ -31,6 +31,7 @@
   var heroOverlay = document.getElementById("heroOverlay");
   var heroOverlayAfter = document.getElementById("heroOverlayAfter");
   var heroOverlayBtn = document.getElementById("heroOverlayBtn");
+  var heroOverlayWatermarkBtn = document.getElementById("heroOverlayWatermarkBtn");
   var heroBusy = document.getElementById("heroBusy");
   var heroHandle = document.getElementById("heroHandle");
   var heroClip = document.querySelector(".hero-slider-clip");
@@ -150,14 +151,20 @@
 
     /* Hit testing DOES use getBoundingClientRect with elementFromPoint, because that
        pair works in viewport space and is unaffected by the transform either way. */
-    var heroTrack = function(durationMs){
+    var heroCursorMoveMs = 750;
+    var heroTrack = function(durationMs, opts){
+      opts = opts || {};
+      if (heroRaf) { cancelAnimationFrame(heroRaf); heroRaf = 0; }
       var started = Date.now();
       var tick = function(){
         var r = heroCursor.getBoundingClientRect();
         var under = document.elementFromPoint(r.left, r.top);
         heroHotOnly(under && under.closest ? under.closest(".hero-tile") : null);
         if (Date.now() - started < durationMs) heroRaf = requestAnimationFrame(tick);
-        else heroRaf = 0;
+        else {
+          heroRaf = 0;
+          if (opts.clearOnEnd) heroHotOnly(null);
+        }
       };
       heroRaf = requestAnimationFrame(tick);
     };
@@ -165,11 +172,13 @@
     /* The press is NOT released on a timer any more. It stays down for as long as the
        spinner runs, which is what makes the button read as busy rather than as a
        click that already finished. heroReveal is the single point where both end. */
-    var heroHover = function(){
-      if (heroOverlayBtn) heroOverlayBtn.classList.add("hero-overlay-btn--hover");
+    var heroHover = function(btn){
+      btn = btn || heroOverlayBtn;
+      if (btn) btn.classList.add("hero-overlay-btn--hover");
     };
-    var heroPress = function(){
-      if (heroOverlayBtn) heroOverlayBtn.classList.add("hero-overlay-btn--press");
+    var heroPress = function(btn){
+      btn = btn || heroOverlayBtn;
+      if (btn) btn.classList.add("hero-overlay-btn--press");
       if (heroBusy) heroBusy.classList.add("hero-busy--on");
       if (heroMarquee) {
         heroMarquee.classList.remove("hero-marquee--on");
@@ -177,9 +186,10 @@
         heroMarquee.style.height = "0%";
       }
     };
-    var heroReveal = function(){
+    var heroReveal = function(btn){
+      btn = btn || heroOverlayBtn;
       if (heroBusy) heroBusy.classList.remove("hero-busy--on");
-      if (heroOverlayBtn) heroOverlayBtn.classList.remove("hero-overlay-btn--press");
+      if (btn) btn.classList.remove("hero-overlay-btn--press");
       if (heroClip) heroClip.classList.add("hero-slider-clip--wipe");
       if (heroOverlayPicture) {
         heroOverlayPicture.style.transition = "none";
@@ -205,7 +215,7 @@
        image exactly or the checkerboard shows past the picture's edge. */
     var heroSteps = [
       { tile:13, img:"/assets/landing/img/hero-image-14-before.webp", ratio:"1000/563",
-        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+        target:"watermark", alpha:false },
       { tile:12, img:"/assets/landing/img/hero-image-13-before.webp", ratio:"1000/672",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
       { tile:11, img:"/assets/landing/img/hero-image-12-before.webp", ratio:"1000/667",
@@ -218,9 +228,9 @@
       { tile:9, img:"/assets/landing/img/hero-image-10-before.webp", ratio:"1000/667",
         icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
       { tile:7, img:"/assets/landing/img/hero-image-2-before.webp", ratio:"1000/667",
-        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+        target:"watermark", alpha:false },
       { tile:6, img:"/assets/landing/img/hero-image-9-before.webp", ratio:"500/333",
-        icon:"/assets/landing/icons/hero/icon_removebg.svg", label:"Remove BG", alpha:true },
+        target:"watermark", alpha:false },
       { tile:5, img:"/assets/landing/img/hero-image-7-before.webp", ratio:"534/800",
         icon:"/assets/landing/icons/hero/icon_erase.svg", label:"Remove",
         /* Measured from a screenshot — approximate, not derived. */
@@ -250,6 +260,10 @@
         erasing ? "/assets/landing/icons/hero/icon_erase.svg"
                 : "/assets/landing/icons/hero/icon_removebg.svg");
       if (heroOverlayBtnLabel) heroOverlayBtnLabel.textContent = erasing ? "Remove" : "Remove BG";
+      if (heroOverlayWatermarkBtn) {
+        if (erasing) heroOverlayWatermarkBtn.classList.add("hero-overlay-btn--hidden");
+        else heroOverlayWatermarkBtn.classList.remove("hero-overlay-btn--hidden");
+      }
       if (heroHint) {
         if (erasing) heroHint.classList.add("hero-hint--off");
         else heroHint.classList.remove("hero-hint--off");
@@ -751,6 +765,7 @@
         heroAt(revealAt + 3200, function(){
           heroSlot2 = heroPickSlot();
           heroMoveTo(heroPastePointIn(heroSlot2.ox, heroSlot2.oy));
+          heroTrack(heroCursorMoveMs, { clearOnEnd: true });
         });
         heroAt(revealAt + 3950, function(){
           if (heroTipV) heroTipV.classList.add("hero-tip--in");
@@ -1268,6 +1283,7 @@
   var rowBOverlayImg = null;
   var rowBOverlayAfter = null;
   var rowBOverlayBtn = null;
+  var rowBOverlayWatermarkBtn = null;
   var rowBActUpscale = null;
   var rowBActs = [];
   var rowBLateActs = [];
@@ -1298,6 +1314,7 @@
         rowBOverlayImg = document.getElementById("rowBOverlayImg");
         rowBOverlayAfter = document.getElementById("rowBOverlayAfter");
         rowBOverlayBtn = document.getElementById("rowBOverlayBtn");
+        rowBOverlayWatermarkBtn = document.getElementById("rowBOverlayWatermarkBtn");
         rowBActUpscale = document.getElementById("rowBActUpscale");
         rowBMarquee = document.getElementById("rowBMarquee");
         rowBHandle = document.getElementById("rowBHandle");
@@ -1317,6 +1334,7 @@
         rowBOverlayImg = document.getElementById("heroOverlayImg");
         rowBOverlayAfter = document.getElementById("heroOverlayAfter");
         rowBOverlayBtn = document.getElementById("heroOverlayBtn");
+        rowBOverlayWatermarkBtn = document.getElementById("heroOverlayWatermarkBtn");
         rowBActUpscale = document.getElementById("heroActUpscale");
         rowBMarquee = document.getElementById("heroMarquee");
         rowBHandle = document.getElementById("heroHandle");
@@ -1340,6 +1358,8 @@
     var rowBSteps = [
       { tile:4, img:"/assets/landing/img/hero-image-4-before.webp", ratio:"1000/667",
         icon:"/assets/landing/icons/rowB/icon_removebg.svg", label:"Remove BG", alpha:true },
+      { tile:7, img:"/assets/landing/img/hero-image-2-before.webp", ratio:"1000/667",
+        target:"watermark", alpha:false },
       /* "Remove" is the extension's own wording for the erase action, and it is written
          out again in the hero's heroSetAction — change both together. */
       { tile:8, img:"/assets/landing/img/hero-image-5-before.webp", ratio:"1000/668",
@@ -1353,14 +1373,18 @@
         busy:"Upscaling…", target:"upscale" }
     ];
     /* Row B keeps icon and label on the step, unlike the hero: a card click chooses the
-       pass, so which label the drag switches TO depends on the card. Card 1 has no drag
-       and stays on Remove BG throughout. */
+       pass, so which label the drag switches TO depends on the card. Cards without a box
+       keep Remove BG on the primary button unless erasing. */
     var rowBSetAction = function(step, erasing){
       if (rowBBusyText) rowBBusyText.textContent = step.busy || "Removing…";
       if (rowBOverlayBtnIcon) rowBOverlayBtnIcon.setAttribute("src",
         erasing ? step.icon : "/assets/landing/icons/rowB/icon_removebg.svg");
       if (rowBOverlayBtnLabel) rowBOverlayBtnLabel.textContent =
         erasing ? step.label : "Remove BG";
+      if (rowBOverlayWatermarkBtn) {
+        if (erasing) rowBOverlayWatermarkBtn.classList.add("hero-overlay-btn--hidden");
+        else rowBOverlayWatermarkBtn.classList.remove("hero-overlay-btn--hidden");
+      }
       if (rowBHint) {
         if (erasing) rowBHint.classList.add("hero-hint--off");
         else rowBHint.classList.remove("hero-hint--off");
@@ -1445,12 +1469,13 @@
     /* The press is NOT released on a timer any more. It stays down for as long as the
        spinner runs, which is what makes the button read as busy rather than as a
        click that already finished. rowBReveal is the single point where both end. */
-    /* Two buttons can be pressed in this mockup: the top action button, and the bottom
-       bar's Upscale on the third card. The class prefixes differ, so the target carries
-       both. */
+    /* Three press targets: Remove Watermark, Remove BG, and the bottom bar's Upscale.
+       The class prefixes differ, so the target carries both. */
     var rowBTargetEl = function(){
       var s = rowBSteps[rowBCurrent];
-      return (s && s.target === "upscale") ? rowBActUpscale : rowBOverlayBtn;
+      if (s && s.target === "upscale") return rowBActUpscale;
+      if (s && s.target === "watermark") return rowBOverlayWatermarkBtn;
+      return rowBOverlayBtn;
     };
     var rowBTargetCls = function(){
       var s = rowBSteps[rowBCurrent];
@@ -1541,6 +1566,11 @@
       if (rowBOverlayBtn) {
         rowBOverlayBtn.classList.remove("hero-overlay-btn--press");
         rowBOverlayBtn.classList.remove("hero-overlay-btn--hover");
+      }
+      if (rowBOverlayWatermarkBtn) {
+        rowBOverlayWatermarkBtn.classList.remove("hero-overlay-btn--hidden");
+        rowBOverlayWatermarkBtn.classList.remove("hero-overlay-btn--press");
+        rowBOverlayWatermarkBtn.classList.remove("hero-overlay-btn--hover");
       }
       if (rowBActUpscale) {
         rowBActUpscale.classList.remove("hero-overlay-act--press");
@@ -1744,13 +1774,16 @@
 
   /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
   var inspireConfig = [
-    {id:"youtube",  label:"YouTube.",  desc:"Thumbnails from feed or video page.",  previewLabel:"YouTube grab preview",  name:"Youtube",   short:"YT", tint:"#FF0000", preview:"/assets/landing/img/youtube_preview.webp",
+    {id:"youtube",  label:"YouTube.",  previewLabel:"YouTube grab preview",  name:"Youtube",   short:"YT", tint:"#FF0000", preview:"/assets/landing/img/youtube_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 12s0-3.9-.5-5.6a2.9 2.9 0 0 0-2-2C18.8 4 12 4 12 4s-6.8 0-8.5.4a2.9 2.9 0 0 0-2 2C1 8.1 1 12 1 12s0 3.9.5 5.6a2.9 2.9 0 0 0 2 2C5.2 20 12 20 12 20s6.8 0 8.5-.4a2.9 2.9 0 0 0 2-2C23 15.9 23 12 23 12Z"/><polygon points="9.8 15.2 15.5 12 9.8 8.8" fill="#fff"/></svg>'},
-    {id:"instagram",label:"Instagram.",desc:"Posts, and frames from reels.",        previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584", preview:"/assets/landing/img/instagram_preview.webp",
+    {id:"instagram",label:"Instagram.",previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584", preview:"/assets/landing/img/instagram_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>'},
-    {id:"pinterest",label:"Pinterest.",desc:"Any pin, without opening it.",    previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023", preview:"/assets/landing/img/pinterest_preview.webp",
+    {id:"pinterest",label:"Pinterest.",previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023", preview:"/assets/landing/img/pinterest_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 0-2.9l1.2-4.9s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.2-.8 3.4-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-2-1.3-3.4-3.7-3.4a4.2 4.2 0 0 0-4.4 4.2c0 .8.2 1.4.6 1.8.2.2.2.3.1.5l-.2.8c0 .3-.2.3-.5.2-1.3-.5-1.9-2-1.9-3.6 0-2.7 2.3-5.9 6.7-5.9 3.6 0 5.9 2.6 5.9 5.3 0 3.6-2 6.4-5 6.4-1 0-2-.6-2.3-1.2l-.6 2.5c-.2.8-.7 1.7-1 2.3A10 10 0 1 0 12 2Z"/></svg>'},
-    {id:"video",    label:"Any video.",     desc:"Whatever frame is on screen.", previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowC/video-main.webp",
+    {id:"chatgpt",  label:"ChatGPT.",       previewLabel:"ChatGPT grab preview", name:"ChatGPT", short:"GPT", tint:"#10A37F",
+     preview:"/assets/landing/img/rowC/gpt-image-1.webp",
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.20509 8.76511V6.50545C9.20509 6.31513 9.27649 6.17234 9.44293 6.0773L13.9861 3.46088C14.6046 3.10413 15.342 2.93769 16.103 2.93769C18.9573 2.93769 20.7651 5.14983 20.7651 7.50454C20.7651 7.67098 20.7651 7.86129 20.7412 8.05161L16.0316 5.2924C15.7462 5.12596 15.4607 5.12596 15.1753 5.2924L9.20509 8.76511ZM19.8135 17.5659V12.1664C19.8135 11.8333 19.6708 11.5955 19.3854 11.429L13.4152 7.95633L15.3656 6.83833C15.5321 6.74328 15.6749 6.74328 15.8413 6.83833L20.3845 9.45474C21.6928 10.216 22.5728 11.8333 22.5728 13.4031C22.5728 15.2108 21.5025 16.8758 19.8135 17.5657V17.5659ZM7.80173 12.8088L5.8513 11.6671C5.68486 11.5721 5.61346 11.4293 5.61346 11.239V6.00613C5.61346 3.46111 7.56389 1.53433 10.2042 1.53433C11.2033 1.53433 12.1307 1.86743 12.9159 2.46202L8.2301 5.17371C7.94475 5.34015 7.80195 5.57798 7.80195 5.91109V12.809L7.80173 12.8088ZM12 15.2349L9.20509 13.6651V10.3351L12 8.76534L14.7947 10.3351V13.6651L12 15.2349ZM13.7958 22.4659C12.7967 22.4659 11.8693 22.1328 11.0841 21.5382L15.7699 18.8265C16.0553 18.6601 16.198 18.4222 16.198 18.0891V11.1912L18.1723 12.3329C18.3388 12.4279 18.4102 12.5707 18.4102 12.761V17.9939C18.4102 20.5389 16.4359 22.4657 13.7958 22.4657V22.4659ZM8.15848 17.1617L3.61528 14.5452C2.30696 13.784 1.42701 12.1667 1.42701 10.5969C1.42701 8.76534 2.52115 7.12414 4.20987 6.43428V11.8574C4.20987 12.1905 4.35266 12.4284 4.63802 12.5948L10.5846 16.0436L8.63415 17.1617C8.46771 17.2567 8.32492 17.2567 8.15848 17.1617ZM7.897 21.0625C5.20919 21.0625 3.23488 19.0407 3.23488 16.5432C3.23488 16.3529 3.25875 16.1626 3.2824 15.9723L7.96817 18.6839C8.25352 18.8504 8.53911 18.8504 8.82446 18.6839L14.7947 15.2351V17.4948C14.7947 17.6851 14.7233 17.8279 14.5568 17.9229L10.0136 20.5393C9.39518 20.8961 8.6578 21.0625 7.89677 21.0625H7.897ZM13.7958 23.8929C16.6739 23.8929 19.0762 21.8474 19.6235 19.1357C22.2874 18.4459 24 15.9484 24 13.4034C24 11.7383 23.2865 10.121 22.002 8.95542C22.121 8.45588 22.1924 7.95633 22.1924 7.45702C22.1924 4.0557 19.4331 1.51045 16.2458 1.51045C15.6037 1.51045 14.9852 1.60549 14.3668 1.81968C13.2963 0.773071 11.8215 0.107086 10.2042 0.107086C7.32606 0.107086 4.92383 2.15256 4.37653 4.86425C1.7126 5.55411 0 8.05161 0 10.5966C0 12.2617 0.713506 13.879 1.99795 15.0446C1.87904 15.5441 1.80764 16.0436 1.80764 16.543C1.80764 19.9443 4.56685 22.4895 7.75421 22.4895C8.39632 22.4895 9.01478 22.3945 9.63324 22.1803C10.7035 23.2269 12.1783 23.8929 13.7958 23.8929Z" fill="currentColor"/></svg>'},
+    {id:"video",    label:"Any video.",     previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowC/video-main.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 4C1.34315 4 0 5.34315 0 7V17C0 18.6569 1.34315 20 3 20H13C14.6569 20 16 18.6569 16 17V14.5307L20.7286 18.4249C22.0334 19.4994 24.0001 18.5713 24.0001 16.8811V7.28972C24.0001 5.54447 21.9211 4.63648 20.6408 5.8226L16 10.1222V7C16 5.34315 14.6569 4 13 4H3Z" fill="currentColor"/></svg>'}
   ];
   var activeInspire = "youtube";
