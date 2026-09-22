@@ -2188,10 +2188,61 @@
     });
   }
 
+  function gptLineHtml(wPct, h){
+    return '<span class="gpt-line" style="width:'+wPct+'%;height:calc('+h+' / 645 * 100cqw);"></span>';
+  }
+
+  function chatgptBodyHtml(){
+    var img = '/assets/landing/img/rowC/gpt-image-1.webp';
+    return '<div class="gpt-body">'+
+      '<aside class="gpt-sidebar">'+
+        '<div class="gpt-sidebar-new"><span class="gpt-sidebar-new-icon">+</span></div>'+
+        '<div class="gpt-sidebar-list">'+
+          gptLineHtml(88, 4)+
+          gptLineHtml(72, 4)+
+          gptLineHtml(80, 4)+
+          gptLineHtml(65, 4)+
+          gptLineHtml(78, 4)+
+        '</div>'+
+      '</aside>'+
+      '<div class="gpt-main">'+
+        '<div class="gpt-thread">'+
+          '<div class="gpt-msg gpt-msg--user">'+
+            '<div class="gpt-user-bubble">'+
+              '<span class="gpt-user-text">Create an image of a room with a picture frame hanging on the wall.</span>'+
+            '</div>'+
+          '</div>'+
+          '<div class="gpt-msg gpt-msg--assistant">'+
+            '<div class="gpt-assist-text">'+
+              gptLineHtml(92, 4)+
+              gptLineHtml(78, 4)+
+            '</div>'+
+            '<div class="gpt-gen-image gpt-gen-image--glow">'+
+              '<img src="'+img+'" alt="">'+
+              '<span class="mock-pointer" style="left:48%;top:42%;"><img src="/assets/landing/icons/rowC/icon_cursor.svg" alt=""></span>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="gpt-composer">'+
+          '<div class="gpt-composer-field"><span class="gpt-composer-placeholder">Message ChatGPT</span></div>'+
+          '<div class="gpt-composer-send" aria-hidden="true"></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function chatgptMockupHtml(){
+    return browserMockupHtml({
+      label: 'chatgpt.com',
+      bodyHtml: chatgptBodyHtml()
+    });
+  }
+
   var mockupHtmlById = {
     youtube: youtubeMockupHtml,
     instagram: instagramMockupHtml,
     pinterest: pinterestMockupHtml,
+    chatgpt: chatgptMockupHtml,
     video: videoMockupHtml
   };
 
@@ -2250,14 +2301,6 @@
     panesEl.style.justifyContent = isMockup ? "stretch" : "";
     panesEl.style.background = isMockup ? "var(--surface)" : "";
     panesEl.style.overflow = isMockup ? "hidden" : "";
-    /* The mobile description sits outside the list, so it is set here rather than by any
-       one row. The element is hidden on desktop, so this runs harmlessly there. */
-    var descEl = document.getElementById("inspireDesc");
-    if (descEl) {
-      for (var di = 0; di < inspireConfig.length; di++) {
-        if (inspireConfig[di].id === id) { descEl.textContent = inspireConfig[di].desc; break; }
-      }
-    }
     inspireConfig.forEach(function(it){
       var on = it.id === id;
       var row = rowEls[it.id], iw = iconWrapEls[it.id], pane = paneEls[it.id];
@@ -2294,7 +2337,8 @@
     if (!rowCHeadingEl || !rowCHeadingEl.classList.contains("rowC-heading")) return;
     var headingH = rowCHeadingEl.getBoundingClientRect().height;
     var listW = listEl.clientWidth;
-    var capH = ((listW - 12) / 4) * 0.7;
+    var n = inspireConfig.length;
+    var capH = ((listW - Math.max(0, n - 1) * 4) / n) * 0.7;
     var h = Math.min(headingH, capH);
     listEl.style.setProperty("--rowC-list-h", h + "px");
   }

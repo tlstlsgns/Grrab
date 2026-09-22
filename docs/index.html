@@ -559,7 +559,8 @@
     <!-- RIGHT: framed visual with crossfade. 591/440 matches Row A's height at the
          capped container width, in place of the video's own 1920/1080 — so the preview
          is stretched vertically by about a third. -->
-    <div style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);">
+    <div class="rowC-browser-bleed">
+    <div class="rowC-browser-window" style="position:relative;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-2xl);">
       <div id="inspireTabHeader" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-subtle);border-bottom:1px solid var(--border);position:relative;z-index:3;flex-shrink:0;">
         <span style="display:flex;gap:5px;flex-shrink:0;">
           <span style="width:9px;height:9px;border-radius:50%;background:#FF5F57;"></span>
@@ -574,10 +575,7 @@
       </div>
       <div id="inspirePanes" style="position:relative;height:auto;"></div>
     </div>
-    <!-- The active source's description. A third grid item, so that on mobile — one
-         column — it falls after the mockup. On desktop it is display:none, and a hidden
-         grid item takes no cell, so the two-column layout is unaffected. -->
-    <p id="inspireDesc" class="rowC-active-desc feature-sub" style="font-size:20px;line-height:1.25;color:var(--ink-700);margin:0;font-weight:500;"></p>
+    </div>
   </div>
   </div>
 
