@@ -31,6 +31,7 @@
   ];
   var rowATimers = [];
   var rowARaf = 0;
+  var rowACursorMoveMs = 1000;
   var rowAReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
   var rowAMobile = window.matchMedia && window.matchMedia("(max-width:820px)");
 
@@ -150,7 +151,9 @@
     }
   };
 
-  var rowATrack = function(durationMs){
+  var rowATrack = function(durationMs, opts){
+    opts = opts || {};
+    if (rowARaf) { cancelAnimationFrame(rowARaf); rowARaf = 0; }
     var started = Date.now();
     var tick = function(){
       if (!rowACursor) return;
@@ -299,7 +302,7 @@
       for (var li = 0; li < visible.length; li++) {
         if (visible[li] === lead) { leadOk = true; break; }
       }
-      if (!leadOk) lead = visible[0];
+      if (!leadOk || rowATilePickExcluded(lead)) lead = visible[0];
     }
     var order = [lead];
     var pool = [];
@@ -513,6 +516,7 @@
           if (rowACopyTip) rowACopyTip.classList.remove("rowA-tip--in");
           slot = rowAPickSlot();
           rowAMoveTo(rowAPastePointIn(slot.ox, slot.oy));
+          rowATrack(rowACursorMoveMs, { clearOnEnd: true });
         });
         rowAAt(t0 + 2790, function(){
           if (rowAPasteTip) rowAPasteTip.classList.add("rowA-tip--in");

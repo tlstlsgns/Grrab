@@ -352,6 +352,7 @@
       if (heroToast) heroToast.classList.add("hero-toast--in");
       heroSlot1 = heroPickSlot();
       heroMoveTo(heroPastePointIn(heroSlot1.ox, heroSlot1.oy));
+      heroTrack(heroCursorMoveMs, { clearOnEnd: true });
     };
     var heroToastOut = function(){
       if (heroToast) heroToast.classList.remove("hero-toast--in");
@@ -672,6 +673,15 @@
         });
         return overlayAt + 2430;
       }
+      if (step.target === "watermark") {
+        heroAt(overlayAt + 280, function(){
+          if (heroOverlayWatermarkBtn) heroMoveTo(heroCentreIn(heroOverlayWatermarkBtn));
+        });
+        heroAt(overlayAt + 1030, function(){ heroHover(heroOverlayWatermarkBtn); });
+        heroAt(overlayAt + 1430, function(){ heroPress(heroOverlayWatermarkBtn); });
+        heroAt(overlayAt + 2430, function(){ heroReveal(heroOverlayWatermarkBtn); });
+        return overlayAt + 2430;
+      }
       if (!step.box) {
         heroAt(overlayAt + 280, function(){
           if (heroOverlayBtn) heroMoveTo(heroCentreIn(heroOverlayBtn));
@@ -869,6 +879,11 @@
       if (heroOverlayBtn) {
         heroOverlayBtn.classList.remove("hero-overlay-btn--hover");
         heroOverlayBtn.classList.remove("hero-overlay-btn--press");
+      }
+      if (heroOverlayWatermarkBtn) {
+        heroOverlayWatermarkBtn.classList.remove("hero-overlay-btn--hidden");
+        heroOverlayWatermarkBtn.classList.remove("hero-overlay-btn--hover");
+        heroOverlayWatermarkBtn.classList.remove("hero-overlay-btn--press");
       }
       if (heroActClip) {
         heroActClip.classList.remove("hero-overlay-act--hover");
