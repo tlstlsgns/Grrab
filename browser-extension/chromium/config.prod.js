@@ -6,3 +6,6 @@ if (typeof globalThis.KC_IS_DEV === 'undefined') {
     ? 'https://api-gstf2hxbiq-du.a.run.app'
     : 'https://api-hn4mxotviq-du.a.run.app';
 }
+if (typeof globalThis.KC_WEB_OAUTH_CLIENT_ID === 'undefined') {
+  globalThis.KC_WEB_OAUTH_CLIENT_ID = '108278020684-hsj4hmbnnok8mo9rmshc4i9gaap3f5u5.apps.googleusercontent.com';
+}

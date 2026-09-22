@@ -59,6 +59,22 @@ import {
 } from './shortcutStore.js';
 // === END PHASE_SHORTCUT_RECORDER ===
 
+const _kcGoogleAuthScriptReady = (() => {
+  if (globalThis.KC_googleAuth) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = chrome.runtime.getURL('googleAuth.js');
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load googleAuth.js'));
+    document.head.appendChild(s);
+  });
+})();
+
+async function kcGetGoogleAccessToken(options) {
+  await _kcGoogleAuthScriptReady;
+  return globalThis.KC_googleAuth.getGoogleAccessToken(options);
+}
+
 // PHASE_UPLOAD_ALWAYS_AUTO: the Auto checkbox is removed — saves always
 // route directly to the configured destination (handleSaveToDestination).
 // The legacy 'kc_upload_auto_enabled' storage key is abandoned in place.
@@ -1437,26 +1453,7 @@ async function signInWithGoogle() {
   }
   try {
     // 1. Get OAuth token from Chrome Identity API
-    const token = await new Promise((resolve, reject) => {
-      chrome.identity.getAuthToken(
-        {
-          interactive: true,
-          scopes: [
-            'openid',
-            'email',
-            'profile',
-            'https://www.googleapis.com/auth/drive.file',
-          ],
-        },
-        (token) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(token);
-          }
-        }
-      );
-    });
+    const token = await kcGetGoogleAccessToken({ interactive: true });
 
     // 2. Create Firebase credential from OAuth token
     const credential = GoogleAuthProvider.credential(null, token);
@@ -1477,13 +1474,8 @@ async function signOut() {
     }
     // Stop Firestore listeners before signing out to prevent permission errors
     stopListeners();
-    // Revoke Chrome identity token
-    const token = await new Promise((resolve) => {
-      chrome.identity.getAuthToken({ interactive: false }, resolve);
-    });
-    if (token) {
-      await new Promise((resolve) => chrome.identity.removeCachedAuthToken({ token }, resolve));
-    }
+    await _kcGoogleAuthScriptReady;
+    await globalThis.KC_googleAuth.discardAllGoogleAccessTokens();
     await firebaseSignOut(auth);
   } catch (err) {
     _isExplicitSignOut = false;
@@ -1634,15 +1626,7 @@ onAuthStateChanged(auth, async (user) => {
     // interactive: false never shows any UI and only succeeds when a cached token exists
     // from a previous explicit login, so this will not auto-login first-time users.
     try {
-      const token = await new Promise((resolve, reject) => {
-        chrome.identity.getAuthToken({ interactive: false }, (t) => {
-          if (chrome.runtime.lastError || !t) {
-            reject(new Error(chrome.runtime.lastError?.message || 'No cached token'));
-          } else {
-            resolve(t);
-          }
-        });
-      });
+      const token = await kcGetGoogleAccessToken({ interactive: false });
       const credential = GoogleAuthProvider.credential(null, token);
       await signInWithCredential(auth, credential);
       // onAuthStateChanged will fire again with the restored user — no further action needed here

@@ -1,4 +1,21 @@
 importScripts(chrome.runtime.getURL('config.js'));
+importScripts(chrome.runtime.getURL('googleAuth.js'));
+
+async function kcGetGoogleAccessTokenInteractive(interactive) {
+  return globalThis.KC_googleAuth.getGoogleAccessToken({ interactive: interactive !== false });
+}
+
+/** One 401 retry: discard token (Chrome cache or web session) and refetch once. */
+async function kcDriveAuthedFetch(interactive, buildRequest) {
+  let token = await kcGetGoogleAccessTokenInteractive(interactive);
+  let resp = await buildRequest(token);
+  if (resp.status === 401) {
+    await globalThis.KC_googleAuth.discardGoogleAccessToken(token);
+    token = await kcGetGoogleAccessTokenInteractive(interactive);
+    resp = await buildRequest(token);
+  }
+  return resp;
+}
 
 // Track last ping time to detect if we should ping on focus
 let lastPingTime = 0;
@@ -682,30 +699,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // get-gmail-token. Consumers pass the required scopes explicitly so each
   // caller follows least-privilege.
   if (request.action === 'get-google-oauth-token') {
-    const options = { interactive: request.interactive !== false };
-    if (Array.isArray(request.scopes) && request.scopes.length > 0) {
-      options.scopes = request.scopes;
-    }
-    try {
-      chrome.identity.getAuthToken(options, (token) => {
-        if (chrome.runtime.lastError) {
-          sendResponse({
-            token: null,
-            error: chrome.runtime.lastError.message || 'getAuthToken failed',
-          });
-          return;
-        }
-        if (!token) {
-          sendResponse({ token: null, error: 'No token returned' });
-          return;
-        }
+    (async () => {
+      try {
+        const token = await kcGetGoogleAccessTokenInteractive(request.interactive !== false);
         sendResponse({ token });
-      });
-      return true; // async response
-    } catch (e) {
-      sendResponse({ token: null, error: e?.message || String(e) });
-      return true;
-    }
+      } catch (e) {
+        sendResponse({ token: null, error: e?.message || String(e) });
+      }
+    })();
+    return true;
   }
 
   // Phase U3.3: ensure Grrab_files subfolder exists in selected parent
@@ -724,31 +726,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ ok: false, reason: 'api-error', message: 'parentFolderId required' });
           return;
         }
-        const tokenResp = await new Promise((resolve) => {
-          chrome.identity.getAuthToken(
-            {
-              interactive: true,
-              scopes: [
-                'openid',
-                'email',
-                'profile',
-                'https://www.googleapis.com/auth/drive.file',
-              ],
-            },
-            (token) => {
-              if (chrome.runtime.lastError || !token) {
-                resolve({ token: null, error: chrome.runtime.lastError?.message });
-              } else {
-                resolve({ token });
-              }
-            }
-          );
-        });
-        if (!tokenResp.token) {
-          sendResponse({ ok: false, reason: 'no-token', message: tokenResp.error || 'No token' });
-          return;
-        }
-
         const query = [
           "name='Grrab_files'",
           `'${parentFolderId}' in parents`,
@@ -756,9 +733,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           'trashed=false',
         ].join(' and ');
         const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)&pageSize=1`;
-        const searchResp = await fetch(searchUrl, {
-          headers: { Authorization: `Bearer ${tokenResp.token}` },
-        });
+        const searchResp = await kcDriveAuthedFetch(true, (t) =>
+          fetch(searchUrl, { headers: { Authorization: `Bearer ${t}` } })
+        );
         if (!searchResp.ok) {
           await searchResp.text();
           sendResponse({
@@ -784,18 +761,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        const createResp = await fetch('https://www.googleapis.com/drive/v3/files', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${tokenResp.token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: 'Grrab_files',
-            mimeType: 'application/vnd.google-apps.folder',
-            parents: [parentFolderId],
-          }),
-        });
+        const createResp = await kcDriveAuthedFetch(true, (t) =>
+          fetch('https://www.googleapis.com/drive/v3/files', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${t}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: 'Grrab_files',
+              mimeType: 'application/vnd.google-apps.folder',
+              parents: [parentFolderId],
+            }),
+          })
+        );
         if (!createResp.ok) {
           await createResp.text();
           sendResponse({
@@ -837,31 +816,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        const tokenResp = await new Promise((resolve) => {
-          chrome.identity.getAuthToken(
-            {
-              interactive: true,
-              scopes: [
-                'openid',
-                'email',
-                'profile',
-                'https://www.googleapis.com/auth/drive.file',
-              ],
-            },
-            (token) => {
-              if (chrome.runtime.lastError || !token) {
-                resolve({ token: null, error: chrome.runtime.lastError?.message });
-              } else {
-                resolve({ token });
-              }
-            }
-          );
-        });
-        if (!tokenResp.token) {
-          sendResponse({ ok: false, reason: 'no-token', message: tokenResp.error || 'No token' });
-          return;
-        }
-
         const binaryString = atob(contentBase64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -897,16 +851,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         body.set(bytes, offset); offset += bytes.length;
         body.set(closingBytes, offset);
 
-        const uploadResp = await fetch(
-          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${tokenResp.token}`,
-              'Content-Type': `multipart/related; boundary=${boundary}`,
-            },
-            body,
-          }
+        const uploadResp = await kcDriveAuthedFetch(true, (t) =>
+          fetch(
+            'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${t}`,
+                'Content-Type': `multipart/related; boundary=${boundary}`,
+              },
+              body,
+            }
+          )
         );
         if (!uploadResp.ok) {
           await uploadResp.text();
