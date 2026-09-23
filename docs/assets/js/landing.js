@@ -1802,19 +1802,27 @@
 
   /* ─────────────────────────── ROW B — SOURCE SWITCHER ─────────────────────────── */
   var inspireConfig = [
+    {id:"chatgpt",  label:"ChatGPT.",       previewLabel:"ChatGPT grab preview", name:"ChatGPT", short:"GPT", tint:"#10A37F",
+     preview:"/assets/landing/img/rowC/gpt-image-1.webp",
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.20509 8.76511V6.50545C9.20509 6.31513 9.27649 6.17234 9.44293 6.0773L13.9861 3.46088C14.6046 3.10413 15.342 2.93769 16.103 2.93769C18.9573 2.93769 20.7651 5.14983 20.7651 7.50454C20.7651 7.67098 20.7651 7.86129 20.7412 8.05161L16.0316 5.2924C15.7462 5.12596 15.4607 5.12596 15.1753 5.2924L9.20509 8.76511ZM19.8135 17.5659V12.1664C19.8135 11.8333 19.6708 11.5955 19.3854 11.429L13.4152 7.95633L15.3656 6.83833C15.5321 6.74328 15.6749 6.74328 15.8413 6.83833L20.3845 9.45474C21.6928 10.216 22.5728 11.8333 22.5728 13.4031C22.5728 15.2108 21.5025 16.8758 19.8135 17.5657V17.5659ZM7.80173 12.8088L5.8513 11.6671C5.68486 11.5721 5.61346 11.4293 5.61346 11.239V6.00613C5.61346 3.46111 7.56389 1.53433 10.2042 1.53433C11.2033 1.53433 12.1307 1.86743 12.9159 2.46202L8.2301 5.17371C7.94475 5.34015 7.80195 5.57798 7.80195 5.91109V12.809L7.80173 12.8088ZM12 15.2349L9.20509 13.6651V10.3351L12 8.76534L14.7947 10.3351V13.6651L12 15.2349ZM13.7958 22.4659C12.7967 22.4659 11.8693 22.1328 11.0841 21.5382L15.7699 18.8265C16.0553 18.6601 16.198 18.4222 16.198 18.0891V11.1912L18.1723 12.3329C18.3388 12.4279 18.4102 12.5707 18.4102 12.761V17.9939C18.4102 20.5389 16.4359 22.4657 13.7958 22.4657V22.4659ZM8.15848 17.1617L3.61528 14.5452C2.30696 13.784 1.42701 12.1667 1.42701 10.5969C1.42701 8.76534 2.52115 7.12414 4.20987 6.43428V11.8574C4.20987 12.1905 4.35266 12.4284 4.63802 12.5948L10.5846 16.0436L8.63415 17.1617C8.46771 17.2567 8.32492 17.2567 8.15848 17.1617ZM7.897 21.0625C5.20919 21.0625 3.23488 19.0407 3.23488 16.5432C3.23488 16.3529 3.25875 16.1626 3.2824 15.9723L7.96817 18.6839C8.25352 18.8504 8.53911 18.8504 8.82446 18.6839L14.7947 15.2351V17.4948C14.7947 17.6851 14.7233 17.8279 14.5568 17.9229L10.0136 20.5393C9.39518 20.8961 8.6578 21.0625 7.89677 21.0625H7.897ZM13.7958 23.8929C16.6739 23.8929 19.0762 21.8474 19.6235 19.1357C22.2874 18.4459 24 15.9484 24 13.4034C24 11.7383 23.2865 10.121 22.002 8.95542C22.121 8.45588 22.1924 7.95633 22.1924 7.45702C22.1924 4.0557 19.4331 1.51045 16.2458 1.51045C15.6037 1.51045 14.9852 1.60549 14.3668 1.81968C13.2963 0.773071 11.8215 0.107086 10.2042 0.107086C7.32606 0.107086 4.92383 2.15256 4.37653 4.86425C1.7126 5.55411 0 8.05161 0 10.5966C0 12.2617 0.713506 13.879 1.99795 15.0446C1.87904 15.5441 1.80764 16.0436 1.80764 16.543C1.80764 19.9443 4.56685 22.4895 7.75421 22.4895C8.39632 22.4895 9.01478 22.3945 9.63324 22.1803C10.7035 23.2269 12.1783 23.8929 13.7958 23.8929Z" fill="currentColor"/></svg>'},
+    {id:"google",   label:"Google.",        previewLabel:"Google grab preview",   name:"Google",    short:"G",  tint:"#4285F4", preview:"/assets/landing/img/rowC/image-1.webp",
+     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.76 10.77L19.67 10.42H12.23V13.58H16.68C16.4317 14.5443 15.8672 15.3974 15.0767 16.0029C14.2863 16.6084 13.3156 16.9313 12.32 16.92C11.0208 16.9093 9.77254 16.4135 8.81999 15.53C8.35174 15.0685 7.97912 14.5191 7.72344 13.9134C7.46777 13.3077 7.33407 12.6575 7.33 12C7.34511 10.6795 7.86792 9.41544 8.79 8.47002C9.7291 7.58038 10.9764 7.08932 12.27 7.10002C13.3779 7.10855 14.4446 7.52101 15.27 8.26002L17.47 6.00002C16.02 4.70638 14.1432 3.9941 12.2 4.00002C11.131 3.99367 10.0713 4.19793 9.08127 4.60115C8.09125 5.00436 7.19034 5.59863 6.43 6.35002C4.98369 7.8523 4.16827 9.85182 4.15152 11.9371C4.13478 14.0224 4.918 16.0347 6.34 17.56C7.12784 18.3449 8.06422 18.965 9.09441 19.3839C10.1246 19.8029 11.2279 20.0123 12.34 20C13.3484 20.0075 14.3479 19.8102 15.2779 19.42C16.2078 19.0298 17.0488 18.4549 17.75 17.73C19.1259 16.2171 19.8702 14.2347 19.83 12.19C19.8408 11.7156 19.8174 11.2411 19.76 10.77Z" fill="currentColor"/></svg>'},
     {id:"youtube",  label:"YouTube.",  previewLabel:"YouTube grab preview",  name:"Youtube",   short:"YT", tint:"#FF0000", preview:"/assets/landing/img/youtube_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 12s0-3.9-.5-5.6a2.9 2.9 0 0 0-2-2C18.8 4 12 4 12 4s-6.8 0-8.5.4a2.9 2.9 0 0 0-2 2C1 8.1 1 12 1 12s0 3.9.5 5.6a2.9 2.9 0 0 0 2 2C5.2 20 12 20 12 20s6.8 0 8.5-.4a2.9 2.9 0 0 0 2-2C23 15.9 23 12 23 12Z"/><polygon points="9.8 15.2 15.5 12 9.8 8.8" fill="#fff"/></svg>'},
     {id:"instagram",label:"Instagram.",previewLabel:"Instagram grab preview",name:"Instagram", short:"IG", tint:"#C13584", preview:"/assets/landing/img/instagram_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>'},
     {id:"pinterest",label:"Pinterest.",previewLabel:"Pinterest grab preview",name:"Pinterest", short:"P",  tint:"#E60023", preview:"/assets/landing/img/pinterest_preview.webp",
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 0-2.9l1.2-4.9s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.2-.8 3.4-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-2-1.3-3.4-3.7-3.4a4.2 4.2 0 0 0-4.4 4.2c0 .8.2 1.4.6 1.8.2.2.2.3.1.5l-.2.8c0 .3-.2.3-.5.2-1.3-.5-1.9-2-1.9-3.6 0-2.7 2.3-5.9 6.7-5.9 3.6 0 5.9 2.6 5.9 5.3 0 3.6-2 6.4-5 6.4-1 0-2-.6-2.3-1.2l-.6 2.5c-.2.8-.7 1.7-1 2.3A10 10 0 1 0 12 2Z"/></svg>'},
-    {id:"chatgpt",  label:"ChatGPT.",       previewLabel:"ChatGPT grab preview", name:"ChatGPT", short:"GPT", tint:"#10A37F",
-     preview:"/assets/landing/img/rowC/gpt-image-1.webp",
-     icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.20509 8.76511V6.50545C9.20509 6.31513 9.27649 6.17234 9.44293 6.0773L13.9861 3.46088C14.6046 3.10413 15.342 2.93769 16.103 2.93769C18.9573 2.93769 20.7651 5.14983 20.7651 7.50454C20.7651 7.67098 20.7651 7.86129 20.7412 8.05161L16.0316 5.2924C15.7462 5.12596 15.4607 5.12596 15.1753 5.2924L9.20509 8.76511ZM19.8135 17.5659V12.1664C19.8135 11.8333 19.6708 11.5955 19.3854 11.429L13.4152 7.95633L15.3656 6.83833C15.5321 6.74328 15.6749 6.74328 15.8413 6.83833L20.3845 9.45474C21.6928 10.216 22.5728 11.8333 22.5728 13.4031C22.5728 15.2108 21.5025 16.8758 19.8135 17.5657V17.5659ZM7.80173 12.8088L5.8513 11.6671C5.68486 11.5721 5.61346 11.4293 5.61346 11.239V6.00613C5.61346 3.46111 7.56389 1.53433 10.2042 1.53433C11.2033 1.53433 12.1307 1.86743 12.9159 2.46202L8.2301 5.17371C7.94475 5.34015 7.80195 5.57798 7.80195 5.91109V12.809L7.80173 12.8088ZM12 15.2349L9.20509 13.6651V10.3351L12 8.76534L14.7947 10.3351V13.6651L12 15.2349ZM13.7958 22.4659C12.7967 22.4659 11.8693 22.1328 11.0841 21.5382L15.7699 18.8265C16.0553 18.6601 16.198 18.4222 16.198 18.0891V11.1912L18.1723 12.3329C18.3388 12.4279 18.4102 12.5707 18.4102 12.761V17.9939C18.4102 20.5389 16.4359 22.4657 13.7958 22.4657V22.4659ZM8.15848 17.1617L3.61528 14.5452C2.30696 13.784 1.42701 12.1667 1.42701 10.5969C1.42701 8.76534 2.52115 7.12414 4.20987 6.43428V11.8574C4.20987 12.1905 4.35266 12.4284 4.63802 12.5948L10.5846 16.0436L8.63415 17.1617C8.46771 17.2567 8.32492 17.2567 8.15848 17.1617ZM7.897 21.0625C5.20919 21.0625 3.23488 19.0407 3.23488 16.5432C3.23488 16.3529 3.25875 16.1626 3.2824 15.9723L7.96817 18.6839C8.25352 18.8504 8.53911 18.8504 8.82446 18.6839L14.7947 15.2351V17.4948C14.7947 17.6851 14.7233 17.8279 14.5568 17.9229L10.0136 20.5393C9.39518 20.8961 8.6578 21.0625 7.89677 21.0625H7.897ZM13.7958 23.8929C16.6739 23.8929 19.0762 21.8474 19.6235 19.1357C22.2874 18.4459 24 15.9484 24 13.4034C24 11.7383 23.2865 10.121 22.002 8.95542C22.121 8.45588 22.1924 7.95633 22.1924 7.45702C22.1924 4.0557 19.4331 1.51045 16.2458 1.51045C15.6037 1.51045 14.9852 1.60549 14.3668 1.81968C13.2963 0.773071 11.8215 0.107086 10.2042 0.107086C7.32606 0.107086 4.92383 2.15256 4.37653 4.86425C1.7126 5.55411 0 8.05161 0 10.5966C0 12.2617 0.713506 13.879 1.99795 15.0446C1.87904 15.5441 1.80764 16.0436 1.80764 16.543C1.80764 19.9443 4.56685 22.4895 7.75421 22.4895C8.39632 22.4895 9.01478 22.3945 9.63324 22.1803C10.7035 23.2269 12.1783 23.8929 13.7958 23.8929Z" fill="currentColor"/></svg>'},
-    {id:"video",    label:"Any video.",     previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowC/video-main.webp",
+    {id:"video",    label:"Any video.",     previewLabel:"Video grab preview",   name:"Video",     short:"V",  tint:"#BC13FE", preview:"/assets/landing/img/rowC/video-main.webp", listHidden:true,
      icon:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 4C1.34315 4 0 5.34315 0 7V17C0 18.6569 1.34315 20 3 20H13C14.6569 20 16 18.6569 16 17V14.5307L20.7286 18.4249C22.0334 19.4994 24.0001 18.5713 24.0001 16.8811V7.28972C24.0001 5.54447 21.9211 4.63648 20.6408 5.8226L16 10.1222V7C16 5.34315 14.6569 4 13 4H3Z" fill="currentColor"/></svg>'}
   ];
-  var activeInspire = "youtube";
+  function inspireListEntryVisible(it){ return !it.listHidden; }
+  function inspireListCount(){
+    var n = 0;
+    inspireConfig.forEach(function(it){ if (inspireListEntryVisible(it)) n++; });
+    return n;
+  }
+  var activeInspire = "chatgpt";
   var listEl = document.getElementById("inspireList");
   var panesEl = document.getElementById("inspirePanes");
   var tabHeaderEl = document.getElementById("inspireTabHeader");
@@ -2251,29 +2259,128 @@
     });
   }
 
+  var googTileImgN = 0;
+  function googResultHtml(ratio, glow, img){
+    var thumbCls = 'goog-result-thumb'+(glow ? ' goog-result-thumb--glow' : '');
+    var pointerHtml = glow ? '<span class="mock-pointer"><img src="/assets/landing/icons/rowC/icon_cursor.svg" alt=""></span>' : '';
+    var src = img;
+    if (src === true) {
+      googTileImgN++;
+      src = '/assets/landing/img/rowC/google-image-'+googTileImgN+'.webp';
+    }
+    var imgHtml = src ? '<img class="goog-result-img" src="'+src+'" alt="" onerror="this.classList.add(\'goog-result-img--failed\')">' : '';
+    return '<div class="goog-result">'+
+      '<div class="'+thumbCls+'" style="aspect-ratio:'+ratio+'">'+imgHtml+pointerHtml+'</div>'+
+      '<div class="goog-result-meta">'+
+        '<span class="goog-result-line"></span>'+
+        '<span class="goog-result-line goog-result-line--short"></span>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function googGridColHtml(cells){
+    return '<div class="goog-grid-col">'+cells.join('')+'</div>';
+  }
+
+  function googleBodyHtml(){
+    googTileImgN = 0;
+    var goog = '/assets/landing/icons/rowC/';
+    return '<div class="goog-body">'+
+      '<div class="goog-main">'+
+        '<div class="goog-topbar">'+
+          '<div class="goog-logo"><img class="goog-slot-img" src="'+goog+'logo_google.webp" alt=""></div>'+
+          '<div class="goog-search-wrap">'+
+            '<div class="goog-search">'+
+              '<div class="goog-search-input"><span class="goog-result-line goog-search-query-line" aria-hidden="true"></span></div>'+
+              '<div class="goog-search-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></div>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="goog-tabs">'+
+          '<span class="goog-tab">All</span>'+
+          '<span class="goog-tab goog-tab--active">Images</span>'+
+          '<span class="goog-tab">Videos</span>'+
+          '<span class="goog-tab">News</span>'+
+          '<span class="goog-tab">Maps</span>'+
+        '</div>'+
+        '<div class="goog-grid">'+
+          googGridColHtml([
+            googResultHtml('1/0.94', false, true),
+            googResultHtml('1/1.12', false, true),
+            googResultHtml('1/0.86', false, true)
+          ])+
+          googGridColHtml([
+            googResultHtml('1/1.06', false, true),
+            googResultHtml('1/1.2', true, '/assets/landing/img/rowC/image-1.webp'),
+            googResultHtml('1/0.88', false, true)
+          ])+
+          googGridColHtml([
+            googResultHtml('1/0.8', false, true),
+            googResultHtml('1/1.14', false, true),
+            googResultHtml('1/0.96', false, true)
+          ])+
+          googGridColHtml([
+            googResultHtml('1/1.08', false, true),
+            googResultHtml('1/0.84', false, true),
+            googResultHtml('1/1.18', false, true)
+          ])+
+          googGridColHtml([
+            googResultHtml('1/0.9', false, true),
+            googResultHtml('1/1.16', false, true),
+            googResultHtml('1/0.88', false, true)
+          ])+
+          googGridColHtml([
+            googResultHtml('1/1.02', false, true),
+            googResultHtml('1/0.76', false, true),
+            googResultHtml('1/1.14', false, true)
+          ])+
+          googGridColHtml([
+            googResultHtml('1/1.1', false, true),
+            googResultHtml('1/0.92', false, true),
+            googResultHtml('1/1.2', false, true)
+          ])+
+          googGridColHtml([
+            googResultHtml('1/0.82', false, true),
+            googResultHtml('1/1.04', false, true),
+            googResultHtml('1/0.96', false, true)
+          ])+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function googleMockupHtml(){
+    return browserMockupHtml({
+      label: 'google.com/search',
+      bodyHtml: googleBodyHtml()
+    });
+  }
+
   var mockupHtmlById = {
     youtube: youtubeMockupHtml,
     instagram: instagramMockupHtml,
     pinterest: pinterestMockupHtml,
     chatgpt: chatgptMockupHtml,
+    google: googleMockupHtml,
     video: videoMockupHtml
   };
 
   inspireConfig.forEach(function(it){
+    if (!inspireListEntryVisible(it)) return;
     // list row
     var row = document.createElement("button");
     row.type = "button";
     row.className = "rowC-item";
-    row.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;font:inherit;padding:10px 4px;border-radius:10px;background:transparent;border:none;outline:none;-webkit-appearance:none;appearance:none;transition:background .15s ease;";
+    row.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;font:inherit;padding:10px 4px;border-radius:10px;background:transparent;border:none;outline:none;-webkit-appearance:none;appearance:none;color:var(--ink-muted);transition:background .15s ease,color .15s ease;";
     var iconWrap = document.createElement("span");
     iconWrap.className = "rowC-item-icon";
-    iconWrap.style.cssText = "flex-shrink:0;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-muted);transition:color .15s ease;";
+    iconWrap.style.cssText = "flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;";
     iconWrap.innerHTML = it.icon;
     var txt = document.createElement("span");
     txt.className = "rowC-item-text";
-    txt.style.cssText = "font-size:13px;line-height:1.2;color:var(--ink-muted);min-width:0;text-align:center;";
+    txt.style.cssText = "font-size:13px;line-height:1.2;min-width:0;text-align:center;";
     var rowCBare = it.label.replace(/\.$/, "");
-    txt.innerHTML = '<strong class="rowC-item-title" style="font-weight:700;color:var(--ink-strong);">'+rowCBare+'</strong>';
+    txt.innerHTML = '<strong class="rowC-item-title">'+rowCBare+'</strong>';
     row.appendChild(iconWrap); row.appendChild(txt);
     row.addEventListener("mouseenter", function(){ activate(it.id); });
     row.addEventListener("focus", function(){ activate(it.id); });
@@ -2315,10 +2422,11 @@
     panesEl.style.background = isMockup ? "var(--surface)" : "";
     panesEl.style.overflow = isMockup ? "hidden" : "";
     inspireConfig.forEach(function(it){
+      if (!inspireListEntryVisible(it)) return;
       var on = it.id === id;
       var row = rowEls[it.id], iw = iconWrapEls[it.id], pane = paneEls[it.id];
       row.style.background = on ? "var(--surface-subtle)" : "transparent";
-      iw.style.color = on ? "var(--accent)" : "var(--ink-muted)";
+      row.style.color = on ? "var(--accent)" : "var(--ink-muted)";
       pane.style.opacity = on ? "1" : "0";
       pane.style.pointerEvents = on ? "auto" : "none";
       pane.style.zIndex = on ? "2" : "1";
@@ -2350,7 +2458,7 @@
     if (!rowCHeadingEl || !rowCHeadingEl.classList.contains("rowC-heading")) return;
     var headingH = rowCHeadingEl.getBoundingClientRect().height;
     var listW = listEl.clientWidth;
-    var n = inspireConfig.length;
+    var n = inspireListCount();
     var capH = ((listW - Math.max(0, n - 1) * 4) / n) * 0.7;
     var h = Math.min(headingH, capH);
     listEl.style.setProperty("--rowC-list-h", h + "px");
@@ -2364,7 +2472,7 @@
     window.addEventListener("resize", syncRowCListHeight);
   }
 
-  activate("youtube");
+  activate("chatgpt");
   syncRowCListHeight();
   syncRowCMockScale();
 })();
