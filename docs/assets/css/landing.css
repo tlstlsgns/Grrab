@@ -4,6 +4,7 @@
     --accent-05:rgba(188,19,254,.05); --accent-06:rgba(188,19,254,.06); --accent-10:rgba(188,19,254,.10);
     --accent-12:rgba(188,19,254,.12); --accent-20:rgba(188,19,254,.20); --accent-30:rgba(188,19,254,.30);
     --accent-wash:#FAF7FD;
+    --canvas-grid-line:var(--accent-10);
     /* ── ink ── */
     --ink:#1A1A1A; --ink-strong:#000; --ink-900:#111; --ink-700:#374151; --ink-muted:#6B7280;
     --ink-soft:#888; --ink-faint:#9CA3AF;
@@ -124,8 +125,8 @@
   .rowA-canvas-bleed::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
     background-color:var(--surface);
     background-image:
-      linear-gradient(var(--border) 1px,transparent 1px),
-      linear-gradient(90deg,var(--border) 1px,transparent 1px);
+      linear-gradient(var(--canvas-grid-line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--canvas-grid-line) 1px,transparent 1px);
     background-size:calc(16 * var(--canvas-u)) calc(16 * var(--canvas-u));}
   /* Centred by computed left/top rather than translate(-50%,-50%): the cursor's next
      move reads this element's offsetLeft, which ignores transforms. */
@@ -434,6 +435,31 @@
       #000 calc(var(--rowC-pad-bottom) + var(--rowC-fade-frac) * (100% - var(--rowC-pad-top) - var(--rowC-pad-bottom))));
     mask-image:linear-gradient(to top,transparent 0,transparent var(--rowC-pad-bottom),
       #000 calc(var(--rowC-pad-bottom) + var(--rowC-fade-frac) * (100% - var(--rowC-pad-top) - var(--rowC-pad-bottom))));}
+  .rowC-browser-window{box-shadow:var(--rowC-window-shadow) !important;}
+  /* CTA band — bleed holds shadow + top fade (mirror of Row C bottom fade, 333d/334c). */
+  .grrab-cta-bleed{position:relative;box-sizing:content-box;width:100%;
+    --cta-page-gutter:32px; --cta-shadow-x:min(64px,var(--cta-page-gutter));
+    --cta-fade-frac:0.22; --cta-pad-top:40px; --cta-pad-bottom:60px;
+    --cta-window-shadow:0 24px 32px rgba(0,0,0,.14);
+    padding:var(--cta-pad-top) var(--cta-shadow-x) var(--cta-pad-bottom);
+    margin:calc(-1 * var(--cta-pad-top)) calc(-1 * var(--cta-shadow-x)) calc(-1 * var(--cta-pad-bottom));
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,transparent var(--cta-pad-top),
+      #000 calc(var(--cta-pad-top) + var(--cta-fade-frac) * (100% - var(--cta-pad-top) - var(--cta-pad-bottom))));
+    mask-image:linear-gradient(to bottom,transparent 0,transparent var(--cta-pad-top),
+      #000 calc(var(--cta-pad-top) + var(--cta-fade-frac) * (100% - var(--cta-pad-top) - var(--cta-pad-bottom))));}
+  .grrab-cta-inner{position:relative;border-radius:0 0 var(--radius-md) var(--radius-md);
+    box-shadow:var(--cta-window-shadow);overflow:hidden;
+    --cta-grid-u:var(--demo-u);}
+  .grrab-cta-inner::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    border-radius:inherit;
+    background-image:
+      linear-gradient(var(--canvas-grid-line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--canvas-grid-line) 1px,transparent 1px);
+    background-size:calc(16 * var(--cta-grid-u)) calc(16 * var(--cta-grid-u));
+    background-position:calc(8 * var(--cta-grid-u)) calc(8 * var(--cta-grid-u));
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 100%);
+    mask-image:linear-gradient(to bottom,transparent 0%,#000 100%);}
+  .grrab-cta-inner > *{position:relative;z-index:1;}
   #inspirePanes{position:relative;width:100%;aspect-ratio:1920/1030;overflow:hidden;
     container-type:inline-size;}
   #inspirePanes .browser-frame{position:absolute;top:0;left:0;width:100%;height:100%;
@@ -946,13 +972,15 @@
       height:36px !important; padding:0 12px !important; font-size:14px !important; }
     .rowC-browser-bleed{
       --rowC-page-gutter:var(--page-pad-inline);
-      --rowC-shadow-x:min(64px,var(--rowC-page-gutter)); }
+      --rowC-shadow-x:min(64px,var(--rowC-page-gutter));
+      --rowC-window-shadow:0 20px 20px rgba(0,0,0,.14); }
     #top{ padding:0 20px 40px !important;
       align-items:flex-start !important; text-align:left !important; }
     .hero-h1{ font-size:34px !important; }
-    /* The CTA heading reads as the hero's below 820. Its weight moves too — the CTA token
-       is 700 and the hero's is 800 — so this sets both rather than the size alone. */
-    .cta-h2{ font-size:34px !important; font-weight:800 !important; }
+    /* CTA title matches hero lead size (335/336b); weight matches hero (800). */
+    .cta-h2{ font-size:calc(28px * 343 / 427) !important; font-weight:800 !important; }
+    #cta .cta-sub{ display:none !important; }
+    .grrab-cta-inner{ --cta-grid-u:calc((100vw - 40px) / 593); }
     .hero-sub{ font-size:20px !important; }
     /* The rows' subtitles read as the hero's below 820. Their desktop sizes differ from
        each other — 22px in Rows A and B, 20 in C and D — and stay that way; it is only
@@ -964,6 +992,11 @@
        .browser-frame rules below compute from 100vw - 40px on the same assumption. */
     section#top{ padding:0 20px 48px !important; }
     .feature-h2{ font-size:28px !important; }
+    /* Rows A, B, D — one-line titles on phone (335a); Row C keeps .feature-h2 above. */
+    .rowA-text .feature-h2,
+    .grrab-rowB .feature-h2,
+    .grrab-rowD .feature-h2{
+      font-size:calc(28px * 343 / 427) !important; }
     .nav-links{ display:none !important; }
 
     /* Hero — canvas first, browser below; headline centred on the canvas */
@@ -1016,6 +1049,10 @@
       text-shadow:0 0 6px rgba(255,255,255,.95),0 0 12px rgba(255,255,255,.85),
         1px 0 2px rgba(255,255,255,.9),-1px 0 2px rgba(255,255,255,.9),
         0 1px 2px rgba(255,255,255,.9),0 -1px 2px rgba(255,255,255,.9) !important; }
+    /* Line 1 must match line 2's width at 28px (247); scale lead by measured ratio. */
+    .hero-text .hero-h1 .hero-h1-tail{ font-size:28px !important; }
+    .hero-text .hero-h1 .hero-h1-lead{
+      font-size:calc(28px * 343 / 427) !important; }
     .hero-canvas-cta{
       display:inline-flex !important;
       position:absolute !important; top:calc(100% + 12px) !important; left:50% !important;
@@ -1169,20 +1206,21 @@
        own. What remains hidden above is hidden because it is too small to read, not
        because it is the wrong size. */
 
-    /* FINAL CTA + footer: reduce horizontal padding to 20px */
-    section[style*="accent-wash"] > div{ padding:54px 20px !important; }
+    /* FINAL CTA + footer: match #how horizontal padding */
+    #cta{ padding:0 20px 104px !important; }
+    .grrab-cta-bleed{--cta-page-gutter:var(--page-pad-inline);--cta-window-shadow:0 20px 20px rgba(0,0,0,.14);}
+    #cta .grrab-cta-inner{ padding:54px 0 !important; }
     footer > div{ padding:36px 20px !important; }
   }
   @media (max-width:480px){
     :root{--page-pad-inline:16px; --demo-browser-w:calc((100vw - 2 * var(--page-pad-inline)) * 0.7);}
     .rowC-browser-bleed{
       --rowC-page-gutter:var(--page-pad-inline);
-      --rowC-shadow-x:min(64px,var(--rowC-page-gutter)); }
+      --rowC-shadow-x:min(64px,var(--rowC-page-gutter));
+      --rowC-window-shadow:0 16px 16px rgba(0,0,0,.14); }
     header > div{ padding:12px 16px !important; }
     #top{ padding:0 16px 32px !important; }
     .hero-h1{ font-size:28px !important; }
-    .hero-text .hero-h1{ font-size:24px !important; }
-    .cta-h2{ font-size:28px !important; }
     .hero-sub{ font-size:18px !important; }
     .feature-sub{ font-size:18px !important; }
     #how{ padding:44px 16px !important; gap:76px !important; }
@@ -1191,10 +1229,12 @@
     /* side padding now 16px each → 100vw-32px in the mockup scale math */
 
     /* FINAL CTA + footer horizontal padding → 16px; CTA button shrink/wrap */
-    section[style*="accent-wash"] > div{ padding:44px 16px !important; }
+    #cta{ padding:0 16px 104px !important; }
+    .grrab-cta-bleed{--cta-window-shadow:0 16px 16px rgba(0,0,0,.14);}
+    #cta .grrab-cta-inner{ padding:44px 0 !important; }
     section#top{ padding:0 16px 40px !important; }
     footer > div{ padding:32px 16px !important; }
-    section[style*="accent-wash"] .btn-lg{ height:auto !important; min-height:48px;
+    #cta .btn-lg{ height:auto !important; min-height:48px;
       padding:12px 20px !important; font-size:15px !important; white-space:normal !important;
       max-width:100%; text-align:center; }
   }
