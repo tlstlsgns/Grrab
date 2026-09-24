@@ -2311,7 +2311,7 @@
           ])+
           googGridColHtml([
             googResultHtml('1/1.06', false, true),
-            googResultHtml('1/1.2', true, '/assets/landing/img/rowC/image-1.webp'),
+            googResultHtml('1/1.2', true, '/assets/landing/img/rowC/google-image-24.webp'),
             googResultHtml('1/0.88', false, true)
           ])+
           googGridColHtml([
