@@ -1,6 +1,24 @@
 (function(){
   "use strict";
 
+  var rowATileImgSrc = function(tile){
+    var img = tile ? tile.querySelector("img") : null;
+    return img ? img.getAttribute("src") : "";
+  };
+  /* Hero watermark demo uses these -before files on tiles 6, 7 and 13 (and a second tile 2).
+     Row A copies as-is, so any tile showing one of these paths is skipped. */
+  var rowATilePickExcluded = function(tile){
+    var src = rowATileImgSrc(tile);
+    return /hero-image-(9|2|14)-before\.webp/.test(src);
+  };
+
+  window.grrabRowDemo = {
+    tileImgSrc: rowATileImgSrc,
+    tilePickExcluded: rowATilePickExcluded,
+    toastMs: 1200,
+    toastFadeMs: 300
+  };
+
   var rowA = document.getElementById("rowA");
   if (!rowA) return;
 
@@ -250,16 +268,6 @@
     }
   };
 
-  var rowATileImgSrc = function(tile){
-    var img = tile ? tile.querySelector("img") : null;
-    return img ? img.getAttribute("src") : "";
-  };
-  /* Hero watermark demo uses these -before files on tiles 6, 7 and 13 (and a second tile 2).
-     Row A copies as-is, so any tile showing one of these paths is skipped. */
-  var rowATilePickExcluded = function(tile){
-    var src = rowATileImgSrc(tile);
-    return /hero-image-(9|2|14)-before\.webp/.test(src);
-  };
   var rowAPickEligible = function(tiles){
     var out = [];
     for (var ei = 0; ei < tiles.length; ei++) {
@@ -568,4 +576,7 @@
     window.grrabBrowser.stopRowA = rowAStop;
     window.grrabBrowser.playRowA = rowAPlay;
   }
+
+  window.grrabRowDemo.toastMs = rowAToastMs;
+  window.grrabRowDemo.toastFadeMs = rowAToastFadeMs;
 })();

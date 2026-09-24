@@ -165,6 +165,9 @@
     margin:0 1px 1px;
     background:var(--surface);
     border-radius:calc(4 * var(--hero-u)) calc(4 * var(--hero-u)) calc(12 * var(--hero-u)) calc(12 * var(--hero-u));}
+  .hero-body-main{position:relative;display:flex;flex-direction:row;flex:1 1 0;min-width:0;min-height:0;
+    overflow:hidden;
+    transition:width .75s cubic-bezier(.4,0,.2,1),flex-basis .75s cubic-bezier(.4,0,.2,1);}
   .hero-sidebar{display:flex;flex-direction:column;align-items:center;flex-shrink:0;
     width:calc(30 * var(--hero-u));gap:calc(24 * var(--hero-u));
     padding-top:calc(16 * var(--hero-u));border-right:0.5px solid #C8C8C0;}
@@ -181,14 +184,112 @@
      75px each while the tiles stayed 98px and overlapped. */
   .hero-gallery{display:grid;grid-template-columns:repeat(4,1fr);align-content:start;
     align-self:start;transition:transform .9s cubic-bezier(.4,0,.2,1);
-    gap:calc(10 * var(--hero-u));padding:calc(10 * var(--hero-u));flex:1;min-width:0;
-    background:var(--surface);border-radius:0 calc(14 * var(--hero-u)) 0 0;}
-  .hero-tile{position:relative;border-radius:calc(8 * var(--hero-u));overflow:hidden;
+    container-type:inline-size;
+    gap:calc(100% * 10 / 563);padding:calc(100% * 10 / 563);flex:1;min-width:0;
+    background:var(--surface);border-radius:0 calc(100% * 14 / 563) 0 0;}
+  /* Row D side panel — closed at width 0 everywhere; open only under Row D (below). */
+  .hero-side-panel{flex:0 0 auto;width:0;min-width:0;max-width:none;align-self:stretch;
+    overflow:hidden;background:var(--surface);box-sizing:border-box;
+    margin-left:0;padding:0;
+    container-type:inline-size;
+    display:flex;flex-direction:column;min-height:0;
+    transition:width .75s cubic-bezier(.4,0,.2,1);}
+  /* Side panel interior — extension layout scaled from 320px basis (100cqw on panel). */
+  .hero-sp-dashboard{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;width:100%;
+    padding-left:3px;gap:calc(100cqw * 6 / 320);overflow:hidden;}
+  .hero-sp-brand{display:flex;align-items:center;flex-shrink:0;box-sizing:border-box;
+    min-height:calc(100cqw * 36 / 320);
+    padding:calc(100cqw * 6 / 320) calc(100cqw * 8 / 320);
+    gap:calc(100cqw * 6 / 320);}
+  .hero-sp-brand-logo{width:calc(100cqw * 20 / 320);height:calc(100cqw * 20 / 320);
+    display:block;flex-shrink:0;border-radius:calc(100cqw * 5 / 320);}
+  .hero-sp-brand-name{font-family:var(--font-display);font-weight:700;line-height:1;
+    font-size:calc(100cqw * 14 / 320);letter-spacing:-0.02em;color:var(--ink-strong);
+    white-space:nowrap;}
+  .hero-sp-header{display:flex;align-items:center;justify-content:flex-start;flex-shrink:0;
+    min-height:calc(100cqw * 44 / 320);padding:calc(100cqw * 6 / 320) calc(100cqw * 8 / 320);
+    box-sizing:border-box;}
+  .hero-sp-avatar{width:calc(100cqw * 26 / 320);height:calc(100cqw * 26 / 320);border-radius:50%;
+    object-fit:cover;display:block;flex-shrink:0;}
+  .hero-sp-setting-row{--hero-sp-control-inline-size:calc(100cqw * 118.37 / 320);
+    display:flex;align-items:center;gap:calc(100cqw * 8 / 320);flex-shrink:0;
+    min-height:calc(100cqw * 44 / 320);margin:0 calc(100cqw * 8 / 320);
+    padding:calc(100cqw * 6 / 320) calc(100cqw * 8 / 320);box-sizing:border-box;
+    border:max(0.5px,1px) solid rgba(0,0,0,.1);background:#F7F7F7;
+    border-radius:calc(100cqw * 8 / 320);}
+  .hero-sp-setting-label{margin-right:auto;flex-shrink:0;min-width:0;
+    font-family:var(--font-sans);font-size:calc(100cqw * 12 / 320);font-weight:500;line-height:1.2;
+    color:#6b7280;white-space:nowrap;}
+  .hero-sp-chip{flex:0 0 auto;width:calc(var(--hero-sp-control-inline-size) / 2);align-self:stretch;
+    display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+    border:max(0.5px,1px) solid var(--border);border-radius:calc(100cqw * 6 / 320);
+    font-family:var(--font-sans);font-size:calc(100cqw * 12 / 320);font-weight:600;color:#6b7280;}
+  .hero-sp-switch{position:relative;display:flex;align-items:center;flex:0 0 auto;
+    width:var(--hero-sp-control-inline-size);align-self:stretch;box-sizing:border-box;
+    padding:calc(100cqw * 2 / 320);background:var(--accent);
+    border:max(0.5px,1px) solid var(--border);border-radius:calc(100cqw * 6 / 320);
+    box-shadow:inset 0 calc(100cqw * 1 / 320) calc(100cqw * 2 / 320) rgba(0,0,0,.35);}
+  .hero-sp-pill{position:absolute;top:calc(100cqw * 2 / 320);bottom:calc(100cqw * 2 / 320);
+    left:calc(100cqw * 2 / 320);width:calc(50% - calc(100cqw * 2 / 320));
+    background:#fff;border-radius:calc(100cqw * 4 / 320);pointer-events:none;
+    box-shadow:0 calc(100cqw * 1 / 320) calc(100cqw * 4 / 320) rgba(0,0,0,.14);}
+  .hero-sp-switch[data-mode="editor"] .hero-sp-pill{transform:translateX(100%);}
+  .hero-sp-switch-tab{position:relative;z-index:1;flex:1 1 0;min-width:0;border:none;background:transparent;
+    font-family:var(--font-sans);font-size:calc(100cqw * 11 / 320);font-weight:500;line-height:1;
+    padding:calc(100cqw * 3.5 / 320) calc(100cqw * 8 / 320);border-radius:calc(100cqw * 4 / 320);
+    color:rgba(255,255,255,.7);white-space:nowrap;text-align:center;}
+  .hero-sp-switch-tab[aria-selected="true"]{color:#6b7280;}
+  .hero-sp-dir{display:flex;align-items:stretch;gap:calc(100cqw * 8 / 320);flex-shrink:0;
+    min-height:calc(100cqw * 44 / 320);margin:0 calc(100cqw * 8 / 320);box-sizing:border-box;}
+  .hero-sp-dir-folder{flex:1;min-width:0;display:flex;align-items:center;gap:calc(100cqw * 6 / 320);
+    padding:calc(100cqw * 6 / 320) calc(100cqw * 10 / 320);box-sizing:border-box;
+    background:#F7F7F7;border:max(0.5px,1px) solid rgba(0,0,0,.1);border-radius:calc(100cqw * 6 / 320);}
+  .hero-sp-dir-folder svg{width:calc(100cqw * 16 / 320);height:calc(100cqw * 16 / 320);flex-shrink:0;color:#6b7280;}
+  .hero-sp-dir-label{flex:1;min-width:0;font-family:var(--font-sans);
+    font-size:calc(100cqw * 13 / 320);font-weight:400;line-height:1.2;color:#6b7280;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hero-sp-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+  .hero-sp-clear-bar{flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;
+    gap:calc(100cqw * 8 / 320);padding:calc(100cqw * 2 / 320) calc(100cqw * 8 / 320);
+    box-sizing:border-box;}
+  .hero-sp-clear-btn{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:calc(100cqw * 28 / 320);height:calc(100cqw * 28 / 320);padding:calc(100cqw * 4 / 320);
+    border:none;border-radius:calc(100cqw * 4 / 320);background:transparent;
+    color:rgba(0,0,0,.337);box-sizing:border-box;}
+  .hero-sp-clear-icon-trash{width:calc(100cqw * 18 / 320);height:calc(100cqw * 18 / 320);display:block;}
+  .hero-sp-list-wrap:not(.hero-sp-list-wrap--has-cards) .hero-sp-divider{display:none;}
+  .hero-sp-divider{flex-shrink:0;width:100%;display:flex;align-items:center;
+    gap:calc(100cqw * 8 / 320);padding:0 calc(100cqw * 12 / 320) calc(100cqw * 4 / 320) calc(100cqw * 12 / 320);
+    box-sizing:border-box;}
+  .hero-sp-divider::before,.hero-sp-divider::after{content:'';flex:1;height:max(0.5px,calc(100cqw * 1 / 320));
+    background:rgba(0,0,0,.149);}
+  .hero-sp-divider-label{font-family:var(--font-ui);font-size:calc(100cqw * 9 / 320);font-weight:600;
+    color:rgba(0,0,0,.2);letter-spacing:.05em;white-space:nowrap;flex-shrink:0;line-height:1;}
+  .hero-sp-list{flex:1;min-height:0;display:flex;flex-wrap:wrap;align-content:flex-start;
+    gap:calc(100cqw * 3 / 320);padding:calc(100cqw * 3 / 320) calc(100cqw * 8 / 320);
+    box-sizing:border-box;overflow:hidden;}
+  .hero-sp-card{width:calc(33.333% - calc(100cqw * 2 / 320));flex-shrink:0;box-sizing:border-box;
+    border-radius:calc(100cqw * 4 / 320);overflow:hidden;
+    box-shadow:0 calc(100cqw * 1 / 320) calc(100cqw * 3 / 320) rgba(0,0,0,.08);}
+  .hero-sp-card--enter{overflow:hidden;}
+  .hero-sp-card--enter .hero-sp-card-inner{transform-origin:top center;}
+  .hero-sp-card-inner{display:block;width:100%;background:#fff;
+    aspect-ratio:350 / 390;overflow:hidden;}
+  .hero-sp-card-inner img{width:100%;height:100%;object-fit:cover;display:block;}
+  .rowD-mockup-wrap .hero-body--side-panel-closed .hero-side-panel{
+    flex:0 0 auto;width:0;min-width:0;max-width:none;margin-left:0;}
+  .rowD-mockup-wrap .hero-body--side-panel-open .hero-side-panel{
+    width:calc((100% - calc(30 * var(--hero-u))) / 4);margin-left:auto;}
+  .rowD-mockup-wrap .hero-body--side-panel-open .hero-body-main{
+    border:max(0.5px,1px) solid var(--border);
+    border-radius:calc(4 * var(--hero-u)) calc(4 * var(--hero-u)) calc(4 * var(--hero-u)) calc(12 * var(--hero-u));
+    box-shadow:calc(2 * var(--hero-u)) 0 calc(3 * var(--hero-u)) rgba(0,0,0,.14);}
+  .hero-tile{position:relative;border-radius:calc(100cqw * 8 / 563);overflow:hidden;
     aspect-ratio:174.333/121.333;
     background:var(--surface-key);transition:box-shadow .25s ease,opacity .25s ease;}
   .hero-tile img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .hero-tile--tall{grid-row:span 2;aspect-ratio:174.333/252.667;}
-  .hero-tile--hot{opacity:1;box-shadow:0 0 calc(13 * var(--hero-u)) 0 var(--accent-bright);}
+  .hero-tile--hot{opacity:1;box-shadow:0 0 calc(100cqw * 13 / 563) 0 var(--accent-bright);}
   @media (min-width:821px){
     .hero-browser-slot .hero-gallery .hero-tile,
     .rowA-browser .hero-gallery .hero-tile{cursor:pointer;}
@@ -360,6 +461,19 @@
   .hero-toast img{width:calc(11 * var(--hero-btn-u));height:calc(11 * var(--hero-btn-u));display:block;
     filter:brightness(0) invert(1);}
   .hero-toast--in{opacity:1;}
+  .hero-body-main .rowD-toast-stack{
+    position:absolute;z-index:4;
+    top:calc(10 * var(--hero-btn-u));right:calc(10 * var(--hero-btn-u));
+    display:flex;flex-direction:column;align-items:flex-end;
+    gap:calc(8 * var(--hero-btn-u));pointer-events:none;}
+  .hero-body-main .rowD-toast-stack .hero-toast{
+    position:relative;top:auto;right:auto;
+    max-height:calc(40 * var(--hero-btn-u));
+    transition:opacity .3s ease,max-height .3s ease,padding .3s ease,margin .3s ease;}
+  .hero-body-main .rowD-toast-stack .hero-toast.hero-toast--leaving{
+    opacity:0;max-height:0;
+    padding-top:0;padding-bottom:0;
+    margin:0;overflow:hidden;pointer-events:none;}
   .hero-marquee{position:absolute;left:0;top:0;width:0;height:0;display:none;z-index:1;
     border:1px solid #BC13FE;background:rgba(188,19,254,.18);pointer-events:none;}
   .hero-marquee--on{display:block;}
@@ -526,27 +640,24 @@
      mockup to the left. 545px rather than 100% keeps the panel the size it is now — the
      column grew from 545 to 591 and the mockup would otherwise have grown with it. The
      46px left over sits to its right, which suits a panel whose shadow reaches left. */
-  /* Same 593/434 box as Row A/B; height comes from .rowD-media's aspect-ratio, not px. */
-  .rowD-media{min-width:0;width:100%;aspect-ratio:593/434;}
-  .rowD-mockup-wrap{position:relative;width:65%;height:100%;min-height:0;overflow:hidden;
-    border-radius:0 var(--radius-2xl) 0 0;}
-  /* 0.8 from the top-left. The wrapper keeps its 545x551 box because a transform does
-     not change layout, so the panel simply occupies less of it. container-type is
-     unaffected for the same reason — the cqw units inside keep their values and the
-     contents scale with the window instead of reflowing. */
-  .rowD-window{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
-    background:var(--surface-key);border-top:1px solid var(--border);border-right:1px solid var(--border);
-    /* size, not inline-size: the panel is now measured from the window's height, and
-       inline-size only exposes cqw. Safe here because the window is inset:0 inside a
-       fixed 300x551 wrapper, so its size never depends on its contents. */
-    border-radius:0 var(--radius-2xl) 0 0;container-type:size;
-    /* The divisor for every dimension inside. At 545 — this element's own width — the
-       panel renders at 1:1. 681.25 is 545 / 0.8, which shrinks everything inside to
-       four fifths while the window itself stays 545 wide. */
-    --rowD-basis:688.75;}
-  .rowD-viewport{position:relative;display:flex;flex-direction:row;justify-content:flex-end;align-items:flex-start;
-    flex:1;min-height:0;width:100%;overflow:hidden;}
-  .rowD-viewport img{width:100%;height:auto;display:block;}
+  /* Same 593/434 landing slot as Row A/B; the flying browser fills the column. */
+  .rowD-media{min-width:0;width:100%;}
+  .rowD-mockup-wrap{min-width:0;width:100%;aspect-ratio:593/434;position:relative;z-index:2;}
+  .rowD-cursor{position:absolute;left:0;top:0;z-index:3;pointer-events:none;
+    width:calc(26 * var(--demo-u));height:calc(26 * var(--demo-u));opacity:0;
+    transition:transform 1s cubic-bezier(.4,0,.2,1),opacity .25s ease;}
+  .rowD-cursor--on{opacity:1;}
+  .rowD-cursor img{width:100%;height:100%;display:block;}
+  .rowD-tip{position:absolute;left:calc(18 * var(--demo-u));top:calc(-20 * var(--demo-u));
+    display:inline-flex;align-items:center;white-space:nowrap;
+    padding:calc(4 * var(--demo-u)) calc(8 * var(--demo-u));
+    background:var(--accent-bright);border-radius:calc(5 * var(--demo-u));
+    font-family:var(--font-sans);font-weight:700;line-height:1;color:#fff;
+    font-size:calc(11 * var(--demo-u));
+    opacity:0;transition:opacity .3s ease;}
+  .rowD-tip--in{opacity:1;transition:none;}
+  .rowD-browser-copy{display:none;}
+  .grrab-rowD > .rowD-media{order:-1;}
 
   /* ── Row B — browser mockup shell (responsive; cqw basis = Figma 1× frame 645px) ── */
   /* Hovering a mockup hands control to the visitor: the built-in active tile and its
@@ -1161,50 +1272,9 @@
     /* The whole media box scales as one piece: 591 x 551 is what it measures on desktop,
        so holding that ratio keeps the panel and its cards in the same relationship at any
        width. The gap goes to a percentage of the same 591 for the same reason. */
-    .rowD-media{ height:auto !important; aspect-ratio:591/551 !important;
-      gap:2.7% !important; }
-
-    /* text/heading FIRST, mockup below. Only Row D needs an explicit order now that
-       every row puts its text first in the DOM. */
-    /* The order belongs on the flex box, not the mockup: the mockup now sits inside that
-       box with the cards, so ordering it only rearranged the two of them. */
     .rowD-media{ order:2 !important; }
-
-    /* ---- uniform-scale mockups (option A) ----
-       Each mockup renders at a fixed REFERENCE size, then scales to fit the mobile
-       content width (100vw minus 2×20px section padding = 100vw-40px). The wrapper
-       reserves the scaled height. Internal cqw stays 1× (window keeps its fixed ref
-       width as its own container). */
-
-    /* Row C — ref 520×554 */
-    /* 64.3% is 380/591 — the width it has inside the box on desktop. The height comes
-       from the box's ratio rather than a calc against the viewport, so the two children
-       stay in step however wide the screen is. */
-    .rowD-mockup-wrap{ position:relative !important; width:64.3% !important;
-      height:100% !important; flex-shrink:0 !important; overflow:hidden !important; }
-
-
-    /* ===== minimal mobile mockup chrome (Obsidian-style) ===== */
-
-    /* Row C chrome (.rowD-chrome) — no url text; inject domain */
-    /* The star stays hidden — it computes to about 7px here. The line does not: with the
-       injected "grrab.app" gone, hiding it would leave the address field empty. */
-    .rowD-urlbar-star{ display:none !important; }
-    /* The pill's outline and the logo's white disc read as clutter at this size — they
-       are ornament on a header 25px tall. The urlbar's padding is the 16 units the star
-       reserves on desktop; with the star hidden the line would otherwise run to the edge. */
-    .rowD-profile-pill{ border:0 !important; }
-    .rowD-profile-logo{ background:transparent !important; }
-    .rowD-urlbar{ padding-right:calc(16 / var(--rowD-basis) * 100cqh) !important; }
-    .rowD-profile-ext,
-    .rowD-profile-sep,
-    .rowD-profile-avatar{ display:none !important; }
-
-    /* The chrome's fixed sizes are gone. They were written when .rowD-window carried a
-       transform:scale and the header needed simplifying by hand; the window is now sized
-       by --rowD-basis from its own height, so the desktop rules scale the header on their
-       own. What remains hidden above is hidden because it is too small to read, not
-       because it is the wrong size. */
+    .rowD-mockup-wrap{ aspect-ratio:593/434 !important; height:auto !important; }
+    .rowD-browser-copy{ display:block !important; }
 
     /* FINAL CTA + footer: match #how horizontal padding */
     #cta{ padding:0 20px 104px !important; }
