@@ -779,16 +779,30 @@
     }, { threshold: 0.6 }).observe(firstCopyDemo);
   }
 
+  var firstCopySection = document.getElementById("first-copy");
   var modeSwitch = document.querySelector("#first-copy .docs-mode-switch");
+  var docsSyncModePanels = function(mode){
+    if (firstCopySection) firstCopySection.setAttribute("data-mode", mode);
+    if (!firstCopySection) return;
+    var panels = firstCopySection.querySelectorAll("[data-mode-panel]");
+    for (var pi = 0; pi < panels.length; pi++) {
+      var show = panels[pi].getAttribute("data-mode-panel") === mode;
+      if (show) panels[pi].removeAttribute("hidden");
+      else panels[pi].setAttribute("hidden", "");
+    }
+  };
   if (modeSwitch) {
     var modeTabs = modeSwitch.querySelectorAll('[role="tab"]');
+    docsSyncModePanels(modeSwitch.getAttribute("data-mode") || "editor");
     modeSwitch.addEventListener("click", function(e){
       var btn = e.target.closest('[role="tab"]');
       if (!btn || !modeSwitch.contains(btn)) return;
       var isEditor = modeTabs[1] === btn;
+      var mode = isEditor ? "editor" : "instant";
       docsDemoClearTimers();
       docsDemoReset();
-      modeSwitch.setAttribute("data-mode", isEditor ? "editor" : "instant");
+      modeSwitch.setAttribute("data-mode", mode);
+      docsSyncModePanels(mode);
       for (var mi = 0; mi < modeTabs.length; mi++) {
         modeTabs[mi].setAttribute("aria-selected", modeTabs[mi] === btn ? "true" : "false");
       }

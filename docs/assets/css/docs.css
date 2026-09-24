@@ -119,6 +119,10 @@
     font-family:var(--font-sans);font-size:14px;font-weight:600;line-height:1;padding:8px 20px;cursor:pointer;
     color:rgba(255,255,255,.7);border-radius:var(--radius-pill);}
   .docs-mode-switch [role="tab"][aria-selected="true"]{color:var(--ink-strong);}
+  #first-copy .docs-mode-detail{display:none;}
+  #first-copy[data-mode="instant"] .docs-mode-detail[data-mode-panel="instant"]{display:block;}
+  #first-copy[data-mode="editor"] .docs-mode-detail[data-mode-panel="editor"]{display:block;}
+  #first-copy .docs-mode-shared{margin-top:36px;}
   .docs-figure-placeholder{flex:1 1 280px;min-width:0;width:100%;aspect-ratio:797/580;display:block;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface-subtle);}
   .docs-demo-browser,
   .docs-demo-canvas{flex:1 1 280px;min-width:0;width:100%;aspect-ratio:593/434;position:relative;overflow:hidden;
